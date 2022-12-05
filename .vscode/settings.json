@@ -1,0 +1,11 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnPaste": false,
+  "editor.tabSize": 2,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.fixAll.stylelint": true
+  },
+  "files.eol": "\r\n",
+  "editor.rulers": [80]
+}
