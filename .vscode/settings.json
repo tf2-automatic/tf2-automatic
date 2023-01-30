@@ -6,6 +6,6 @@
     "source.fixAll.eslint": true,
     "source.fixAll.stylelint": true
   },
-  "files.eol": "\r\n",
+  "files.eol": "\n",
   "editor.rulers": [80]
 }
