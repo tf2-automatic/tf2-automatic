@@ -24,12 +24,29 @@ export class BotService
     steam: this.client,
     community: this.community,
     language: 'en',
+    // Just needs to be set for for custom storage to work
+    dataDirectory: '',
+    savePollData: true,
   });
 
   constructor(
     private configService: ConfigService<Config>,
     private storageService: StorageService
-  ) {}
+  ) {
+    this.manager.storage.on('read', (filename, callback) => {
+      this.storageService
+        .read(filename)
+        .then((contents) => callback(null, contents))
+        .catch((err) => callback(err));
+    });
+
+    this.manager.storage.on('save', (filename, contents, callback) => {
+      this.storageService
+        .write(filename, contents)
+        .then(() => callback(null))
+        .catch((err) => callback(err));
+    });
+  }
 
   async onApplicationBootstrap() {
     this.logger.debug('onApplicationBootstrap()');
