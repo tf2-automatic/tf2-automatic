@@ -66,6 +66,50 @@ export class BotService
 
     this.logger.log('Logged in to Steam!');
     this.logger.debug('SteamID: ' + this.getSteamID64());
+
+    this.logger.log('Getting API key...');
+    await this.waitForAPIKey();
+
+    this.client.on('webSession', (_, cookies) => {
+      this.logger.debug('Received web session');
+      this.setCookies(cookies);
+    });
+
+    this.client.on('error', (err) => {
+      this.logger.error(
+        'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
+      );
+      this.logger.debug(err);
+    });
+
+    this.logger.log('Bot ready!');
+  }
+
+  private async waitForAPIKey(): Promise<string> {
+    if (this.manager.apiKey) {
+      return this.manager.apiKey;
+    }
+
+    const cookies = await this.waitForWebSession();
+
+    await this.setCookies(cookies);
+
+    return this.manager.apiKey;
+  }
+
+  private setCookies(cookies: string[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.logger.debug('Setting cookies');
+
+      this.community.setCookies(cookies);
+      this.manager.setCookies(cookies, (err: Error) => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve();
+      });
+    });
   }
 
   private getSteamID(): SteamID {
@@ -78,6 +122,14 @@ export class BotService
 
   getSteamID64(): string {
     return this.getSteamID().getSteamID64();
+  }
+
+  private waitForWebSession(): Promise<string[]> {
+    return new Promise((resolve) => {
+      this.client.once('webSession', (_, cookies) => {
+        resolve(cookies);
+      });
+    });
   }
 
   private login(loginKey: string | null = null): Promise<void> {
