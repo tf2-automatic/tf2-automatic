@@ -8,6 +8,7 @@ const validation = Joi.object({
   STEAM_SHARED_SECRET: Joi.string().required(),
   STEAM_IDENTITY_SECRET: Joi.string().required(),
   DATA_DIR: Joi.string().required(),
+  DEBUG: Joi.boolean().optional(),
 });
 
 export { validation };
