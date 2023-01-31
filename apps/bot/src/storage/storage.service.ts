@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Config } from '../common/config/configuration';
 import fs from 'fs';
 import path from 'path';
+import writeFileAtomic from 'write-file-atomic';
 
 @Injectable()
 export class StorageService {
@@ -49,13 +50,7 @@ export class StorageService {
       }
 
       // Write to file
-      fs.writeFile(fullPath, data, (err) => {
-        if (err) {
-          return reject(err);
-        }
-
-        resolve(true);
-      });
+      return writeFileAtomic(fullPath, data);
     });
   }
 }
