@@ -5,5 +5,6 @@ import { BotService } from './bot.service';
 @Module({
   imports: [StorageModule],
   providers: [BotService],
+  exports: [BotService],
 })
 export class BotModule {}

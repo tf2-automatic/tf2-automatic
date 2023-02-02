@@ -4,6 +4,7 @@ import { BotModule } from './bot/bot.module';
 import configuration from './common/config/configuration';
 import { validation } from './common/config/validation';
 import { StorageModule } from './storage/storage.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { StorageModule } from './storage/storage.module';
     }),
     BotModule,
     StorageModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

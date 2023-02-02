@@ -60,6 +60,22 @@ export class BotService
     });
   }
 
+  isReady(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.running || this.client.steamID === null) {
+        return false;
+      }
+
+      this.community.loggedIn((err, loggedIn) => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve(loggedIn);
+      });
+    });
+  }
+
   private handleReadEvent(
     filename: string,
     callback: (err: Error | null, contents?: Buffer | null) => void

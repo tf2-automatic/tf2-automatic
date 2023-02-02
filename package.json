@@ -51,6 +51,7 @@
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.2.1",
     "@nestjs/platform-express": "^9.2.1",
+    "@nestjs/terminus": "^9.1.4",
     "joi": "^17.7.0",
     "path": "^0.12.7",
     "reflect-metadata": "^0.1.13",
