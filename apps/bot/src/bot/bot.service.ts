@@ -14,9 +14,7 @@ import SteamID from 'steamid';
 import FileManager from 'file-manager';
 
 @Injectable()
-export class BotService
-  implements OnApplicationBootstrap, OnApplicationShutdown
-{
+export class BotService implements OnApplicationShutdown {
   private logger = new Logger(BotService.name);
 
   private client: SteamUser = new SteamUser({
@@ -99,13 +97,7 @@ export class BotService
       .catch((err) => callback(err));
   }
 
-  async onApplicationBootstrap() {
-    this.logger.debug('onApplicationBootstrap()');
-
-    return this.start();
-  }
-
-  private async start(): Promise<void> {
+  async start(): Promise<void> {
     if (this._startPromise) {
       // Already starting. Reuse existing promise
       return this._startPromise;
