@@ -11,6 +11,7 @@ import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
 import SteamID from 'steamid';
+import FileManager from 'file-manager';
 
 @Injectable()
 export class BotService
@@ -18,13 +19,16 @@ export class BotService
 {
   private logger = new Logger(BotService.name);
 
-  private client: SteamUser = new SteamUser();
+  private client: SteamUser = new SteamUser({
+    autoRelogin: true,
+    // Just needs to be set for for custom storage to work
+    dataDirectory: '',
+  });
   private community: SteamCommunity = new SteamCommunity();
   private manager = new SteamTradeOfferManager({
     steam: this.client,
     community: this.community,
     language: 'en',
-    // Just needs to be set for for custom storage to work
     dataDirectory: '',
     savePollData: true,
   });
@@ -37,19 +41,46 @@ export class BotService
     private configService: ConfigService<Config>,
     private storageService: StorageService
   ) {
-    this.manager.storage.on('read', (filename, callback) => {
-      this.storageService
-        .read(filename)
-        .then((contents) => callback(null, contents))
-        .catch((err) => callback(err));
+    // Add type to manager storage
+    const managerStorage = this.manager.storage as FileManager;
+    managerStorage.on('read', (filename, callback) => {
+      this.handleReadEvent(filename, callback);
     });
 
-    this.manager.storage.on('save', (filename, contents, callback) => {
-      this.storageService
-        .write(filename, contents)
-        .then(() => callback(null))
-        .catch((err) => callback(err));
+    managerStorage.on('save', (filename, contents, callback) => {
+      this.handleWriteEvent(filename, contents, callback);
     });
+
+    this.client.storage.on('read', (filename, callback) => {
+      this.handleReadEvent(filename, callback);
+    });
+
+    this.client.storage.on('save', (filename, contents, callback) => {
+      this.handleWriteEvent(filename, contents, callback);
+    });
+  }
+
+  private handleReadEvent(
+    filename: string,
+    callback: (err: Error | null, contents?: Buffer | null) => void
+  ): void {
+    this.storageService
+      .read(filename)
+      .then((contents) =>
+        callback(null, contents ? Buffer.from(contents, 'utf8') : null)
+      )
+      .catch((err) => callback(err));
+  }
+
+  private handleWriteEvent(
+    filename: string,
+    contents: Buffer | string,
+    callback: (err: Error | null) => void
+  ): void {
+    this.storageService
+      .write(filename, contents.toString())
+      .then(() => callback(null))
+      .catch((err) => callback(err));
   }
 
   async onApplicationBootstrap() {
