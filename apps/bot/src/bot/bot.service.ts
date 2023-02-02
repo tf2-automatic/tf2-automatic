@@ -127,16 +127,13 @@ export class BotService
     this.logger.log('Bot is ready');
   }
 
-  private async waitForAPIKey(): Promise<string> {
+  private async waitForAPIKey(): Promise<void> {
     if (this.manager.apiKey) {
-      return this.manager.apiKey;
+      return;
     }
 
     const cookies = await this.waitForWebSession();
-
     await this.setCookies(cookies);
-
-    return this.manager.apiKey;
   }
 
   private setCookies(cookies: string[]): Promise<void> {
