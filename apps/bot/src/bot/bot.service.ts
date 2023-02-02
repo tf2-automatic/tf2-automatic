@@ -29,6 +29,9 @@ export class BotService
     savePollData: true,
   });
 
+  private _startPromise: Promise<void> | null = null;
+  private running = false;
+
   constructor(
     private configService: ConfigService<Config>,
     private storageService: StorageService
@@ -51,6 +54,26 @@ export class BotService
   async onApplicationBootstrap() {
     this.logger.debug('onApplicationBootstrap()');
 
+    return this.start();
+  }
+
+  private async start(): Promise<void> {
+    if (this._startPromise) {
+      // Already starting. Reuse existing promise
+      return this._startPromise;
+    } else if (this.running) {
+      // Already started
+      return;
+    }
+
+    this._startPromise = this._start().finally(() => {
+      // Reset promise
+      this._startPromise = null;
+    });
+    return this._startPromise;
+  }
+
+  private async _start(): Promise<void> {
     this.client.on('loginKey', (key) => {
       this.logger.debug('Received new login key');
       this.storageService.write('loginkey.txt', key).catch((err) => {
@@ -99,7 +122,9 @@ export class BotService
       this.logger.debug(err);
     });
 
-    this.logger.log('Bot ready!');
+    this.running = true;
+
+    this.logger.log('Bot is ready');
   }
 
   private async waitForAPIKey(): Promise<string> {
@@ -228,8 +253,18 @@ export class BotService
 
   async onApplicationShutdown() {
     this.logger.debug('onApplicationShutdown()');
+    return this.stop();
+  }
+
+  private async stop(): Promise<void> {
+    this.logger.log('Stopping bot...');
+
     this.manager.shutdown();
     this.client.logOff();
     this.client.removeAllListeners();
+
+    this.running = false;
+
+    this.logger.log('Bot has been stopped');
   }
 }
