@@ -30,6 +30,7 @@ export class BotService
   });
 
   private _startPromise: Promise<void> | null = null;
+  private lastWebLogin: Date | null = null;
   private running = false;
 
   constructor(
@@ -84,6 +85,11 @@ export class BotService
       });
     });
 
+    this.community.on('sessionExpired', () => {
+      this.logger.debug('Web session expired');
+      this.webLogOn();
+    });
+
     const loginKey = await this.storageService.read('loginkey.txt');
 
     if (loginKey) {
@@ -125,6 +131,21 @@ export class BotService
     this.running = true;
 
     this.logger.log('Bot is ready');
+  }
+
+  private webLogOn(): void {
+    this.logger.debug('webLogOn()');
+
+    const now = new Date();
+    if (
+      this.lastWebLogin === null ||
+      now.getTime() - 60000 > this.lastWebLogin.getTime()
+    ) {
+      // Last login was more than a minute ago, so we can log in again
+      this.logger.verbose('Refreshing web session...');
+      this.lastWebLogin = new Date();
+      this.client.webLogOn();
+    }
   }
 
   private async waitForAPIKey(): Promise<void> {
