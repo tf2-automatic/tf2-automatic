@@ -121,6 +121,18 @@ export class BotService
       this.webLogOn();
     });
 
+    this.client.on('newItems', () => {
+      this.logger.debug('Received new items');
+      this.community.resetItemNotifications((err) => {
+        if (err) {
+          this.logger.error(
+            'Failed to reset item notifications: ' + err.message
+          );
+          this.logger.debug(err);
+        }
+      });
+    });
+
     const loginKey = await this.storageService.read('loginkey.txt');
 
     if (loginKey) {
