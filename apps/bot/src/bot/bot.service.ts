@@ -262,6 +262,8 @@ export class BotService
     this.manager.shutdown();
     this.client.logOff();
     this.client.removeAllListeners();
+    this.community.removeAllListeners();
+    this.manager.removeAllListeners();
 
     this.running = false;
 
