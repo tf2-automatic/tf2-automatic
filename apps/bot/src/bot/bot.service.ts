@@ -149,6 +149,10 @@ export class BotService
       });
     });
 
+    this.manager.on('debug', (message: string) => {
+      this.logger.debug(message);
+    });
+
     const loginKey = await this.storageService.read('loginkey.txt');
 
     if (loginKey) {
