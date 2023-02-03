@@ -19,15 +19,20 @@ async function bootstrap() {
 
   const port = configService.getOrThrow<number>('port');
 
-  await app.listen(port);
-  Logger.log(`Application is running on: http://localhost:${port}/`);
+  await app.init();
 
   // Start bot after everything else to make sure events will be caught and handled properly
-  botService.start().catch((err) => {
+  try {
+    await botService.start();
+  } catch (err) {
     Logger.error('Failed to start bot: ' + err.message);
     Logger.debug(err);
     return app.close();
-  });
+  }
+
+  await app.listen(port);
+
+  Logger.log(`Application is running on: http://localhost:${port}/`);
 }
 
 bootstrap();
