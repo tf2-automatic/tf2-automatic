@@ -23,7 +23,11 @@ async function bootstrap() {
   Logger.log(`Application is running on: http://localhost:${port}/`);
 
   // Start bot after everything else to make sure events will be caught and handled properly
-  await botService.start();
+  botService.start().catch((err) => {
+    Logger.error('Failed to start bot: ' + err.message);
+    Logger.debug(err);
+    return app.close();
+  });
 }
 
 bootstrap();

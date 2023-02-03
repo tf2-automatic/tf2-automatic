@@ -148,19 +148,7 @@ export class BotService implements OnApplicationShutdown {
       this.logger.debug('Found login key');
     }
 
-    try {
-      await this.login(loginKey ?? null);
-    } catch (err) {
-      this.logger.error(
-        'Failed to log in to Steam: ' +
-          err.message +
-          ' (eresult: ' +
-          err.eresult +
-          ')'
-      );
-      this.logger.debug(err);
-      process.exit(1);
-    }
+    await this.login(loginKey ?? null);
 
     this.logger.log('Logged in to Steam!');
     this.logger.debug('SteamID: ' + this.getSteamID64());
