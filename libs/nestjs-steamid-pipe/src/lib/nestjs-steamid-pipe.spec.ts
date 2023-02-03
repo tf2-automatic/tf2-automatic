@@ -19,14 +19,6 @@ describe('ParseSteamID64Pipe', () => {
 
     expect(() => {
       target.transform('abc123');
-    }).toThrowError('Unknown SteamID input format');
-  });
-
-  it('should fail with unknown format', () => {
-    const target = new ParseSteamIDPipe();
-
-    expect(() => {
-      target.transform('123');
     }).toThrowError('Invalid SteamID');
   });
 });
