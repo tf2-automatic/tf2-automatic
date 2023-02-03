@@ -71,6 +71,10 @@ export class BotService implements OnApplicationShutdown {
     });
   }
 
+  getClient(): SteamUser {
+    return this.client;
+  }
+
   private handleReadEvent(
     filename: string,
     callback: (err: Error | null, contents?: Buffer | null) => void
