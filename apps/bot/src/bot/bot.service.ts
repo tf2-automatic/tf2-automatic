@@ -272,6 +272,7 @@ export class BotService implements OnApplicationShutdown {
       let usingLoginKey = loginKey !== null;
 
       const removeListeners = () => {
+        clearTimeout(timeout);
         this.client.removeListener('loggedOn', loggedOnListener);
         this.client.removeListener('error', errorListener);
       };
@@ -300,6 +301,11 @@ export class BotService implements OnApplicationShutdown {
         // Some other error
         return reject(err);
       };
+
+      const timeout = setTimeout(() => {
+        removeListeners();
+        reject(new Error('Timed out waiting for logon'));
+      }, 10000);
 
       const login = () => {
         this.logger.debug(
