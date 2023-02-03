@@ -237,10 +237,18 @@ export class BotService implements OnApplicationShutdown {
   }
 
   private waitForWebSession(): Promise<string[]> {
-    return new Promise((resolve) => {
-      this.client.once('webSession', (_, cookies) => {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.client.removeListener('webSession', listener);
+        reject(new Error('Timed out waiting for web session'));
+      }, 10000);
+
+      const listener = (_, cookies: string[]) => {
+        clearTimeout(timeout);
         resolve(cookies);
-      });
+      };
+
+      this.client.once('webSession', listener);
     });
   }
 
