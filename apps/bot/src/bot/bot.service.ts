@@ -1,8 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  OnApplicationBootstrap,
-  OnApplicationShutdown,
-} from '@nestjs/common/interfaces';
+import { OnApplicationShutdown } from '@nestjs/common/interfaces';
 import SteamUser from 'steam-user';
 import SteamCommunity from 'steamcommunity';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
