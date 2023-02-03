@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
+import { Friends } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 
 @Injectable()
@@ -9,14 +10,7 @@ export class FriendsService {
 
   constructor(private readonly botService: BotService) {}
 
-  async getFriends(): Promise<
-    {
-      steamid64: string;
-      isFriend: boolean;
-      isInvited: boolean;
-      hasInvitedUs: boolean;
-    }[]
-  > {
+  async getFriends(): Promise<Friends> {
     return Object.keys(this.client.myFriends).map((steamid) => {
       const relationship = this.client.myFriends[steamid];
 

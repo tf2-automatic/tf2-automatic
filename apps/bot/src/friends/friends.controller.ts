@@ -2,27 +2,30 @@ import { Controller, Post, Delete, Get, Param } from '@nestjs/common';
 import SteamID from 'steamid';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import { FriendsService } from './friends.service';
+import {
+  Friends,
+  Friend,
+  AddFriend,
+  DeleteFriend,
+  basePath,
+  addFriendPath,
+  deleteFriendPath,
+  getFriendsPath,
+} from '@tf2-automatic/bot-data';
 
-@Controller('friends')
+@Controller(basePath)
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
   @Get()
-  getFriends(): Promise<
-    {
-      steamid64: string;
-      isFriend: boolean;
-      isInvited: boolean;
-      hasInvitedUs: boolean;
-    }[]
-  > {
+  getFriends(): Promise<Friends> {
     return this.friendsService.getFriends();
   }
 
-  @Post('/:steamid')
+  @Post(addFriendPath)
   async addFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<{ added: boolean }> {
+  ): Promise<AddFriend> {
     const added = await this.friendsService.addFriend(steamid);
 
     return {
@@ -30,10 +33,10 @@ export class FriendsController {
     };
   }
 
-  @Delete('/:steamid')
+  @Delete(deleteFriendPath)
   async deleteFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<{ deleted: boolean }> {
+  ): Promise<DeleteFriend> {
     await this.friendsService.deleteFriend(steamid);
 
     return {
@@ -41,14 +44,10 @@ export class FriendsController {
     };
   }
 
-  @Get('/:steamid')
+  @Get(getFriendsPath)
   async isFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<{
-    isFriend: boolean;
-    isInvited: boolean;
-    hasInvitedUs: boolean;
-  }> {
+  ): Promise<Friend> {
     const [isFriend, isInvited, hasInvitedUs] = await Promise.all([
       this.friendsService.isFriend(steamid),
       this.friendsService.isInvited(steamid),
@@ -56,6 +55,7 @@ export class FriendsController {
     ]);
 
     return {
+      steamid64: steamid.getSteamID64(),
       isFriend,
       isInvited,
       hasInvitedUs,
