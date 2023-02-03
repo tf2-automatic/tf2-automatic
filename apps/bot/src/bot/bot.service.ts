@@ -16,7 +16,7 @@ export class BotService implements OnApplicationShutdown {
 
   private client: SteamUser = new SteamUser({
     autoRelogin: true,
-    // Just needs to be set for for custom storage to work
+    // Just needs to be set for custom storage to work
     dataDirectory: '',
   });
   private community: SteamCommunity = new SteamCommunity();
