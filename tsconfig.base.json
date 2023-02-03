@@ -15,6 +15,9 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@tf2-automatic/is-steamid-validator": [
+        "libs/is-steamid-validator/src/index.ts"
+      ],
       "@tf2-automatic/nestjs-steamid-pipe": [
         "libs/nestjs-steamid-pipe/src/index.ts"
       ]
