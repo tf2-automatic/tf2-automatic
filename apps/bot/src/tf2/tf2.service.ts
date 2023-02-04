@@ -87,6 +87,12 @@ export class TF2Service implements OnApplicationShutdown {
         return this.processUseItem(task.assetid);
       case TaskType.Delete:
         return this.processDeleteItem(task.assetid);
+      default:
+        // Should never get here. Gives compile-time error if not all task types
+        // are handled.
+
+        // @ts-expect-error
+        throw new Error('Unknown task type: ' + task.type);
     }
   }
 
