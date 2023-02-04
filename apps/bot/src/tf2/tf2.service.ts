@@ -2,7 +2,7 @@ import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
 import { Logger } from '@nestjs/common';
-import { CraftRecipe } from '@tf2-automatic/bot-data';
+import { CraftDto } from '@tf2-automatic/bot-data';
 
 @Injectable()
 export class TF2Service implements OnApplicationShutdown {
@@ -41,8 +41,8 @@ export class TF2Service implements OnApplicationShutdown {
     });
   }
 
-  craft(assetids: string[], recipe: CraftRecipe): Promise<any> {
-    this.tf2.craft(assetids, recipe);
+  craft(craft: CraftDto): Promise<any> {
+    this.tf2.craft(craft.assetids, craft.recipe);
 
     return this.waitForEvent('craftingComplete').then(([recipe, assetids]) => {
       return assetids;

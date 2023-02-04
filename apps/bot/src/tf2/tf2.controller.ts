@@ -33,6 +33,6 @@ export class TF2Controller {
     )
     body: CraftDto
   ): Promise<string[]> {
-    return this.tf2Service.craft(body.assetids, body.recipe);
+    return this.tf2Service.craft(body);
   }
 }
