@@ -12,6 +12,7 @@ import {
   getTF2Account,
   craftTF2Items,
   CraftDto,
+  CraftResult,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
@@ -32,7 +33,7 @@ export class TF2Controller {
       })
     )
     body: CraftDto
-  ): Promise<string[]> {
+  ): Promise<CraftResult> {
     return this.tf2Service.craft(body);
   }
 }

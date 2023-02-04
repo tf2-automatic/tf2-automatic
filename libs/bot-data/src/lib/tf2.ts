@@ -13,6 +13,17 @@ export enum CraftRecipe {
   CombineReclaimed = 5,
 }
 
+enum CraftRecipeResults {
+  Failed = -1,
+}
+
+export type CraftRecipeResult = CraftRecipe | CraftRecipeResults;
+
+export interface CraftResult {
+  recipe: CraftRecipeResult;
+  assetids: string[];
+}
+
 export class CraftDto {
   @IsString({
     each: true,
