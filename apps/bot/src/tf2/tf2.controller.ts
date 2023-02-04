@@ -6,6 +6,7 @@ import {
   Body,
   ValidationPipe,
   HttpCode,
+  Param,
 } from '@nestjs/common';
 import {
   TF2Account,
@@ -14,6 +15,7 @@ import {
   craftTF2Items,
   CraftDto,
   CraftResult,
+  useTF2Item,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
@@ -37,5 +39,17 @@ export class TF2Controller {
     body: CraftDto
   ): Promise<CraftResult> {
     return this.tf2Service.craft(body);
+  }
+
+  @Post(useTF2Item)
+  @HttpCode(200)
+  useItem(@Param('id') assetid: string): Promise<{
+    success: boolean;
+  }> {
+    return this.tf2Service.useItem(assetid).then(() => {
+      return {
+        success: true,
+      };
+    });
   }
 }

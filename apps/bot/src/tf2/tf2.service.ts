@@ -69,6 +69,18 @@ export class TF2Service implements OnApplicationShutdown {
     );
   }
 
+  useItem(assetid: string): Promise<void> {
+    this.logger.debug('Using item (assetid: ' + assetid + ')');
+
+    this.tf2.useItem(assetid);
+
+    return this.waitForEvent('itemRemoved', ([item]) => {
+      return item.id == assetid;
+    }).then(() => {
+      this.logger.debug('Item used (assetid: ' + assetid + ')');
+    });
+  }
+
   onApplicationShutdown(): void {
     this.client.gamesPlayed([]);
     this.tf2.removeAllListeners();
