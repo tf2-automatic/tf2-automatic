@@ -75,6 +75,10 @@ export class BotService implements OnApplicationShutdown {
     return this.client;
   }
 
+  getManager(): SteamTradeOfferManager {
+    return this.manager;
+  }
+
   private handleReadEvent(
     filename: string,
     callback: (err: Error | null, contents?: Buffer | null) => void
