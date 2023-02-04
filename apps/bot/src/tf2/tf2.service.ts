@@ -81,6 +81,18 @@ export class TF2Service implements OnApplicationShutdown {
     });
   }
 
+  deleteItem(assetid: string): Promise<void> {
+    this.logger.debug('Deleting item (assetid: ' + assetid + ')');
+
+    this.tf2.deleteItem(assetid);
+
+    return this.waitForEvent('itemRemoved', ([item]) => {
+      return item.id == assetid;
+    }).then(() => {
+      this.logger.debug('Item deleted (assetid: ' + assetid + ')');
+    });
+  }
+
   onApplicationShutdown(): void {
     this.client.gamesPlayed([]);
     this.tf2.removeAllListeners();

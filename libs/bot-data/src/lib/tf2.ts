@@ -39,3 +39,4 @@ export const tf2BaseUrl = '/tf2';
 export const getTF2Account = '/account';
 export const craftTF2Items = '/craft';
 export const useTF2Item = '/items/:id/use';
+export const deleteTF2Item = '/items/:id';

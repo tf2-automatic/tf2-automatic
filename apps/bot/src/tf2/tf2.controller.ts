@@ -16,6 +16,7 @@ import {
   CraftDto,
   CraftResult,
   useTF2Item,
+  deleteTF2Item,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
@@ -47,6 +48,15 @@ export class TF2Controller {
     success: boolean;
   }> {
     return this.tf2Service.useItem(assetid).then(() => {
+      return {
+        success: true,
+      };
+    });
+  }
+
+  @Delete(deleteTF2Item)
+  deleteItem(@Param('id') assetid: string): Promise<any> {
+    return this.tf2Service.deleteItem(assetid).then(() => {
       return {
         success: true,
       };
