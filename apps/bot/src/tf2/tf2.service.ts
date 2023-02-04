@@ -78,6 +78,8 @@ export class TF2Service implements OnApplicationShutdown {
   private async process(task: Task): Promise<any> {
     this.logger.debug('Processing task: ' + task.type);
 
+    await this.connectToGC();
+
     switch (task.type) {
       case TaskType.Craft:
         return this.processCraft(task.craft);
