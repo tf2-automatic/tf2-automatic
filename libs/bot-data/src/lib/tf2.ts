@@ -35,8 +35,8 @@ export class CraftDto {
   recipe: CraftRecipe;
 }
 
-export const tf2BaseUrl = '/tf2';
-export const getTF2Account = '/account';
-export const craftTF2Items = '/craft';
-export const useTF2Item = '/items/:id/use';
-export const deleteTF2Item = '/items/:id';
+export const TF2_BASE_URL = '/tf2';
+export const TF2_GET_ACCOUNT = '/account';
+export const TF2_CRAFT = '/craft';
+export const TF2_USE_ITEM = '/items/:id/use';
+export const TF2_DELETE_ITEM = '/items/:id';

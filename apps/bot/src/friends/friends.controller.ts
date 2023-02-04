@@ -7,22 +7,23 @@ import {
   Friend,
   AddFriend,
   DeleteFriend,
-  friendsBasePath,
-  addFriendPath,
-  deleteFriendPath,
-  getFriendsPath,
+  ADD_FRIEND,
+  DELETE_FRIEND,
+  FRIENDS_BASE_PATH,
+  GET_FRIEND,
+  GET_FRIENDS,
 } from '@tf2-automatic/bot-data';
 
-@Controller(friendsBasePath)
+@Controller(FRIENDS_BASE_PATH)
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
-  @Get()
+  @Get(GET_FRIENDS)
   getFriends(): Promise<Friends> {
     return this.friendsService.getFriends();
   }
 
-  @Post(addFriendPath)
+  @Post(ADD_FRIEND)
   async addFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<AddFriend> {
@@ -33,7 +34,7 @@ export class FriendsController {
     };
   }
 
-  @Delete(deleteFriendPath)
+  @Delete(DELETE_FRIEND)
   async deleteFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<DeleteFriend> {
@@ -44,7 +45,7 @@ export class FriendsController {
     };
   }
 
-  @Get(getFriendsPath)
+  @Get(GET_FRIEND)
   async isFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<Friend> {

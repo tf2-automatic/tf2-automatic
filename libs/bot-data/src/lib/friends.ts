@@ -15,7 +15,8 @@ export interface DeleteFriend {
   deleted: boolean;
 }
 
-export const friendsBasePath = '/friends';
-export const getFriendsPath = '/';
-export const addFriendPath = '/:steamid';
-export const deleteFriendPath = '/:steamid';
+export const FRIENDS_BASE_PATH = '/friends';
+export const GET_FRIENDS = '/';
+export const GET_FRIEND = '/';
+export const ADD_FRIEND = '/:steamid';
+export const DELETE_FRIEND = '/:steamid';

@@ -10,26 +10,26 @@ import {
 } from '@nestjs/common';
 import {
   TF2Account,
-  tf2BaseUrl,
-  getTF2Account,
-  craftTF2Items,
   CraftDto,
   CraftResult,
-  useTF2Item,
-  deleteTF2Item,
+  TF2_BASE_URL,
+  TF2_CRAFT,
+  TF2_DELETE_ITEM,
+  TF2_GET_ACCOUNT,
+  TF2_USE_ITEM,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
-@Controller(tf2BaseUrl)
+@Controller(TF2_BASE_URL)
 export class TF2Controller {
   constructor(private readonly tf2Service: TF2Service) {}
 
-  @Get(getTF2Account)
+  @Get(TF2_GET_ACCOUNT)
   getAccount(): Promise<TF2Account> {
     return this.tf2Service.getAccount();
   }
 
-  @Post(craftTF2Items)
+  @Post(TF2_CRAFT)
   @HttpCode(200)
   craft(
     @Body(
@@ -42,7 +42,7 @@ export class TF2Controller {
     return this.tf2Service.craft(body);
   }
 
-  @Post(useTF2Item)
+  @Post(TF2_USE_ITEM)
   @HttpCode(200)
   useItem(@Param('id') assetid: string): Promise<{
     success: boolean;
@@ -54,7 +54,7 @@ export class TF2Controller {
     });
   }
 
-  @Delete(deleteTF2Item)
+  @Delete(TF2_DELETE_ITEM)
   deleteItem(@Param('id') assetid: string): Promise<any> {
     return this.tf2Service.deleteItem(assetid).then(() => {
       return {
