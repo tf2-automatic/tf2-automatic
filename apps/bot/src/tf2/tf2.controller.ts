@@ -7,6 +7,7 @@ import {
   ValidationPipe,
   HttpCode,
   Param,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   TF2Account,
@@ -30,7 +31,7 @@ export class TF2Controller {
   }
 
   @Post(TF2_CRAFT)
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   craft(
     @Body(
       new ValidationPipe({
@@ -43,7 +44,7 @@ export class TF2Controller {
   }
 
   @Post(TF2_USE_ITEM)
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   useItem(@Param('id') assetid: string): Promise<{
     success: boolean;
   }> {

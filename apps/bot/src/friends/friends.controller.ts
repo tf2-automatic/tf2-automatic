@@ -1,4 +1,12 @@
-import { Controller, Post, Delete, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Param,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
 import SteamID from 'steamid';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import { FriendsService } from './friends.service';
@@ -24,6 +32,7 @@ export class FriendsController {
   }
 
   @Post(ADD_FRIEND)
+  @HttpCode(HttpStatus.OK)
   async addFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<AddFriend> {
