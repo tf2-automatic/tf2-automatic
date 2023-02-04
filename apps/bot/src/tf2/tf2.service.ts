@@ -6,7 +6,12 @@ import {
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
 import { Logger } from '@nestjs/common';
-import { CraftDto, CraftResult } from '@tf2-automatic/bot-data';
+import {
+  CraftDto,
+  CraftResult,
+  SortBackpack,
+  SortBackpackDto,
+} from '@tf2-automatic/bot-data';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 
@@ -14,9 +19,10 @@ enum TaskType {
   Craft = 'CRAFT',
   Use = 'USE',
   Delete = 'DELETE',
+  Sort = 'SORT',
 }
 
-type Task = CraftTask | UseTask | DeleteTask;
+type Task = CraftTask | UseTask | DeleteTask | SortTask;
 
 type BaseTask = {
   type: TaskType;
@@ -35,6 +41,11 @@ type UseTask = BaseTask & {
 type DeleteTask = BaseTask & {
   type: TaskType.Delete;
   assetid: string;
+};
+
+type SortTask = BaseTask & {
+  type: TaskType.Sort;
+  sort: SortBackpack;
 };
 
 class ItemNotInBackpackException extends BadRequestException {
@@ -98,6 +109,8 @@ export class TF2Service implements OnApplicationShutdown {
         return this.processUseItem(task.assetid);
       case TaskType.Delete:
         return this.processDeleteItem(task.assetid);
+      case TaskType.Sort:
+        return this.processSortBackpack();
       default:
         // Should never get here. Gives compile-time error if not all task types
         // are handled.
@@ -205,6 +218,27 @@ export class TF2Service implements OnApplicationShutdown {
     });
   }
 
+  sortBackpack(sort: SortBackpackDto): Promise<void> {
+    const task: SortTask = {
+      type: TaskType.Sort,
+      sort: sort.sort,
+    };
+
+    return this.queue.push(task).then((result) => {
+      return result as ReturnType<TF2Service['processSortBackpack']>;
+    });
+  }
+
+  private processSortBackpack(): Promise<void> {
+    this.logger.debug('Sorting backpack');
+
+    this.tf2.sortBackpack(102);
+
+    return this.waitForNoEvent('itemChanged', 1000).then(() => {
+      this.logger.debug('Backpack sorted');
+    });
+  }
+
   onApplicationShutdown(): void {
     this.client.gamesPlayed([]);
     this.tf2.removeAllListeners();
@@ -264,6 +298,68 @@ export class TF2Service implements OnApplicationShutdown {
     return this.account as NonNullable<typeof this.account>;
   }
 
+  /**
+   * Waits for no event to be emitted for a certain amount of time
+   * @param eventName Name of the event
+   * @param timeoutDuration Amount of time to wait
+   * @param filter Filter events based on the arguments
+   * @returns Promise that resolves when no event has been emitted for `timeoutDuration`
+   * @throws Error if disconnected from GC
+   */
+  private waitForNoEvent(
+    eventName: string,
+    timeoutDuration: number,
+    filter?: (...args) => boolean
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const createTimeout = () => {
+        const timeout = setTimeout(() => {
+          removeListeners();
+          resolve();
+        }, timeoutDuration);
+
+        return timeout;
+      };
+
+      let timeout = createTimeout();
+
+      const listener = (...args) => {
+        if (filter && !filter(args)) {
+          // Not the event we are looking for
+          return;
+        }
+
+        clearTimeout(timeout);
+        timeout = createTimeout();
+      };
+
+      const disconnectedListener = () => {
+        removeListeners();
+        reject(new Error('Disconnected from GC'));
+      };
+
+      const removeListeners = () => {
+        clearTimeout(timeout);
+        this.tf2.removeListener(eventName, listener);
+        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
+      };
+
+      if (eventName !== 'disconnectedFromGC') {
+        this.tf2.once('disconnectedFromGC', disconnectedListener);
+      }
+
+      this.tf2.on(eventName, listener);
+    });
+  }
+
+  /**
+   * Waits for an event to be emitted
+   * @param eventName Name of the event
+   * @param filter Filter events based on the arguments
+   * @returns The arguments of the event
+   * @throws Error if the event is not emitted within 10 seconds
+   * @throws Error if disconnected from GC
+   */
   private waitForEvent(
     eventName: string,
     filter?: (...args) => boolean

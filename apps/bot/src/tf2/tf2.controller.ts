@@ -18,6 +18,8 @@ import {
   TF2_DELETE_ITEM,
   TF2_GET_ACCOUNT,
   TF2_USE_ITEM,
+  TF2_SORT_BACKPACK,
+  SortBackpackDto,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
@@ -58,6 +60,23 @@ export class TF2Controller {
   @Delete(TF2_DELETE_ITEM)
   deleteItem(@Param('id') assetid: string): Promise<any> {
     return this.tf2Service.deleteItem(assetid).then(() => {
+      return {
+        success: true,
+      };
+    });
+  }
+
+  @Post(TF2_SORT_BACKPACK)
+  @HttpCode(HttpStatus.OK)
+  sortBackpack(
+    @Body(
+      new ValidationPipe({
+        transform: true,
+      })
+    )
+    body: SortBackpackDto
+  ): Promise<any> {
+    return this.tf2Service.sortBackpack(body).then(() => {
       return {
         success: true,
       };
