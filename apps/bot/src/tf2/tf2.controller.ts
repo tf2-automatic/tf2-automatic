@@ -5,6 +5,7 @@ import {
   Delete,
   Body,
   ValidationPipe,
+  HttpCode,
 } from '@nestjs/common';
 import {
   TF2Account,
@@ -26,6 +27,7 @@ export class TF2Controller {
   }
 
   @Post(craftTF2Items)
+  @HttpCode(200)
   craft(
     @Body(
       new ValidationPipe({
