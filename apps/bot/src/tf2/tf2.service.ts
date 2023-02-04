@@ -92,9 +92,17 @@ export class TF2Service implements OnApplicationShutdown {
     return this.account as NonNullable<typeof this.account>;
   }
 
-  private waitForEvent(eventName: string): Promise<any[]> {
+  private waitForEvent(
+    eventName: string,
+    filter?: (...args) => boolean
+  ): Promise<any[]> {
     return new Promise((resolve, reject) => {
       const listener = (...args) => {
+        if (filter && !filter(args)) {
+          // Not the event we are looking for
+          return;
+        }
+
         removeListeners();
         resolve(args);
       };
@@ -119,7 +127,7 @@ export class TF2Service implements OnApplicationShutdown {
         this.tf2.once('disconnectedFromGC', disconnectedListener);
       }
 
-      this.tf2.once(eventName, listener);
+      this.tf2.on(eventName, listener);
     });
   }
 }
