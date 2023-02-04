@@ -5,6 +5,7 @@ import { TF2Service } from './tf2.service';
 
 @Module({
   imports: [BotModule],
+  controllers: [TF2Controller],
   providers: [TF2Service],
 })
 export class TF2Module {}
