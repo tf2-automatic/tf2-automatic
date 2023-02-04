@@ -3,6 +3,35 @@ import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
 import { Logger } from '@nestjs/common';
 import { CraftDto, CraftResult } from '@tf2-automatic/bot-data';
+import fastq from 'fastq';
+import type { queueAsPromised } from 'fastq';
+
+enum TaskType {
+  Craft = 'CRAFT',
+  Use = 'USE',
+  Delete = 'DELETE',
+}
+
+type Task = CraftTask | UseTask | DeleteTask;
+
+type BaseTask = {
+  type: TaskType;
+};
+
+type CraftTask = BaseTask & {
+  type: TaskType.Craft;
+  craft: CraftDto;
+};
+
+type UseTask = BaseTask & {
+  type: TaskType.Use;
+  assetid: string;
+};
+
+type DeleteTask = BaseTask & {
+  type: TaskType.Delete;
+  assetid: string;
+};
 
 @Injectable()
 export class TF2Service implements OnApplicationShutdown {
@@ -10,6 +39,11 @@ export class TF2Service implements OnApplicationShutdown {
 
   private readonly client = this.botService.getClient();
   private readonly tf2 = new TeamFortress2(this.client);
+
+  private readonly queue: queueAsPromised<Task> = fastq.promise(
+    this.process.bind(this),
+    1
+  );
 
   private account: {
     isPremium: boolean;
@@ -41,7 +75,30 @@ export class TF2Service implements OnApplicationShutdown {
     });
   }
 
+  private async process(task: Task): Promise<any> {
+    this.logger.debug('Processing task: ' + task.type);
+
+    switch (task.type) {
+      case TaskType.Craft:
+        return this.processCraft(task.craft);
+      case TaskType.Use:
+        return this.processUseItem(task.assetid);
+      case TaskType.Delete:
+        return this.processDeleteItem(task.assetid);
+    }
+  }
+
   craft(craft: CraftDto): Promise<CraftResult> {
+    const task: CraftTask = {
+      type: TaskType.Craft,
+      craft,
+    };
+    return this.queue.push(task).then((result) => {
+      return result as ReturnType<TF2Service['processCraft']>;
+    });
+  }
+
+  private processCraft(craft: CraftDto): Promise<CraftResult> {
     this.logger.debug(
       'Crafting items (recipe: ' +
         craft.recipe +
@@ -70,6 +127,16 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   useItem(assetid: string): Promise<void> {
+    const task: UseTask = {
+      type: TaskType.Use,
+      assetid,
+    };
+    return this.queue.push(task).then((result) => {
+      return result as ReturnType<TF2Service['processUseItem']>;
+    });
+  }
+
+  private processUseItem(assetid: string): Promise<void> {
     this.logger.debug('Using item (assetid: ' + assetid + ')');
 
     this.tf2.useItem(assetid);
@@ -82,6 +149,16 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   deleteItem(assetid: string): Promise<void> {
+    const task: DeleteTask = {
+      type: TaskType.Delete,
+      assetid,
+    };
+    return this.queue.push(task).then((result) => {
+      return result as ReturnType<TF2Service['processDeleteItem']>;
+    });
+  }
+
+  private processDeleteItem(assetid: string): Promise<void> {
     this.logger.debug('Deleting item (assetid: ' + assetid + ')');
 
     this.tf2.deleteItem(assetid);
