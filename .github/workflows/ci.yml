@@ -69,7 +69,7 @@ jobs:
         run: npm ci --no-audit
       - name: Test unit
         run: npx nx test ${{ matrix.projectName }}
-  build-finished:
+  ci-finished:
     runs-on: ubuntu-latest
     needs: [affected, unit-test]
     if: |
