@@ -1,4 +1,8 @@
-import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  OnApplicationShutdown,
+} from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
 import { Logger } from '@nestjs/common';
@@ -32,6 +36,12 @@ type DeleteTask = BaseTask & {
   type: TaskType.Delete;
   assetid: string;
 };
+
+class ItemNotInBackpackException extends BadRequestException {
+  constructor(assetid: string) {
+    super('Item is not in backpack (assetid: ' + assetid + ')');
+  }
+}
 
 @Injectable()
 export class TF2Service implements OnApplicationShutdown {
@@ -78,6 +88,9 @@ export class TF2Service implements OnApplicationShutdown {
   private async process(task: Task): Promise<any> {
     this.logger.debug('Processing task: ' + task.type);
 
+    await this.connectToGC();
+    await this.waitForBackpack();
+
     switch (task.type) {
       case TaskType.Craft:
         return this.processCraft(task.craft);
@@ -85,6 +98,12 @@ export class TF2Service implements OnApplicationShutdown {
         return this.processUseItem(task.assetid);
       case TaskType.Delete:
         return this.processDeleteItem(task.assetid);
+      default:
+        // Should never get here. Gives compile-time error if not all task types
+        // are handled.
+
+        // @ts-expect-error
+        throw new Error('Unknown task type: ' + task.type);
     }
   }
 
@@ -106,6 +125,12 @@ export class TF2Service implements OnApplicationShutdown {
         craft.assetids.join(', ') +
         '])'
     );
+
+    craft.assetids.forEach((assetid) => {
+      if (!this.isItemInBackpack(assetid)) {
+        throw new ItemNotInBackpackException(assetid);
+      }
+    });
 
     this.tf2.craft(craft.assetids, craft.recipe);
 
@@ -131,6 +156,7 @@ export class TF2Service implements OnApplicationShutdown {
       type: TaskType.Use,
       assetid,
     };
+
     return this.queue.push(task).then((result) => {
       return result as ReturnType<TF2Service['processUseItem']>;
     });
@@ -138,6 +164,10 @@ export class TF2Service implements OnApplicationShutdown {
 
   private processUseItem(assetid: string): Promise<void> {
     this.logger.debug('Using item (assetid: ' + assetid + ')');
+
+    if (!this.isItemInBackpack(assetid)) {
+      throw new ItemNotInBackpackException(assetid);
+    }
 
     this.tf2.useItem(assetid);
 
@@ -153,6 +183,7 @@ export class TF2Service implements OnApplicationShutdown {
       type: TaskType.Delete,
       assetid,
     };
+
     return this.queue.push(task).then((result) => {
       return result as ReturnType<TF2Service['processDeleteItem']>;
     });
@@ -160,6 +191,10 @@ export class TF2Service implements OnApplicationShutdown {
 
   private processDeleteItem(assetid: string): Promise<void> {
     this.logger.debug('Deleting item (assetid: ' + assetid + ')');
+
+    if (!this.isItemInBackpack(assetid)) {
+      throw new ItemNotInBackpackException(assetid);
+    }
 
     this.tf2.deleteItem(assetid);
 
@@ -199,6 +234,22 @@ export class TF2Service implements OnApplicationShutdown {
   isPlayingTF2(): boolean {
     // @ts-expect-error
     return (this.client._playingAppIds as number[]).some((game) => game == 440);
+  }
+
+  private isItemInBackpack(assetid: string): boolean {
+    if (this.tf2.backpack === undefined) {
+      throw new Error('Backpack not loaded');
+    }
+
+    return this.tf2.backpack.some((item) => item.id === assetid);
+  }
+
+  private async waitForBackpack(): Promise<void> {
+    if (this.tf2.backpack === undefined) {
+      // Backpack not loaded yet
+      await this.connectToGC();
+      await this.waitForEvent('backpackLoaded');
+    }
   }
 
   async getAccount(): Promise<{ isPremium: boolean; backpackSlots: number }> {
