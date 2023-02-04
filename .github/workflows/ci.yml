@@ -71,7 +71,7 @@ jobs:
         run: npx nx test ${{ matrix.projectName }}
   build-finished:
     runs-on: ubuntu-latest
-    needs: [unit-test]
+    needs: [affected, unit-test]
     if: |
       always() &&
       (needs.unit-test.result == 'success' || needs.unit-test.result == 'skipped')
