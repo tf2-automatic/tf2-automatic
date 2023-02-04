@@ -7,13 +7,13 @@ import {
   Friend,
   AddFriend,
   DeleteFriend,
-  basePath,
+  friendsBasePath,
   addFriendPath,
   deleteFriendPath,
   getFriendsPath,
 } from '@tf2-automatic/bot-data';
 
-@Controller(basePath)
+@Controller(friendsBasePath)
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
