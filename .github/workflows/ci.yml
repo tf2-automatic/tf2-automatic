@@ -1,11 +1,10 @@
 name: CI
 
 on:
-  push:
+  pull_request:
     branches:
       - main
       - dev
-  pull_request:
     types:
       - opened
       - synchronize
@@ -19,6 +18,9 @@ jobs:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v3
+        with:
+          # Affected projects are found based on the base branch
+          main-branch-name: ${{ github.event.base_ref }}
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
