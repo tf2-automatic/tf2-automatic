@@ -38,5 +38,8 @@ export interface GetTradesResponse {
   received: TradeOffer[];
 }
 
+export type GetTradeResponse = TradeOffer;
+
 export const TRADES_BASE_URL = '/trades';
 export const TRADES_GET_TRADES = '/';
+export const TRADES_GET_TRADE = '/:id';

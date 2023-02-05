@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import {
@@ -36,6 +36,22 @@ export class TradesService {
           return resolve({ sent: sentMapped, received: receivedMapped });
         }
       );
+    });
+  }
+
+  getTrade(id: string): Promise<TradeOffer> {
+    return new Promise((resolve, reject) => {
+      this.manager.getOffer(id, (err, offer) => {
+        if (err) {
+          if (err.message === 'NoMatch') {
+            return reject(new BadRequestException('Trade offer not found'));
+          }
+
+          return reject(err);
+        }
+
+        return resolve(this.mapOffer(offer));
+      });
     });
   }
 

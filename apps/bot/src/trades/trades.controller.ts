@@ -1,8 +1,10 @@
-import { Controller, Get, Query, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Param, Query, ValidationPipe } from '@nestjs/common';
 import {
+  GetTradeResponse,
   GetTradesDto,
   GetTradesResponse,
   TRADES_BASE_URL,
+  TRADES_GET_TRADE,
   TRADES_GET_TRADES,
 } from '@tf2-automatic/bot-data';
 import { TradesService } from './trades.service';
@@ -21,5 +23,10 @@ export class TradesController {
     dto: GetTradesDto
   ): Promise<GetTradesResponse> {
     return this.tradesService.getTrades(dto);
+  }
+
+  @Get(TRADES_GET_TRADE)
+  getTrade(@Param('id') id: string): Promise<GetTradeResponse> {
+    return this.tradesService.getTrade(id);
   }
 }
