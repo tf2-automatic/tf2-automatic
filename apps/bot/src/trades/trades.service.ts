@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
-import { GetTradesDto, TradeOffer } from '@tf2-automatic/bot-data';
+import {
+  GetTradesDto,
+  GetTradesResponse,
+  TradeOffer,
+} from '@tf2-automatic/bot-data';
 
 @Injectable()
 export class TradesService {
@@ -9,7 +13,7 @@ export class TradesService {
 
   constructor(private readonly botService: BotService) {}
 
-  getTrades(dto: GetTradesDto) {
+  getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
     return new Promise((resolve, reject) => {
       this.manager.getOffers(
         dto.filter,
