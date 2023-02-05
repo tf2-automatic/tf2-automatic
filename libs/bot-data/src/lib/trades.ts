@@ -14,7 +14,7 @@ import {
   EResult,
 } from 'steam-user';
 import { Item } from './inventories';
-import { IsSteamID } from '../../../is-steamid-validator/src';
+import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 
 export enum OfferFilter {
   ActiveOnly = 1,
