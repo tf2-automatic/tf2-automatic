@@ -93,6 +93,32 @@ export class TradesService {
     });
   }
 
+  removeTrade(id: string): Promise<TradeOffer> {
+    return new Promise((resolve, reject) => {
+      this.manager.getOffer(id, (err, offer) => {
+        if (err) {
+          if (err.message === 'NoMatch') {
+            return reject(new BadRequestException('Trade offer not found'));
+          }
+
+          return reject(err);
+        }
+
+        offer.cancel((err) => {
+          if (err) {
+            if (err.eresult !== undefined) {
+              return reject(new EResultException(err.message, err.eresult));
+            }
+
+            return reject(err);
+          }
+
+          return resolve(this.mapOffer(offer));
+        });
+      });
+    });
+  }
+
   private mapOffer(offer: SteamTradeOfferManager.TradeOffer): TradeOffer {
     return {
       partner: offer.partner.getSteamID64(),

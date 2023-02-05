@@ -98,7 +98,10 @@ export class CreateTradeDto {
 
 export type CreateTradeResponse = TradeOffer;
 
+export type DeleteTradeResponse = TradeOffer;
+
 export const TRADES_BASE_URL = '/trades';
 export const TRADES_GET_TRADES = '/';
 export const TRADES_GET_TRADE = '/:id';
 export const TRADES_CREATE_TRADE = '/';
+export const TRADES_REMOVE_TRADE = '/:id';

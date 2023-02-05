@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -10,6 +11,7 @@ import {
 import {
   CreateTradeDto,
   CreateTradeResponse,
+  DeleteTradeResponse,
   GetTradeResponse,
   GetTradesDto,
   GetTradesResponse,
@@ -17,6 +19,7 @@ import {
   TRADES_CREATE_TRADE,
   TRADES_GET_TRADE,
   TRADES_GET_TRADES,
+  TRADES_REMOVE_TRADE,
 } from '@tf2-automatic/bot-data';
 import { TradesService } from './trades.service';
 
@@ -51,5 +54,10 @@ export class TradesController {
     dto: CreateTradeDto
   ): Promise<CreateTradeResponse> {
     return this.tradesService.createTrade(dto);
+  }
+
+  @Delete(TRADES_REMOVE_TRADE)
+  async removeTrade(@Param('id') id: string): Promise<DeleteTradeResponse> {
+    return this.tradesService.removeTrade(id);
   }
 }
