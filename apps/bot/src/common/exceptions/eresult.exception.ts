@@ -6,9 +6,9 @@ import {
 import { EResult } from 'steam-user';
 
 export class EResultException extends InternalServerErrorException {
-  constructor(readonly eresult: EResult) {
+  constructor(readonly message: string, readonly eresult: EResult) {
     const obj: any = HttpException.createBody(
-      `Steam responded to request with EResult ${eresult}`,
+      message,
       'EResult',
       HttpStatus.INTERNAL_SERVER_ERROR
     );

@@ -82,7 +82,7 @@ export class TradesService {
           }
 
           if (err.eresult !== undefined) {
-            return reject(new EResultException(err.eresult));
+            return reject(new EResultException(err.message, err.eresult));
           }
 
           return reject(err);
