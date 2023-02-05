@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { FriendsModule } from './friends/friends.module';
 import { InventoriesModule } from './inventories/inventories.module';
 import { TF2Module } from './tf2/tf2.module';
+import { TradesModule } from './trades/trades.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TF2Module } from './tf2/tf2.module';
     FriendsModule,
     InventoriesModule,
     TF2Module,
+    TradesModule,
   ],
 })
 export class AppModule {}
