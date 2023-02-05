@@ -11,6 +11,7 @@ import {
   CraftResult,
   SortBackpack,
   SortBackpackDto,
+  TF2Account,
 } from '@tf2-automatic/bot-data';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
@@ -66,10 +67,7 @@ export class TF2Service implements OnApplicationShutdown {
     1
   );
 
-  private account: {
-    isPremium: boolean;
-    backpackSlots: number;
-  } | null = null;
+  private account: TF2Account | null = null;
 
   constructor(private readonly botService: BotService) {
     this.client.on('loggedOn', () => {
@@ -286,7 +284,7 @@ export class TF2Service implements OnApplicationShutdown {
     }
   }
 
-  async getAccount(): Promise<{ isPremium: boolean; backpackSlots: number }> {
+  async getAccount(): Promise<TF2Account> {
     if (this.account == null) {
       await this.connectToGC();
       await this.waitForEvent('accountLoaded').then(() => {
