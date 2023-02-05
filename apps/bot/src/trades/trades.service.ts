@@ -2,10 +2,13 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import {
+  CreateTradeDto,
+  CreateTradeResponse,
   GetTradesDto,
   GetTradesResponse,
   TradeOffer,
 } from '@tf2-automatic/bot-data';
+import { EResultException } from '../common/exceptions/eresult.exception';
 
 @Injectable()
 export class TradesService {
@@ -45,6 +48,41 @@ export class TradesService {
         if (err) {
           if (err.message === 'NoMatch') {
             return reject(new BadRequestException('Trade offer not found'));
+          }
+
+          return reject(err);
+        }
+
+        return resolve(this.mapOffer(offer));
+      });
+    });
+  }
+
+  createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
+    return new Promise((resolve, reject) => {
+      const offer = this.manager.createOffer(dto.partner);
+
+      if (dto.token) {
+        offer.setToken(dto.token);
+      }
+
+      if (dto.message) {
+        offer.setMessage(dto.message);
+      }
+
+      offer.addMyItems(dto.itemsToGive);
+      offer.addTheirItems(dto.itemsToReceive);
+
+      offer.send((err) => {
+        if (err) {
+          if (err.message === 'Cannot send an empty trade offer') {
+            return reject(
+              new BadRequestException('Cannot send an empty trade offer')
+            );
+          }
+
+          if (err.eresult !== undefined) {
+            return reject(new EResultException(err.eresult));
           }
 
           return reject(err);

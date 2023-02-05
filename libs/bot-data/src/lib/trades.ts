@@ -1,7 +1,20 @@
-import { IsEnum } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ETradeOfferState, ETradeOfferConfirmationMethod } from 'steam-user';
+import {
+  ETradeOfferState,
+  ETradeOfferConfirmationMethod,
+  EResult,
+} from 'steam-user';
 import { Item } from './inventories';
+import { IsSteamID } from '../../../is-steamid-validator/src';
 
 export enum OfferFilter {
   ActiveOnly = 1,
@@ -40,6 +53,52 @@ export interface GetTradesResponse {
 
 export type GetTradeResponse = TradeOffer;
 
+export class Asset {
+  @IsString()
+  assetid: string;
+
+  @IsNumber()
+  appid: number;
+
+  @IsString()
+  contextid: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  amount?: number;
+}
+
+export class CreateTradeDto {
+  @IsSteamID()
+  partner: string;
+
+  @IsOptional()
+  @IsString()
+  token?: string;
+
+  @IsOptional()
+  @IsString()
+  message?: string;
+
+  @IsArray()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => Asset)
+  itemsToGive: Asset[];
+
+  @IsArray()
+  @ValidateNested({
+    each: true,
+  })
+  @Type(() => Asset)
+  itemsToReceive: Asset[];
+}
+
+export type CreateTradeResponse = TradeOffer;
+
 export const TRADES_BASE_URL = '/trades';
 export const TRADES_GET_TRADES = '/';
 export const TRADES_GET_TRADE = '/:id';
+export const TRADES_CREATE_TRADE = '/';
