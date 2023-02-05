@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import {
@@ -9,12 +13,18 @@ import {
   TradeOffer,
 } from '@tf2-automatic/bot-data';
 import { EResultException } from '../common/exceptions/eresult.exception';
+import { Config, SteamAccountConfig } from '../common/config/configuration';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TradesService {
   private readonly manager = this.botService.getManager();
+  private readonly community = this.botService.getCommunity();
 
-  constructor(private readonly botService: BotService) {}
+  constructor(
+    private readonly botService: BotService,
+    private readonly configService: ConfigService<Config>
+  ) {}
 
   getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
     return new Promise((resolve, reject) => {
@@ -90,6 +100,30 @@ export class TradesService {
 
         return resolve(this.mapOffer(offer));
       });
+    });
+  }
+
+  acceptConfirmation(id: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.community.acceptConfirmationForObject(
+        this.configService.getOrThrow<SteamAccountConfig>('steam')
+          .identitySecret,
+        id,
+        (err) => {
+          if (err) {
+            if (
+              err.message ===
+              'Could not find confirmation for object ' + id
+            ) {
+              return reject(new NotFoundException('Confirmation not found'));
+            }
+
+            return reject(err);
+          }
+
+          return resolve();
+        }
+      );
     });
   }
 

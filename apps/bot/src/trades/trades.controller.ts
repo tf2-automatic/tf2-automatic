@@ -3,18 +3,22 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
   ValidationPipe,
 } from '@nestjs/common';
 import {
+  AcceptConfirmationResponse,
   CreateTradeDto,
   CreateTradeResponse,
   DeleteTradeResponse,
   GetTradeResponse,
   GetTradesDto,
   GetTradesResponse,
+  TRADES_ACCEPT_CONFIRMATION,
   TRADES_BASE_URL,
   TRADES_CREATE_TRADE,
   TRADES_GET_TRADE,
@@ -59,5 +63,15 @@ export class TradesController {
   @Delete(TRADES_REMOVE_TRADE)
   async removeTrade(@Param('id') id: string): Promise<DeleteTradeResponse> {
     return this.tradesService.removeTrade(id);
+  }
+
+  @Post(TRADES_ACCEPT_CONFIRMATION)
+  @HttpCode(HttpStatus.OK)
+  acceptConfirmation(
+    @Param('id') id: string
+  ): Promise<AcceptConfirmationResponse> {
+    return this.tradesService.acceptConfirmation(id).then(() => {
+      return { success: true };
+    });
   }
 }

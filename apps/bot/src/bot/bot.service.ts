@@ -79,6 +79,10 @@ export class BotService implements OnApplicationShutdown {
     return this.manager;
   }
 
+  getCommunity(): SteamCommunity {
+    return this.community;
+  }
+
   private handleReadEvent(
     filename: string,
     callback: (err: Error | null, contents?: Buffer | null) => void
