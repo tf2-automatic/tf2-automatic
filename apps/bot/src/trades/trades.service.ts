@@ -190,7 +190,13 @@ export class TradesService {
                 err.message
             );
             this.logger.debug(err);
-            if (err.eresult !== undefined) {
+
+            if (
+              err.message ===
+              `Offer #${offer.id} is not active, so it may not be cancelled or declined`
+            ) {
+              return reject(new BadRequestException('Offer is not active'));
+            } else if (err.eresult !== undefined) {
               return reject(new EResultException(err.message, err.eresult));
             }
 
