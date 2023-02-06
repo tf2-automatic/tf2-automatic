@@ -30,7 +30,7 @@ export class TradesService {
   ) {}
 
   getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
-    return new Promise((resolve, reject) => {
+    return new Promise<GetTradesResponse>((resolve, reject) => {
       this.manager.getOffers(
         dto.filter,
         (
@@ -52,11 +52,18 @@ export class TradesService {
           return resolve({ sent: sentMapped, received: receivedMapped });
         }
       );
+    }).catch((err) => {
+      this.logger.error(
+        `Error getting trades: ${err.message}${
+          err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+        }`
+      );
+      throw err;
     });
   }
 
   getTrade(id: string): Promise<TradeOffer> {
-    return new Promise((resolve, reject) => {
+    return new Promise<TradeOffer>((resolve, reject) => {
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
           if (err.message === 'NoMatch') {
@@ -68,11 +75,20 @@ export class TradesService {
 
         return resolve(this.mapOffer(offer));
       });
+    }).catch((err) => {
+      this.logger.error(
+        `Error getting trade offer: ${err.message}${
+          err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+        }`
+      );
+      throw err;
     });
   }
 
   createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
-    return new Promise((resolve, reject) => {
+    this.logger.log(`Sending trade offer to ${dto.partner}...`);
+
+    return new Promise<CreateTradeResponse>((resolve, reject) => {
       const offer = this.manager.createOffer(dto.partner);
 
       if (dto.token) {
@@ -85,8 +101,6 @@ export class TradesService {
 
       offer.addMyItems(dto.itemsToGive);
       offer.addTheirItems(dto.itemsToReceive);
-
-      this.logger.log(`Sending trade offer to ${dto.partner}...`);
 
       this.logger.debug(
         `Items to give: [${dto.itemsToGive
@@ -101,13 +115,6 @@ export class TradesService {
 
       offer.send((err) => {
         if (err) {
-          this.logger.error(
-            `Got an error while sending trade offer: ${err.message}${
-              err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-            }`
-          );
-          this.logger.debug(err);
-
           if (err.message === 'Cannot send an empty trade offer') {
             return reject(
               new BadRequestException('Cannot send an empty trade offer')
@@ -121,31 +128,37 @@ export class TradesService {
           return reject(err);
         }
 
+        return resolve(this.mapOffer(offer));
+      });
+    })
+      .then((offer) => {
         this.logger.log(
-          `Sent trade offer #${offer.id} to ${dto.partner} has status ${
+          `Trade offer #${offer.id} sent to ${dto.partner} has status ${
             SteamTradeOfferManager.ETradeOfferState[offer.state]
           }`
         );
-
-        return resolve(this.mapOffer(offer));
+        return offer;
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Got an error while sending trade offer: ${err.message}${
+            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+          }`
+        );
+        throw err;
       });
-    });
   }
 
   acceptConfirmation(id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.logger.log(`Accepting confirmation for offer #${id}...`);
+    this.logger.log(`Accepting confirmation for offer #${id}...`);
 
+    return new Promise<void>((resolve, reject) => {
       this.community.acceptConfirmationForObject(
         this.configService.getOrThrow<SteamAccountConfig>('steam')
           .identitySecret,
         id,
         (err) => {
           if (err) {
-            this.logger.error(
-              `Error while accepting confirmation for ${id}: ` + err.message
-            );
-            this.logger.debug(err);
             if (
               err.message ===
               'Could not find confirmation for object ' + id
@@ -156,24 +169,28 @@ export class TradesService {
             return reject(err);
           }
 
-          this.logger.log(`Accepted confirmation for offer #${id}`);
-
           return resolve();
         }
       );
-    });
+    })
+      .then(() => {
+        this.logger.log(`Accepted confirmation for offer #${id}`);
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Error while accepting confirmation for ${id}: ${err.message}${
+            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+          }`
+        );
+      });
   }
 
   removeTrade(id: string): Promise<TradeOffer> {
-    return new Promise((resolve, reject) => {
-      this.logger.log('Canceling/declining trade offer #' + id + '...');
+    this.logger.debug('Removing trade offer #' + id + '...');
 
+    return new Promise<TradeOffer>((resolve, reject) => {
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
-          this.logger.error(
-            'Error while getting trade offer #' + id + ': ' + err.message
-          );
-          this.logger.debug(err);
           if (err.message === 'NoMatch') {
             return reject(new BadRequestException('Trade offer not found'));
           }
@@ -183,14 +200,6 @@ export class TradesService {
 
         offer.cancel((err) => {
           if (err) {
-            this.logger.error(
-              'Error while canceling/declining trade offer #' +
-                id +
-                ': ' +
-                err.message
-            );
-            this.logger.debug(err);
-
             if (
               err.message ===
               `Offer #${offer.id} is not active, so it may not be cancelled or declined`
@@ -203,12 +212,22 @@ export class TradesService {
             return reject(err);
           }
 
-          this.logger.log('Canceled/declined trade offer #' + id);
-
           return resolve(this.mapOffer(offer));
         });
       });
-    });
+    })
+      .then((offer) => {
+        this.logger.debug('Removed trade offer #' + id);
+        return offer;
+      })
+      .catch((err) => {
+        this.logger.error(
+          `Error while removing trade offer #${id}: ${err.message}${
+            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+          }`
+        );
+        throw err;
+      });
   }
 
   private mapOffer(offer: SteamTradeOfferManager.TradeOffer): TradeOffer {

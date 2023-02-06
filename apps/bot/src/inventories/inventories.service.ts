@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import SteamID from 'steamid';
@@ -6,6 +6,8 @@ import { Inventory } from '@tf2-automatic/bot-data';
 
 @Injectable()
 export class InventoriesService {
+  private readonly logger = new Logger(InventoriesService.name);
+
   private readonly manager: SteamTradeOfferManager =
     this.botService.getManager();
 
@@ -17,10 +19,18 @@ export class InventoriesService {
     contextid: number
   ): Promise<Inventory> {
     return new Promise((resolve, reject) => {
+      this.logger.debug(
+        `Getting inventory ${steamid}/${appid}/${contextid}...`
+      );
+
       const callback = (err: Error, inventory: Inventory) => {
         if (err) {
+          this.logger.warn(`Error getting inventory: ${err.message}`);
           reject(err);
         } else {
+          this.logger.debug(
+            `Got inventory ${steamid}/${appid}/${contextid} with ${inventory.length} items`
+          );
           resolve(inventory);
         }
       };
