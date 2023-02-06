@@ -175,6 +175,7 @@ export class TradesService {
     })
       .then(() => {
         this.logger.log(`Accepted confirmation for offer #${id}`);
+        this.manager.doPoll();
       })
       .catch((err) => {
         this.logger.error(
