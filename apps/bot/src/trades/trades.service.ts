@@ -198,6 +198,14 @@ export class TradesService {
           return reject(err);
         }
 
+        if (
+          offer.state === SteamTradeOfferManager.ETradeOfferState.Active &&
+          offer.state !==
+            SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+        ) {
+          return reject(new BadRequestException('Offer is not active'));
+        }
+
         offer.cancel((err) => {
           if (err) {
             if (
