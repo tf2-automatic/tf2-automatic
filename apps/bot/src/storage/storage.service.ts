@@ -5,18 +5,29 @@ import fs from 'fs';
 import path from 'path';
 import writeFileAtomic from 'write-file-atomic';
 
+type ReadFileResult = string | null;
+type WriteFileResult = boolean;
+
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
 
-  private dataDir: string | null = null;
+  private readonly dataDir: string | null = null;
+
+  private readonly _readPromises: Map<string, Promise<ReadFileResult>> =
+    new Map();
 
   constructor(private readonly configService: ConfigService<Config>) {
     this.dataDir = this.configService.get<string>('dataDir') ?? null;
   }
 
-  async read(relativePath: string): Promise<string | null> {
-    return new Promise((resolve, reject) => {
+  async read(relativePath: string): Promise<ReadFileResult> {
+    if (this._readPromises.has(relativePath)) {
+      // Return cached promise
+      return this._readPromises.get(relativePath) as Promise<ReadFileResult>;
+    }
+
+    const promise = new Promise<ReadFileResult>((resolve, reject) => {
       if (!this.dataDir) {
         return resolve(null);
       }
@@ -38,9 +49,19 @@ export class StorageService {
         resolve(data);
       });
     });
+
+    // Cache promise
+    this._readPromises.set(relativePath, promise);
+
+    promise.finally(() => {
+      // Remove promise from cache when it's done
+      this._readPromises.delete(relativePath);
+    });
+
+    return promise;
   }
 
-  async write(relativePath: string, data: string): Promise<boolean> {
+  async write(relativePath: string, data: string): Promise<WriteFileResult> {
     if (!this.dataDir) {
       return false;
     }
