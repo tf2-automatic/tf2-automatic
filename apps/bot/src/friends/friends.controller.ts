@@ -6,6 +6,8 @@ import {
   Param,
   HttpStatus,
   HttpCode,
+  Body,
+  ValidationPipe,
 } from '@nestjs/common';
 import SteamID from 'steamid';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
@@ -20,6 +22,10 @@ import {
   FRIENDS_BASE_PATH,
   GET_FRIEND,
   GET_FRIENDS,
+  SendFriendMessageDto,
+  SendFriendMessageResponse,
+  SEND_FRIEND_MESSAGE,
+  SEND_FRIEND_TYPING,
 } from '@tf2-automatic/bot-data';
 
 @Controller(FRIENDS_BASE_PATH)
@@ -70,5 +76,20 @@ export class FriendsController {
       isInvited,
       hasInvitedUs,
     };
+  }
+
+  @Post(SEND_FRIEND_MESSAGE)
+  sendMessage(
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
+    @Body(new ValidationPipe()) dto: SendFriendMessageDto
+  ): Promise<SendFriendMessageResponse> {
+    return this.friendsService.sendFriendMessage(steamid, dto.message);
+  }
+
+  @Post(SEND_FRIEND_TYPING)
+  sendTyping(
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+  ): Promise<void> {
+    return this.friendsService.sendFriendTyping(steamid);
   }
 }
