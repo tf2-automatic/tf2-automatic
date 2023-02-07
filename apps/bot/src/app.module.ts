@@ -9,6 +9,7 @@ import { FriendsModule } from './friends/friends.module';
 import { InventoriesModule } from './inventories/inventories.module';
 import { TF2Module } from './tf2/tf2.module';
 import { TradesModule } from './trades/trades.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { TradesModule } from './trades/trades.module';
     InventoriesModule,
     TF2Module,
     TradesModule,
+    ProfileModule,
   ],
 })
 export class AppModule {}
