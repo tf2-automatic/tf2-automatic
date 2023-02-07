@@ -31,7 +31,7 @@ export interface SendFriendMessageResponse {
 
 export const FRIENDS_BASE_PATH = '/friends';
 export const GET_FRIENDS = '/';
-export const GET_FRIEND = '/';
+export const GET_FRIEND = '/:steamid';
 export const ADD_FRIEND = '/:steamid';
 export const DELETE_FRIEND = '/:steamid';
 export const SEND_FRIEND_MESSAGE = '/:steamid/message';
