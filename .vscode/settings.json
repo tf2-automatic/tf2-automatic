@@ -7,5 +7,6 @@
     "source.fixAll.stylelint": true
   },
   "files.eol": "\n",
-  "editor.rulers": [80]
+  "editor.rulers": [80],
+  "typescript.preferences.importModuleSpecifier": "project-relative"
 }
