@@ -129,7 +129,6 @@ export class BotService implements OnApplicationShutdown {
         this.logger.error(
           'Failed to write login key to storage: ' + err.message
         );
-        this.logger.debug(err);
       });
     });
 
@@ -145,7 +144,6 @@ export class BotService implements OnApplicationShutdown {
           this.logger.error(
             'Failed to reset item notifications: ' + err.message
           );
-          this.logger.debug(err);
         }
       });
     });
@@ -177,7 +175,6 @@ export class BotService implements OnApplicationShutdown {
       this.logger.error(
         'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
       );
-      this.logger.debug(err);
     });
 
     this.running = true;
