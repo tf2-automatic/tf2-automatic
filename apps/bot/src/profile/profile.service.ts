@@ -63,4 +63,28 @@ export class ProfileService {
       });
     });
   }
+
+  getTradeOfferUrl(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.community.getTradeURL((err, url) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(url);
+        }
+      });
+    });
+  }
+
+  changeTradeOfferUrl(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.community.changeTradeURL((err, url) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(url);
+        }
+      });
+    });
+  }
 }

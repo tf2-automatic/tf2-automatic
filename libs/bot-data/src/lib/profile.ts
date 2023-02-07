@@ -97,8 +97,14 @@ export interface UpdateProfileAvatarResponse {
   success: boolean;
 }
 
+export interface TradeOfferUrlResponse {
+  url: string;
+}
+
 export const PROFILE_BASE_URL = '/profile';
 export const PROFILE_UPDATE_AVATAR = '/avatar';
 export const PROFILE_UPDATE_PROFILE = '/';
 export const PROFILE_UPDATE_PROFILE_SETTINGS = '/settings';
 export const PROFILE_DELETE_NAME_HISTORY = '/name';
+export const PROFILE_GET_TRADE_OFFER_URL = '/tradeofferurl';
+export const PROFILE_CHANGE_TRADE_OFFER_URL = '/tradeofferurl';
