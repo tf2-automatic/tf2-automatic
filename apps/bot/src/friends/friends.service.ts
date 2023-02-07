@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
-import { Friends } from '@tf2-automatic/bot-data';
+import { Friends, SendFriendMessageResponse } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 
 @Injectable()
@@ -112,5 +112,26 @@ export class FriendsService {
       this.client.myFriends[steamid.getSteamID64()] ===
       SteamUser.EFriendRelationship.RequestRecipient
     );
+  }
+
+  sendFriendMessage(
+    steamid: SteamID,
+    message: string
+  ): Promise<SendFriendMessageResponse> {
+    return this.client.chat
+      .sendFriendMessage(steamid, message)
+      .then((result) => {
+        return {
+          modified_message: result.modified_message,
+          server_timestamp: Math.floor(
+            result.server_timestamp.getTime() / 1000
+          ),
+          ordinal: result.ordinal,
+        };
+      });
+  }
+
+  sendFriendTyping(steamid: SteamID): Promise<void> {
+    return this.client.chat.sendFriendTyping(steamid).then(() => undefined);
   }
 }
