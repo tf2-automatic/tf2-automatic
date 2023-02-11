@@ -6,12 +6,6 @@ on:
       - main
       - dev
 
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  packages: write
-
 jobs:
   affected:
     runs-on: ubuntu-latest
