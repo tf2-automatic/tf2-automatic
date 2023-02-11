@@ -19,6 +19,9 @@
     },
     "lint": {
       "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]
+    },
+    "release": {
+      "dependsOn": ["build"]
     }
   },
   "namedInputs": {

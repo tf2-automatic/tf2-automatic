@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+      - dev
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  packages: write
 
 jobs:
   affected:
@@ -61,7 +68,7 @@ jobs:
         with:
           semantic_version: 19
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
@@ -98,8 +105,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
@@ -116,6 +123,5 @@ jobs:
       - name: Build and push
         run: npx nx release ${{ matrix.projectName }}
         env:
-          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_TAGS: ${{ steps.meta.outputs.tags }}
           INPUT_LABELS: ${{ steps.meta.outputs.labels }}
