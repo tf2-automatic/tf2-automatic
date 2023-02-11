@@ -13,13 +13,13 @@
         "outputPath": "dist/apps/bot",
         "main": "apps/bot/src/main.ts",
         "tsConfig": "apps/bot/tsconfig.app.json",
-        "webpackConfig": "apps/bot/webpack.config.js"
+        "webpackConfig": "apps/bot/webpack.config.js",
+        "generatePackageJson": true
       },
       "configurations": {
         "production": {
           "optimization": true,
-          "extractLicenses": true,
-          "inspect": false
+          "extractLicenses": true
         }
       }
     },
@@ -53,6 +53,15 @@
           "ci": true,
           "codeCoverage": true
         }
+      }
+    },
+    "release": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": true,
+        "cache-from": ["type=local,src=/tmp/.buildx-cache"],
+        "cache-to": ["type=local,dest=/tmp/.buildx-cache-new,mode=max"],
+        "platforms": ["linux/amd64", "linux/arm64"]
       }
     }
   },
