@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnApplicationShutdown } from '@nestjs/common/interfaces';
+import { OnModuleDestroy } from '@nestjs/common/interfaces';
 import SteamUser from 'steam-user';
 import SteamCommunity from 'steamcommunity';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
@@ -11,7 +11,7 @@ import SteamID from 'steamid';
 import FileManager from 'file-manager';
 
 @Injectable()
-export class BotService implements OnApplicationShutdown {
+export class BotService implements OnModuleDestroy {
   private logger = new Logger(BotService.name);
 
   private client: SteamUser = new SteamUser({
@@ -332,8 +332,8 @@ export class BotService implements OnApplicationShutdown {
     });
   }
 
-  async onApplicationShutdown() {
-    this.logger.debug('onApplicationShutdown()');
+  async onModuleDestroy() {
+    this.logger.debug('OnModuleDestroy()');
     return this.stop();
   }
 
