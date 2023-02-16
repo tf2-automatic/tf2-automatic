@@ -25,6 +25,7 @@
     "@semantic-release/commit-analyzer": "^9.0.2",
     "@semantic-release/github": "^8.0.7",
     "@semantic-release/release-notes-generator": "^10.0.3",
+    "@types/amqplib": "^0.10.1",
     "@types/jest": "29.4.0",
     "@types/node": "18.11.18",
     "@types/steam-totp": "^2.1.0",
@@ -51,6 +52,7 @@
   "dependencies": {
     "@commitlint/cli": "^17.4.2",
     "@commitlint/config-conventional": "^17.4.2",
+    "@golevelup/nestjs-rabbitmq": "^3.4.0",
     "@nestjs/common": "^9.2.1",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.2.1",

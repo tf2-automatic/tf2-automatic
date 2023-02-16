@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
 import SteamID from 'steamid';
 import FileManager from 'file-manager';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -34,7 +35,8 @@ export class BotService implements OnModuleDestroy {
 
   constructor(
     private configService: ConfigService<Config>,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private eventsService: EventsService
   ) {
     // Add type to manager storage
     const managerStorage = this.manager.storage as FileManager;
