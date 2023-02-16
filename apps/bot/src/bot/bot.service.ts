@@ -60,6 +60,14 @@ export class BotService implements OnModuleDestroy {
 
     this.client.on('loggedOn', () => {
       this.metadataService.setSteamID(this.client.steamID as SteamID);
+      this.eventsService.publish('steam.connected');
+    });
+
+    this.client.on('disconnected', (eresult, msg) => {
+      this.eventsService.publish('steam.disconnected', {
+        eresult,
+        msg,
+      });
     });
   }
 
@@ -188,6 +196,8 @@ export class BotService implements OnModuleDestroy {
     this.running = true;
 
     this.logger.log('Bot is ready');
+
+    return this.eventsService.publish('bot.ready');
   }
 
   private webLogOn(): void {
