@@ -81,6 +81,23 @@ export class BotService implements OnModuleDestroy {
         });
       }
     );
+
+    this.client.chat.on('friendTyping', (message) => {
+      this.eventsService.publish('friends.typing', {
+        steamid64: message.steamid_friend.getSteamID64(),
+        timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
+        ordinal: message.ordinal,
+      });
+    });
+
+    this.client.chat.on('friendMessage', (message) => {
+      this.eventsService.publish('friends.message', {
+        steamid64: message.steamid_friend.getSteamID64(),
+        timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
+        ordinal: message.ordinal,
+        message: message.message,
+      });
+    });
   }
 
   isReady(): Promise<boolean> {
