@@ -13,10 +13,7 @@ export interface SteamAccountConfig {
 
 export default (): Config => {
   return {
-    port:
-      process.env.NODE_ENV === 'production'
-        ? 3000
-        : parseInt(process.env.PORT as string, 10),
+    port: parseInt(process.env.PORT as string, 10),
     steam: {
       username: process.env.STEAM_USERNAME as string,
       password: process.env.STEAM_PASSWORD as string,
