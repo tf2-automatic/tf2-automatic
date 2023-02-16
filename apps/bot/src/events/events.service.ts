@@ -24,6 +24,7 @@ export class EventsService implements OnModuleDestroy {
     const steamid64 = this.metadataService.getSteamID()?.getSteamID64() ?? null;
 
     await this.amqpConnection.publish(`${this.prefix}.bot`, event, {
+      type: event,
       data,
       metadata: {
         steamid64: steamid64,
