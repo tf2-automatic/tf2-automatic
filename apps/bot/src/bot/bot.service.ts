@@ -69,6 +69,18 @@ export class BotService implements OnModuleDestroy {
         msg,
       });
     });
+
+    // @ts-ignore
+    this.client.on(
+      'friendRelationship',
+      (steamID, relationship, previousRelationship) => {
+        this.eventsService.publish('friends.relationship', {
+          steamid64: steamID.getSteamID64(),
+          relationship,
+          previousRelationship,
+        });
+      }
+    );
   }
 
   isReady(): Promise<boolean> {
