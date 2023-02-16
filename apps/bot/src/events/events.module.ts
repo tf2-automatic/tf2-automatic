@@ -2,6 +2,7 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Config, RabbitMQConfig } from '../common/config/configuration';
+import { MetadataModule } from '../metadata/metadata.module';
 import { EventsService } from './events.service';
 
 @Module({
@@ -23,6 +24,7 @@ import { EventsService } from './events.service';
         };
       },
     }),
+    MetadataModule,
   ],
   providers: [EventsService],
   exports: [EventsService],

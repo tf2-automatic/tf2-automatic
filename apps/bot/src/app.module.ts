@@ -11,6 +11,7 @@ import { TF2Module } from './tf2/tf2.module';
 import { TradesModule } from './trades/trades.module';
 import { ProfileModule } from './profile/profile.module';
 import { EventsModule } from './events/events.module';
+import { MetadataModule } from './metadata/metadata.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { EventsModule } from './events/events.module';
     TradesModule,
     ProfileModule,
     EventsModule,
+    MetadataModule,
   ],
 })
 export class AppModule {}

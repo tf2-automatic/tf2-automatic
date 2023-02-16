@@ -10,6 +10,7 @@ import { StorageService } from '../storage/storage.service';
 import SteamID from 'steamid';
 import FileManager from 'file-manager';
 import { EventsService } from '../events/events.service';
+import { MetadataService } from '../metadata/metadata.service';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -36,7 +37,8 @@ export class BotService implements OnModuleDestroy {
   constructor(
     private configService: ConfigService<Config>,
     private storageService: StorageService,
-    private eventsService: EventsService
+    private eventsService: EventsService,
+    private metadataService: MetadataService
   ) {
     // Add type to manager storage
     const managerStorage = this.manager.storage as FileManager;
@@ -54,6 +56,10 @@ export class BotService implements OnModuleDestroy {
 
     this.client.storage.on('save', (filename, contents, callback) => {
       this.handleWriteEvent(filename, contents, callback);
+    });
+
+    this.client.on('loggedOn', () => {
+      this.metadataService.setSteamID(this.client.steamID as SteamID);
     });
   }
 
