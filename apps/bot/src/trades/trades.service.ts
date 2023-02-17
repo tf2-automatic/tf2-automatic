@@ -292,6 +292,8 @@ export class TradesService {
           return reject(err);
         }
 
+        this.publishOffer(offer);
+
         return resolve(this.mapOffer(offer));
       });
     })
