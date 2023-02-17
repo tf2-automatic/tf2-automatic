@@ -98,45 +98,6 @@ export class BotService implements OnModuleDestroy {
         message: message.message,
       });
     });
-
-    this.manager.on('newOffer', (offer) => {
-      this.eventsService.publish('trades.received', {
-        offer: this.mapOffer(offer),
-      });
-    });
-
-    this.manager.on('sentOfferChanged', (offer, oldState) => {
-      this.eventsService.publish('trades.changed', {
-        offer: this.mapOffer(offer),
-        oldState,
-      });
-    });
-
-    this.manager.on('receivedOfferChanged', (offer, oldState) => {
-      this.eventsService.publish('trades.changed', {
-        offer: this.mapOffer(offer),
-        oldState,
-      });
-    });
-  }
-
-  private mapOffer(offer: SteamTradeOfferManager.TradeOffer): any {
-    return {
-      id: offer.id,
-      state: offer.state,
-      steamid64: offer.partner.getSteamID64(),
-      message: offer.message,
-      itemsToGive: offer.itemsToGive,
-      itemsToReceive: offer.itemsToReceive,
-      isOurOffer: offer.isOurOffer,
-      createdAt: Math.floor(offer.created.getTime() / 1000),
-      updatedAt: Math.floor(offer.updated.getTime() / 1000),
-      expiresAt: Math.floor(offer.expires.getTime() / 1000),
-      escrowEndsAt: offer.escrowEnds
-        ? Math.floor(offer.escrowEnds.getTime() / 1000)
-        : null,
-      confirmationMethod: offer.confirmationMethod,
-    };
   }
 
   isReady(): Promise<boolean> {

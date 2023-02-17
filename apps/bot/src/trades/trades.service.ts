@@ -16,6 +16,7 @@ import { EResultException } from '../common/exceptions/eresult.exception';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common/services';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class TradesService {
@@ -26,8 +27,41 @@ export class TradesService {
 
   constructor(
     private readonly botService: BotService,
-    private readonly configService: ConfigService<Config>
-  ) {}
+    private readonly configService: ConfigService<Config>,
+    private readonly eventsService: EventsService
+  ) {
+    this.manager.on('newOffer', (offer) => {
+      this.eventsService
+        .publish('trades.received', {
+          offer: this.mapOffer(offer),
+        })
+        .then(() => {
+          offer.data('published', offer.state);
+        });
+    });
+
+    this.manager.on('sentOfferChanged', (offer, oldState) => {
+      this.eventsService
+        .publish('trades.changed', {
+          offer: this.mapOffer(offer),
+          oldState,
+        })
+        .then(() => {
+          offer.data('published', offer.state);
+        });
+    });
+
+    this.manager.on('receivedOfferChanged', (offer, oldState) => {
+      this.eventsService
+        .publish('trades.changed', {
+          offer: this.mapOffer(offer),
+          oldState,
+        })
+        .then(() => {
+          offer.data('published', offer.state);
+        });
+    });
+  }
 
   getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
     return new Promise<GetTradesResponse>((resolve, reject) => {
