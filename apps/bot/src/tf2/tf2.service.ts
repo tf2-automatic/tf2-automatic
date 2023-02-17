@@ -15,6 +15,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
+import { EventsService } from '../events/events.service';
 
 enum TaskType {
   Craft = 'CRAFT',
@@ -69,7 +70,10 @@ export class TF2Service implements OnApplicationShutdown {
 
   private account: TF2Account | null = null;
 
-  constructor(private readonly botService: BotService) {
+  constructor(
+    private readonly botService: BotService,
+    private readonly eventsService: EventsService
+  ) {
     this.client.on('loggedOn', () => {
       // Bot is logged in, connect to TF2 GC
       this.client.gamesPlayed([440]);
@@ -91,6 +95,18 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.on('accountUpdate', () => {
       this.logger.debug('Account update');
       this.accountLoaded();
+    });
+
+    this.tf2.on('itemAcquired', (item) => {
+      this.eventsService.publish('tf2.gained', item).catch(() => {
+        // Ignore error
+      });
+    });
+
+    this.tf2.on('itemRemoved', (item) => {
+      this.eventsService.publish('tf2.lost', item).catch(() => {
+        // Ignore error
+      });
     });
   }
 
