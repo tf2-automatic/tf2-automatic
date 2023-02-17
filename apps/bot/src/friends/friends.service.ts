@@ -1,8 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
-import { Friends, SendFriendMessageResponse } from '@tf2-automatic/bot-data';
+import {
+  FriendMessageEvent,
+  FriendRelationshipEvent,
+  Friends,
+  FriendTypingEvent,
+  FRIEND_MESSAGE_EVENT,
+  FRIEND_RELATIONSHIP_EVENT,
+  FRIEND_TYPING_EVENT,
+  SendFriendMessageResponse,
+} from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class FriendsService {
@@ -10,7 +20,51 @@ export class FriendsService {
 
   private readonly client = this.botService.getClient();
 
-  constructor(private readonly botService: BotService) {}
+  constructor(
+    private readonly botService: BotService,
+    private readonly eventsService: EventsService
+  ) {
+    // @ts-ignore
+    this.client.on(
+      'friendRelationship',
+      (steamID, relationship, oldRelationship) => {
+        this.eventsService
+          .publish(FRIEND_RELATIONSHIP_EVENT, {
+            steamid64: steamID.getSteamID64(),
+            relationship,
+            oldRelationship,
+          } as FriendRelationshipEvent['data'])
+          .catch(() => {
+            // Ignore error
+          });
+      }
+    );
+
+    this.client.chat.on('friendTyping', (message) => {
+      this.eventsService
+        .publish(FRIEND_TYPING_EVENT, {
+          steamid64: message.steamid_friend.getSteamID64(),
+          timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
+          ordinal: message.ordinal,
+        } as FriendTypingEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
+    });
+
+    this.client.chat.on('friendMessage', (message) => {
+      this.eventsService
+        .publish(FRIEND_MESSAGE_EVENT, {
+          steamid64: message.steamid_friend.getSteamID64(),
+          timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
+          ordinal: message.ordinal,
+          message: message.message,
+        } as FriendMessageEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
+    });
+  }
 
   async getFriends(): Promise<Friends> {
     return Object.keys(this.client.myFriends).map((steamid) => {

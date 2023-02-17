@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { FriendsController } from './friends.controller';
 import { BotModule } from '../bot/bot.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [BotModule],
+  imports: [BotModule, EventsModule],
   providers: [FriendsService],
   controllers: [FriendsController],
 })

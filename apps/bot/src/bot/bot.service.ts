@@ -14,12 +14,6 @@ import { MetadataService } from '../metadata/metadata.service';
 import {
   BotReadyEvent,
   BOT_READY_EVENT,
-  FriendMessageEvent,
-  FriendRelationshipEvent,
-  FriendTypingEvent,
-  FRIEND_MESSAGE_EVENT,
-  FRIEND_RELATIONSHIP_EVENT,
-  FRIEND_TYPING_EVENT,
   SteamConnectedEvent,
   SteamDisconnectedEvent,
   STEAM_CONNECTED_EVENT,
@@ -87,47 +81,6 @@ export class BotService implements OnModuleDestroy {
           eresult,
           msg,
         } as SteamDisconnectedEvent['data'])
-        .catch(() => {
-          // Ignore error
-        });
-    });
-
-    // @ts-ignore
-    this.client.on(
-      'friendRelationship',
-      (steamID, relationship, oldRelationship) => {
-        this.eventsService
-          .publish(FRIEND_RELATIONSHIP_EVENT, {
-            steamid64: steamID.getSteamID64(),
-            relationship,
-            oldRelationship,
-          } as FriendRelationshipEvent['data'])
-          .catch(() => {
-            // Ignore error
-          });
-      }
-    );
-
-    this.client.chat.on('friendTyping', (message) => {
-      this.eventsService
-        .publish(FRIEND_TYPING_EVENT, {
-          steamid64: message.steamid_friend.getSteamID64(),
-          timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
-          ordinal: message.ordinal,
-        } as FriendTypingEvent['data'])
-        .catch(() => {
-          // Ignore error
-        });
-    });
-
-    this.client.chat.on('friendMessage', (message) => {
-      this.eventsService
-        .publish(FRIEND_MESSAGE_EVENT, {
-          steamid64: message.steamid_friend.getSteamID64(),
-          timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
-          ordinal: message.ordinal,
-          message: message.message,
-        } as FriendMessageEvent['data'])
         .catch(() => {
           // Ignore error
         });
