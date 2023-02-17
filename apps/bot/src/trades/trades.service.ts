@@ -47,35 +47,15 @@ export class TradesService {
     private readonly eventsService: EventsService
   ) {
     this.manager.on('newOffer', (offer) => {
-      this.eventsService
-        .publish('trades.received', {
-          offer: this.mapOffer(offer),
-        })
-        .then(() => {
-          offer.data('published', offer.state);
-        });
+      this.publishOffer(offer, null);
     });
 
     this.manager.on('sentOfferChanged', (offer, oldState) => {
-      this.eventsService
-        .publish('trades.changed', {
-          offer: this.mapOffer(offer),
-          oldState,
-        })
-        .then(() => {
-          offer.data('published', offer.state);
-        });
+      this.publishOffer(offer, oldState);
     });
 
     this.manager.on('receivedOfferChanged', (offer, oldState) => {
-      this.eventsService
-        .publish('trades.changed', {
-          offer: this.mapOffer(offer),
-          oldState,
-        })
-        .then(() => {
-          offer.data('published', offer.state);
-        });
+      this.publishOffer(offer, oldState);
     });
 
     this.manager.on('pollData', () => {
@@ -136,34 +116,75 @@ export class TradesService {
       return;
     }
 
-    let promise: Promise<void> | null = null;
+    return this.publishOffer(offer, publishedState);
+  }
 
-    // Publish the offer
-    if (
-      offer.state === SteamTradeOfferManager.ETradeOfferState.Active ||
-      offer.state ===
-        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
-    ) {
-      // Offer is active, we either sent it, or received it
-      promise = this.eventsService.publish(
-        offer.isOurOffer ? 'trades.sent' : 'trades.received',
-        {
+  private publishOffer(
+    offer: SteamTradeOfferManager.TradeOffer,
+    oldState: SteamUser.ETradeOfferState | null = null
+  ): Promise<void> {
+    const publish = (): Promise<void> => {
+      if (oldState) {
+        return this.eventsService.publish('trades.changed', {
           offer: this.mapOffer(offer),
+          oldState,
+        });
+      }
+
+      if (!offer.isOurOffer) {
+        // Offer was sent to us and there is no old state
+        if (offer.state === SteamTradeOfferManager.ETradeOfferState.Active) {
+          // Offer is active, means we received it
+          return this.eventsService.publish('trades.received', {
+            offer: this.mapOffer(offer),
+          });
         }
-      );
-    } else {
-      // Offer is not active, meaning the state changed, but we might not know
-      // what it changed from
-      promise = this.eventsService.publish('trades.changed', {
+
+        // Offer is not active, means the state changed, but we don't know what it changed from
+        return this.eventsService.publish('trades.changed', {
+          offer: this.mapOffer(offer),
+          oldState: null,
+        });
+      }
+
+      // Offer is ours and there is no old state
+
+      if (
+        offer.state ===
+        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+      ) {
+        // Offer is waiting for confirmation, means we sent it
+        return this.eventsService.publish('trades.sent', {
+          offer: this.mapOffer(offer),
+        });
+      }
+
+      if (offer.state === SteamTradeOfferManager.ETradeOfferState.Active) {
+        // Offer is active, means it is either sent now or changed
+        if (offer.itemsToGive.length === 0) {
+          // Offer is active and we are giving nothing, means we sent it without confirmation
+          return this.eventsService.publish('trades.sent', {
+            offer: this.mapOffer(offer),
+          });
+        }
+      }
+
+      // Offer is not active, or created and needs confirmation.
+
+      return this.eventsService.publish('trades.changed', {
         offer: this.mapOffer(offer),
-        oldState: publishedState,
+        oldState: null,
       });
-    }
+    };
 
     // Wait for the event to be published
-    await promise.then(() => {
-      offer.data('published', offer.state);
-    });
+    return publish()
+      .then(() => {
+        offer.data('published', offer.state);
+      })
+      .catch((err) => {
+        this.logger.warn('Error publishing offer: ' + err.message);
+      });
   }
 
   getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
