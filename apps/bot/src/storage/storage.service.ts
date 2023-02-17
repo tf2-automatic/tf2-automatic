@@ -15,6 +15,13 @@ interface WriteTask {
   data: string;
 }
 
+interface NextWrite {
+  // The next data to write
+  data: string;
+  // The promise for the next write
+  promise: Promise<WriteFileResult>;
+}
+
 @Injectable()
 export class StorageService implements OnApplicationShutdown {
   private readonly logger = new Logger(StorageService.name);
@@ -23,10 +30,11 @@ export class StorageService implements OnApplicationShutdown {
 
   private readonly _readPromises: Map<string, Promise<ReadFileResult>> =
     new Map();
-  private readonly writeQueue: queueAsPromised<WriteTask> = fastq.promise(
-    this.processWriteQueue.bind(this),
-    1
-  );
+  private readonly currentWrites = new Map<string, Promise<WriteFileResult>>();
+  private readonly nextWrites = new Map<string, NextWrite>();
+
+  private readonly writeQueue: queueAsPromised<WriteTask, WriteFileResult> =
+    fastq.promise(this.processWriteQueue.bind(this), 1);
 
   constructor(private readonly configService: ConfigService<Config>) {
     this.dataDir = this.configService.get<string>('dataDir') ?? null;
@@ -106,7 +114,61 @@ export class StorageService implements OnApplicationShutdown {
   }
 
   async write(relativePath: string, data: string): Promise<WriteFileResult> {
-    // TODO: Overwrite attempts to writes to the same file to prevent unnessesary writes
-    return this.writeQueue.push({ relativePath, data });
+    const currentWrite = this.currentWrites.get(relativePath);
+    if (currentWrite) {
+      // We are already writing to this file so queue the next write
+      const nextWrite = this.nextWrites.get(relativePath);
+
+      if (nextWrite) {
+        // Have already queued the next write so just set new data and return the promise
+        nextWrite.data = data;
+        return nextWrite.promise;
+      } else {
+        // Queue the next write to start after the current write
+        const promise = currentWrite.finally(() => {
+          const nextWrite = this.nextWrites.get(relativePath) as NextWrite;
+
+          const promise = this.writeQueue
+            .push({
+              relativePath,
+              data: nextWrite.data,
+            })
+            .finally(() => {
+              // Remove current write from map if next write is not queued
+              if (!this.nextWrites.has(relativePath)) {
+                this.currentWrites.delete(relativePath);
+              }
+            });
+
+          // This job is now the current write
+          this.currentWrites.set(relativePath, promise);
+          this.nextWrites.delete(relativePath);
+
+          return promise;
+        });
+
+        const nextWrite: NextWrite = {
+          data,
+          promise,
+        };
+
+        this.nextWrites.set(relativePath, nextWrite);
+
+        return nextWrite.promise;
+      }
+    }
+
+    // No writes to this file are currently in progress
+    const promise = this.writeQueue.push({ relativePath, data }).finally(() => {
+      // Remove current write from map if next write is not queued
+      if (!this.nextWrites.has(relativePath)) {
+        this.currentWrites.delete(relativePath);
+      }
+    });
+
+    // This job is now the current write
+    this.currentWrites.set(relativePath, promise);
+
+    return promise;
   }
 }
