@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnApplicationShutdown } from '@nestjs/common/interfaces';
+import { OnModuleDestroy } from '@nestjs/common/interfaces';
 import SteamUser from 'steam-user';
 import SteamCommunity from 'steamcommunity';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
@@ -9,9 +9,19 @@ import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
 import SteamID from 'steamid';
 import FileManager from 'file-manager';
+import { EventsService } from '../events/events.service';
+import { MetadataService } from '../metadata/metadata.service';
+import {
+  BotReadyEvent,
+  BOT_READY_EVENT,
+  SteamConnectedEvent,
+  SteamDisconnectedEvent,
+  STEAM_CONNECTED_EVENT,
+  STEAM_DISCONNECTED_EVENT,
+} from '@tf2-automatic/bot-data';
 
 @Injectable()
-export class BotService implements OnApplicationShutdown {
+export class BotService implements OnModuleDestroy {
   private logger = new Logger(BotService.name);
 
   private client: SteamUser = new SteamUser({
@@ -34,7 +44,9 @@ export class BotService implements OnApplicationShutdown {
 
   constructor(
     private configService: ConfigService<Config>,
-    private storageService: StorageService
+    private storageService: StorageService,
+    private eventsService: EventsService,
+    private metadataService: MetadataService
   ) {
     // Add type to manager storage
     const managerStorage = this.manager.storage as FileManager;
@@ -52,6 +64,26 @@ export class BotService implements OnApplicationShutdown {
 
     this.client.storage.on('save', (filename, contents, callback) => {
       this.handleWriteEvent(filename, contents, callback);
+    });
+
+    this.client.on('loggedOn', () => {
+      this.metadataService.setSteamID(this.client.steamID as SteamID);
+      this.eventsService
+        .publish(STEAM_CONNECTED_EVENT, {} as SteamConnectedEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
+    });
+
+    this.client.on('disconnected', (eresult, msg) => {
+      this.eventsService
+        .publish(STEAM_DISCONNECTED_EVENT, {
+          eresult,
+          msg,
+        } as SteamDisconnectedEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
   }
 
@@ -180,6 +212,11 @@ export class BotService implements OnApplicationShutdown {
     this.running = true;
 
     this.logger.log('Bot is ready');
+
+    return this.eventsService.publish(
+      BOT_READY_EVENT,
+      {} as BotReadyEvent['data']
+    );
   }
 
   private webLogOn(): void {
@@ -332,8 +369,8 @@ export class BotService implements OnApplicationShutdown {
     });
   }
 
-  async onApplicationShutdown() {
-    this.logger.debug('onApplicationShutdown()');
+  async onModuleDestroy() {
+    this.logger.debug('OnModuleDestroy()');
     return this.stop();
   }
 
