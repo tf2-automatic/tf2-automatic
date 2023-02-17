@@ -17,6 +17,17 @@ import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common/services';
 import { EventsService } from '../events/events.service';
+import fastq from 'fastq';
+import type { queueAsPromised } from 'fastq';
+import SteamUser from 'steam-user';
+
+interface EnsureOfferPublishedTask {
+  id: string;
+}
+
+interface TradeOfferData {
+  published?: SteamUser.ETradeOfferState;
+}
 
 @Injectable()
 export class TradesService {
@@ -24,6 +35,9 @@ export class TradesService {
 
   private readonly manager = this.botService.getManager();
   private readonly community = this.botService.getCommunity();
+
+  private readonly ensureOfferPublishedQueue: queueAsPromised<EnsureOfferPublishedTask> =
+    fastq.promise(this.ensureOfferPublished.bind(this), 1);
 
   constructor(
     private readonly botService: BotService,
@@ -61,6 +75,82 @@ export class TradesService {
           offer.data('published', offer.state);
         });
     });
+
+    this.manager.on('pollData', (pollData) => {
+      Object.keys(pollData.sent)
+        .concat(Object.keys(pollData.received))
+        .forEach((id) => {
+          this.ensureOfferPublishedQueue.push({ id }).catch((err) => {
+            // Ignore the error
+            this.logger.warn('Error ensuring offer published: ' + err.message);
+            console.log(err);
+          });
+        });
+    });
+  }
+
+  private async ensureOfferPublished(
+    task: EnsureOfferPublishedTask
+  ): Promise<void> {
+    const id = task.id;
+
+    // Check if offer was already published
+    const currentState =
+      this.manager.pollData.sent[id] ??
+      this.manager.pollData.received[id] ??
+      null;
+
+    if (currentState !== null) {
+      const pollDataOfferData = this.manager.pollData.offerData ?? {};
+
+      const offerData: TradeOfferData | null = pollDataOfferData[id] ?? null;
+      const publishedState = offerData?.published ?? null;
+
+      if (currentState === publishedState) {
+        // Offer was already published
+        return;
+      }
+    }
+
+    // Get the actual offer
+    const offer = await this._getTrade(id);
+    const publishedState = offer.data('published') as
+      | TradeOfferData['published']
+      | null;
+
+    if (offer.state === publishedState) {
+      // This check is redundant but it's here just in case
+      return;
+    }
+
+    let promise: Promise<void> | null = null;
+
+    // Publish the offer
+    if (
+      offer.state === SteamTradeOfferManager.ETradeOfferState.Active ||
+      offer.state ===
+        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      // Offer is active, we either sent it, or received it
+      promise = this.eventsService.publish(
+        offer.isOurOffer ? 'trades.sent' : 'trades.received',
+        {
+          offer: this.mapOffer(offer),
+        }
+      );
+    } else {
+      // Offer is not active, meaning the state changed, but we might not know
+      // what it changed from
+      promise = this.eventsService.publish('trades.changed', {
+        offer: this.mapOffer(offer),
+        oldState: publishedState,
+      });
+    }
+
+    // Wait for the event to be published
+    await promise.then(() => {
+      offer.data('published', offer.state);
+    });
   }
 
   getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
@@ -96,7 +186,7 @@ export class TradesService {
     });
   }
 
-  getTrade(id: string): Promise<TradeOffer> {
+  private _getTrade(id: string): Promise<SteamTradeOfferManager.TradeOffer> {
     return new Promise<TradeOffer>((resolve, reject) => {
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
@@ -107,9 +197,13 @@ export class TradesService {
           return reject(err);
         }
 
-        return resolve(this.mapOffer(offer));
+        return resolve(offer);
       });
-    }).catch((err) => {
+    });
+  }
+
+  async getTrade(id: string): Promise<TradeOffer> {
+    const offer = await this._getTrade(id).catch((err) => {
       this.logger.error(
         `Error getting trade offer: ${err.message}${
           err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
@@ -117,6 +211,8 @@ export class TradesService {
       );
       throw err;
     });
+
+    return this.mapOffer(offer);
   }
 
   createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
