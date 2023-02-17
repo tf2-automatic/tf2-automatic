@@ -39,6 +39,8 @@ export class TradesService {
   private readonly ensureOfferPublishedQueue: queueAsPromised<EnsureOfferPublishedTask> =
     fastq.promise(this.ensureOfferPublished.bind(this), 1);
 
+  private ensurePollDataTimeout: NodeJS.Timeout | null = null;
+
   constructor(
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
@@ -76,9 +78,20 @@ export class TradesService {
         });
     });
 
-    this.manager.on('pollData', (pollData) => {
-      Object.keys(pollData.sent)
-        .concat(Object.keys(pollData.received))
+    this.manager.on('pollData', () => {
+      this.ensurePollData();
+    });
+  }
+
+  private ensurePollData(): void {
+    if (this.ensurePollDataTimeout !== null) {
+      clearTimeout(this.ensurePollDataTimeout);
+    }
+
+    this.ensurePollDataTimeout = setTimeout(() => {
+      this.logger.debug('Enqueuing offers to ensure poll data is published');
+      Object.keys(this.manager.pollData.sent)
+        .concat(Object.keys(this.manager.pollData.received))
         .forEach((id) => {
           this.ensureOfferPublishedQueue.push({ id }).catch((err) => {
             // Ignore the error
@@ -86,7 +99,7 @@ export class TradesService {
             console.log(err);
           });
         });
-    });
+    }, 1000);
   }
 
   private async ensureOfferPublished(
