@@ -15,6 +15,7 @@ import {
 } from 'steam-user';
 import { Item } from './inventories';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
+import { BaseEvent } from './events';
 
 export enum OfferFilter {
   ActiveOnly = 1,
@@ -110,3 +111,22 @@ export const TRADES_GET_TRADE = '/:id';
 export const TRADES_CREATE_TRADE = '/';
 export const TRADES_REMOVE_TRADE = '/:id';
 export const TRADES_ACCEPT_CONFIRMATION = '/:id/confirm';
+
+export const TRADE_SENT_EVENT = 'trade.sent';
+export const TRADE_RECEIVED_EVENT = 'trade.received';
+export const TRADE_CHANGED_EVENT = 'trade.changed';
+
+export interface TradeSentEvent extends BaseEvent {
+  type: typeof TRADE_SENT_EVENT;
+  data: TradeOffer;
+}
+
+export interface TradeReceivedEvent extends BaseEvent {
+  type: typeof TRADE_RECEIVED_EVENT;
+  data: TradeOffer;
+}
+
+export interface TradeChangedEvent extends BaseEvent {
+  type: typeof TRADE_CHANGED_EVENT;
+  data: TradeOffer;
+}

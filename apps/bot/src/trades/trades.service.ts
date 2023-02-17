@@ -11,6 +11,9 @@ import {
   GetTradesDto,
   GetTradesResponse,
   TradeOffer,
+  TRADE_CHANGED_EVENT,
+  TRADE_RECEIVED_EVENT,
+  TRADE_SENT_EVENT,
 } from '@tf2-automatic/bot-data';
 import { EResultException } from '../common/exceptions/eresult.exception';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
@@ -125,7 +128,7 @@ export class TradesService {
   ): Promise<void> {
     const publish = (): Promise<void> => {
       if (oldState) {
-        return this.eventsService.publish('trades.changed', {
+        return this.eventsService.publish(TRADE_CHANGED_EVENT, {
           offer: this.mapOffer(offer),
           oldState,
         });
@@ -135,13 +138,13 @@ export class TradesService {
         // Offer was sent to us and there is no old state
         if (offer.state === SteamTradeOfferManager.ETradeOfferState.Active) {
           // Offer is active, means we received it
-          return this.eventsService.publish('trades.received', {
+          return this.eventsService.publish(TRADE_RECEIVED_EVENT, {
             offer: this.mapOffer(offer),
           });
         }
 
         // Offer is not active, means the state changed, but we don't know what it changed from
-        return this.eventsService.publish('trades.changed', {
+        return this.eventsService.publish(TRADE_CHANGED_EVENT, {
           offer: this.mapOffer(offer),
           oldState: null,
         });
@@ -154,7 +157,7 @@ export class TradesService {
         SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
       ) {
         // Offer is waiting for confirmation, means we sent it
-        return this.eventsService.publish('trades.sent', {
+        return this.eventsService.publish(TRADE_SENT_EVENT, {
           offer: this.mapOffer(offer),
         });
       }
@@ -163,7 +166,7 @@ export class TradesService {
         // Offer is active, means it is either sent now or changed
         if (offer.itemsToGive.length === 0) {
           // Offer is active and we are giving nothing, means we sent it without confirmation
-          return this.eventsService.publish('trades.sent', {
+          return this.eventsService.publish(TRADE_SENT_EVENT, {
             offer: this.mapOffer(offer),
           });
         }
@@ -171,7 +174,7 @@ export class TradesService {
 
       // Offer is not active, or created and needs confirmation.
 
-      return this.eventsService.publish('trades.changed', {
+      return this.eventsService.publish(TRADE_CHANGED_EVENT, {
         offer: this.mapOffer(offer),
         oldState: null,
       });

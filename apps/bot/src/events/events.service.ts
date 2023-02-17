@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Config, RabbitMQConfig } from '../common/config/configuration';
 import type { ConfirmChannel } from 'amqplib';
 import { MetadataService } from '../metadata/metadata.service';
+import { BaseEvent } from '@tf2-automatic/bot-data';
 
 @Injectable()
 export class EventsService implements OnModuleDestroy {
@@ -30,6 +31,6 @@ export class EventsService implements OnModuleDestroy {
         steamid64: steamid64,
         time: Math.floor(new Date().getTime() / 1000),
       },
-    });
+    } as BaseEvent);
   }
 }

@@ -11,6 +11,20 @@ import SteamID from 'steamid';
 import FileManager from 'file-manager';
 import { EventsService } from '../events/events.service';
 import { MetadataService } from '../metadata/metadata.service';
+import {
+  BotReadyEvent,
+  BOT_READY_EVENT,
+  FriendMessageEvent,
+  FriendRelationshipEvent,
+  FriendTypingEvent,
+  FRIEND_MESSAGE_EVENT,
+  FRIEND_RELATIONSHIP_EVENT,
+  FRIEND_TYPING_EVENT,
+  SteamConnectedEvent,
+  SteamDisconnectedEvent,
+  STEAM_CONNECTED_EVENT,
+  STEAM_DISCONNECTED_EVENT,
+} from '@tf2-automatic/bot-data';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -60,43 +74,63 @@ export class BotService implements OnModuleDestroy {
 
     this.client.on('loggedOn', () => {
       this.metadataService.setSteamID(this.client.steamID as SteamID);
-      this.eventsService.publish('steam.connected');
+      this.eventsService
+        .publish(STEAM_CONNECTED_EVENT, {} as SteamConnectedEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
 
     this.client.on('disconnected', (eresult, msg) => {
-      this.eventsService.publish('steam.disconnected', {
-        eresult,
-        msg,
-      });
+      this.eventsService
+        .publish(STEAM_DISCONNECTED_EVENT, {
+          eresult,
+          msg,
+        } as SteamDisconnectedEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
 
     // @ts-ignore
     this.client.on(
       'friendRelationship',
-      (steamID, relationship, previousRelationship) => {
-        this.eventsService.publish('friends.relationship', {
-          steamid64: steamID.getSteamID64(),
-          relationship,
-          previousRelationship,
-        });
+      (steamID, relationship, oldRelationship) => {
+        this.eventsService
+          .publish(FRIEND_RELATIONSHIP_EVENT, {
+            steamid64: steamID.getSteamID64(),
+            relationship,
+            oldRelationship,
+          } as FriendRelationshipEvent['data'])
+          .catch(() => {
+            // Ignore error
+          });
       }
     );
 
     this.client.chat.on('friendTyping', (message) => {
-      this.eventsService.publish('friends.typing', {
-        steamid64: message.steamid_friend.getSteamID64(),
-        timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
-        ordinal: message.ordinal,
-      });
+      this.eventsService
+        .publish(FRIEND_TYPING_EVENT, {
+          steamid64: message.steamid_friend.getSteamID64(),
+          timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
+          ordinal: message.ordinal,
+        } as FriendTypingEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
 
     this.client.chat.on('friendMessage', (message) => {
-      this.eventsService.publish('friends.message', {
-        steamid64: message.steamid_friend.getSteamID64(),
-        timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
-        ordinal: message.ordinal,
-        message: message.message,
-      });
+      this.eventsService
+        .publish(FRIEND_MESSAGE_EVENT, {
+          steamid64: message.steamid_friend.getSteamID64(),
+          timestamp: Math.floor(message.server_timestamp.getTime() / 1000),
+          ordinal: message.ordinal,
+          message: message.message,
+        } as FriendMessageEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
   }
 
@@ -226,7 +260,10 @@ export class BotService implements OnModuleDestroy {
 
     this.logger.log('Bot is ready');
 
-    return this.eventsService.publish('bot.ready');
+    return this.eventsService.publish(
+      BOT_READY_EVENT,
+      {} as BotReadyEvent['data']
+    );
   }
 
   private webLogOn(): void {

@@ -12,6 +12,9 @@ import {
   SortBackpack,
   SortBackpackDto,
   TF2Account,
+  TF2LostEvent,
+  TF2_GAINED_EVENT,
+  TF2_LOST_EVENT,
 } from '@tf2-automatic/bot-data';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
@@ -98,15 +101,19 @@ export class TF2Service implements OnApplicationShutdown {
     });
 
     this.tf2.on('itemAcquired', (item) => {
-      this.eventsService.publish('tf2.gained', item).catch(() => {
-        // Ignore error
-      });
+      this.eventsService
+        .publish(TF2_GAINED_EVENT, item as TF2LostEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
 
     this.tf2.on('itemRemoved', (item) => {
-      this.eventsService.publish('tf2.lost', item).catch(() => {
-        // Ignore error
-      });
+      this.eventsService
+        .publish(TF2_LOST_EVENT, item as TF2LostEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
   }
 
