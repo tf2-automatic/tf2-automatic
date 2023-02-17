@@ -42,7 +42,13 @@ export class StorageService implements OnApplicationShutdown {
 
   onApplicationShutdown() {
     // Wait for all writes to finish
-    return this.writeQueue.drained();
+    return Promise.all(this.currentWrites.values())
+      .then(() => {
+        return Promise.all(Array.from(this.nextWrites.values()));
+      })
+      .then(() => {
+        return this.writeQueue.drain();
+      });
   }
 
   async read(relativePath: string): Promise<ReadFileResult> {
