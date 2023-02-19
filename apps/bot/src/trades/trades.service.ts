@@ -17,7 +17,7 @@ import {
   TRADE_RECEIVED_EVENT,
   TRADE_SENT_EVENT,
 } from '@tf2-automatic/bot-data';
-import { EResultException } from '../common/exceptions/eresult.exception';
+import { SteamException } from '../common/exceptions/eresult.exception';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common/services';
@@ -290,8 +290,10 @@ export class TradesService {
             );
           }
 
-          if (err.eresult !== undefined) {
-            return reject(new EResultException(err.message, err.eresult));
+          if (err.eresult !== undefined || err.cause !== undefined) {
+            return reject(
+              new SteamException(err.message, err.eresult, err.cause)
+            );
           }
 
           return reject(err);
@@ -346,8 +348,10 @@ export class TradesService {
     return new Promise<string>((resolve, reject) => {
       offer.accept(false, (err, state) => {
         if (err) {
-          if (err.eresult !== undefined) {
-            return reject(new EResultException(err.message, err.eresult));
+          if (err.eresult !== undefined || err.cause !== undefined) {
+            return reject(
+              new SteamException(err.message, err.eresult, err.cause)
+            );
           }
 
           return reject(err);
@@ -423,8 +427,8 @@ export class TradesService {
               `Offer #${offer.id} is not active, so it may not be cancelled or declined`
             ) {
               return reject(new BadRequestException('Offer is not active'));
-            } else if (err.eresult !== undefined) {
-              return reject(new EResultException(err.message, err.eresult));
+            } else if (err.eresult !== undefined || err.cause !== undefined) {
+              return reject(new SteamException(err.message, err.eresult));
             }
 
             return reject(err);
