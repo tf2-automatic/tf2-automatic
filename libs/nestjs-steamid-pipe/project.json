@@ -24,6 +24,17 @@
           "codeCoverage": true
         }
       }
+    },
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/is-steamid-pipe",
+        "tsConfig": "libs/is-steamid-pipe/tsconfig.lib.json",
+        "packageJson": "libs/is-steamid-pipe/package.json",
+        "main": "libs/is-steamid-pipe/src/index.ts",
+        "assets": ["libs/is-steamid-pipe/*.md"]
+      }
     }
   },
   "tags": []
