@@ -11,6 +11,7 @@ import {
   GetTradesDto,
   GetTradesResponse,
   TradeOffer,
+  TradeOfferExchangeDetails,
   TRADE_CHANGED_EVENT,
   TRADE_RECEIVED_EVENT,
   TRADE_SENT_EVENT,
@@ -444,6 +445,28 @@ export class TradesService {
         );
         throw err;
       });
+  }
+
+  async getExchangeDetails(id: string): Promise<TradeOfferExchangeDetails> {
+    const offer = await this._getTrade(id);
+
+    return new Promise((resolve, reject) => {
+      offer.getExchangeDetails(
+        false,
+        (err, status, tradeInitTime, receivedItems, sentItems) => {
+          if (err) {
+            return reject(err);
+          }
+
+          return resolve({
+            status,
+            tradeInitTime: Math.floor(tradeInitTime.getTime() / 1000),
+            receivedItems,
+            sentItems,
+          });
+        }
+      );
+    });
   }
 
   private mapOffer(offer: SteamTradeOfferManager.TradeOffer): TradeOffer {
