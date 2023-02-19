@@ -8,5 +8,6 @@ import { EventsModule } from '../events/events.module';
   imports: [BotModule, EventsModule],
   providers: [FriendsService],
   controllers: [FriendsController],
+  exports: [FriendsService],
 })
 export class FriendsModule {}

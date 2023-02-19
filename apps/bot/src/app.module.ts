@@ -12,6 +12,7 @@ import { TradesModule } from './trades/trades.module';
 import { ProfileModule } from './profile/profile.module';
 import { EventsModule } from './events/events.module';
 import { MetadataModule } from './metadata/metadata.module';
+import { EscrowModule } from './escrow/escrow.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MetadataModule } from './metadata/metadata.module';
     ProfileModule,
     EventsModule,
     MetadataModule,
+    EscrowModule,
   ],
 })
 export class AppModule {}
