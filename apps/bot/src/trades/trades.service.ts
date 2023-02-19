@@ -318,6 +318,44 @@ export class TradesService {
       });
   }
 
+  async acceptTrade(id: string): Promise<TradeOffer> {
+    this.logger.log(`Accepting trade offer #${id}...`);
+
+    try {
+      const offer = await this._getTrade(id);
+      const state = await this._acceptTrade(offer);
+
+      this.logger.log(`Trade offer #${id} accepted (state: ${state})`);
+
+      return this.mapOffer(offer);
+    } catch (err) {
+      this.logger.error(
+        `Got an error while accepting trade offer: ${err.message}${
+          err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+        }`
+      );
+      throw err;
+    }
+  }
+
+  private _acceptTrade(
+    offer: SteamTradeOfferManager.TradeOffer
+  ): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      offer.accept(false, (err, state) => {
+        if (err) {
+          if (err.eresult !== undefined) {
+            return reject(new EResultException(err.message, err.eresult));
+          }
+
+          return reject(err);
+        }
+
+        return resolve(state);
+      });
+    });
+  }
+
   acceptConfirmation(id: string): Promise<void> {
     this.logger.log(`Accepting confirmation for offer #${id}...`);
 
