@@ -29,11 +29,11 @@
       "executor": "@nrwl/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/libs/is-steamid-pipe",
-        "tsConfig": "libs/is-steamid-pipe/tsconfig.lib.json",
-        "packageJson": "libs/is-steamid-pipe/package.json",
-        "main": "libs/is-steamid-pipe/src/index.ts",
-        "assets": ["libs/is-steamid-pipe/*.md"]
+        "outputPath": "dist/libs/nestjs-steamid-pipe",
+        "tsConfig": "libs/nestjs-steamid-pipe/tsconfig.lib.json",
+        "packageJson": "libs/nestjs-steamid-pipe/package.json",
+        "main": "libs/nestjs-steamid-pipe/src/index.ts",
+        "assets": ["libs/nestjs-steamid-pipe/*.md"]
       }
     }
   },
