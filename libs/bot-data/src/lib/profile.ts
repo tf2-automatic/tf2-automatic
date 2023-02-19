@@ -102,9 +102,8 @@ export interface TradeOfferUrlResponse {
 }
 
 export const PROFILE_BASE_URL = '/profile';
-export const PROFILE_UPDATE_AVATAR = '/avatar';
-export const PROFILE_UPDATE_PROFILE = '/';
-export const PROFILE_UPDATE_PROFILE_SETTINGS = '/settings';
-export const PROFILE_DELETE_NAME_HISTORY = '/name';
-export const PROFILE_GET_TRADE_OFFER_URL = '/tradeofferurl';
-export const PROFILE_CHANGE_TRADE_OFFER_URL = '/tradeofferurl';
+export const PROFILE_AVATAR_PATH = '/avatar';
+export const PROFILE_PATH = '/';
+export const PROFILE_SETTINGS_PATH = '/settings';
+export const PROFILE_NAME_PATH = '/name';
+export const PROFILE_TRADEOFFERURL_PATH = '/tradeofferurl';

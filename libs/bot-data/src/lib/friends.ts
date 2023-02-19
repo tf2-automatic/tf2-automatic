@@ -11,11 +11,11 @@ export interface Friend {
 
 export type Friends = Friend[];
 
-export interface AddFriend {
+export interface AddFriendResponse {
   added: boolean;
 }
 
-export interface DeleteFriend {
+export interface DeleteFriendResponse {
   deleted: boolean;
 }
 
@@ -31,17 +31,16 @@ export interface SendFriendMessageResponse {
   ordinal: number;
 }
 
-export const FRIENDS_BASE_PATH = '/friends';
-export const GET_FRIENDS = '/';
-export const GET_FRIEND = '/:steamid';
-export const ADD_FRIEND = '/:steamid';
-export const DELETE_FRIEND = '/:steamid';
-export const SEND_FRIEND_MESSAGE = '/:steamid/message';
-export const SEND_FRIEND_TYPING = '/:steamid/typing';
+export const FRIENDS_BASE_URL = '/friends';
+export const FRIENDS_PATH = '/';
+export const FRIEND_PATH = '/:steamid';
+export const FRIEND_MESSAGE_PATH = `${FRIENDS_PATH}/message`;
+export const FRIEND_TYPING_PATH = `${FRIENDS_PATH}/typing`;
 
-export const FRIEND_RELATIONSHIP_EVENT = 'friend.relationship';
-export const FRIEND_MESSAGE_EVENT = 'friend.message';
-export const FRIEND_TYPING_EVENT = 'friend.typing';
+export const FRIEND_EVENT_PREFIX = 'friend';
+export const FRIEND_RELATIONSHIP_EVENT = `${FRIEND_EVENT_PREFIX}.relationship`;
+export const FRIEND_MESSAGE_EVENT = `${FRIEND_EVENT_PREFIX}.message`;
+export const FRIEND_TYPING_EVENT = `${FRIEND_EVENT_PREFIX}.typing`;
 
 export interface FriendRelationshipEvent extends BaseEvent {
   type: typeof FRIEND_RELATIONSHIP_EVENT;

@@ -15,33 +15,31 @@ import { FriendsService } from './friends.service';
 import {
   Friends,
   Friend,
-  AddFriend,
-  DeleteFriend,
-  ADD_FRIEND,
-  DELETE_FRIEND,
-  FRIENDS_BASE_PATH,
-  GET_FRIEND,
-  GET_FRIENDS,
+  AddFriendResponse,
+  DeleteFriendResponse,
+  FRIENDS_BASE_URL,
   SendFriendMessageDto,
   SendFriendMessageResponse,
-  SEND_FRIEND_MESSAGE,
-  SEND_FRIEND_TYPING,
+  FRIENDS_PATH,
+  FRIEND_PATH,
+  FRIEND_MESSAGE_PATH,
+  FRIEND_TYPING_PATH,
 } from '@tf2-automatic/bot-data';
 
-@Controller(FRIENDS_BASE_PATH)
+@Controller(FRIENDS_BASE_URL)
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
-  @Get(GET_FRIENDS)
+  @Get(FRIENDS_PATH)
   getFriends(): Promise<Friends> {
     return this.friendsService.getFriends();
   }
 
-  @Post(ADD_FRIEND)
+  @Post(FRIEND_PATH)
   @HttpCode(HttpStatus.OK)
   async addFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<AddFriend> {
+  ): Promise<AddFriendResponse> {
     const added = await this.friendsService.addFriend(steamid);
 
     return {
@@ -49,10 +47,10 @@ export class FriendsController {
     };
   }
 
-  @Delete(DELETE_FRIEND)
+  @Delete(FRIEND_PATH)
   async deleteFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<DeleteFriend> {
+  ): Promise<DeleteFriendResponse> {
     await this.friendsService.deleteFriend(steamid);
 
     return {
@@ -60,7 +58,7 @@ export class FriendsController {
     };
   }
 
-  @Get(GET_FRIEND)
+  @Get(FRIEND_PATH)
   async isFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<Friend> {
@@ -78,7 +76,7 @@ export class FriendsController {
     };
   }
 
-  @Post(SEND_FRIEND_MESSAGE)
+  @Post(FRIEND_MESSAGE_PATH)
   sendMessage(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
     @Body(new ValidationPipe()) dto: SendFriendMessageDto
@@ -86,7 +84,7 @@ export class FriendsController {
     return this.friendsService.sendFriendMessage(steamid, dto.message);
   }
 
-  @Post(SEND_FRIEND_TYPING)
+  @Post(FRIEND_TYPING_PATH)
   sendTyping(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<void> {

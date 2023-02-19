@@ -74,14 +74,15 @@ export interface TF2Item {
 }
 
 export const TF2_BASE_URL = '/tf2';
-export const TF2_GET_ACCOUNT = '/account';
-export const TF2_CRAFT = '/craft';
-export const TF2_USE_ITEM = '/items/:id/use';
-export const TF2_DELETE_ITEM = '/items/:id';
-export const TF2_SORT_BACKPACK = '/sort';
+export const TF2_ACCOUNT_PATH = '/account';
+export const TF2_CRAFT_PATH = '/craft';
+export const TF2_ITEM_PATH = '/items/:id';
+export const TF2_USE_ITEM_PATH = `${TF2_ITEM_PATH}/use`;
+export const TF2_SORT_PATH = '/sort';
 
-export const TF2_GAINED_EVENT = 'tf2.gained';
-export const TF2_LOST_EVENT = 'tf2.lost';
+export const TF2_EVENT_PREFIX = 'tf2';
+export const TF2_GAINED_EVENT = `${TF2_EVENT_PREFIX}.gained`;
+export const TF2_LOST_EVENT = `${TF2_EVENT_PREFIX}.lost`;
 
 export interface TF2GainedEvent {
   type: typeof TF2_GAINED_EVENT;

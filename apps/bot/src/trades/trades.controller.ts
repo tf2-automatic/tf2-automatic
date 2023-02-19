@@ -21,15 +21,13 @@ import {
   GetTradesResponse,
   Item,
   TradeOfferExchangeDetails,
-  TRADES_ACCEPT_CONFIRMATION,
-  TRADES_ACCEPT_TRADE,
   TRADES_BASE_URL,
-  TRADES_CREATE_TRADE,
-  TRADES_GET_EXCHANGE_DETAILS,
-  TRADES_GET_RECEIVED_ITEMS,
-  TRADES_GET_TRADE,
-  TRADES_GET_TRADES,
-  TRADES_REMOVE_TRADE,
+  TRADES_PATH,
+  TRADE_ACCEPT_PATH,
+  TRADE_CONFIRMATION_PATH,
+  TRADE_EXCHANGE_DETAILS_PATH,
+  TRADE_PATH,
+  TRADE_RECEIVED_ITEMS_PATH,
 } from '@tf2-automatic/bot-data';
 import { TradesService } from './trades.service';
 
@@ -37,7 +35,7 @@ import { TradesService } from './trades.service';
 export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
-  @Get(TRADES_GET_TRADES)
+  @Get(TRADES_PATH)
   getTrades(
     @Query(
       new ValidationPipe({
@@ -49,12 +47,12 @@ export class TradesController {
     return this.tradesService.getTrades(dto);
   }
 
-  @Get(TRADES_GET_TRADE)
+  @Get(TRADE_PATH)
   getTrade(@Param('id') id: string): Promise<GetTradeResponse> {
     return this.tradesService.getTrade(id);
   }
 
-  @Post(TRADES_CREATE_TRADE)
+  @Post(TRADES_PATH)
   async createTrade(
     @Body(
       new ValidationPipe({
@@ -66,18 +64,18 @@ export class TradesController {
     return this.tradesService.createTrade(dto);
   }
 
-  @Delete(TRADES_REMOVE_TRADE)
+  @Delete(TRADE_PATH)
   async removeTrade(@Param('id') id: string): Promise<DeleteTradeResponse> {
     return this.tradesService.removeTrade(id);
   }
 
-  @Post(TRADES_ACCEPT_TRADE)
+  @Post(TRADE_ACCEPT_PATH)
   @HttpCode(HttpStatus.OK)
   acceptTrade(@Param('id') id: string): Promise<AcceptTradeResponse> {
     return this.tradesService.acceptTrade(id);
   }
 
-  @Post(TRADES_ACCEPT_CONFIRMATION)
+  @Post(TRADE_CONFIRMATION_PATH)
   @HttpCode(HttpStatus.OK)
   acceptConfirmation(
     @Param('id') id: string
@@ -87,14 +85,14 @@ export class TradesController {
     });
   }
 
-  @Get(TRADES_GET_EXCHANGE_DETAILS)
+  @Get(TRADE_EXCHANGE_DETAILS_PATH)
   getExchangeDetails(
     @Param('id') id: string
   ): Promise<TradeOfferExchangeDetails> {
     return this.tradesService.getExchangeDetails(id);
   }
 
-  @Get(TRADES_GET_RECEIVED_ITEMS)
+  @Get(TRADE_RECEIVED_ITEMS_PATH)
   getReceivedItems(@Param('id') id: string): Promise<Item[]> {
     return this.tradesService.getReceivedItems(id);
   }

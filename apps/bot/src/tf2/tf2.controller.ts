@@ -14,12 +14,12 @@ import {
   CraftDto,
   CraftResult,
   TF2_BASE_URL,
-  TF2_CRAFT,
-  TF2_DELETE_ITEM,
-  TF2_GET_ACCOUNT,
-  TF2_USE_ITEM,
-  TF2_SORT_BACKPACK,
   SortBackpackDto,
+  TF2_ACCOUNT_PATH,
+  TF2_CRAFT_PATH,
+  TF2_USE_ITEM_PATH,
+  TF2_ITEM_PATH,
+  TF2_SORT_PATH,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
@@ -27,12 +27,12 @@ import { TF2Service } from './tf2.service';
 export class TF2Controller {
   constructor(private readonly tf2Service: TF2Service) {}
 
-  @Get(TF2_GET_ACCOUNT)
+  @Get(TF2_ACCOUNT_PATH)
   getAccount(): Promise<TF2Account> {
     return this.tf2Service.getAccount();
   }
 
-  @Post(TF2_CRAFT)
+  @Post(TF2_CRAFT_PATH)
   @HttpCode(HttpStatus.OK)
   craft(
     @Body(
@@ -45,7 +45,7 @@ export class TF2Controller {
     return this.tf2Service.craft(body);
   }
 
-  @Post(TF2_USE_ITEM)
+  @Post(TF2_USE_ITEM_PATH)
   @HttpCode(HttpStatus.OK)
   useItem(@Param('id') assetid: string): Promise<{
     success: boolean;
@@ -57,7 +57,7 @@ export class TF2Controller {
     });
   }
 
-  @Delete(TF2_DELETE_ITEM)
+  @Delete(TF2_ITEM_PATH)
   deleteItem(@Param('id') assetid: string): Promise<any> {
     return this.tf2Service.deleteItem(assetid).then(() => {
       return {
@@ -66,7 +66,7 @@ export class TF2Controller {
     });
   }
 
-  @Post(TF2_SORT_BACKPACK)
+  @Post(TF2_SORT_PATH)
   @HttpCode(HttpStatus.OK)
   sortBackpack(
     @Body(
