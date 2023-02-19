@@ -24,6 +24,17 @@
           "codeCoverage": true
         }
       }
+    },
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/is-steamid-validator",
+        "tsConfig": "libs/is-steamid-validator/tsconfig.lib.json",
+        "packageJson": "libs/is-steamid-validator/package.json",
+        "main": "libs/is-steamid-validator/src/index.ts",
+        "assets": ["libs/is-steamid-validator/*.md"]
+      }
     }
   },
   "tags": []
