@@ -124,7 +124,7 @@ export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
 export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
 export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
 
-export const TRADE_EVENT_PREFIX = 'trade';
+export const TRADE_EVENT_PREFIX = 'trades';
 export const TRADE_SENT_EVENT = `${TRADE_EVENT_PREFIX}.sent`;
 export const TRADE_RECEIVED_EVENT = `${TRADE_EVENT_PREFIX}.received`;
 export const TRADE_CHANGED_EVENT = `${TRADE_EVENT_PREFIX}.changed`;
