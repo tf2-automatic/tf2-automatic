@@ -98,7 +98,7 @@ export class CreateTradeDto {
 }
 
 export type CreateTradeResponse = TradeOffer;
-
+export type AcceptTradeResponse = TradeOffer;
 export type DeleteTradeResponse = TradeOffer;
 
 export type AcceptConfirmationResponse = {
@@ -110,6 +110,7 @@ export const TRADES_GET_TRADES = '/';
 export const TRADES_GET_TRADE = '/:id';
 export const TRADES_CREATE_TRADE = '/';
 export const TRADES_REMOVE_TRADE = '/:id';
+export const TRADES_ACCEPT_TRADE = '/:id/accept';
 export const TRADES_ACCEPT_CONFIRMATION = '/:id/confirm';
 
 export const TRADE_SENT_EVENT = 'trade.sent';

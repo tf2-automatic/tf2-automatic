@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import {
   AcceptConfirmationResponse,
+  AcceptTradeResponse,
   CreateTradeDto,
   CreateTradeResponse,
   DeleteTradeResponse,
@@ -19,6 +20,7 @@ import {
   GetTradesDto,
   GetTradesResponse,
   TRADES_ACCEPT_CONFIRMATION,
+  TRADES_ACCEPT_TRADE,
   TRADES_BASE_URL,
   TRADES_CREATE_TRADE,
   TRADES_GET_TRADE,
@@ -63,6 +65,12 @@ export class TradesController {
   @Delete(TRADES_REMOVE_TRADE)
   async removeTrade(@Param('id') id: string): Promise<DeleteTradeResponse> {
     return this.tradesService.removeTrade(id);
+  }
+
+  @Post(TRADES_ACCEPT_TRADE)
+  @HttpCode(HttpStatus.OK)
+  acceptTrade(@Param('id') id: string): Promise<AcceptTradeResponse> {
+    return this.tradesService.acceptTrade(id);
   }
 
   @Post(TRADES_ACCEPT_CONFIRMATION)
