@@ -120,6 +120,7 @@ export const TRADES_BASE_URL = '/trades';
 export const TRADES_GET_TRADES = '/';
 export const TRADES_GET_TRADE = '/:id';
 export const TRADES_GET_EXCHANGE_DETAILS = '/:id/exchange';
+export const TRADES_GET_RECEIVED_ITEMS = '/:id/received';
 export const TRADES_CREATE_TRADE = '/';
 export const TRADES_REMOVE_TRADE = '/:id';
 export const TRADES_ACCEPT_TRADE = '/:id/accept';

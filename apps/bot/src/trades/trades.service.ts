@@ -10,6 +10,7 @@ import {
   CreateTradeResponse,
   GetTradesDto,
   GetTradesResponse,
+  Item,
   TradeOffer,
   TradeOfferExchangeDetails,
   TRADE_CHANGED_EVENT,
@@ -466,6 +467,24 @@ export class TradesService {
           });
         }
       );
+    });
+  }
+
+  async getReceivedItems(id: string): Promise<Item[]> {
+    const offer = await this._getTrade(id);
+
+    if (offer.state !== SteamTradeOfferManager.ETradeOfferState.Accepted) {
+      throw new BadRequestException('Offer is not accepted');
+    }
+
+    return new Promise((resolve, reject) => {
+      offer.getReceivedItems((err, items) => {
+        if (err) {
+          return reject(err);
+        }
+
+        return resolve(items);
+      });
     });
   }
 

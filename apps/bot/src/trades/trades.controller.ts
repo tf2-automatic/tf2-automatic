@@ -24,6 +24,7 @@ import {
   TRADES_BASE_URL,
   TRADES_CREATE_TRADE,
   TRADES_GET_EXCHANGE_DETAILS,
+  TRADES_GET_RECEIVED_ITEMS,
   TRADES_GET_TRADE,
   TRADES_GET_TRADES,
   TRADES_REMOVE_TRADE,
@@ -87,5 +88,10 @@ export class TradesController {
   @Get(TRADES_GET_EXCHANGE_DETAILS)
   getExchangeDetails(@Param('id') id: string): Promise<any> {
     return this.tradesService.getExchangeDetails(id);
+  }
+
+  @Get(TRADES_GET_RECEIVED_ITEMS)
+  getReceivedItems(@Param('id') id: string): Promise<any> {
+    return this.tradesService.getReceivedItems(id);
   }
 }
