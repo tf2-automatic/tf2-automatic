@@ -19,10 +19,14 @@ import {
   GetTradeResponse,
   GetTradesDto,
   GetTradesResponse,
+  Item,
+  TradeOfferExchangeDetails,
   TRADES_ACCEPT_CONFIRMATION,
   TRADES_ACCEPT_TRADE,
   TRADES_BASE_URL,
   TRADES_CREATE_TRADE,
+  TRADES_GET_EXCHANGE_DETAILS,
+  TRADES_GET_RECEIVED_ITEMS,
   TRADES_GET_TRADE,
   TRADES_GET_TRADES,
   TRADES_REMOVE_TRADE,
@@ -81,5 +85,17 @@ export class TradesController {
     return this.tradesService.acceptConfirmation(id).then(() => {
       return { success: true };
     });
+  }
+
+  @Get(TRADES_GET_EXCHANGE_DETAILS)
+  getExchangeDetails(
+    @Param('id') id: string
+  ): Promise<TradeOfferExchangeDetails> {
+    return this.tradesService.getExchangeDetails(id);
+  }
+
+  @Get(TRADES_GET_RECEIVED_ITEMS)
+  getReceivedItems(@Param('id') id: string): Promise<Item[]> {
+    return this.tradesService.getReceivedItems(id);
   }
 }

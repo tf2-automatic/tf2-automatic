@@ -8,11 +8,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import {
-  ETradeOfferState,
-  ETradeOfferConfirmationMethod,
-  EResult,
-} from 'steam-user';
+import { ETradeOfferState, ETradeOfferConfirmationMethod } from 'steam-user';
+import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import { Item } from './inventories';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { BaseEvent } from './events';
@@ -27,6 +24,20 @@ export class GetTradesDto {
   @IsEnum(OfferFilter)
   @Type(() => Number)
   filter: OfferFilter;
+}
+
+export interface ExchangeDetailsItem extends Item {
+  new_assetid?: string;
+  new_contextid?: string;
+  rollback_new_assetid?: string;
+  rollback_new_contextid?: string;
+}
+
+export interface TradeOfferExchangeDetails {
+  status: SteamTradeOfferManager.ETradeStatus;
+  tradeInitTime: number;
+  receivedItems: ExchangeDetailsItem[];
+  sentItems: ExchangeDetailsItem[];
 }
 
 export interface TradeOffer {
@@ -108,6 +119,8 @@ export type AcceptConfirmationResponse = {
 export const TRADES_BASE_URL = '/trades';
 export const TRADES_GET_TRADES = '/';
 export const TRADES_GET_TRADE = '/:id';
+export const TRADES_GET_EXCHANGE_DETAILS = '/:id/exchange';
+export const TRADES_GET_RECEIVED_ITEMS = '/:id/received';
 export const TRADES_CREATE_TRADE = '/';
 export const TRADES_REMOVE_TRADE = '/:id';
 export const TRADES_ACCEPT_TRADE = '/:id/accept';
