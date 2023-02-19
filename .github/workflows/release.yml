@@ -115,7 +115,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit
       - name: Build and push
-        run: npx nx run docker ${{ matrix.projectName }}
+        run: npx nx run docker:${{ matrix.projectName }}
         env:
           INPUT_TAGS: ${{ steps.meta.outputs.tags }}
           INPUT_LABELS: ${{ steps.meta.outputs.labels }}
@@ -145,6 +145,6 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit
       - name: Build and publish
-        run: npx nx run npm ${{ matrix.projectName }} --args="--version=${{ needs.release.outputs.new_release_version }}"
+        run: npx nx run npm:${{ matrix.projectName }} --args="--version=${{ needs.release.outputs.new_release_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
