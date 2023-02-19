@@ -19,6 +19,8 @@ import {
   GetTradeResponse,
   GetTradesDto,
   GetTradesResponse,
+  Item,
+  TradeOfferExchangeDetails,
   TRADES_ACCEPT_CONFIRMATION,
   TRADES_ACCEPT_TRADE,
   TRADES_BASE_URL,
@@ -86,12 +88,14 @@ export class TradesController {
   }
 
   @Get(TRADES_GET_EXCHANGE_DETAILS)
-  getExchangeDetails(@Param('id') id: string): Promise<any> {
+  getExchangeDetails(
+    @Param('id') id: string
+  ): Promise<TradeOfferExchangeDetails> {
     return this.tradesService.getExchangeDetails(id);
   }
 
   @Get(TRADES_GET_RECEIVED_ITEMS)
-  getReceivedItems(@Param('id') id: string): Promise<any> {
+  getReceivedItems(@Param('id') id: string): Promise<Item[]> {
     return this.tradesService.getReceivedItems(id);
   }
 }
