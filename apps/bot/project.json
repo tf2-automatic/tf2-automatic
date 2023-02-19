@@ -55,7 +55,7 @@
         }
       }
     },
-    "release": {
+    "docker": {
       "executor": "@nx-tools/nx-container:build",
       "options": {
         "push": true,

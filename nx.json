@@ -20,7 +20,10 @@
     "lint": {
       "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]
     },
-    "release": {
+    "docker": {
+      "dependsOn": ["build"]
+    },
+    "npm": {
       "dependsOn": ["build"]
     }
   },
