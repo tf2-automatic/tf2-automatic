@@ -8,13 +8,12 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import {
+  PROFILE_AVATAR_PATH,
   PROFILE_BASE_URL,
-  PROFILE_CHANGE_TRADE_OFFER_URL,
-  PROFILE_DELETE_NAME_HISTORY,
-  PROFILE_GET_TRADE_OFFER_URL,
-  PROFILE_UPDATE_AVATAR,
-  PROFILE_UPDATE_PROFILE,
-  PROFILE_UPDATE_PROFILE_SETTINGS,
+  PROFILE_NAME_PATH,
+  PROFILE_PATH,
+  PROFILE_SETTINGS_PATH,
+  PROFILE_TRADEOFFERURL_PATH,
   TradeOfferUrlResponse,
   UpdateProfileAvatarDto,
   UpdateProfileDto,
@@ -26,21 +25,21 @@ import { ProfileService } from './profile.service';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @Put(PROFILE_UPDATE_AVATAR)
+  @Put(PROFILE_AVATAR_PATH)
   setAvatar(
     @Body(new ValidationPipe()) dto: UpdateProfileAvatarDto
   ): Promise<void> {
     return this.profileService.setAvatar(dto);
   }
 
-  @Put(PROFILE_UPDATE_PROFILE)
+  @Put(PROFILE_PATH)
   editProfile(
     @Body(new ValidationPipe()) dto: UpdateProfileDto
   ): Promise<void> {
     return this.profileService.editProfile(dto);
   }
 
-  @Put(PROFILE_UPDATE_PROFILE_SETTINGS)
+  @Put(PROFILE_SETTINGS_PATH)
   editProfileSettings(
     @Body(
       new ValidationPipe({
@@ -52,12 +51,12 @@ export class ProfileController {
     return this.profileService.editProfileSettings(dto);
   }
 
-  @Delete(PROFILE_DELETE_NAME_HISTORY)
+  @Delete(PROFILE_NAME_PATH)
   deleteNameHistory(): Promise<void> {
     return this.profileService.deleteNameHistory();
   }
 
-  @Get(PROFILE_GET_TRADE_OFFER_URL)
+  @Get(PROFILE_TRADEOFFERURL_PATH)
   getTradeOfferUrl(): Promise<TradeOfferUrlResponse> {
     return this.profileService.getTradeOfferUrl().then((url) => {
       return {
@@ -66,7 +65,7 @@ export class ProfileController {
     });
   }
 
-  @Post(PROFILE_CHANGE_TRADE_OFFER_URL)
+  @Post(PROFILE_TRADEOFFERURL_PATH)
   changeTradeOfferUrl(): Promise<TradeOfferUrlResponse> {
     return this.profileService.changeTradeOfferUrl().then((url) => {
       return { url };

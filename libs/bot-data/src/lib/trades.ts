@@ -117,18 +117,17 @@ export type AcceptConfirmationResponse = {
 };
 
 export const TRADES_BASE_URL = '/trades';
-export const TRADES_GET_TRADES = '/';
-export const TRADES_GET_TRADE = '/:id';
-export const TRADES_GET_EXCHANGE_DETAILS = '/:id/exchange';
-export const TRADES_GET_RECEIVED_ITEMS = '/:id/received';
-export const TRADES_CREATE_TRADE = '/';
-export const TRADES_REMOVE_TRADE = '/:id';
-export const TRADES_ACCEPT_TRADE = '/:id/accept';
-export const TRADES_ACCEPT_CONFIRMATION = '/:id/confirm';
+export const TRADES_PATH = '/';
+export const TRADE_PATH = '/:id';
+export const TRADE_ACCEPT_PATH = `${TRADE_PATH}/accept`;
+export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
+export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
+export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
 
-export const TRADE_SENT_EVENT = 'trade.sent';
-export const TRADE_RECEIVED_EVENT = 'trade.received';
-export const TRADE_CHANGED_EVENT = 'trade.changed';
+export const TRADE_EVENT_PREFIX = 'trade';
+export const TRADE_SENT_EVENT = `${TRADE_EVENT_PREFIX}.sent`;
+export const TRADE_RECEIVED_EVENT = `${TRADE_EVENT_PREFIX}.received`;
+export const TRADE_CHANGED_EVENT = `${TRADE_EVENT_PREFIX}.changed`;
 
 export interface TradeSentEvent extends BaseEvent {
   type: typeof TRADE_SENT_EVENT;

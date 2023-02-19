@@ -1,9 +1,6 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { InventoriesService } from './inventories.service';
-import {
-  INVENTORIES_BASE_URL,
-  INVENTORIES_GET_INVENTORY,
-} from '@tf2-automatic/bot-data';
+import { INVENTORIES_BASE_URL, INVENTORY_PATH } from '@tf2-automatic/bot-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
 
@@ -11,7 +8,7 @@ import SteamID from 'steamid';
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
 
-  @Get(INVENTORIES_GET_INVENTORY)
+  @Get(INVENTORY_PATH)
   getInventory(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
     @Param('appid') appid: number,
