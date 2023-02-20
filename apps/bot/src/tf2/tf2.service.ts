@@ -12,6 +12,7 @@ import {
   SortBackpack,
   SortBackpackDto,
   TF2Account,
+  TF2GainedEvent,
   TF2LostEvent,
   TF2_GAINED_EVENT,
   TF2_LOST_EVENT,
@@ -102,7 +103,7 @@ export class TF2Service implements OnApplicationShutdown {
 
     this.tf2.on('itemAcquired', (item) => {
       this.eventsService
-        .publish(TF2_GAINED_EVENT, item satisfies TF2LostEvent['data'])
+        .publish(TF2_GAINED_EVENT, item satisfies TF2GainedEvent['data'])
         .catch(() => {
           // Ignore error
         });
