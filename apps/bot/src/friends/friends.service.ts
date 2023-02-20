@@ -24,6 +24,7 @@ export class FriendsService {
     private readonly botService: BotService,
     private readonly eventsService: EventsService
   ) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.client.on(
       'friendRelationship',
