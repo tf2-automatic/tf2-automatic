@@ -5,6 +5,12 @@ import {
 } from '@nestjs/common';
 import { EResult } from 'steam-user';
 
+interface ExceptionBody {
+  eresult?: EResult;
+  details?: string;
+  cause?: string;
+}
+
 export class SteamException extends InternalServerErrorException {
   constructor(message: string, eresult?: EResult, cause?: string) {
     let newMessage = `Steam responded to request with an error`;
@@ -17,7 +23,7 @@ export class SteamException extends InternalServerErrorException {
       newMessage += `(cause: ${cause})`;
     }
 
-    const obj: any = HttpException.createBody(
+    const obj: ExceptionBody = HttpException.createBody(
       newMessage,
       'SteamException',
       HttpStatus.INTERNAL_SERVER_ERROR
