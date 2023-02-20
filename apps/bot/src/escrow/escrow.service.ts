@@ -4,6 +4,15 @@ import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import SteamID from 'steamid';
 import { FriendsService } from '../friends/friends.service';
 
+interface UserDetails {
+  me: {
+    escrowDays: number;
+  };
+  them: {
+    escrowDays: number;
+  };
+}
+
 @Injectable()
 export class EscrowService {
   private readonly manager: SteamTradeOfferManager =
@@ -33,7 +42,7 @@ export class EscrowService {
 
   private getUserDetails(
     offer: SteamTradeOfferManager.TradeOffer
-  ): Promise<{ me: any; them: any }> {
+  ): Promise<UserDetails> {
     return new Promise((resolve, reject) => {
       offer.getUserDetails((err, me, them) => {
         if (err) {

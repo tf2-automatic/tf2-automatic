@@ -12,6 +12,7 @@ import {
   SortBackpack,
   SortBackpackDto,
   TF2Account,
+  TF2GainedEvent,
   TF2LostEvent,
   TF2_GAINED_EVENT,
   TF2_LOST_EVENT,
@@ -102,7 +103,7 @@ export class TF2Service implements OnApplicationShutdown {
 
     this.tf2.on('itemAcquired', (item) => {
       this.eventsService
-        .publish(TF2_GAINED_EVENT, item as TF2LostEvent['data'])
+        .publish(TF2_GAINED_EVENT, item satisfies TF2GainedEvent['data'])
         .catch(() => {
           // Ignore error
         });
@@ -110,14 +111,14 @@ export class TF2Service implements OnApplicationShutdown {
 
     this.tf2.on('itemRemoved', (item) => {
       this.eventsService
-        .publish(TF2_LOST_EVENT, item as TF2LostEvent['data'])
+        .publish(TF2_LOST_EVENT, item satisfies TF2LostEvent['data'])
         .catch(() => {
           // Ignore error
         });
     });
   }
 
-  private async process(task: Task): Promise<any> {
+  private async process(task: Task): Promise<unknown> {
     this.logger.debug('Processing task: ' + task.type);
 
     await this.connectToGC();
@@ -133,10 +134,7 @@ export class TF2Service implements OnApplicationShutdown {
       case TaskType.Sort:
         return this.processSortBackpack();
       default:
-        // Should never get here. Gives compile-time error if not all task types
-        // are handled.
-
-        // @ts-expect-error
+        // @ts-expect-error Gives compile-time error if not all task types are handled.
         throw new Error('Unknown task type: ' + task.type);
     }
   }
@@ -287,7 +285,7 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   isPlayingTF2(): boolean {
-    // @ts-expect-error
+    // @ts-expect-error This is a private property
     return (this.client._playingAppIds as number[]).some((game) => game == 440);
   }
 
@@ -384,7 +382,7 @@ export class TF2Service implements OnApplicationShutdown {
   private waitForEvent(
     eventName: string,
     filter?: (...args) => boolean
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
       const listener = (...args) => {
         if (filter && !filter(args)) {

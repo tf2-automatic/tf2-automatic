@@ -73,6 +73,10 @@ export interface TF2Item {
   position: number;
 }
 
+export interface TF2ActionResult {
+  success: boolean;
+}
+
 export const TF2_BASE_URL = '/tf2';
 export const TF2_ACCOUNT_PATH = '/account';
 export const TF2_CRAFT_PATH = '/craft';

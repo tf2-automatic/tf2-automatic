@@ -1,13 +1,13 @@
 import { buildMessage, ValidateBy, ValidationOptions } from 'class-validator';
 import SteamID from 'steamid';
 
-export function isSteamID(value: any) {
+export function isSteamID(value: unknown) {
   let steamid: SteamID | null = null;
   if (value instanceof SteamID) {
     steamid = value;
   } else {
     try {
-      steamid = new SteamID(value);
+      steamid = new SteamID((value ?? '').toString());
     } catch (err) {
       return false;
     }
@@ -20,7 +20,7 @@ export function IsSteamID(validationOptions?: ValidationOptions) {
   return ValidateBy({
     name: 'IsSteamID',
     validator: {
-      validate: (value, args): boolean => isSteamID(value),
+      validate: (value): boolean => isSteamID(value),
       defaultMessage: buildMessage(
         (eachPrefix) => eachPrefix + '$property must be a SteamID',
         validationOptions

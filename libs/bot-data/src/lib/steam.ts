@@ -14,6 +14,6 @@ export interface SteamDisconnectedEvent extends BaseEvent {
   type: typeof STEAM_DISCONNECTED_EVENT;
   data: {
     eresult: SteamUser.EResult;
-    msg: string;
+    msg?: string;
   };
 }

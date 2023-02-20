@@ -69,7 +69,10 @@ export class BotService implements OnModuleDestroy {
     this.client.on('loggedOn', () => {
       this.metadataService.setSteamID(this.client.steamID as SteamID);
       this.eventsService
-        .publish(STEAM_CONNECTED_EVENT, {} as SteamConnectedEvent['data'])
+        .publish(
+          STEAM_CONNECTED_EVENT,
+          {} satisfies SteamConnectedEvent['data']
+        )
         .catch(() => {
           // Ignore error
         });
@@ -80,7 +83,7 @@ export class BotService implements OnModuleDestroy {
         .publish(STEAM_DISCONNECTED_EVENT, {
           eresult,
           msg,
-        } as SteamDisconnectedEvent['data'])
+        } satisfies SteamDisconnectedEvent['data'])
         .catch(() => {
           // Ignore error
         });
@@ -215,7 +218,7 @@ export class BotService implements OnModuleDestroy {
 
     return this.eventsService.publish(
       BOT_READY_EVENT,
-      {} as BotReadyEvent['data']
+      {} satisfies BotReadyEvent['data']
     );
   }
 
