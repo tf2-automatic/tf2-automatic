@@ -5,6 +5,6 @@ export interface EventMetadata {
 
 export interface BaseEvent {
   type: string;
-  data: any;
+  data: unknown;
   metadata: EventMetadata;
 }
