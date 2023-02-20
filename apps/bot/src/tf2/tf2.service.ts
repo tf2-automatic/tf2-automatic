@@ -133,10 +133,7 @@ export class TF2Service implements OnApplicationShutdown {
       case TaskType.Sort:
         return this.processSortBackpack();
       default:
-        // Should never get here. Gives compile-time error if not all task types
-        // are handled.
-
-        // @ts-expect-error
+        // @ts-expect-error Gives compile-time error if not all task types are handled.
         throw new Error('Unknown task type: ' + task.type);
     }
   }
@@ -287,7 +284,7 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   isPlayingTF2(): boolean {
-    // @ts-expect-error
+    // @ts-expect-error This is a private property
     return (this.client._playingAppIds as number[]).some((game) => game == 440);
   }
 
