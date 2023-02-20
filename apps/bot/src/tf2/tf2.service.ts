@@ -102,7 +102,7 @@ export class TF2Service implements OnApplicationShutdown {
 
     this.tf2.on('itemAcquired', (item) => {
       this.eventsService
-        .publish(TF2_GAINED_EVENT, item as TF2LostEvent['data'])
+        .publish(TF2_GAINED_EVENT, item satisfies TF2LostEvent['data'])
         .catch(() => {
           // Ignore error
         });
@@ -110,14 +110,14 @@ export class TF2Service implements OnApplicationShutdown {
 
     this.tf2.on('itemRemoved', (item) => {
       this.eventsService
-        .publish(TF2_LOST_EVENT, item as TF2LostEvent['data'])
+        .publish(TF2_LOST_EVENT, item satisfies TF2LostEvent['data'])
         .catch(() => {
           // Ignore error
         });
     });
   }
 
-  private async process(task: Task): Promise<any> {
+  private async process(task: Task): Promise<unknown> {
     this.logger.debug('Processing task: ' + task.type);
 
     await this.connectToGC();
@@ -381,7 +381,7 @@ export class TF2Service implements OnApplicationShutdown {
   private waitForEvent(
     eventName: string,
     filter?: (...args) => boolean
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
       const listener = (...args) => {
         if (filter && !filter(args)) {

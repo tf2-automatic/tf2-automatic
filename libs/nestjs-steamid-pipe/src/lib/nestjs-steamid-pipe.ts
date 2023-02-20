@@ -4,9 +4,9 @@ import { isSteamID } from '@tf2-automatic/is-steamid-validator';
 
 @Injectable()
 export class ParseSteamIDPipe implements PipeTransform {
-  transform(value: any): SteamID {
+  transform(value: unknown): SteamID {
     if (isSteamID(value)) {
-      return new SteamID(value.toString());
+      return new SteamID((value ?? '').toString());
     } else {
       throw new BadRequestException('Invalid SteamID');
     }

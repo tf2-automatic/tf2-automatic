@@ -20,6 +20,7 @@ import {
   TF2_USE_ITEM_PATH,
   TF2_ITEM_PATH,
   TF2_SORT_PATH,
+  TF2ActionResult,
 } from '@tf2-automatic/bot-data';
 import { TF2Service } from './tf2.service';
 
@@ -47,9 +48,7 @@ export class TF2Controller {
 
   @Post(TF2_USE_ITEM_PATH)
   @HttpCode(HttpStatus.OK)
-  useItem(@Param('id') assetid: string): Promise<{
-    success: boolean;
-  }> {
+  useItem(@Param('id') assetid: string): Promise<TF2ActionResult> {
     return this.tf2Service.useItem(assetid).then(() => {
       return {
         success: true,
@@ -58,7 +57,7 @@ export class TF2Controller {
   }
 
   @Delete(TF2_ITEM_PATH)
-  deleteItem(@Param('id') assetid: string): Promise<any> {
+  deleteItem(@Param('id') assetid: string): Promise<TF2ActionResult> {
     return this.tf2Service.deleteItem(assetid).then(() => {
       return {
         success: true,
@@ -75,7 +74,7 @@ export class TF2Controller {
       })
     )
     body: SortBackpackDto
-  ): Promise<any> {
+  ): Promise<TF2ActionResult> {
     return this.tf2Service.sortBackpack(body).then(() => {
       return {
         success: true,

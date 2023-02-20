@@ -1,5 +1,5 @@
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Config, RabbitMQConfig } from '../common/config/configuration';
 import type { ConfirmChannel } from 'amqplib';
@@ -21,7 +21,10 @@ export class EventsService implements OnModuleDestroy {
     return (this.amqpConnection.channel as ConfirmChannel).waitForConfirms();
   }
 
-  async publish(event: string, data: any = {}): Promise<void> {
+  async publish(
+    event: string,
+    data: { [key: string]: unknown } = {}
+  ): Promise<void> {
     const steamid64 = this.metadataService.getSteamID()?.getSteamID64() ?? null;
 
     await this.amqpConnection.publish(`${this.prefix}.bot`, event, {
