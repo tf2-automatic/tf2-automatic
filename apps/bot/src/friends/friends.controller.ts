@@ -24,6 +24,7 @@ import {
   FRIEND_PATH,
   FRIEND_MESSAGE_PATH,
   FRIEND_TYPING_PATH,
+  FRIEND_BLOCK_PATH,
 } from '@tf2-automatic/bot-data';
 
 @Controller(FRIENDS_BASE_URL)
@@ -89,5 +90,26 @@ export class FriendsController {
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<void> {
     return this.friendsService.sendFriendTyping(steamid);
+  }
+
+  @Post(FRIEND_BLOCK_PATH)
+  blockUser(
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+  ): Promise<void> {
+    return this.friendsService.blockUser(steamid);
+  }
+
+  @Delete(FRIEND_BLOCK_PATH)
+  unblockUser(
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+  ): Promise<void> {
+    return this.friendsService.unblockUser(steamid);
+  }
+
+  @Get(FRIEND_BLOCK_PATH)
+  isBlocked(
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+  ): Promise<boolean> {
+    return this.friendsService.isBlocked(steamid);
   }
 }
