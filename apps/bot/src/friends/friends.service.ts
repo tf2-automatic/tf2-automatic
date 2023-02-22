@@ -169,6 +169,37 @@ export class FriendsService {
     );
   }
 
+  async isBlocked(steamid: SteamID): Promise<boolean> {
+    return (
+      this.client.myFriends[steamid.getSteamID64()] ==
+      SteamUser.EFriendRelationship.Blocked
+    );
+  }
+
+  blockUser(steamid: SteamID): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.client.blockUser(steamid, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  unblockUser(steamid: SteamID): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.client.unblockUser(steamid, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
   sendFriendMessage(
     steamid: SteamID,
     message: string
