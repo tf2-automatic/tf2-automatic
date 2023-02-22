@@ -10,6 +10,7 @@ export interface SteamAccountConfig {
   password: string;
   sharedSecret: string;
   identitySecret: string;
+  proxyUrl?: string;
 }
 
 export interface RabbitMQConfig {
@@ -51,6 +52,7 @@ export default (): Config => {
       password: process.env.STEAM_PASSWORD as string,
       sharedSecret: process.env.STEAM_SHARED_SECRET as string,
       identitySecret: process.env.STEAM_IDENTITY_SECRET as string,
+      proxyUrl: process.env.STEAM_PROXY_URL as string | undefined,
     },
     rabbitmq: {
       host: process.env.RABBITMQ_HOST as string,
