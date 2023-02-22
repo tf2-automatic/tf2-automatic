@@ -28,8 +28,6 @@ export class S3StorageEngine implements StorageEngine {
   async read(relativePath: string): Promise<string | null> {
     const fullPath = this.getFullPath(relativePath);
 
-    this.logger.debug(`Reading file "${fullPath}"`);
-
     const streamOrNothing = await this.client
       .getObject(this.config.bucket, fullPath)
       .catch((err) => {
@@ -52,7 +50,6 @@ export class S3StorageEngine implements StorageEngine {
         resolve(data);
       });
       streamOrNothing.on('error', (err) => {
-        this.logger.warn(`Error reading file "${fullPath}": ${err.message}`);
         reject(err);
       });
     });
@@ -60,8 +57,6 @@ export class S3StorageEngine implements StorageEngine {
 
   async write(relativePath: string, data: string): Promise<boolean> {
     const fullPath = this.getFullPath(relativePath);
-
-    this.logger.debug(`Writing file to "${fullPath}"`);
 
     await this.client.putObject(
       this.config.bucket,

@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
@@ -28,6 +29,8 @@ interface NextWrite {
 
 @Injectable()
 export class StorageService implements OnApplicationShutdown, OnModuleInit {
+  private readonly logger = new Logger(StorageService.name);
+
   private readonly _readPromises: Map<string, Promise<ReadFileResult>> =
     new Map();
   private readonly currentWrites = new Map<string, Promise<WriteFileResult>>();
@@ -74,7 +77,14 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
       return this._readPromises.get(relativePath) as Promise<ReadFileResult>;
     }
 
-    const promise = this.engine.read(relativePath);
+    this.logger.debug(`Reading file "${relativePath}"`);
+
+    const promise = this.engine.read(relativePath).catch((err) => {
+      this.logger.error(
+        `Failed to read file "${relativePath}": ${err.message}`
+      );
+      throw err;
+    });
 
     // Cache promise
     this._readPromises.set(relativePath, promise);
@@ -88,7 +98,14 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
   }
 
   private async processWriteQueue(task: WriteTask): Promise<WriteFileResult> {
-    return this.engine.write(task.relativePath, task.data);
+    this.logger.debug(`Writing to file "${task.relativePath}"`);
+
+    return this.engine.write(task.relativePath, task.data).catch((err) => {
+      this.logger.error(
+        `Failed to write to file "${task.relativePath}": ${err.message}`
+      );
+      throw err;
+    });
   }
 
   async write(relativePath: string, data: string): Promise<WriteFileResult> {

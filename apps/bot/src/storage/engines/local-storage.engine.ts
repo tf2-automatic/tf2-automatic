@@ -6,8 +6,6 @@ import { LocalStorageConfig } from '../../common/config/configuration';
 import { StorageEngine } from './engine.interface';
 
 export class LocalStorageEngine implements StorageEngine {
-  private readonly logger = new Logger(LocalStorageEngine.name);
-
   constructor(private readonly config: LocalStorageConfig) {}
 
   setup() {
@@ -28,11 +26,8 @@ export class LocalStorageEngine implements StorageEngine {
         return resolve(null);
       }
 
-      this.logger.debug(`Reading file "${fullPath}"`);
-
       fs.readFile(fullPath, 'utf8', (err, data) => {
         if (err) {
-          this.logger.warn(`Error reading file "${fullPath}": ${err.message}`);
           return reject(err);
         }
 
@@ -52,12 +47,9 @@ export class LocalStorageEngine implements StorageEngine {
       // Create directory if it doesn't exist
       this.createDirectoryIfNotExists(path.dirname(fullPath));
 
-      this.logger.debug(`Writing file to "${fullPath}"`);
-
       // Write to file
       writeFileAtomic(fullPath, data, (err) => {
         if (err) {
-          this.logger.warn(`Error writing file "${fullPath}": ${err.message}`);
           return reject(err);
         }
 
