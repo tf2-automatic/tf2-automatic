@@ -413,7 +413,10 @@ export class BotService implements OnModuleDestroy {
           this.logger.warn(
             'Reconnecting to Steam (attempt ' + attempt + ')...'
           );
-          return this.login().catch(retry);
+          return this.login().catch((err) => {
+            this.logger.warn('Failed to reconnect');
+            retry(err);
+          });
         },
         {
           forever: true,
