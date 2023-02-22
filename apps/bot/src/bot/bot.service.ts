@@ -181,11 +181,18 @@ export class BotService implements OnModuleDestroy {
   private async _start(): Promise<void> {
     this.client.on('loginKey', (key) => {
       this.logger.debug('Received new login key');
-      this.storageService.write('loginkey.txt', key).catch((err) => {
-        this.logger.error(
-          'Failed to write login key to storage: ' + err.message
-        );
-      });
+      this.storageService
+        .write(
+          `loginkey.${
+            this.configService.getOrThrow<SteamAccountConfig>('steam').username
+          }.txt`,
+          key
+        )
+        .catch((err) => {
+          this.logger.warn(
+            'Failed to write login key to storage: ' + err.message
+          );
+        });
     });
 
     this.community.on('sessionExpired', () => {
@@ -319,7 +326,16 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async login(): Promise<void> {
-    const loginKey = await this.storageService.read('loginkey.txt');
+    const loginKey = await this.storageService
+      .read(
+        `loginkey.${
+          this.configService.getOrThrow<SteamAccountConfig>('steam').username
+        }.txt`
+      )
+      .catch((err) => {
+        this.logger.warn('Failed to read login key: ' + err.message);
+        return null;
+      });
 
     if (loginKey) {
       this.logger.debug('Found login key');
