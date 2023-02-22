@@ -20,6 +20,7 @@ import {
   STEAM_DISCONNECTED_EVENT,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
+import promiseRetry from 'promise-retry';
 import { ShutdownService } from '../shutdown/shutdown.service';
 
 @Injectable()
@@ -47,9 +48,11 @@ export class BotService implements OnModuleDestroy {
     language: 'en',
     dataDirectory: '',
     savePollData: true,
+    pollInterval: 30000,
   });
 
   private _startPromise: Promise<void> | null = null;
+  private _reconnectPromise: Promise<void> | null = null;
   private lastWebLogin: Date | null = null;
   private running = false;
 
@@ -79,7 +82,7 @@ export class BotService implements OnModuleDestroy {
     });
 
     this.client.on('loggedOn', () => {
-      this.logger.log('Logged in to Steam');
+      this.logger.log('Logged in to Steam!');
 
       this.metadataService.setSteamID(this.client.steamID as SteamID);
       this.eventsService
@@ -222,7 +225,19 @@ export class BotService implements OnModuleDestroy {
         'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
       );
 
-      this.shutdownService.shutdown();
+      // Disable polling
+      this.manager.pollInterval = -1;
+
+      this.reconnect()
+        .then(() => {
+          // Re-enable polling
+          this.manager.pollInterval = 30000;
+          this.manager.doPoll();
+        })
+        .catch((err) => {
+          this.logger.warn('Failed to reconnect: ' + err.message);
+          this.shutdownService.shutdown();
+        });
     });
 
     this.running = true;
@@ -389,6 +404,32 @@ export class BotService implements OnModuleDestroy {
 
       login();
     });
+  }
+
+  private reconnect() {
+    if (!this._reconnectPromise) {
+      const promise = promiseRetry(
+        (retry, attempt) => {
+          this.logger.warn(
+            'Reconnecting to Steam (attempt ' + attempt + ')...'
+          );
+          return this.login().catch(retry);
+        },
+        {
+          forever: true,
+          maxTimeout: 1000 * 60 * 10,
+          minTimeout: 10000,
+          randomize: true,
+        }
+      );
+
+      this._reconnectPromise = promise.finally(() => {
+        // Reset promise
+        this._reconnectPromise = null;
+      });
+    }
+
+    return this._reconnectPromise;
   }
 
   async onModuleDestroy() {
