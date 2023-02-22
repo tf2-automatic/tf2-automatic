@@ -19,6 +19,7 @@ import {
   STEAM_CONNECTED_EVENT,
   STEAM_DISCONNECTED_EVENT,
 } from '@tf2-automatic/bot-data';
+import request from 'request';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -28,8 +29,17 @@ export class BotService implements OnModuleDestroy {
     autoRelogin: true,
     // Just needs to be set for custom storage to work
     dataDirectory: '',
+    httpProxy:
+      this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
   });
-  private community: SteamCommunity = new SteamCommunity();
+  private community: SteamCommunity = new SteamCommunity({
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    request: request.defaults({
+      proxy:
+        this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
+    }),
+  });
   private manager = new SteamTradeOfferManager({
     steam: this.client,
     community: this.community,
@@ -67,6 +77,8 @@ export class BotService implements OnModuleDestroy {
     });
 
     this.client.on('loggedOn', () => {
+      this.logger.log('Logged in to Steam');
+
       this.metadataService.setSteamID(this.client.steamID as SteamID);
       this.eventsService
         .publish(
@@ -79,6 +91,10 @@ export class BotService implements OnModuleDestroy {
     });
 
     this.client.on('disconnected', (eresult, msg) => {
+      this.logger.warn(
+        `Disconnected from Steam, eresult: ${SteamUser.EResult[eresult]} (${eresult})`
+      );
+
       this.eventsService
         .publish(STEAM_DISCONNECTED_EVENT, {
           eresult,
@@ -195,7 +211,6 @@ export class BotService implements OnModuleDestroy {
 
     await this.login(loginKey ?? null);
 
-    this.logger.log('Logged in to Steam!');
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
     this.logger.log('Getting API key...');

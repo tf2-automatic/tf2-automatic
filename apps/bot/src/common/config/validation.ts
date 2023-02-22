@@ -17,6 +17,11 @@ const validation = Joi.object({
   STEAM_PASSWORD: Joi.string().required(),
   STEAM_SHARED_SECRET: Joi.string().required(),
   STEAM_IDENTITY_SECRET: Joi.string().required(),
+  STEAM_PROXY_URL: Joi.string()
+    .uri({
+      scheme: ['http'],
+    })
+    .optional(),
   RABBITMQ_HOST: Joi.string().required(),
   RABBITMQ_PORT: Joi.number().required(),
   RABBITMQ_USERNAME: Joi.string().required(),
