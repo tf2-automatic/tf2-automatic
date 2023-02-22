@@ -2,7 +2,7 @@ export interface Config {
   port: number;
   steam: SteamAccountConfig;
   rabbitmq: RabbitMQConfig;
-  dataDir: string;
+  storage: S3StorageConfig | LocalStorageConfig;
 }
 
 export interface SteamAccountConfig {
@@ -19,6 +19,28 @@ export interface RabbitMQConfig {
   password: string;
   vhost: string;
   prefix: string;
+}
+
+export type StorageConfig = S3StorageConfig | LocalStorageConfig;
+
+export interface S3StorageConfig extends BaseStorageConfig {
+  type: 's3';
+  endpoint: string;
+  port: number;
+  useSSL: boolean;
+  bucket: string;
+  directory: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
+export interface LocalStorageConfig extends BaseStorageConfig {
+  type: 'local';
+  directory: string;
+}
+
+interface BaseStorageConfig {
+  type: unknown;
 }
 
 export default (): Config => {
@@ -38,6 +60,30 @@ export default (): Config => {
       vhost: process.env.RABBITMQ_VHOST as string,
       prefix: (process.env.RABBITMQ_PREFIX as string) ?? 'tf2-automatic',
     },
-    dataDir: process.env.DATA_DIR as string,
+    storage: getStorageConfig(),
   };
 };
+
+function getStorageConfig(): StorageConfig {
+  const storageType = process.env.STORAGE_TYPE as 's3' | 'local';
+
+  if (storageType === 'local') {
+    return {
+      type: storageType,
+      directory: process.env.STORAGE_LOCAL_PATH as string,
+    } satisfies LocalStorageConfig;
+  } else if (storageType === 's3') {
+    return {
+      type: storageType,
+      directory: process.env.STORAGE_S3_PATH as string,
+      endpoint: process.env.STORAGE_S3_ENDPOINT as string,
+      port: parseInt(process.env.STORAGE_S3_PORT as string, 10),
+      useSSL: process.env.STORAGE_S3_USE_SSL === 'true',
+      bucket: process.env.STORAGE_S3_BUCKET as string,
+      accessKeyId: process.env.STORAGE_S3_ACCESS_KEY_ID as string,
+      secretAccessKey: process.env.STORAGE_S3_SECRET_ACCESS_KEY as string,
+    } satisfies S3StorageConfig;
+  } else {
+    throw new Error('Unknown task type: ' + storageType);
+  }
+}

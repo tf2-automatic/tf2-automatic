@@ -1,11 +1,16 @@
-import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationShutdown,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Config } from '../common/config/configuration';
-import fs from 'fs';
-import path from 'path';
-import writeFileAtomic from 'write-file-atomic';
+import { Config, StorageConfig } from '../common/config/configuration';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
+import { StorageEngine } from './engines/engine.interface';
+import { LocalStorageEngine } from './engines/local-storage.engine';
+import { S3StorageEngine } from './engines/s3-storage.engine';
 
 type ReadFileResult = string | null;
 type WriteFileResult = boolean;
@@ -23,10 +28,8 @@ interface NextWrite {
 }
 
 @Injectable()
-export class StorageService implements OnApplicationShutdown {
+export class StorageService implements OnApplicationShutdown, OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
-
-  private readonly dataDir: string | null = null;
 
   private readonly _readPromises: Map<string, Promise<ReadFileResult>> =
     new Map();
@@ -36,8 +39,23 @@ export class StorageService implements OnApplicationShutdown {
   private readonly writeQueue: queueAsPromised<WriteTask, WriteFileResult> =
     fastq.promise(this.processWriteQueue.bind(this), 1);
 
+  private engine: StorageEngine;
+
   constructor(private readonly configService: ConfigService<Config>) {
-    this.dataDir = this.configService.get<string>('dataDir') ?? null;
+    const storageConfig =
+      this.configService.getOrThrow<StorageConfig>('storage');
+
+    if (storageConfig.type === 'local') {
+      this.engine = new LocalStorageEngine(storageConfig);
+    } else if (storageConfig.type === 's3') {
+      this.engine = new S3StorageEngine(storageConfig);
+    } else {
+      throw new Error('Invalid storage type: ' + storageConfig);
+    }
+  }
+
+  onModuleInit() {
+    return this.engine.setup();
   }
 
   onApplicationShutdown() {
@@ -59,27 +77,13 @@ export class StorageService implements OnApplicationShutdown {
       return this._readPromises.get(relativePath) as Promise<ReadFileResult>;
     }
 
-    const promise = new Promise<ReadFileResult>((resolve, reject) => {
-      if (!this.dataDir) {
-        return resolve(null);
-      }
+    this.logger.debug(`Reading file "${relativePath}"`);
 
-      const fullPath = path.join(this.dataDir, relativePath);
-
-      if (!fs.existsSync(fullPath)) {
-        return resolve(null);
-      }
-
-      this.logger.debug(`Reading file "${fullPath}"`);
-
-      fs.readFile(fullPath, 'utf8', (err, data) => {
-        if (err) {
-          this.logger.warn(`Error reading file "${fullPath}": ${err.message}`);
-          return reject(err);
-        }
-
-        resolve(data);
-      });
+    const promise = this.engine.read(relativePath).catch((err) => {
+      this.logger.error(
+        `Failed to read file "${relativePath}": ${err.message}`
+      );
+      throw err;
     });
 
     // Cache promise
@@ -94,30 +98,13 @@ export class StorageService implements OnApplicationShutdown {
   }
 
   private async processWriteQueue(task: WriteTask): Promise<WriteFileResult> {
-    return new Promise<WriteFileResult>((resolve, reject) => {
-      if (!this.dataDir) {
-        return resolve(false);
-      }
+    this.logger.debug(`Writing to file "${task.relativePath}"`);
 
-      const fullPath = path.join(this.dataDir, task.relativePath);
-
-      // Create directory if it doesn't exist
-      const dir = path.dirname(fullPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      this.logger.debug(`Writing file to "${fullPath}"`);
-
-      // Write to file
-      writeFileAtomic(fullPath, task.data, (err) => {
-        if (err) {
-          this.logger.warn(`Error writing file "${fullPath}": ${err.message}`);
-          return reject(err);
-        }
-
-        resolve(true);
-      });
+    return this.engine.write(task.relativePath, task.data).catch((err) => {
+      this.logger.error(
+        `Failed to write to file "${task.relativePath}": ${err.message}`
+      );
+      throw err;
     });
   }
 
