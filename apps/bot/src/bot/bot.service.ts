@@ -409,23 +409,29 @@ export class BotService implements OnModuleDestroy {
 
   private reconnect() {
     if (!this._reconnectPromise) {
-      const promise = promiseRetry(
-        (retry, attempt) => {
-          this.logger.warn(
-            'Reconnecting to Steam (attempt ' + attempt + ')...'
-          );
-          return this.login().catch((err) => {
-            this.logger.warn('Failed to reconnect');
-            retry(err);
-          });
-        },
-        {
-          forever: true,
-          maxTimeout: 1000 * 60 * 10,
-          minTimeout: 10000,
-          randomize: true,
-        }
-      );
+      const promise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          resolve();
+        }, 1000);
+      }).then(() => {
+        return promiseRetry(
+          (retry, attempt) => {
+            this.logger.warn(
+              'Reconnecting to Steam (attempt ' + attempt + ')...'
+            );
+            return this.login().catch((err) => {
+              this.logger.warn('Failed to reconnect');
+              retry(err);
+            });
+          },
+          {
+            forever: true,
+            maxTimeout: 1000 * 60 * 10,
+            minTimeout: 10000,
+            randomize: true,
+          }
+        );
+      });
 
       this._reconnectPromise = promise.finally(() => {
         // Reset promise
