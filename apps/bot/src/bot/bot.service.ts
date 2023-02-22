@@ -20,13 +20,14 @@ import {
   STEAM_DISCONNECTED_EVENT,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
+import { ShutdownService } from '../shutdown/shutdown.service';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
   private logger = new Logger(BotService.name);
 
   private client: SteamUser = new SteamUser({
-    autoRelogin: true,
+    autoRelogin: false,
     // Just needs to be set for custom storage to work
     dataDirectory: '',
     httpProxy:
@@ -53,6 +54,7 @@ export class BotService implements OnModuleDestroy {
   private running = false;
 
   constructor(
+    private shutdownService: ShutdownService,
     private configService: ConfigService<Config>,
     private storageService: StorageService,
     private eventsService: EventsService,
@@ -225,6 +227,8 @@ export class BotService implements OnModuleDestroy {
       this.logger.error(
         'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
       );
+
+      this.shutdownService.shutdown();
     });
 
     this.running = true;

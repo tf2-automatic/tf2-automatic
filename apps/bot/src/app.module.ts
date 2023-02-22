@@ -13,6 +13,7 @@ import { ProfileModule } from './profile/profile.module';
 import { EventsModule } from './events/events.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { EscrowModule } from './escrow/escrow.module';
+import { ShutdownModule } from './shutdown/shutdown.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { EscrowModule } from './escrow/escrow.module';
     EventsModule,
     MetadataModule,
     EscrowModule,
+    ShutdownModule,
   ],
 })
 export class AppModule {}

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Config } from './common/config/configuration';
 import { BotService } from './bot/bot.service';
+import { ShutdownService } from './shutdown/shutdown.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -18,6 +19,9 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = configService.getOrThrow<number>('port');
+
+  // Subscribe to shutdown event
+  app.get(ShutdownService).subscribeToShutdown(() => app.close());
 
   await app.init();
 
