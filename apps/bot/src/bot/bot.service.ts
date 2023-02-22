@@ -205,13 +205,7 @@ export class BotService implements OnModuleDestroy {
       this.logger.debug(message);
     });
 
-    const loginKey = await this.storageService.read('loginkey.txt');
-
-    if (loginKey) {
-      this.logger.debug('Found login key');
-    }
-
-    await this.login(loginKey ?? null);
+    await this.login();
 
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
@@ -308,7 +302,13 @@ export class BotService implements OnModuleDestroy {
     });
   }
 
-  private login(loginKey: string | null = null): Promise<void> {
+  private async login(): Promise<void> {
+    const loginKey = await this.storageService.read('loginkey.txt');
+
+    if (loginKey) {
+      this.logger.debug('Found login key');
+    }
+
     return new Promise((resolve, reject) => {
       this.logger.log('Logging in to Steam...');
 
