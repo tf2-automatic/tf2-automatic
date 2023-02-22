@@ -227,6 +227,7 @@ export class BotService implements OnModuleDestroy {
 
       // Disable polling
       this.manager.pollInterval = -1;
+      clearTimeout(this.manager._pollTimer);
 
       this.reconnect()
         .then(() => {
