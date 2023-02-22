@@ -1,4 +1,8 @@
-import { Injectable, OnApplicationShutdown } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationShutdown,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Config, StorageConfig } from '../common/config/configuration';
 import fastq from 'fastq';
@@ -22,7 +26,7 @@ interface NextWrite {
 }
 
 @Injectable()
-export class StorageService implements OnApplicationShutdown {
+export class StorageService implements OnApplicationShutdown, OnModuleInit {
   private readonly _readPromises: Map<string, Promise<ReadFileResult>> =
     new Map();
   private readonly currentWrites = new Map<string, Promise<WriteFileResult>>();
@@ -40,8 +44,12 @@ export class StorageService implements OnApplicationShutdown {
     if (storageConfig.type === 'local') {
       this.engine = new LocalStorageEngine(storageConfig);
     } else {
-      throw new Error('Invalid storage type: ' + storageConfig.type);
+      throw new Error('Invalid storage type: ' + storageConfig);
     }
+  }
+
+  onModuleInit() {
+    return this.engine.setup();
   }
 
   onApplicationShutdown() {

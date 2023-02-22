@@ -10,6 +10,12 @@ export class LocalStorageEngine implements StorageEngine {
 
   constructor(private readonly config: LocalStorageConfig) {}
 
+  setup() {
+    this.createDirectoryIfNotExists(this.config.directory);
+
+    return Promise.resolve();
+  }
+
   read(relativePath: string): Promise<string | null> {
     return new Promise((resolve, reject) => {
       if (!this.config.directory) {
@@ -44,10 +50,7 @@ export class LocalStorageEngine implements StorageEngine {
       const fullPath = path.join(this.config.directory, relativePath);
 
       // Create directory if it doesn't exist
-      const dir = path.dirname(fullPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      this.createDirectoryIfNotExists(path.dirname(fullPath));
 
       this.logger.debug(`Writing file to "${fullPath}"`);
 
@@ -61,5 +64,11 @@ export class LocalStorageEngine implements StorageEngine {
         resolve(true);
       });
     });
+  }
+
+  private createDirectoryIfNotExists(dir: string) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
 }
