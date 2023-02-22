@@ -326,11 +326,16 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async login(): Promise<void> {
-    const loginKey = await this.storageService.read(
-      `loginkey.${
-        this.configService.getOrThrow<SteamAccountConfig>('steam').username
-      }.txt`
-    );
+    const loginKey = await this.storageService
+      .read(
+        `loginkey.${
+          this.configService.getOrThrow<SteamAccountConfig>('steam').username
+        }.txt`
+      )
+      .catch((err) => {
+        this.logger.warn('Failed to read login key: ' + err.message);
+        return null;
+      });
 
     if (loginKey) {
       this.logger.debug('Found login key');
