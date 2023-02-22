@@ -20,13 +20,15 @@ import {
   STEAM_DISCONNECTED_EVENT,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
+import promiseRetry from 'promise-retry';
+import { ShutdownService } from '../shutdown/shutdown.service';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
   private logger = new Logger(BotService.name);
 
   private client: SteamUser = new SteamUser({
-    autoRelogin: true,
+    autoRelogin: false,
     // Just needs to be set for custom storage to work
     dataDirectory: '',
     httpProxy:
@@ -46,13 +48,16 @@ export class BotService implements OnModuleDestroy {
     language: 'en',
     dataDirectory: '',
     savePollData: true,
+    pollInterval: 30000,
   });
 
   private _startPromise: Promise<void> | null = null;
+  private _reconnectPromise: Promise<void> | null = null;
   private lastWebLogin: Date | null = null;
   private running = false;
 
   constructor(
+    private shutdownService: ShutdownService,
     private configService: ConfigService<Config>,
     private storageService: StorageService,
     private eventsService: EventsService,
@@ -77,7 +82,7 @@ export class BotService implements OnModuleDestroy {
     });
 
     this.client.on('loggedOn', () => {
-      this.logger.log('Logged in to Steam');
+      this.logger.log('Logged in to Steam!');
 
       this.metadataService.setSteamID(this.client.steamID as SteamID);
       this.eventsService
@@ -203,13 +208,7 @@ export class BotService implements OnModuleDestroy {
       this.logger.debug(message);
     });
 
-    const loginKey = await this.storageService.read('loginkey.txt');
-
-    if (loginKey) {
-      this.logger.debug('Found login key');
-    }
-
-    await this.login(loginKey ?? null);
+    await this.login();
 
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
@@ -225,6 +224,21 @@ export class BotService implements OnModuleDestroy {
       this.logger.error(
         'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
       );
+
+      // Disable polling
+      this.manager.pollInterval = -1;
+      clearTimeout(this.manager._pollTimer);
+
+      this.reconnect()
+        .then(() => {
+          // Re-enable polling
+          this.manager.pollInterval = 30000;
+          this.manager.doPoll();
+        })
+        .catch((err) => {
+          this.logger.warn('Failed to reconnect: ' + err.message);
+          this.shutdownService.shutdown();
+        });
     });
 
     this.running = true;
@@ -304,7 +318,13 @@ export class BotService implements OnModuleDestroy {
     });
   }
 
-  private login(loginKey: string | null = null): Promise<void> {
+  private async login(): Promise<void> {
+    const loginKey = await this.storageService.read('loginkey.txt');
+
+    if (loginKey) {
+      this.logger.debug('Found login key');
+    }
+
     return new Promise((resolve, reject) => {
       this.logger.log('Logging in to Steam...');
 
@@ -385,6 +405,41 @@ export class BotService implements OnModuleDestroy {
 
       login();
     });
+  }
+
+  private reconnect() {
+    if (!this._reconnectPromise) {
+      const promise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          resolve();
+        }, 1000);
+      }).then(() => {
+        return promiseRetry(
+          (retry, attempt) => {
+            this.logger.warn(
+              'Reconnecting to Steam (attempt ' + attempt + ')...'
+            );
+            return this.login().catch((err) => {
+              this.logger.warn('Failed to reconnect');
+              retry(err);
+            });
+          },
+          {
+            forever: true,
+            maxTimeout: 1000 * 60 * 10,
+            minTimeout: 10000,
+            randomize: true,
+          }
+        );
+      });
+
+      this._reconnectPromise = promise.finally(() => {
+        // Reset promise
+        this._reconnectPromise = null;
+      });
+    }
+
+    return this._reconnectPromise;
   }
 
   async onModuleDestroy() {
