@@ -189,7 +189,7 @@ export class BotService implements OnModuleDestroy {
           key
         )
         .catch((err) => {
-          this.logger.error(
+          this.logger.warn(
             'Failed to write login key to storage: ' + err.message
           );
         });
