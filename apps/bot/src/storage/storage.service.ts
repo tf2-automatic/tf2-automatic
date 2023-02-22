@@ -9,6 +9,7 @@ import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { StorageEngine } from './engines/engine.interface';
 import { LocalStorageEngine } from './engines/local-storage.engine';
+import { S3StorageEngine } from './engines/s3-storage.engine';
 
 type ReadFileResult = string | null;
 type WriteFileResult = boolean;
@@ -43,6 +44,8 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
 
     if (storageConfig.type === 'local') {
       this.engine = new LocalStorageEngine(storageConfig);
+    } else if (storageConfig.type === 's3') {
+      this.engine = new S3StorageEngine(storageConfig);
     } else {
       throw new Error('Invalid storage type: ' + storageConfig);
     }

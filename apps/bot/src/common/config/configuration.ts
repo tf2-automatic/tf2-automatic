@@ -24,13 +24,18 @@ export interface RabbitMQConfig {
 export type StorageConfig = S3StorageConfig | LocalStorageConfig;
 
 export interface S3StorageConfig extends BaseStorageConfig {
+  type: 's3';
+  endpoint: string;
+  port: number;
+  useSSL: boolean;
+  bucket: string;
   directory: string;
-  url: string;
   accessKeyId: string;
   secretAccessKey: string;
 }
 
 export interface LocalStorageConfig extends BaseStorageConfig {
+  type: 'local';
   directory: string;
 }
 
@@ -66,14 +71,19 @@ function getStorageConfig(): StorageConfig {
     return {
       type: storageType,
       directory: process.env.STORAGE_LOCAL_PATH as string,
-    };
-  } else {
+    } satisfies LocalStorageConfig;
+  } else if (storageType === 's3') {
     return {
       type: storageType,
       directory: process.env.STORAGE_S3_PATH as string,
-      url: process.env.STORAGE_S3_URL as string,
+      endpoint: process.env.STORAGE_S3_ENDPOINT as string,
+      port: parseInt(process.env.STORAGE_S3_PORT as string, 10),
+      useSSL: process.env.STORAGE_S3_USE_SSL === 'true',
+      bucket: process.env.STORAGE_S3_BUCKET as string,
       accessKeyId: process.env.STORAGE_S3_ACCESS_KEY_ID as string,
       secretAccessKey: process.env.STORAGE_S3_SECRET_ACCESS_KEY as string,
-    };
+    } satisfies S3StorageConfig;
+  } else {
+    throw new Error('Unknown task type: ' + storageType);
   }
 }

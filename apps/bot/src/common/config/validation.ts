@@ -25,12 +25,14 @@ const validation = Joi.object({
   RABBITMQ_PREFIX: Joi.string().optional().min(1),
   DEBUG: Joi.boolean().optional(),
   STORAGE_TYPE: Joi.string().valid('local', 's3').required(),
-  STORAGE_LOCAL_PATH: Joi.string().when('STORAGE_PROVIDER', whenLocal),
-  STORAGE_S3_PATH: Joi.string().when('STORAGE_PROVIDER', whenS3),
-  STORAGE_S3_ACCESS_KEY_ID: Joi.string().when('STORAGE_PROVIDER', whenS3),
-  STORAGE_S3_SECRET_ACCESS_KEY: Joi.string().when('STORAGE_PROVIDER', whenS3),
-  STORAGE_S3_BUCKET: Joi.string().when('STORAGE_PROVIDER', whenS3),
-  STORAGE_S3_REGION: Joi.string().when('STORAGE_PROVIDER', whenS3),
+  STORAGE_LOCAL_PATH: Joi.string().when('STORAGE_TYPE', whenLocal),
+  STORAGE_S3_ENDPOINT: Joi.string().when('STORAGE_TYPE', whenS3),
+  STORAGE_S3_PORT: Joi.number().when('STORAGE_TYPE', whenS3),
+  STORAGE_S3_USE_SSL: Joi.boolean().when('STORAGE_TYPE', whenS3),
+  STORAGE_S3_PATH: Joi.string().when('STORAGE_TYPE', whenS3),
+  STORAGE_S3_ACCESS_KEY_ID: Joi.string().when('STORAGE_TYPE', whenS3),
+  STORAGE_S3_SECRET_ACCESS_KEY: Joi.string().when('STORAGE_TYPE', whenS3),
+  STORAGE_S3_BUCKET: Joi.string().when('STORAGE_TYPE', whenS3),
 });
 
 export { validation };
