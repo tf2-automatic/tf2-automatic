@@ -20,7 +20,7 @@ export class SteamException extends InternalServerErrorException {
     }
 
     if (cause) {
-      newMessage += `(cause: ${cause})`;
+      newMessage += ` (cause: ${cause})`;
     }
 
     const obj: ExceptionBody = HttpException.createBody(
