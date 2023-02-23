@@ -52,15 +52,18 @@ export class TradesService {
     private readonly eventsService: EventsService
   ) {
     this.manager.on('newOffer', (offer) => {
+      this.logger.log(
+        `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`
+      );
       this.publishOffer(offer, null);
     });
 
     this.manager.on('sentOfferChanged', (offer, oldState) => {
-      this.publishOffer(offer, oldState);
+      this.handleOfferChanged(offer, oldState);
     });
 
     this.manager.on('receivedOfferChanged', (offer, oldState) => {
-      this.publishOffer(offer, oldState);
+      this.handleOfferChanged(offer, oldState);
     });
 
     this.manager.on('pollData', () => {
@@ -71,6 +74,7 @@ export class TradesService {
   private ensurePollData(): void {
     if (this.ensurePollDataTimeout !== null) {
       clearTimeout(this.ensurePollDataTimeout);
+      this.ensurePollDataTimeout = null;
     }
 
     this.ensurePollDataTimeout = setTimeout(() => {
@@ -122,6 +126,18 @@ export class TradesService {
     }
 
     return this.publishOffer(offer, publishedState);
+  }
+
+  private handleOfferChanged(
+    offer: SteamTradeOfferManager.TradeOffer,
+    oldState: SteamUser.ETradeOfferState
+  ): void {
+    this.logger.log(
+      `Offer #${offer.id} state changed: ${
+        SteamTradeOfferManager.ETradeOfferState[oldState]
+      } -> ${SteamTradeOfferManager.ETradeOfferState[offer.state]}`
+    );
+    this.publishOffer(offer, oldState);
   }
 
   private publishOffer(
@@ -255,7 +271,7 @@ export class TradesService {
   }
 
   createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
-    this.logger.log(`Sending trade offer to ${dto.partner}...`);
+    this.logger.log(`Sending offer to ${dto.partner}...`);
 
     return new Promise<CreateTradeResponse>((resolve, reject) => {
       const offer = this.manager.createOffer(dto.partner);
@@ -311,7 +327,7 @@ export class TradesService {
       });
     }).then((offer) => {
       this.logger.log(
-        `Trade offer #${offer.id} sent to ${dto.partner} has status ${
+        `Offer #${offer.id} sent to ${dto.partner} has state ${
           SteamTradeOfferManager.ETradeOfferState[offer.state]
         }`
       );
@@ -325,7 +341,11 @@ export class TradesService {
     const offer = await this._getTrade(id);
     const state = await this._acceptTrade(offer);
 
-    this.logger.log(`Trade offer #${id} accepted (state: ${state})`);
+    this.logger.log(
+      `Offer #${offer.id} from ${offer.partner} successfully accepted${
+        state === 'pending' ? '; confirmation required' : ''
+      }`
+    );
 
     return this.mapOffer(offer);
   }
@@ -386,7 +406,7 @@ export class TradesService {
         }
       );
     }).then(() => {
-      this.logger.log(`Accepted confirmation for offer #${id}`);
+      this.logger.log(`Accepted confirmation for offer #${id}!`);
       this.manager.doPoll();
     });
   }
