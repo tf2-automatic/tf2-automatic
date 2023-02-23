@@ -84,6 +84,8 @@ export class BotService implements OnModuleDestroy {
     this.client.on('loggedOn', () => {
       this.logger.log('Logged in to Steam!');
 
+      this.client.setPersona(SteamUser.EPersonaState.Online);
+
       this.metadataService.setSteamID(this.client.steamID as SteamID);
       this.eventsService
         .publish(
