@@ -4,7 +4,11 @@ import SteamUser from 'steam-user';
 import SteamCommunity from 'steamcommunity';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import SteamTotp from 'steam-totp';
-import { Config, SteamAccountConfig } from '../common/config/configuration';
+import {
+  Config,
+  SteamAccountConfig,
+  SteamTradeConfig,
+} from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
 import SteamID from 'steamid';
@@ -42,14 +46,7 @@ export class BotService implements OnModuleDestroy {
         this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
     }),
   });
-  private manager = new SteamTradeOfferManager({
-    steam: this.client,
-    community: this.community,
-    language: 'en',
-    dataDirectory: '',
-    savePollData: true,
-    pollInterval: 30000,
-  });
+  private manager: SteamTradeOfferManager;
 
   private _startPromise: Promise<void> | null = null;
   private _reconnectPromise: Promise<void> | null = null;
@@ -63,6 +60,20 @@ export class BotService implements OnModuleDestroy {
     private eventsService: EventsService,
     private metadataService: MetadataService
   ) {
+    const tradeConfig =
+      this.configService.getOrThrow<SteamTradeConfig>('trade');
+
+    this.manager = new SteamTradeOfferManager({
+      steam: this.client,
+      community: this.community,
+      language: 'en',
+      dataDirectory: '',
+      savePollData: true,
+      pollInterval: tradeConfig.pollInterval,
+      pendingCancelTime: tradeConfig.pendingCancelTime,
+      cancelTime: tradeConfig.cancelTime,
+    });
+
     // Add type to manager storage
     const managerStorage = this.manager.storage as FileManager;
     managerStorage.on('read', (filename, callback) => {
