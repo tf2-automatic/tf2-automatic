@@ -1,6 +1,7 @@
 export interface Config {
   port: number;
   steam: SteamAccountConfig;
+  trade: SteamTradeConfig;
   rabbitmq: RabbitMQConfig;
   storage: S3StorageConfig | LocalStorageConfig;
 }
@@ -11,6 +12,12 @@ export interface SteamAccountConfig {
   sharedSecret: string;
   identitySecret: string;
   proxyUrl?: string;
+}
+
+export interface SteamTradeConfig {
+  cancelTime?: number;
+  pendingCancelTime?: number;
+  pollInterval?: number;
 }
 
 export interface RabbitMQConfig {
@@ -53,6 +60,20 @@ export default (): Config => {
       sharedSecret: process.env.STEAM_SHARED_SECRET as string,
       identitySecret: process.env.STEAM_IDENTITY_SECRET as string,
       proxyUrl: process.env.STEAM_PROXY_URL as string | undefined,
+    },
+    trade: {
+      cancelTime:
+        process.env.TRADE_CANCEL_TIME === undefined
+          ? undefined
+          : parseInt(process.env.TRADE_CANCEL_TIME as string, 10),
+      pendingCancelTime:
+        process.env.TRADE_PENDING_CANCEL_TIME === undefined
+          ? undefined
+          : parseInt(process.env.TRADE_PENDING_CANCEL_TIME as string, 10),
+      pollInterval:
+        process.env.TRADE_POLL_INTERVAL === undefined
+          ? undefined
+          : parseInt(process.env.TRADE_POLL_INTERVAL as string, 10),
     },
     rabbitmq: {
       host: process.env.RABBITMQ_HOST as string,
