@@ -74,6 +74,9 @@ export class TF2Service implements OnApplicationShutdown {
 
   private account: TF2Account | null = null;
 
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private manuallyDisconnectedFromGC = false;
+
   constructor(
     private readonly botService: BotService,
     private readonly eventsService: EventsService
@@ -91,6 +94,13 @@ export class TF2Service implements OnApplicationShutdown {
       this.logger.debug('Disconnected from GC');
     });
 
+    this.client.on('appQuit', () => {
+      if (this.manuallyDisconnectedFromGC) {
+        this.manuallyDisconnectedFromGC = false;
+        this.client.gamesPlayed([440]);
+      }
+    });
+
     this.tf2.on('accountLoaded', () => {
       this.logger.debug('Account loaded');
       this.accountLoaded();
@@ -102,6 +112,8 @@ export class TF2Service implements OnApplicationShutdown {
     });
 
     this.tf2.on('itemAcquired', (item) => {
+      this.refreshInventory();
+
       this.eventsService
         .publish(TF2_GAINED_EVENT, item satisfies TF2GainedEvent['data'])
         .catch(() => {
@@ -110,12 +122,27 @@ export class TF2Service implements OnApplicationShutdown {
     });
 
     this.tf2.on('itemRemoved', (item) => {
+      this.refreshInventory();
+
       this.eventsService
         .publish(TF2_LOST_EVENT, item satisfies TF2LostEvent['data'])
         .catch(() => {
           // Ignore error
         });
     });
+  }
+
+  private refreshInventory(): void {
+    if (this.reconnectTimeout !== null) {
+      clearTimeout(this.reconnectTimeout);
+    }
+
+    this.reconnectTimeout = setTimeout(() => {
+      this.logger.debug('Reconnecting to GC to refresh inventory');
+      this.manuallyDisconnectedFromGC = true;
+      this.client.gamesPlayed([]);
+      this.reconnectTimeout = null;
+    }, 1000);
   }
 
   private async process(task: Task): Promise<unknown> {
