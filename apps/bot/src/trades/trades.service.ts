@@ -284,6 +284,12 @@ export class TradesService {
 
       offer.send((err) => {
         if (err) {
+          this.logger.error(
+            `Got an error while sending trade offer: ${err.message}${
+              err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+            }`
+          );
+
           if (err.message === 'Cannot send an empty trade offer') {
             return reject(
               new BadRequestException('Cannot send an empty trade offer')
@@ -303,43 +309,25 @@ export class TradesService {
 
         return resolve(this.mapOffer(offer));
       });
-    })
-      .then((offer) => {
-        this.logger.log(
-          `Trade offer #${offer.id} sent to ${dto.partner} has status ${
-            SteamTradeOfferManager.ETradeOfferState[offer.state]
-          }`
-        );
-        return offer;
-      })
-      .catch((err) => {
-        this.logger.error(
-          `Got an error while sending trade offer: ${err.message}${
-            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-          }`
-        );
-        throw err;
-      });
+    }).then((offer) => {
+      this.logger.log(
+        `Trade offer #${offer.id} sent to ${dto.partner} has status ${
+          SteamTradeOfferManager.ETradeOfferState[offer.state]
+        }`
+      );
+      return offer;
+    });
   }
 
   async acceptTrade(id: string): Promise<TradeOffer> {
     this.logger.log(`Accepting trade offer #${id}...`);
 
-    try {
-      const offer = await this._getTrade(id);
-      const state = await this._acceptTrade(offer);
+    const offer = await this._getTrade(id);
+    const state = await this._acceptTrade(offer);
 
-      this.logger.log(`Trade offer #${id} accepted (state: ${state})`);
+    this.logger.log(`Trade offer #${id} accepted (state: ${state})`);
 
-      return this.mapOffer(offer);
-    } catch (err) {
-      this.logger.error(
-        `Got an error while accepting trade offer: ${err.message}${
-          err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-        }`
-      );
-      throw err;
-    }
+    return this.mapOffer(offer);
   }
 
   private _acceptTrade(
@@ -348,6 +336,12 @@ export class TradesService {
     return new Promise<string>((resolve, reject) => {
       offer.accept(false, (err, state) => {
         if (err) {
+          this.logger.error(
+            `Got an error while accepting trade offer: ${err.message}${
+              err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+            }`
+          );
+
           if (err.eresult !== undefined || err.cause !== undefined) {
             return reject(
               new SteamException(err.message, err.eresult, err.cause)
@@ -372,6 +366,12 @@ export class TradesService {
         id,
         (err) => {
           if (err) {
+            this.logger.error(
+              `Error while accepting confirmation for ${id}: ${err.message}${
+                err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+              }`
+            );
+
             if (
               err.message ===
               'Could not find confirmation for object ' + id
@@ -385,18 +385,10 @@ export class TradesService {
           return resolve();
         }
       );
-    })
-      .then(() => {
-        this.logger.log(`Accepted confirmation for offer #${id}`);
-        this.manager.doPoll();
-      })
-      .catch((err) => {
-        this.logger.error(
-          `Error while accepting confirmation for ${id}: ${err.message}${
-            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-          }`
-        );
-      });
+    }).then(() => {
+      this.logger.log(`Accepted confirmation for offer #${id}`);
+      this.manager.doPoll();
+    });
   }
 
   removeTrade(id: string): Promise<TradeOffer> {
@@ -422,6 +414,12 @@ export class TradesService {
 
         offer.cancel((err) => {
           if (err) {
+            this.logger.error(
+              `Error while removing trade offer #${id}: ${err.message}${
+                err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+              }`
+            );
+
             if (
               err.message ===
               `Offer #${offer.id} is not active, so it may not be cancelled or declined`
@@ -437,19 +435,10 @@ export class TradesService {
           return resolve(this.mapOffer(offer));
         });
       });
-    })
-      .then((offer) => {
-        this.logger.debug('Removed trade offer #' + id);
-        return offer;
-      })
-      .catch((err) => {
-        this.logger.error(
-          `Error while removing trade offer #${id}: ${err.message}${
-            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-          }`
-        );
-        throw err;
-      });
+    }).then((offer) => {
+      this.logger.debug('Removed trade offer #' + id);
+      return offer;
+    });
   }
 
   async getExchangeDetails(id: string): Promise<TradeOfferExchangeDetails> {
