@@ -1,17 +1,9 @@
-import {
-  IsArray,
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-  ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { ETradeOfferState, ETradeOfferConfirmationMethod } from 'steam-user';
-import SteamTradeOfferManager from 'steam-tradeoffer-manager';
+import type {
+  ETradeOfferState,
+  ETradeOfferConfirmationMethod,
+} from 'steam-user';
+import type SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import { Item } from './inventories';
-import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { BaseEvent } from './events';
 
 export enum OfferFilter {
@@ -20,9 +12,7 @@ export enum OfferFilter {
   All = 3,
 }
 
-export class GetTradesDto {
-  @IsEnum(OfferFilter)
-  @Type(() => Number)
+export interface GetTrades {
   filter: OfferFilter;
 }
 
@@ -65,46 +55,18 @@ export interface GetTradesResponse {
 
 export type GetTradeResponse = TradeOffer;
 
-export class Asset {
-  @IsString()
+export interface Asset {
   assetid: string;
-
-  @IsNumber()
   appid: number;
-
-  @IsString()
   contextid: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
   amount?: number;
 }
 
-export class CreateTradeDto {
-  @IsSteamID()
+export interface CreateTrade {
   partner: string;
-
-  @IsOptional()
-  @IsString()
   token?: string;
-
-  @IsOptional()
-  @IsString()
   message?: string;
-
-  @IsArray()
-  @ValidateNested({
-    each: true,
-  })
-  @Type(() => Asset)
   itemsToGive: Asset[];
-
-  @IsArray()
-  @ValidateNested({
-    each: true,
-  })
-  @Type(() => Asset)
   itemsToReceive: Asset[];
 }
 

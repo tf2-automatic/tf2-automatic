@@ -13,11 +13,9 @@ import {
 import {
   AcceptConfirmationResponse,
   AcceptTradeResponse,
-  CreateTradeDto,
   CreateTradeResponse,
   DeleteTradeResponse,
   GetTradeResponse,
-  GetTradesDto,
   GetTradesResponse,
   Item,
   TradeOfferExchangeDetails,
@@ -29,6 +27,8 @@ import {
   TRADE_PATH,
   TRADE_RECEIVED_ITEMS_PATH,
 } from '@tf2-automatic/bot-data';
+import { CreateTradeDto } from './dto/create-trade.dto';
+import { GetTradesDto } from './dto/get-trades.dto';
 import { TradesService } from './trades.service';
 
 @Controller(TRADES_BASE_URL)

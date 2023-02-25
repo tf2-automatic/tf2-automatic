@@ -1,4 +1,4 @@
-import SteamUser from 'steam-user';
+import type SteamUser from 'steam-user';
 import { BaseEvent } from './events';
 
 export const STEAM_EVENT_PREFIX = 'steam';

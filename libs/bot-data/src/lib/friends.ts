@@ -1,5 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-import SteamUser from 'steam-user';
+import type SteamUser from 'steam-user';
 import { BaseEvent } from './events';
 
 export interface Friend {
@@ -19,9 +18,7 @@ export interface DeleteFriendResponse {
   deleted: boolean;
 }
 
-export class SendFriendMessageDto {
-  @IsNotEmpty()
-  @IsString()
+export interface SendFriendMessage {
   message: string;
 }
 

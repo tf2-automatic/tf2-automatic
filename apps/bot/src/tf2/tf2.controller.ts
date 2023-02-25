@@ -11,10 +11,8 @@ import {
 } from '@nestjs/common';
 import {
   TF2Account,
-  CraftDto,
   CraftResult,
   TF2_BASE_URL,
-  SortBackpackDto,
   TF2_ACCOUNT_PATH,
   TF2_CRAFT_PATH,
   TF2_USE_ITEM_PATH,
@@ -22,6 +20,8 @@ import {
   TF2_SORT_PATH,
   TF2ActionResult,
 } from '@tf2-automatic/bot-data';
+import { CraftDto } from './dto/craft.dto';
+import { SortBackpackDto } from './dto/sort-backpack.dto';
 import { TF2Service } from './tf2.service';
 
 @Controller(TF2_BASE_URL)

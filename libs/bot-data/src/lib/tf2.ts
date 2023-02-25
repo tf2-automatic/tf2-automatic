@@ -1,5 +1,3 @@
-import { IsArray, IsEnum, IsString } from 'class-validator';
-
 export interface TF2Account {
   isPremium: boolean;
   backpackSlots: number;
@@ -24,18 +22,12 @@ export interface CraftResult {
   assetids: string[];
 }
 
-export class CraftDto {
-  @IsString({
-    each: true,
-  })
-  @IsArray()
+export interface Craft {
   assetids: string[];
-
-  @IsEnum(CraftRecipe)
   recipe: CraftRecipe;
 }
 
-export enum SortBackpack {
+export enum SortBackpackTypes {
   Name = 1,
   Defindex = 2,
   Quality = 3,
@@ -45,9 +37,8 @@ export enum SortBackpack {
   Slot = 102,
 }
 
-export class SortBackpackDto {
-  @IsEnum(SortBackpack)
-  sort: SortBackpack;
+export interface SortBackpack {
+  sort: SortBackpackTypes;
 }
 
 export interface TF2Item {
