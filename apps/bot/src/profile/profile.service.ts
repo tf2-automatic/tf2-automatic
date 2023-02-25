@@ -3,12 +3,10 @@ import SteamCommunity, {
   EditProfileSettings,
   ProfileSetting,
 } from 'steamcommunity';
-import {
-  UpdateProfileAvatarDto,
-  UpdateProfileDto,
-  UpdateProfileSettingsDto,
-} from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
+import { UpdateProfileAvatarDto } from './dto/update-profile-avatar.dto';
+import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class ProfileService {

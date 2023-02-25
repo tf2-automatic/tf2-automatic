@@ -6,9 +6,7 @@ import {
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import {
-  CreateTradeDto,
   CreateTradeResponse,
-  GetTradesDto,
   GetTradesResponse,
   Item,
   TradeOffer,
@@ -25,6 +23,8 @@ import { EventsService } from '../events/events.service';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import SteamUser from 'steam-user';
+import { GetTradesDto } from './dto/get-trades.dto';
+import { CreateTradeDto } from './dto/create-trade.dto';
 
 interface EnsureOfferPublishedTask {
   id: string;

@@ -7,10 +7,8 @@ import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
 import { Logger } from '@nestjs/common';
 import {
-  CraftDto,
   CraftResult,
-  SortBackpack,
-  SortBackpackDto,
+  SortBackpackTypes,
   TF2Account,
   TF2GainedEvent,
   TF2LostEvent,
@@ -20,6 +18,8 @@ import {
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
+import { CraftDto } from './dto/craft.dto';
+import { SortBackpackDto } from './dto/sort-backpack.dto';
 
 enum TaskType {
   Craft = 'CRAFT',
@@ -51,7 +51,7 @@ type DeleteTask = BaseTask & {
 
 type SortTask = BaseTask & {
   type: TaskType.Sort;
-  sort: SortBackpack;
+  sort: SortBackpackTypes;
 };
 
 class ItemNotInBackpackException extends BadRequestException {

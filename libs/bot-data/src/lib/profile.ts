@@ -1,95 +1,39 @@
-import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
-import {
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  IsUrl,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import SteamCommunity from 'steamcommunity';
+import type SteamCommunity from 'steamcommunity';
 
-export class UpdateProfileAvatarDto {
-  @IsUrl({
-    protocols: ['http', 'https'],
-  })
+export interface UpdateProfileAvatar {
   url: string;
 }
 
-export class UpdateProfileDto {
-  @IsString()
-  @IsOptional()
+export interface UpdateProfile {
   name?: string | null;
-
-  @IsString()
-  @IsOptional()
   realName?: string | null;
-
-  @IsString()
-  @IsOptional()
   summary?: string | null;
-
-  @IsString()
-  @IsOptional()
   country?: string | null;
-
-  @IsString()
-  @IsOptional()
   state?: string | null;
-
-  @IsString()
-  @IsOptional()
   city?: string | null;
-
-  @IsString()
-  @IsOptional()
   customURL?: string | null;
-
-  @IsString()
-  @IsOptional()
   background?: string | null;
-
-  @IsString()
-  @IsOptional()
   featuredBadge?: string | null;
-
-  @IsOptional()
-  @IsSteamID()
   primaryGroup?: string | null;
 }
 
-export class UpdateProfileSettingsDto {
-  @IsOptional()
-  @IsEnum(SteamCommunity.PrivacyState)
-  @Type(() => Number)
+export interface UpdateProfileSettings {
   profile?: SteamCommunity.PrivacyState;
-
-  @IsOptional()
-  @IsEnum(SteamCommunity.PrivacyState)
-  @Type(() => Number)
   comments?: SteamCommunity.PrivacyState;
-
-  @IsOptional()
-  @IsEnum(SteamCommunity.PrivacyState)
-  @Type(() => Number)
   inventory?: SteamCommunity.PrivacyState;
-
-  @IsOptional()
-  @IsBoolean()
   inventoryGifts?: boolean;
-
-  @IsOptional()
-  @IsEnum(SteamCommunity.PrivacyState)
-  @Type(() => Number)
   gameDetails?: SteamCommunity.PrivacyState;
-
-  @IsOptional()
-  @IsBoolean()
   playtime?: boolean;
+  friendList?: SteamCommunity.PrivacyState;
+}
 
-  @IsOptional()
-  @IsEnum(SteamCommunity.PrivacyState)
-  @Type(() => Number)
+export class UpdateProfileSettings {
+  profile?: SteamCommunity.PrivacyState;
+  comments?: SteamCommunity.PrivacyState;
+  inventory?: SteamCommunity.PrivacyState;
+  inventoryGifts?: boolean;
+  gameDetails?: SteamCommunity.PrivacyState;
+  playtime?: boolean;
   friendList?: SteamCommunity.PrivacyState;
 }
 

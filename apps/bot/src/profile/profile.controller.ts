@@ -15,10 +15,10 @@ import {
   PROFILE_SETTINGS_PATH,
   PROFILE_TRADEOFFERURL_PATH,
   TradeOfferUrlResponse,
-  UpdateProfileAvatarDto,
-  UpdateProfileDto,
-  UpdateProfileSettingsDto,
 } from '@tf2-automatic/bot-data';
+import { UpdateProfileAvatarDto } from './dto/update-profile-avatar.dto';
+import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileService } from './profile.service';
 
 @Controller(PROFILE_BASE_URL)
