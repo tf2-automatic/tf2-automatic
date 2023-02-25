@@ -24,6 +24,10 @@ export class BotsService {
 
   async getBot(steamid: SteamID): Promise<Bot> {
     const bot = await this.redis.get(steamid.getSteamID64()).then((result) => {
+      if (result === null) {
+        return null;
+      }
+
       return JSON.parse(result);
     });
 

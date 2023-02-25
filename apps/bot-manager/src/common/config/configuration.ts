@@ -12,10 +12,10 @@ export interface RedisConfig {
 
 export default (): Config => {
   return {
-    port: parseInt(process.env.PORT, 10),
+    port: parseInt(process.env.PORT as string, 10),
     redis: {
-      host: process.env.REDIS_HOST,
-      port: parseInt(process.env.REDIS_PORT, 10),
+      host: process.env.REDIS_HOST as string,
+      port: parseInt(process.env.REDIS_PORT as string, 10),
       password: process.env.REDIS_PASSWORD,
       db:
         process.env.REDIS_DB !== undefined

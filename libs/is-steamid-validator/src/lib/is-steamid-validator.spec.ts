@@ -3,7 +3,7 @@ import { IsSteamID } from './is-steamid-validator';
 
 class TestClass {
   @IsSteamID()
-  steamid: string;
+  steamid!: string;
 }
 
 describe('IsSteamIDValidator', () => {
