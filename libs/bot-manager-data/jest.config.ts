@@ -1,6 +1,6 @@
 /* eslint-disable */
 export default {
-  displayName: 'bot-data',
+  displayName: 'bot-manager-data',
   preset: '../../jest.preset.js',
   globals: {},
   testEnvironment: 'node',
@@ -13,5 +13,5 @@ export default {
     ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  coverageDirectory: '../../coverage/libs/bot-data',
+  coverageDirectory: '../../coverage/libs/bot-manager-data',
 };
