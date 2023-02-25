@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Bot, BotHeartbeatDto } from '@tf2-automatic/bot-manager-data';
+import { Bot } from '@tf2-automatic/bot-manager-data';
 import {
   Bot as RunningBot,
   BOT_BASE_URL,
@@ -14,6 +14,7 @@ import {
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
+import { BotHeartbeatDto } from './dto/bot-heartbeat.dto';
 
 @Injectable()
 export class BotsService {

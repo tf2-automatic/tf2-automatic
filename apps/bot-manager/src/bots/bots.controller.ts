@@ -4,10 +4,10 @@ import { Param } from '@nestjs/common';
 import { Get, HttpCode } from '@nestjs/common';
 import { Delete } from '@nestjs/common';
 import { Body } from '@nestjs/common';
-import { BotHeartbeatDto } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
 import { BotsService } from './bots.service';
+import { BotHeartbeatDto } from './dto/bot-heartbeat.dto';
 
 @Controller('bots')
 export class BotsController {
