@@ -31,9 +31,9 @@ export interface SendFriendMessageResponse {
 export const FRIENDS_BASE_URL = '/friends';
 export const FRIENDS_PATH = '/';
 export const FRIEND_PATH = '/:steamid';
-export const FRIEND_MESSAGE_PATH = `${FRIENDS_PATH}/message`;
-export const FRIEND_TYPING_PATH = `${FRIENDS_PATH}/typing`;
-export const FRIEND_BLOCK_PATH = `${FRIENDS_PATH}/block`;
+export const FRIEND_MESSAGE_PATH = `${FRIEND_PATH}/message`;
+export const FRIEND_TYPING_PATH = `${FRIEND_PATH}/typing`;
+export const FRIEND_BLOCK_PATH = `${FRIEND_PATH}/block`;
 
 export const FRIEND_EVENT_PREFIX = 'friends';
 export const FRIEND_RELATIONSHIP_EVENT = `${FRIEND_EVENT_PREFIX}.relationship`;
