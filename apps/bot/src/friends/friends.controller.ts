@@ -25,7 +25,7 @@ import {
   FRIEND_TYPING_PATH,
   FRIEND_BLOCK_PATH,
 } from '@tf2-automatic/bot-data';
-import { SendFriendMessageDto } from './dro/send-friend-message.dto';
+import { SendFriendMessageDto } from './dto/send-friend-message.dto';
 
 @Controller(FRIENDS_BASE_URL)
 export class FriendsController {
