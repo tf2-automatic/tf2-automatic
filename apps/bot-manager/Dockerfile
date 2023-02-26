@@ -9,7 +9,7 @@ ENV NODE_ENV production
 WORKDIR /usr/src/app
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
-COPY --chown=nestjs:nodejs dist/apps/bot ./
+COPY --chown=nestjs:nodejs dist/apps/bot-manager ./
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY --from=deps /usr/src/app/package*.json ./
 USER nestjs
