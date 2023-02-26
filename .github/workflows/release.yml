@@ -72,7 +72,6 @@ jobs:
     if: needs.release.outputs.new_release_published == 'true'
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.docker)}}
     steps:
@@ -126,7 +125,6 @@ jobs:
     if: needs.release.outputs.new_release_published == 'true'
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.npm)}}
     steps:

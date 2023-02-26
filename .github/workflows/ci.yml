@@ -45,7 +45,6 @@ jobs:
     needs: [affected]
     if: ${{ fromJson(needs.affected.outputs.unit-test)[0] }}
     strategy:
-      max-parallel: 4
       matrix:
         node: ['18.x']
         projectName: ${{fromJson(needs.affected.outputs.unit-test)}}
