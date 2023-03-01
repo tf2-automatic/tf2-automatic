@@ -39,7 +39,7 @@ export class BotsService {
     // Check if the bot is alive / ip + port combination is valid
     const running = await this.getRunningBot(bot);
 
-    if (running.steamid64 !== bot.steamid64) {
+    if (running === null || running.steamid64 !== bot.steamid64) {
       // Bot is not the same as we thought it was
       return this.deleteBot(steamid).then(() => {
         throw new NotFoundException('Bot not found');
@@ -59,7 +59,7 @@ export class BotsService {
 
     const running = await this.getRunningBot(bot);
 
-    if (running.steamid64 !== bot.steamid64) {
+    if (running === null || running.steamid64 !== bot.steamid64) {
       throw new BadRequestException('IP and port is not used for this bot');
     }
 
@@ -78,7 +78,7 @@ export class BotsService {
     }
   }
 
-  private async getRunningBot(bot: Bot): Promise<RunningBot> {
+  private async getRunningBot(bot: Bot): Promise<RunningBot | null> {
     const response = await firstValueFrom(
       this.httpService.get(
         `http://${bot.ip}:${bot.port}/${BOT_BASE_URL}${BOT_PATH}`,
@@ -86,7 +86,17 @@ export class BotsService {
           timeout: 5000,
         }
       )
-    );
+    ).catch((err) => {
+      if (err.code === 'ECONNREFUSED') {
+        return null;
+      }
+
+      throw err;
+    });
+
+    if (response === null) {
+      return null;
+    }
 
     return response.data;
   }

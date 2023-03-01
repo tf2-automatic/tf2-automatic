@@ -1,9 +1,11 @@
 export interface Config {
   port: number;
+  ip?: string;
   steam: SteamAccountConfig;
   trade: SteamTradeConfig;
   rabbitmq: RabbitMQConfig;
   storage: S3StorageConfig | LocalStorageConfig;
+  manager: ManagerConfig;
 }
 
 export interface SteamAccountConfig {
@@ -51,9 +53,14 @@ interface BaseStorageConfig {
   type: unknown;
 }
 
+export interface ManagerConfig {
+  url: string;
+}
+
 export default (): Config => {
   return {
     port: parseInt(process.env.PORT as string, 10),
+    ip: process.env.IP_ADDRESS as string | undefined,
     steam: {
       username: process.env.STEAM_USERNAME as string,
       password: process.env.STEAM_PASSWORD as string,
@@ -84,6 +91,9 @@ export default (): Config => {
       prefix: (process.env.RABBITMQ_PREFIX as string) ?? 'tf2-automatic',
     },
     storage: getStorageConfig(),
+    manager: {
+      url: process.env.BOT_MANAGER_URL as string,
+    },
   };
 };
 

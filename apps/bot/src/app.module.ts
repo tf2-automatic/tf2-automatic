@@ -14,6 +14,8 @@ import { EventsModule } from './events/events.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { EscrowModule } from './escrow/escrow.module';
 import { ShutdownModule } from './shutdown/shutdown.module';
+import { ManagerModule } from './manager/manager.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { ShutdownModule } from './shutdown/shutdown.module';
       load: [configuration],
       validationSchema: validation,
     }),
+    EventEmitterModule.forRoot(),
     BotModule,
     StorageModule,
     HealthModule,
@@ -36,6 +39,7 @@ import { ShutdownModule } from './shutdown/shutdown.module';
     MetadataModule,
     EscrowModule,
     ShutdownModule,
+    ManagerModule,
   ],
 })
 export class AppModule {}
