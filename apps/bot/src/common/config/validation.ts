@@ -12,7 +12,8 @@ const whenLocal = {
 
 const validation = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
-  PORT: Joi.number().required(),
+  PORT: Joi.number().port().required(),
+  IP_ADDRESS: Joi.string().ip().optional(),
   STEAM_USERNAME: Joi.string().required(),
   STEAM_PASSWORD: Joi.string().required(),
   STEAM_SHARED_SECRET: Joi.string().required(),
@@ -41,6 +42,11 @@ const validation = Joi.object({
   STORAGE_S3_ACCESS_KEY_ID: Joi.string().when('STORAGE_TYPE', whenS3),
   STORAGE_S3_SECRET_ACCESS_KEY: Joi.string().when('STORAGE_TYPE', whenS3),
   STORAGE_S3_BUCKET: Joi.string().when('STORAGE_TYPE', whenS3),
+  BOT_MANAGER_URL: Joi.string()
+    .uri({
+      scheme: ['http', 'https'],
+    })
+    .required(),
 });
 
 export { validation };

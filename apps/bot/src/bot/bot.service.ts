@@ -26,6 +26,7 @@ import {
 import request from 'request';
 import promiseRetry from 'promise-retry';
 import { ShutdownService } from '../shutdown/shutdown.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -58,7 +59,8 @@ export class BotService implements OnModuleDestroy {
     private configService: ConfigService<Config>,
     private storageService: StorageService,
     private eventsService: EventsService,
-    private metadataService: MetadataService
+    private metadataService: MetadataService,
+    private eventEmitter: EventEmitter2
   ) {
     const tradeConfig =
       this.configService.getOrThrow<SteamTradeConfig>('trade');
@@ -140,6 +142,10 @@ export class BotService implements OnModuleDestroy {
         resolve(loggedIn);
       });
     });
+  }
+
+  isRunning(): boolean {
+    return this.running;
   }
 
   getClient(): SteamUser {
@@ -269,10 +275,11 @@ export class BotService implements OnModuleDestroy {
 
     this.client.setPersona(SteamUser.EPersonaState.Online);
 
-    return this.eventsService.publish(
-      BOT_READY_EVENT,
-      {} satisfies BotReadyEvent['data']
-    );
+    return this.eventsService
+      .publish(BOT_READY_EVENT, {} satisfies BotReadyEvent['data'])
+      .then(() => {
+        this.eventEmitter.emit('bot.ready');
+      });
   }
 
   private webLogOn(): void {
