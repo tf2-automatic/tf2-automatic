@@ -10,6 +10,11 @@ const whenLocal = {
   then: Joi.required(),
 };
 
+const whenManager = {
+  is: true,
+  then: Joi.required(),
+};
+
 const validation = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
   PORT: Joi.number().port().required(),
@@ -42,11 +47,12 @@ const validation = Joi.object({
   STORAGE_S3_ACCESS_KEY_ID: Joi.string().when('STORAGE_TYPE', whenS3),
   STORAGE_S3_SECRET_ACCESS_KEY: Joi.string().when('STORAGE_TYPE', whenS3),
   STORAGE_S3_BUCKET: Joi.string().when('STORAGE_TYPE', whenS3),
+  BOT_MANAGER_ENABLED: Joi.boolean().optional(),
   BOT_MANAGER_URL: Joi.string()
     .uri({
       scheme: ['http', 'https'],
     })
-    .required(),
+    .when('BOT_MANAGER_ENABLED', whenManager),
 });
 
 export { validation };

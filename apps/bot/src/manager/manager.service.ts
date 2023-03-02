@@ -1,15 +1,23 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Config } from '../common/config/configuration';
+import { Config, ManagerConfig } from '../common/config/configuration';
 import { firstValueFrom } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BotService } from '../bot/bot.service';
 import ip from 'ip';
 
 @Injectable()
-export class ManagerService implements OnModuleDestroy {
+export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ManagerService.name);
+
+  private readonly enabled: boolean =
+    this.configService.getOrThrow<ManagerConfig>('manager').enabled;
 
   private timeout: NodeJS.Timeout;
 
@@ -42,7 +50,6 @@ export class ManagerService implements OnModuleDestroy {
     return this.sendHeartbeat()
       .catch((err) => {
         this.logger.warn('Failed to send heartbeat: ' + err.message);
-        console.log(err.response.data);
       })
       .finally(() => {
         this.timeout = setTimeout(
@@ -52,10 +59,10 @@ export class ManagerService implements OnModuleDestroy {
       });
   }
 
-  private deleteBot() {
+  private async deleteBot() {
     this.logger.debug('Removing bot...');
 
-    return firstValueFrom(
+    await firstValueFrom(
       this.httpService.delete(
         `${
           this.configService.getOrThrow('manager').url
@@ -64,15 +71,47 @@ export class ManagerService implements OnModuleDestroy {
     );
   }
 
-  @OnEvent('bot.ready')
-  handleBotReady() {
-    this.sendHeartbeatLoop();
+  private async isManagerRunning() {
+    await firstValueFrom(
+      this.httpService.get(
+        `${this.configService.getOrThrow('manager').url}/health`
+      )
+    );
   }
 
-  onModuleDestroy() {
+  @OnEvent('bot.ready')
+  handleBotReady() {
+    if (this.enabled) {
+      this.sendHeartbeatLoop();
+    }
+  }
+
+  onModuleInit(): Promise<void> {
+    if (!this.enabled) {
+      return Promise.resolve();
+    }
+
+    this.logger.log('Checking if bot manager is running...');
+
+    return this.isManagerRunning()
+      .then(() => {
+        this.logger.debug('Bot manager is running');
+      })
+      .catch((err) => {
+        throw new Error(
+          'Failed to communicate with the bot manager: ' + err.message
+        );
+      });
+  }
+
+  onModuleDestroy(): Promise<void> {
+    if (!this.enabled) {
+      return Promise.resolve();
+    }
+
     clearInterval(this.timeout);
     if (!this.botService.isRunning()) {
-      return;
+      return Promise.resolve();
     }
 
     return this.deleteBot();
