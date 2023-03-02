@@ -58,7 +58,9 @@ export class TradesService {
     @InjectMetric('bot_offers_received_total')
     private readonly receivedCounter: Counter,
     @InjectMetric('bot_polldata_size_bytes')
-    private readonly pollDataSize: Gauge
+    private readonly pollDataSize: Gauge,
+    @InjectMetric('bot_asset_cache_size')
+    private readonly assetCacheSize: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
       this.logger.log(
@@ -97,6 +99,8 @@ export class TradesService {
       this.pollDataSize.set(
         Buffer.byteLength(JSON.stringify(this.manager.pollData))
       );
+
+      this.assetCacheSize.set(this.manager._assetCache.getKeys().length);
 
       this.logger.debug('Enqueuing offers to ensure poll data is published');
       Object.keys(this.manager.pollData.sent)
