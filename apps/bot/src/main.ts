@@ -23,15 +23,21 @@ async function bootstrap() {
   // Subscribe to shutdown event
   app.get(ShutdownService).subscribeToShutdown(() => app.close());
 
-  await app.init();
+  try {
+    await app.init();
+  } catch (err) {
+    Logger.error('Failed to initialize application: ' + err.message);
+    await app.close();
+    process.exit(1);
+  }
 
   // Start bot after everything else to make sure events will be caught and handled properly
   try {
     await botService.start();
   } catch (err) {
     Logger.error('Failed to start bot: ' + err.message);
-    Logger.debug(err);
-    return app.close();
+    app.close();
+    process.exit(1);
   }
 
   await app.listen(port);
