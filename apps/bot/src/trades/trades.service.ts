@@ -61,7 +61,7 @@ export class TradesService {
     private readonly pollDataSize: Gauge,
     @InjectMetric('bot_asset_cache_size_bytes')
     private readonly assetCacheSize: Gauge,
-    @InjectMetric('bot_offers_active_total')
+    @InjectMetric('bot_offers_active')
     private readonly activeOffers: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
@@ -102,7 +102,9 @@ export class TradesService {
 
       const { sent, received } = this.getActiveOfferCounts();
 
-      this.activeOffers.set({ sent, received }, sent + received);
+      this.activeOffers.set({ type: 'sent' }, sent);
+      this.activeOffers.set({ type: 'received' }, received);
+      this.activeOffers.set({ type: 'total' }, sent + received);
 
       this.logger.debug('Enqueuing offers to ensure poll data is published');
       Object.keys(this.manager.pollData.sent)

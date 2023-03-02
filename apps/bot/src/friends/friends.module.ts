@@ -15,7 +15,7 @@ import {
     makeGaugeProvider({
       name: 'bot_friend_relationships',
       help: 'The amount of relationships the bot has with other users',
-      labelNames: ['friends', 'invited', 'invitedUs', 'blocked'],
+      labelNames: ['relationship'],
     }),
   ],
   controllers: [FriendsController],

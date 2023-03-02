@@ -80,30 +80,34 @@ export class FriendsService {
   private updateFriendRelationsMetric() {
     const relations = Object.values(this.client.myFriends);
 
-    const friends = relations.filter(
-      (r) => r === SteamUser.EFriendRelationship.Friend
-    ).length;
-
-    const invited = relations.filter(
-      (r) => r === SteamUser.EFriendRelationship.RequestInitiator
-    ).length;
-
-    const invitedUs = relations.filter(
-      (r) => r === SteamUser.EFriendRelationship.RequestRecipient
-    ).length;
-
-    const blocked = relations.filter(
-      (r) => r === SteamUser.EFriendRelationship.Blocked
-    ).length;
-
     this.friendRelationships.set(
       {
-        friends,
-        invited,
-        invitedUs,
-        blocked,
+        relationship: 'friends',
       },
-      Object.keys(this.client.myFriends).length
+      relations.filter((r) => r === SteamUser.EFriendRelationship.Friend).length
+    );
+    this.friendRelationships.set(
+      {
+        relationship: 'invited',
+      },
+      relations.filter(
+        (r) => r === SteamUser.EFriendRelationship.RequestInitiator
+      ).length
+    );
+    this.friendRelationships.set(
+      {
+        relationship: 'invitedUs',
+      },
+      relations.filter(
+        (r) => r === SteamUser.EFriendRelationship.RequestRecipient
+      ).length
+    );
+    this.friendRelationships.set(
+      {
+        relationship: 'blocked',
+      },
+      relations.filter((r) => r === SteamUser.EFriendRelationship.Blocked)
+        .length
     );
   }
 
