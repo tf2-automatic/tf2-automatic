@@ -27,6 +27,8 @@ import request from 'request';
 import promiseRetry from 'promise-retry';
 import { ShutdownService } from '../shutdown/shutdown.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { Summary } from 'prom-client';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -54,14 +56,46 @@ export class BotService implements OnModuleDestroy {
   private lastWebLogin: Date | null = null;
   private running = false;
 
+  private histogramEnds: Map<string, (unknown) => void> = new Map();
+
   constructor(
     private shutdownService: ShutdownService,
     private configService: ConfigService<Config>,
     private storageService: StorageService,
     private eventsService: EventsService,
     private metadataService: MetadataService,
-    private eventEmitter: EventEmitter2
+    private eventEmitter: EventEmitter2,
+    @InjectMetric('steam_api_request_duration_seconds')
+    private readonly steamApiRequestDuration: Summary
   ) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.community.onPreHttpRequest = (
+      requestID,
+      _,
+      options,
+      continueRequest
+    ) => {
+      const url = new URL(options.url);
+      url.search = '';
+      url.hash = '';
+
+      this.histogramEnds.set(
+        requestID,
+        this.steamApiRequestDuration.startTimer({
+          method: options.method ?? 'GET',
+          url: url.toString().replace(/\/\d+/g, '/:number'),
+        })
+      );
+      continueRequest();
+    };
+
+    this.community.on('postHttpRequest', (requestID, _, __, ___, response) => {
+      this.histogramEnds.get(requestID)?.({
+        status: response?.statusCode ?? null,
+      });
+    });
+
     const tradeConfig =
       this.configService.getOrThrow<SteamTradeConfig>('trade');
 

@@ -16,6 +16,7 @@ import { EscrowModule } from './escrow/escrow.module';
 import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       load: [configuration],
       validationSchema: validation,
     }),
+    PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     BotModule,
     StorageModule,

@@ -25,6 +25,9 @@ import type { queueAsPromised } from 'fastq';
 import SteamUser from 'steam-user';
 import { GetTradesDto } from './dto/get-trades.dto';
 import { CreateTradeDto } from './dto/create-trade.dto';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import type { Counter, Gauge } from 'prom-client';
+import sizeof from 'object-sizeof';
 
 interface EnsureOfferPublishedTask {
   id: string;
@@ -49,12 +52,23 @@ export class TradesService {
   constructor(
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
+    @InjectMetric('bot_offers_sent_total')
+    private readonly sentCounter: Counter,
+    @InjectMetric('bot_offers_received_total')
+    private readonly receivedCounter: Counter,
+    @InjectMetric('bot_polldata_size_bytes')
+    private readonly pollDataSize: Gauge,
+    @InjectMetric('bot_asset_cache_size_bytes')
+    private readonly assetCacheSize: Gauge,
+    @InjectMetric('bot_offers_active_total')
+    private readonly activeOffers: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
       this.logger.log(
         `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`
       );
+      this.receivedCounter.inc();
       this.publishOffer(offer, null);
     });
 
@@ -69,6 +83,10 @@ export class TradesService {
     this.manager.on('pollData', () => {
       this.ensurePollData();
     });
+
+    this.manager.once('pollSuccess', () => {
+      this.ensurePollData();
+    });
   }
 
   private ensurePollData(): void {
@@ -78,6 +96,14 @@ export class TradesService {
     }
 
     this.ensurePollDataTimeout = setTimeout(() => {
+      // Set polldata size inside timeout to minimize amount of times it is calculated
+      this.pollDataSize.set(sizeof(this.manager.pollData));
+      this.assetCacheSize.set(sizeof(this.manager._assetCache._entries));
+
+      const { sent, received } = this.getActiveOfferCounts();
+
+      this.activeOffers.set({ sent, received }, sent + received);
+
       this.logger.debug('Enqueuing offers to ensure poll data is published');
       Object.keys(this.manager.pollData.sent)
         .concat(Object.keys(this.manager.pollData.received))
@@ -89,6 +115,32 @@ export class TradesService {
           });
         });
     }, 1000);
+  }
+
+  private getActiveOfferCounts(): { sent: number; received: number } {
+    let sent = 0,
+      received = 0;
+
+    Object.keys(this.manager.pollData.sent).forEach((id) => {
+      const state = this.manager.pollData.sent[id];
+
+      if (state === SteamUser.ETradeOfferState.Active) {
+        sent++;
+      }
+    });
+
+    Object.keys(this.manager.pollData.received).forEach((id) => {
+      const state = this.manager.pollData.received[id];
+
+      if (state === SteamUser.ETradeOfferState.Active) {
+        received++;
+      }
+    });
+
+    return {
+      sent,
+      received,
+    };
   }
 
   private async ensureOfferPublished(
@@ -320,6 +372,8 @@ export class TradesService {
 
           return reject(err);
         }
+
+        this.sentCounter.inc();
 
         this.publishOffer(offer);
 
