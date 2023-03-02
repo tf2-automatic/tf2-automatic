@@ -30,6 +30,11 @@ import { TradesService } from './trades.service';
       name: 'bot_asset_cache_size_bytes',
       help: 'The size of the asset cache in bytes',
     }),
+    makeGaugeProvider({
+      name: 'bot_offers_active_total',
+      help: 'Amount of active offers',
+      labelNames: ['sent', 'received'],
+    }),
   ],
 })
 export class TradesModule {}

@@ -60,7 +60,9 @@ export class TradesService {
     @InjectMetric('bot_polldata_size_bytes')
     private readonly pollDataSize: Gauge,
     @InjectMetric('bot_asset_cache_size_bytes')
-    private readonly assetCacheSize: Gauge
+    private readonly assetCacheSize: Gauge,
+    @InjectMetric('bot_offers_active_total')
+    private readonly activeOffers: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
       this.logger.log(
@@ -98,6 +100,10 @@ export class TradesService {
       this.pollDataSize.set(sizeof(this.manager.pollData));
       this.assetCacheSize.set(sizeof(this.manager._assetCache._entries));
 
+      const { sent, received } = this.getActiveOfferCounts();
+
+      this.activeOffers.set({ sent, received }, sent + received);
+
       this.logger.debug('Enqueuing offers to ensure poll data is published');
       Object.keys(this.manager.pollData.sent)
         .concat(Object.keys(this.manager.pollData.received))
@@ -109,6 +115,32 @@ export class TradesService {
           });
         });
     }, 1000);
+  }
+
+  private getActiveOfferCounts(): { sent: number; received: number } {
+    let sent = 0,
+      received = 0;
+
+    Object.keys(this.manager.pollData.sent).forEach((id) => {
+      const state = this.manager.pollData.sent[id];
+
+      if (state === SteamUser.ETradeOfferState.Active) {
+        sent++;
+      }
+    });
+
+    Object.keys(this.manager.pollData.received).forEach((id) => {
+      const state = this.manager.pollData.received[id];
+
+      if (state === SteamUser.ETradeOfferState.Active) {
+        received++;
+      }
+    });
+
+    return {
+      sent,
+      received,
+    };
   }
 
   private async ensureOfferPublished(
