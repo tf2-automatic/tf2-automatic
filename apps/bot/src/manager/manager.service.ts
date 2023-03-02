@@ -11,6 +11,9 @@ import ip from 'ip';
 export class ManagerService implements OnModuleDestroy {
   private readonly logger = new Logger(ManagerService.name);
 
+  private readonly enabled: boolean =
+    this.configService.getOrThrow<ManagerConfig>('manager').enabled;
+
   private timeout: NodeJS.Timeout;
 
   constructor(
@@ -65,13 +68,19 @@ export class ManagerService implements OnModuleDestroy {
 
   @OnEvent('bot.ready')
   handleBotReady() {
-    this.sendHeartbeatLoop();
+    if (this.enabled) {
+      this.sendHeartbeatLoop();
+    }
   }
 
-  onModuleDestroy() {
+  onModuleDestroy(): Promise<void> {
+    if (!this.enabled) {
+      return Promise.resolve();
+    }
+
     clearInterval(this.timeout);
     if (!this.botService.isRunning()) {
-      return;
+      return Promise.resolve();
     }
 
     return this.deleteBot();

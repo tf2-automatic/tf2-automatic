@@ -54,7 +54,8 @@ interface BaseStorageConfig {
 }
 
 export interface ManagerConfig {
-  url: string;
+  enabled: boolean;
+  url?: string;
 }
 
 export default (): Config => {
@@ -92,7 +93,8 @@ export default (): Config => {
     },
     storage: getStorageConfig(),
     manager: {
-      url: process.env.BOT_MANAGER_URL as string,
+      enabled: process.env.BOT_MANAGER_ENABLED === 'true',
+      url: process.env.BOT_MANAGER_URL,
     },
   };
 };
