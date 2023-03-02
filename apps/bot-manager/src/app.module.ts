@@ -8,6 +8,7 @@ import { validation } from './common/config/validation';
 import { BotsModule } from './bots/bots.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HealthModule } from './health/health.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { HealthModule } from './health/health.module';
         };
       },
     }),
+    PrometheusModule.register(),
     HealthModule,
     BotsModule,
   ],
