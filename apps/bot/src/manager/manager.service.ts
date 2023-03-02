@@ -42,7 +42,6 @@ export class ManagerService implements OnModuleDestroy {
     return this.sendHeartbeat()
       .catch((err) => {
         this.logger.warn('Failed to send heartbeat: ' + err.message);
-        console.log(err.response.data);
       })
       .finally(() => {
         this.timeout = setTimeout(
