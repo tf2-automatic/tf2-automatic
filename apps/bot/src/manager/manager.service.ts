@@ -1,14 +1,19 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Config } from '../common/config/configuration';
+import { Config, ManagerConfig } from '../common/config/configuration';
 import { firstValueFrom } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BotService } from '../bot/bot.service';
 import ip from 'ip';
 
 @Injectable()
-export class ManagerService implements OnModuleDestroy {
+export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ManagerService.name);
 
   private readonly enabled: boolean =
@@ -54,14 +59,22 @@ export class ManagerService implements OnModuleDestroy {
       });
   }
 
-  private deleteBot() {
+  private async deleteBot() {
     this.logger.debug('Removing bot...');
 
-    return firstValueFrom(
+    await firstValueFrom(
       this.httpService.delete(
         `${
           this.configService.getOrThrow('manager').url
         }/bots/${this.botService.getSteamID64()}`
+      )
+    );
+  }
+
+  private async isManagerRunning() {
+    await firstValueFrom(
+      this.httpService.get(
+        `${this.configService.getOrThrow('manager').url}/health`
       )
     );
   }
@@ -71,6 +84,24 @@ export class ManagerService implements OnModuleDestroy {
     if (this.enabled) {
       this.sendHeartbeatLoop();
     }
+  }
+
+  onModuleInit(): Promise<void> {
+    if (!this.enabled) {
+      return Promise.resolve();
+    }
+
+    this.logger.log('Checking if bot manager is running...');
+
+    return this.isManagerRunning()
+      .then(() => {
+        this.logger.debug('Bot manager is running');
+      })
+      .catch((err) => {
+        throw new Error(
+          'Failed to communicate with the bot manager: ' + err.message
+        );
+      });
   }
 
   onModuleDestroy(): Promise<void> {
