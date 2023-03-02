@@ -7,6 +7,7 @@ import configuration, {
 import { validation } from './common/config/validation';
 import { BotsModule } from './bots/bots.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
         };
       },
     }),
+    HealthModule,
     BotsModule,
   ],
 })
