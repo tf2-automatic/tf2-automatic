@@ -48,6 +48,7 @@ export class BotService implements OnModuleDestroy {
       proxy:
         this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
     }),
+    timeout: 10000,
   });
   private manager: SteamTradeOfferManager;
 
