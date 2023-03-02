@@ -26,7 +26,7 @@ import SteamUser from 'steam-user';
 import { GetTradesDto } from './dto/get-trades.dto';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import type { Gauge } from 'prom-client';
+import type { Counter, Gauge } from 'prom-client';
 import { OnEvent } from '@nestjs/event-emitter';
 
 interface EnsureOfferPublishedTask {
@@ -53,6 +53,10 @@ export class TradesService {
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
     private readonly eventsService: EventsService,
+    @InjectMetric('bot_offers_sent_total')
+    private readonly sentCounter: Counter,
+    @InjectMetric('bot_offers_received_total')
+    private readonly receivedCounter: Counter,
     @InjectMetric('bot_polldata_size_bytes')
     private readonly pollDataSize: Gauge
   ) {
@@ -60,6 +64,7 @@ export class TradesService {
       this.logger.log(
         `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`
       );
+      this.receivedCounter.inc();
       this.publishOffer(offer, null);
     });
 
@@ -335,6 +340,8 @@ export class TradesService {
 
           return reject(err);
         }
+
+        this.sentCounter.inc();
 
         this.publishOffer(offer);
 
