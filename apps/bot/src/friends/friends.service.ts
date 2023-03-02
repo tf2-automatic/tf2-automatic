@@ -13,6 +13,8 @@ import {
 } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 import { EventsService } from '../events/events.service';
+import { Gauge } from 'prom-client';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
 
 @Injectable()
 export class FriendsService {
@@ -22,13 +24,21 @@ export class FriendsService {
 
   constructor(
     private readonly botService: BotService,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
+    @InjectMetric('bot_friend_relationships')
+    private readonly friendRelationships: Gauge
   ) {
+    this.client.on('friendsList', () => {
+      this.updateFriendRelationsMetric();
+    });
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.client.on(
       'friendRelationship',
       (steamID, relationship, oldRelationship) => {
+        this.updateFriendRelationsMetric();
+
         this.eventsService
           .publish(FRIEND_RELATIONSHIP_EVENT, {
             steamid64: steamID.getSteamID64(),
@@ -65,6 +75,36 @@ export class FriendsService {
           // Ignore error
         });
     });
+  }
+
+  private updateFriendRelationsMetric() {
+    const relations = Object.values(this.client.myFriends);
+
+    const friends = relations.filter(
+      (r) => r === SteamUser.EFriendRelationship.Friend
+    ).length;
+
+    const invited = relations.filter(
+      (r) => r === SteamUser.EFriendRelationship.RequestInitiator
+    ).length;
+
+    const invitedUs = relations.filter(
+      (r) => r === SteamUser.EFriendRelationship.RequestRecipient
+    ).length;
+
+    const blocked = relations.filter(
+      (r) => r === SteamUser.EFriendRelationship.Blocked
+    ).length;
+
+    this.friendRelationships.set(
+      {
+        friends,
+        invited,
+        invitedUs,
+        blocked,
+      },
+      Object.keys(this.client.myFriends).length
+    );
   }
 
   async getFriends(): Promise<Friends> {
