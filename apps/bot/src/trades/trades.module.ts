@@ -27,8 +27,8 @@ import { TradesService } from './trades.service';
       help: 'The size of the polldata file in bytes',
     }),
     makeGaugeProvider({
-      name: 'bot_asset_cache_size',
-      help: 'The amount of assets in the cache',
+      name: 'bot_asset_cache_size_bytes',
+      help: 'The size of the asset cache in bytes',
     }),
   ],
 })

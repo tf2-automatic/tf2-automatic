@@ -27,7 +27,7 @@ import { GetTradesDto } from './dto/get-trades.dto';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
-import { OnEvent } from '@nestjs/event-emitter';
+import sizeof from 'object-sizeof';
 
 interface EnsureOfferPublishedTask {
   id: string;
@@ -59,7 +59,7 @@ export class TradesService {
     private readonly receivedCounter: Counter,
     @InjectMetric('bot_polldata_size_bytes')
     private readonly pollDataSize: Gauge,
-    @InjectMetric('bot_asset_cache_size')
+    @InjectMetric('bot_asset_cache_size_bytes')
     private readonly assetCacheSize: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
@@ -81,11 +81,10 @@ export class TradesService {
     this.manager.on('pollData', () => {
       this.ensurePollData();
     });
-  }
 
-  @OnEvent('bot.ready')
-  private handleBotReady() {
-    this.ensurePollData();
+    this.manager.once('pollSuccess', () => {
+      this.ensurePollData();
+    });
   }
 
   private ensurePollData(): void {
@@ -96,11 +95,8 @@ export class TradesService {
 
     this.ensurePollDataTimeout = setTimeout(() => {
       // Set polldata size inside timeout to minimize amount of times it is calculated
-      this.pollDataSize.set(
-        Buffer.byteLength(JSON.stringify(this.manager.pollData))
-      );
-
-      this.assetCacheSize.set(this.manager._assetCache.getKeys().length);
+      this.pollDataSize.set(sizeof(this.manager.pollData));
+      this.assetCacheSize.set(sizeof(this.manager._assetCache._entries));
 
       this.logger.debug('Enqueuing offers to ensure poll data is published');
       Object.keys(this.manager.pollData.sent)

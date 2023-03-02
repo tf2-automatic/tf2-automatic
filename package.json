@@ -73,6 +73,7 @@
     "ip": "^2.0.0",
     "joi": "^17.8.3",
     "minio": "^7.0.32",
+    "object-sizeof": "^2.6.1",
     "path": "^0.12.7",
     "prom-client": "^14.1.1",
     "promise-retry": "^2.0.1",
