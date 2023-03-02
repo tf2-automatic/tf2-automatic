@@ -15,6 +15,7 @@ import { makeSummaryProvider } from '@willsoto/nestjs-prometheus';
       name: 'steam_api_request_duration_seconds',
       help: 'The duration of Steam API requests in seconds',
       labelNames: ['method', 'url', 'status'],
+      maxAgeSeconds: 3600,
     }),
   ],
   controllers: [BotController],
