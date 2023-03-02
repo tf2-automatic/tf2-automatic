@@ -3,10 +3,21 @@ import { FriendsService } from './friends.service';
 import { FriendsController } from './friends.controller';
 import { BotModule } from '../bot/bot.module';
 import { EventsModule } from '../events/events.module';
+import {
+  makeGaugeProvider,
+  PrometheusModule,
+} from '@willsoto/nestjs-prometheus';
 
 @Module({
-  imports: [BotModule, EventsModule],
-  providers: [FriendsService],
+  imports: [BotModule, EventsModule, PrometheusModule],
+  providers: [
+    FriendsService,
+    makeGaugeProvider({
+      name: 'bot_friend_relationships',
+      help: 'The amount of relationships the bot has with other users',
+      labelNames: ['friends', 'invited', 'invitedUs', 'blocked'],
+    }),
+  ],
   controllers: [FriendsController],
   exports: [FriendsService],
 })
