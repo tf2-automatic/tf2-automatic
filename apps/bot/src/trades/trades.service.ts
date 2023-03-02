@@ -25,6 +25,9 @@ import type { queueAsPromised } from 'fastq';
 import SteamUser from 'steam-user';
 import { GetTradesDto } from './dto/get-trades.dto';
 import { CreateTradeDto } from './dto/create-trade.dto';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import type { Gauge } from 'prom-client';
+import { OnEvent } from '@nestjs/event-emitter';
 
 interface EnsureOfferPublishedTask {
   id: string;
@@ -49,7 +52,9 @@ export class TradesService {
   constructor(
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
+    @InjectMetric('bot_polldata_size_bytes')
+    private readonly pollDataSize: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
       this.logger.log(
@@ -71,6 +76,11 @@ export class TradesService {
     });
   }
 
+  @OnEvent('bot.ready')
+  private handleBotReady() {
+    this.ensurePollData();
+  }
+
   private ensurePollData(): void {
     if (this.ensurePollDataTimeout !== null) {
       clearTimeout(this.ensurePollDataTimeout);
@@ -78,6 +88,11 @@ export class TradesService {
     }
 
     this.ensurePollDataTimeout = setTimeout(() => {
+      // Set polldata size inside timeout to minimize amount of times it is calculated
+      this.pollDataSize.set(
+        Buffer.byteLength(JSON.stringify(this.manager.pollData))
+      );
+
       this.logger.debug('Enqueuing offers to ensure poll data is published');
       Object.keys(this.manager.pollData.sent)
         .concat(Object.keys(this.manager.pollData.received))

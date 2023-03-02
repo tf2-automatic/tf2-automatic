@@ -74,6 +74,7 @@
     "joi": "^17.8.3",
     "minio": "^7.0.32",
     "path": "^0.12.7",
+    "prom-client": "^14.1.1",
     "promise-retry": "^2.0.1",
     "reflect-metadata": "^0.1.13",
     "request": "^2.88.2",
