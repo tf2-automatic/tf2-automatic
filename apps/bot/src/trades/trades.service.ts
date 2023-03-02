@@ -425,7 +425,7 @@ export class TradesService {
         }
 
         if (
-          offer.state === SteamTradeOfferManager.ETradeOfferState.Active &&
+          offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
           offer.state !==
             SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
         ) {
