@@ -28,7 +28,7 @@ import promiseRetry from 'promise-retry';
 import { ShutdownService } from '../shutdown/shutdown.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import { Summary } from 'prom-client';
+import { Summary, register } from 'prom-client';
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -309,6 +309,10 @@ export class BotService implements OnModuleDestroy {
     this.logger.log('Bot is ready');
 
     this.client.setPersona(SteamUser.EPersonaState.Online);
+
+    register.setDefaultLabels({
+      steamid64: this.getSteamID64(),
+    });
 
     return this.eventsService
       .publish(BOT_READY_EVENT, {} satisfies BotReadyEvent['data'])
