@@ -1,0 +1,70 @@
+{
+  "name": "bot-manager",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/bot-manager/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/bot-manager",
+        "main": "apps/bot-manager/src/main.ts",
+        "tsConfig": "apps/bot-manager/tsconfig.app.json",
+        "isolatedConfig": true,
+        "webpackConfig": "apps/bot-manager/webpack.config.js",
+        "generatePackageJson": true
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/js:node",
+      "options": {
+        "buildTarget": "bot-manager:build"
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "bot-manager:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/bot-manager/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/bot-manager/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": true,
+        "cache-from": ["type=local,src=/tmp/.buildx-cache"],
+        "cache-to": ["type=local,dest=/tmp/.buildx-cache-new,mode=max"],
+        "platforms": ["linux/amd64", "linux/arm64"]
+      }
+    }
+  },
+  "tags": []
+}

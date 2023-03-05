@@ -1,0 +1,66 @@
+{
+  "name": "bot-manager-data",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/bot-manager-data/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/bot-manager-data/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/bot-manager-data/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/bot-manager-data",
+        "tsConfig": "libs/bot-manager-data/tsconfig.lib.json",
+        "packageJson": "libs/bot-manager-data/package.json",
+        "main": "libs/bot-manager-data/src/index.ts",
+        "assets": ["libs/bot-manager-data/*.md"]
+      }
+    },
+    "npm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "if [ \"{args.version}\" = \"undefined\" ]; then exit 1; fi",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "jq '.version=\"{args.version}\"' package.json > package.json.tmp",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "mv package.json.tmp package.json",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "npm publish",
+            "forwardAllArgs": false
+          }
+        ],
+        "cwd": "dist/libs/bot-manager-data/",
+        "parallel": false
+      }
+    }
+  },
+  "tags": []
+}

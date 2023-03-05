@@ -19,6 +19,12 @@
     },
     "lint": {
       "inputs": ["default", "{workspaceRoot}/.eslintrc.json"]
+    },
+    "docker": {
+      "dependsOn": ["build"]
+    },
+    "npm": {
+      "dependsOn": ["build"]
     }
   },
   "namedInputs": {
