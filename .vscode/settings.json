@@ -3,8 +3,7 @@
   "editor.formatOnPaste": false,
   "editor.tabSize": 2,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.fixAll.stylelint": true
+    "source.fixAll.eslint": true
   },
   "files.eol": "\n",
   "editor.rulers": [80],

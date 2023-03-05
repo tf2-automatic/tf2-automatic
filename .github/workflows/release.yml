@@ -81,7 +81,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository }}/${{ matrix.projectName }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.projectName }}
           tags: |
             type=semver,pattern={{version}},value=v${{ needs.release.outputs.new_release_version }}
       - name: Set up QEMU
