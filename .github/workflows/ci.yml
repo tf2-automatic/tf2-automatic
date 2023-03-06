@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - beta
+      - dev
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  affected:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v3
+        with:
+          # Affected projects are found based on the base branch
+          main-branch-name: ${{ github.base_ref }}
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: '~/.npm'
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm ci --no-audit
+      - name: Get affected
+        id: affected
+        run: |
+          echo "UNIT_TEST=$(npx nx print-affected --target=test --select=tasks.target.project | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+    outputs:
+      unit-test: ${{ steps.affected.outputs.UNIT_TEST }}
+  unit-test:
+    runs-on: ubuntu-latest
+    needs: [affected]
+    if: ${{ fromJson(needs.affected.outputs.unit-test)[0] }}
+    strategy:
+      matrix:
+        node: ['18.x']
+        projectName: ${{fromJson(needs.affected.outputs.unit-test)}}
+    env:
+      NODE: ${{ matrix.node }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: '~/.npm'
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm ci --no-audit
+      - name: Test unit
+        run: npx nx test ${{ matrix.projectName }}
+  ci-finished:
+    runs-on: ubuntu-latest
+    needs: [affected, unit-test]
+    if: |
+      always() &&
+      (needs.unit-test.result == 'success' || needs.unit-test.result == 'skipped')
+    steps:
+      - name: Trace
+        run: echo "All jobs finished"

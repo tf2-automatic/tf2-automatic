@@ -1,0 +1,41 @@
+{
+  "name": "nestjs-steamid-pipe",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/nestjs-steamid-pipe/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/nestjs-steamid-pipe/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/nestjs-steamid-pipe/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/nestjs-steamid-pipe",
+        "tsConfig": "libs/nestjs-steamid-pipe/tsconfig.lib.json",
+        "packageJson": "libs/nestjs-steamid-pipe/package.json",
+        "main": "libs/nestjs-steamid-pipe/src/index.ts",
+        "assets": ["libs/nestjs-steamid-pipe/*.md"]
+      }
+    }
+  },
+  "tags": []
+}
