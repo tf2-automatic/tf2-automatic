@@ -1,27 +1,65 @@
----
 name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: bug
-assignees: ''
+description: Create a report to help us improve
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you continue...**
 
----
-
-**Describe the bug**
-A clear and concise description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Versions:**
- - What TF2 Automatic projects you use and their version [e.g. bot v1.0.0, bot-manager v1.0.0]
-
-**Additional context**
-Add any other context about the problem here.
+        This is not a support forum. If you have any questions, please ask them in the [Discord server](https://discord.tf2automatic.com).
+  - type: checkboxes
+    attributes:
+      label: 'Is there an existing issue for this?'
+      description: 'Please search [here](../issues?q=is%3Aissue) to see if an issue already exists for the bug you encountered'
+      options:
+        - label: 'I have searched for an existing issue'
+          required: true
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: 'Expected behavior'
+      description: 'How did you expect the application to behave?'
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: 'Actual behavior'
+      description: 'How did the application behave?'
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: 'Steps to reproduce'
+      description: 'How can the issue be reproduced?'
+      placeholder: |
+        1. Start the application
+        2. Send HTTP request to `...`
+        3. See error...
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: 'TF2 Automatic version'
+      description: |
+        Which version of TF2 Automatic are you using?
+      placeholder: '1.0.0'
+  - type: checkboxes
+    attributes:
+      label: 'Projects'
+      description: 'What applications and libraries are you using?'
+      options:
+        - label: '@tf2-automatic/bot'
+        - label: '@tf2-automatic/bot-manager'
+        - label: '@tf2-automatic/bot-data'
+        - label: '@tf2-automatic/bot-manager-data'
+        - label: 'Other (see below)'
+  - type: input
+    attributes:
+      label: 'Other projects'
+      description: 'If your issue is related to some project that is not listed above, write its name here'
+  - type: textarea
+    attributes:
+      label: 'Additional information'
+      description: 'Anything else relevant? eg: Logs, OS version, NodeJS version, environment etc.'
