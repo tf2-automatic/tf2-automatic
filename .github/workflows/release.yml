@@ -176,6 +176,6 @@ jobs:
         uses: actions/delete-package-versions@v4
         with:
           package-name: ${{ matrix.projectName }}
-          package-type: 'npm'
+          package-type: 'container'
           min-versions-to-keep: 10
           delete-only-pre-release-versions: 'true'
