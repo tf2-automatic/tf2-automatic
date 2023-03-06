@@ -67,7 +67,7 @@ jobs:
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
-  push_to_registry:
+  publish_to_docker:
     runs-on: ubuntu-latest
     needs: [affected, release]
     if: needs.release.outputs.new_release_published == 'true'
@@ -149,3 +149,33 @@ jobs:
         run: npx nx run ${{ matrix.projectName }}:npm --args="--version=${{ needs.release.outputs.new_release_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  delete-old-npm:
+    runs-on: ubuntu-latest
+    needs: [affected, publish_to_npm]
+    strategy:
+      fail-fast: false
+      matrix:
+        projectName: ${{fromJson(needs.affected.outputs.npm)}}
+    steps:
+      - name: Delete package versions
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: ${{ matrix.projectName }}
+          package-type: 'npm'
+          min-versions-to-keep: 10
+          delete-only-pre-release-versions: 'true'
+  delete-old-docker:
+    runs-on: ubuntu-latest
+    needs: [affected, publish_to_docker]
+    strategy:
+      fail-fast: false
+      matrix:
+        projectName: ${{fromJson(needs.affected.outputs.docker)}}
+    steps:
+      - name: Delete package versions
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: ${{ matrix.projectName }}
+          package-type: 'npm'
+          min-versions-to-keep: 10
+          delete-only-pre-release-versions: 'true'
