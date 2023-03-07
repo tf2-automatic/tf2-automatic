@@ -489,6 +489,7 @@ export class BotService implements OnModuleDestroy {
   private reconnect() {
     if (!this._reconnectPromise) {
       const promise = new Promise<void>((resolve) => {
+        // Wait a second before reconnecting to avoid retrying too quickly
         setTimeout(() => {
           resolve();
         }, 1000);
@@ -505,7 +506,7 @@ export class BotService implements OnModuleDestroy {
           },
           {
             forever: true,
-            maxTimeout: 1000 * 60 * 10,
+            maxTimeout: 1000 * 60 * 60 * 2,
             minTimeout: 10000,
             randomize: true,
           }
