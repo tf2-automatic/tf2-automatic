@@ -4,5 +4,9 @@ module.exports = {
     '@semantic-release/release-notes-generator',
     '@semantic-release/github',
   ],
-  branches: ['main', { name: 'beta', prerelease: true }],
+  branches: [
+    'main',
+    { name: 'beta', prerelease: true },
+    { name: 'dev', prerelease: true },
+  ],
 };
