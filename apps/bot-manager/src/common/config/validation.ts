@@ -7,6 +7,7 @@ const validation = Joi.object({
   REDIS_PORT: Joi.number().integer().required(),
   REDIS_PASSWORD: Joi.string().optional(),
   REDIS_DB: Joi.number().positive().optional(),
+  REDIS_PREFIX: Joi.string().optional(),
 });
 
 export { validation };

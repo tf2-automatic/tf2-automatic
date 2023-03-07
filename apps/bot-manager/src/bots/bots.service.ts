@@ -16,6 +16,9 @@ import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from './dto/bot-heartbeat.dto';
 
+const BOT_PREFIX = 'bots';
+const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
+
 @Injectable()
 export class BotsService {
   constructor(
@@ -24,13 +27,15 @@ export class BotsService {
   ) {}
 
   async getBot(steamid: SteamID): Promise<Bot> {
-    const bot = await this.redis.get(steamid.getSteamID64()).then((result) => {
-      if (result === null) {
-        return null;
-      }
+    const bot = await this.redis
+      .get(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
+      .then((result) => {
+        if (result === null) {
+          return null;
+        }
 
-      return JSON.parse(result);
-    });
+        return JSON.parse(result);
+      });
 
     if (!bot) {
       throw new NotFoundException('Bot not found');
@@ -65,7 +70,12 @@ export class BotsService {
 
     // TODO: Make sure ip and port combination is unique
 
-    await this.redis.set(steamid.getSteamID64(), JSON.stringify(bot), 'EX', 60);
+    await this.redis.set(
+      BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
+      JSON.stringify(bot),
+      'EX',
+      60
+    );
 
     return bot;
   }

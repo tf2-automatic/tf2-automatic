@@ -8,6 +8,7 @@ export interface RedisConfig {
   port: number;
   password?: string;
   db?: number;
+  keyPrefix?: string;
 }
 
 export default (): Config => {
@@ -21,6 +22,7 @@ export default (): Config => {
         process.env.REDIS_DB !== undefined
           ? parseInt(process.env.REDIS_DB, 10)
           : undefined,
+      keyPrefix: process.env.REDIS_PREFIX ?? 'tf2-automatic',
     },
   };
 };

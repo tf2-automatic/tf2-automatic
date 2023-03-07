@@ -14,6 +14,12 @@ Install all dependencies using `npm install`.
 
 Test if project is properly set up by attempting to build everything in the project using the following command: `npx nx run-many --target=build --all`. A graph of all applications and libraries, and their relations, can be seen using `npx nx graph`.
 
+## Running applications locally
+
+Use the command `npx nx serve bot` to run the bot application, and use `npx nx run-many --target=serve --projects=bot,bot-manager` to run both the bot and bot manager.
+
+Nx automatically loads environment variables from [different files](https://nx.dev/recipes/environment-variables/define-environment-variables). To configure an application, create a file called `.env.local` inside the application directory. Environment variable files are ignored using the .gitignore file, but please make sure you don't commit any secret values.
+
 ## Contributing
 
 Commits need to follow the [conventional commit format](https://www.conventionalcommits.org/en/v1.0.0/). Commit message linting has been set up to force you to follow the format. To ensure you follow the format, you can stage your changes and then use `npm run commit` to interactively create a commit message.
