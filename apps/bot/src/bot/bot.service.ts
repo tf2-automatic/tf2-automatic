@@ -295,7 +295,10 @@ export class BotService implements OnModuleDestroy {
       this.reconnect()
         .then(() => {
           // Re-enable polling
-          this.manager.pollInterval = 30000;
+          this.manager.pollInterval =
+            this.configService.getOrThrow<SteamTradeConfig>(
+              'trade'
+            ).pollInterval;
           this.manager.doPoll();
         })
         .catch((err) => {
