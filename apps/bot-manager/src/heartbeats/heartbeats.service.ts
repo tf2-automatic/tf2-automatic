@@ -119,7 +119,7 @@ export class HeartbeatsService {
   private async getRunningBot(bot: Bot): Promise<RunningBot | null> {
     const response = await firstValueFrom(
       this.httpService.get(
-        `http://${bot.ip}:${bot.port}/${BOT_BASE_URL}${BOT_PATH}`,
+        `http://${bot.ip}:${bot.port}${BOT_BASE_URL}${BOT_PATH}`,
         {
           timeout: 5000,
         }

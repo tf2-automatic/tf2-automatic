@@ -1,4 +1,4 @@
-export const BOT_BASE_URL = 'bots';
+export const BOT_BASE_URL = '/bots';
 export const BOTS_PATH = '/';
 export const BOT_PATH = '/:steamid';
 
