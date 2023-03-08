@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseIntPipe } from '@nestjs/common';
 import {
   INVENTORIES_BASE_URL,
   InventoryResponse,
@@ -19,5 +19,14 @@ export class InventoriesController {
     @Param('contextid') contextid: string
   ): Promise<InventoryResponse> {
     return this.inventoriesService.getInventory(steamid, appid, contextid);
+  }
+
+  @Delete(INVENTORY_PATH)
+  deleteInventory(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Param('appid', ParseIntPipe) appid: number,
+    @Param('contextid') contextid: string
+  ): Promise<void> {
+    return this.inventoriesService.deleteInventory(steamid, appid, contextid);
   }
 }

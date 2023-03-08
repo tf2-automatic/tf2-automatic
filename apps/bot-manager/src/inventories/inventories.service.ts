@@ -64,6 +64,16 @@ export class InventoriesService {
     return inventory;
   }
 
+  async deleteInventory(
+    steamid: SteamID,
+    appid: number,
+    contextid: string
+  ): Promise<void> {
+    await this.redis.del(
+      `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`
+    );
+  }
+
   async getInventory(
     steamid: SteamID,
     appid: number,
