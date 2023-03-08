@@ -1,7 +1,7 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
-import { Inventory } from '@tf2-automatic/bot-data';
 import {
   INVENTORIES_BASE_URL,
+  InventoryResponse,
   INVENTORY_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
@@ -17,7 +17,7 @@ export class InventoriesController {
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string
-  ): Promise<Inventory> {
+  ): Promise<InventoryResponse> {
     return this.inventoriesService.getInventory(steamid, appid, contextid);
   }
 }
