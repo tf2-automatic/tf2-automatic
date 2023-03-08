@@ -11,6 +11,10 @@ import { firstValueFrom } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import { BotService } from '../bot/bot.service';
 import ip from 'ip';
+import {
+  HEALTH_BASE_URL,
+  HEALTH_PATH,
+} from '@tf2-automatic/bot-manager-data';
 
 @Injectable()
 export class ManagerService implements OnModuleInit, OnModuleDestroy {
@@ -74,7 +78,9 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private async isManagerRunning() {
     await firstValueFrom(
       this.httpService.get(
-        `${this.configService.getOrThrow('manager').url}/health`
+        `${
+          this.configService.getOrThrow('manager').url
+        }${HEALTH_BASE_URL}${HEALTH_PATH}`
       )
     );
   }
