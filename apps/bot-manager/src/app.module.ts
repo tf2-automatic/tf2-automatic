@@ -10,6 +10,7 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
+import { InventoriesModule } from './inventories/inventories.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { HeartbeatsModule } from './heartbeats/heartbeats.module';
     HealthModule,
     HeartbeatsModule,
     BotsModule,
+    InventoriesModule,
   ],
 })
 export class AppModule {}
