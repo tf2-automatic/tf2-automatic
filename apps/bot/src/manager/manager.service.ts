@@ -14,6 +14,8 @@ import ip from 'ip';
 import {
   HEALTH_BASE_URL,
   HEALTH_PATH,
+  HEARTBEAT_BASE_URL,
+  HEARTBEAT_PATH,
 } from '@tf2-automatic/bot-manager-data';
 
 @Injectable()
@@ -38,7 +40,10 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
       this.httpService.post(
         `${
           this.configService.getOrThrow('manager').url
-        }/heartbeats/${this.botService.getSteamID64()}`,
+        }${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
+          ':steamid',
+          this.botService.getSteamID64()
+        ),
         {
           ip:
             this.configService.get<string>('ip') ??
@@ -70,7 +75,10 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
       this.httpService.delete(
         `${
           this.configService.getOrThrow('manager').url
-        }/heartbeats/${this.botService.getSteamID64()}`
+        }${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
+          ':steamid',
+          this.botService.getSteamID64()
+        )
       )
     );
   }
