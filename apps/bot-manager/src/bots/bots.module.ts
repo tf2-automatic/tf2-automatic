@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { BotsService } from './bots.service';
 import { BotsController } from './bots.controller';
-import { RedisModule } from '@liaoliaots/nestjs-redis';
-import { HttpModule } from '@nestjs/axios';
+import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
 
 @Module({
-  imports: [RedisModule, HttpModule],
+  imports: [HeartbeatsModule],
   providers: [BotsService],
   controllers: [BotsController],
+  exports: [BotsService],
 })
 export class BotsModule {}

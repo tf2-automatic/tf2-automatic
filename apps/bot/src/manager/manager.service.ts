@@ -34,7 +34,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
       this.httpService.post(
         `${
           this.configService.getOrThrow('manager').url
-        }/bots/${this.botService.getSteamID64()}/heartbeat`,
+        }/heartbeats/${this.botService.getSteamID64()}`,
         {
           ip:
             this.configService.get<string>('ip') ??
@@ -66,7 +66,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
       this.httpService.delete(
         `${
           this.configService.getOrThrow('manager').url
-        }/bots/${this.botService.getSteamID64()}`
+        }/heartbeats/${this.botService.getSteamID64()}`
       )
     );
   }

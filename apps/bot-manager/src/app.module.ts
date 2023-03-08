@@ -9,6 +9,7 @@ import { BotsModule } from './bots/bots.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { HeartbeatsModule } from './heartbeats/heartbeats.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
     }),
     PrometheusModule.register(),
     HealthModule,
+    HeartbeatsModule,
     BotsModule,
   ],
 })
