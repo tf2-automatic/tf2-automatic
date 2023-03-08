@@ -7,6 +7,5 @@ import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
   imports: [HeartbeatsModule],
   providers: [BotsService],
   controllers: [BotsController],
-  exports: [BotsService],
 })
 export class BotsModule {}
