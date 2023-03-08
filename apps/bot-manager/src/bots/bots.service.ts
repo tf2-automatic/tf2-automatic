@@ -15,6 +15,8 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from './dto/bot-heartbeat.dto';
+import { ConfigService } from '@nestjs/config';
+import { Config, RedisConfig } from '../common/config/configuration';
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -23,8 +25,34 @@ const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 export class BotsService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
+    private readonly configService: ConfigService<Config>,
     private readonly httpService: HttpService
   ) {}
+
+  getBots(): Promise<Bot[]> {
+    const keyPrefix =
+      this.configService.getOrThrow<RedisConfig>('redis').keyPrefix;
+
+    return this.redis.keys(`${keyPrefix}${BOT_PREFIX}:*`).then((keys) => {
+      if (keys.length === 0) {
+        return [];
+      }
+
+      const botKeys = keys
+        .map((key) => {
+          const steamid = key.split(':').pop();
+          return new SteamID(steamid as string);
+        })
+        .map((steamid) => {
+          return BOT_KEY.replace('STEAMID64', steamid.getSteamID64());
+        });
+
+      return this.redis.mget(botKeys).then((result) => {
+        const filtered = result.filter((bot) => bot !== null) as string[];
+        return filtered.map((bot) => JSON.parse(bot));
+      });
+    });
+  }
 
   async getBot(steamid: SteamID): Promise<Bot> {
     const bot = await this.redis

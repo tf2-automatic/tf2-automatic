@@ -30,7 +30,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
             port: redisConfig.port,
             password: redisConfig.password,
             db: redisConfig.db,
-            keyPrefix: redisConfig.keyPrefix + ':bot-manager:',
+            keyPrefix: redisConfig.keyPrefix,
           },
         };
       },

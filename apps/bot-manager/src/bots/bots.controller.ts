@@ -31,4 +31,9 @@ export class BotsController {
   getBot(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.botsService.getBot(steamid);
   }
+
+  @Get()
+  getBots() {
+    return this.botsService.getBots();
+  }
 }
