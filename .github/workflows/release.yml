@@ -151,7 +151,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   delete-old-npm:
     runs-on: ubuntu-latest
-    needs: [affected, publish_to_npm]
+    needs: [affected]
     strategy:
       fail-fast: false
       matrix:
@@ -166,7 +166,7 @@ jobs:
           delete-only-pre-release-versions: 'true'
   delete-old-docker:
     runs-on: ubuntu-latest
-    needs: [affected, publish_to_docker]
+    needs: [affected]
     strategy:
       fail-fast: false
       matrix:
