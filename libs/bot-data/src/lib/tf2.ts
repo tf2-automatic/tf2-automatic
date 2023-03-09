@@ -1,3 +1,5 @@
+import { BaseEvent } from './events';
+
 export interface TF2Account {
   isPremium: boolean;
   backpackSlots: number;
@@ -79,12 +81,12 @@ export const TF2_EVENT_PREFIX = 'tf2';
 export const TF2_GAINED_EVENT = `${TF2_EVENT_PREFIX}.gained`;
 export const TF2_LOST_EVENT = `${TF2_EVENT_PREFIX}.lost`;
 
-export interface TF2GainedEvent {
+export interface TF2GainedEvent extends BaseEvent {
   type: typeof TF2_GAINED_EVENT;
   data: TF2Item;
 }
 
-export interface TF2LostEvent {
+export interface TF2LostEvent extends BaseEvent {
   type: typeof TF2_LOST_EVENT;
   data: TF2Item;
 }
