@@ -11,7 +11,7 @@ import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
 import { InventoriesModule } from './inventories/inventories.module';
-import { RabbitMQWrapperModule } from './rabbitmq-wrapper/rabbitmq-wrapper.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -39,7 +39,7 @@ import { RabbitMQWrapperModule } from './rabbitmq-wrapper/rabbitmq-wrapper.modul
       },
     }),
     PrometheusModule.register(),
-    RabbitMQWrapperModule,
+    EventsModule,
     HealthModule,
     HeartbeatsModule,
     BotsModule,

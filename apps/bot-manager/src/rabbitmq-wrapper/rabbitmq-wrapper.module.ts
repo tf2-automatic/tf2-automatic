@@ -2,6 +2,7 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
+import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
 import { Config, RabbitMQConfig } from '../common/config/configuration';
 
 @Module({
@@ -17,6 +18,10 @@ import { Config, RabbitMQConfig } from '../common/config/configuration';
             {
               createExchangeIfNotExists: false,
               name: BOT_EXCHANGE_NAME,
+            },
+            {
+              name: BOT_MANAGER_EXCHANGE_NAME,
+              type: 'topic',
             },
           ],
           uri: `amqp://${rabbitmqConfig.username}:${rabbitmqConfig.password}@${rabbitmqConfig.host}:${rabbitmqConfig.port}/${rabbitmqConfig.vhost}`,

@@ -13,11 +13,17 @@ import {
   TradeChangedEvent,
   TRADE_CHANGED_EVENT,
 } from '@tf2-automatic/bot-data';
-import { Bot, InventoryResponse } from '@tf2-automatic/bot-manager-data';
+import {
+  Bot,
+  InventoryLoadedEvent,
+  InventoryResponse,
+  INVENTORY_LOADED_EVENT,
+} from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
+import { EventsService } from '../events/events.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 
 const INVENTORY_EXPIRE_TIME = 600;
@@ -28,7 +34,8 @@ export class InventoriesService {
     @InjectRedis()
     private readonly redis: Redis,
     private readonly httpService: HttpService,
-    private readonly heartbeatsService: HeartbeatsService
+    private readonly heartbeatsService: HeartbeatsService,
+    private readonly eventsService: EventsService
   ) {}
 
   async getInventoryFromBot(
@@ -64,6 +71,14 @@ export class InventoriesService {
 
     // Make the inventory expire
     await this.redis.expire(key, INVENTORY_EXPIRE_TIME);
+
+    await this.eventsService.publish(INVENTORY_LOADED_EVENT, {
+      steamid64: steamid.getSteamID64(),
+      appid,
+      contextid,
+      timestamp: now,
+      itemCount: inventory.length,
+    } satisfies InventoryLoadedEvent['data']);
 
     return inventory;
   }
