@@ -97,7 +97,11 @@ export class TF2Service implements OnApplicationShutdown {
     this.client.on('appQuit', () => {
       if (this.manuallyDisconnectedFromGC) {
         this.manuallyDisconnectedFromGC = false;
-        this.client.gamesPlayed([440]);
+
+        // Add timeout to give Steam some time before we open the app again
+        setTimeout(() => {
+          this.client.gamesPlayed([440]);
+        }, 1000);
       }
     });
 
