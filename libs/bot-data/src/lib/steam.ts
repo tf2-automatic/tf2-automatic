@@ -3,17 +3,18 @@ import { BaseEvent } from './events';
 
 export const STEAM_EVENT_PREFIX = 'steam';
 
-export const STEAM_CONNECTED_EVENT = `${STEAM_EVENT_PREFIX}.connected`;
-export const STEAM_DISCONNECTED_EVENT = `${STEAM_EVENT_PREFIX}.disconnected`;
+export type SteamConnectedEventType = 'steam.connected';
+export type SteamDisconnectedEventType = 'steam.disconnected';
 
-export interface SteamConnectedEvent extends BaseEvent {
-  type: typeof STEAM_CONNECTED_EVENT;
-}
+export const STEAM_CONNECTED_EVENT: SteamConnectedEventType = `${STEAM_EVENT_PREFIX}.connected`;
+export const STEAM_DISCONNECTED_EVENT: SteamDisconnectedEventType = `${STEAM_EVENT_PREFIX}.disconnected`;
 
-export interface SteamDisconnectedEvent extends BaseEvent {
-  type: typeof STEAM_DISCONNECTED_EVENT;
-  data: {
+export type SteamConnectedEvent = BaseEvent<SteamConnectedEventType>;
+
+export type SteamDisconnectedEvent = BaseEvent<
+  SteamDisconnectedEventType,
+  {
     eresult: SteamUser.EResult;
     msg?: string;
-  };
-}
+  }
+>;

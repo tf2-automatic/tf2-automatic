@@ -2,9 +2,8 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
+import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
 import { Config, RabbitMQConfig } from '../common/config/configuration';
-import { MetadataModule } from '../metadata/metadata.module';
-import { EventsService } from './events.service';
 
 @Module({
   imports: [
@@ -17,7 +16,11 @@ import { EventsService } from './events.service';
         return {
           exchanges: [
             {
+              createExchangeIfNotExists: false,
               name: BOT_EXCHANGE_NAME,
+            },
+            {
+              name: BOT_MANAGER_EXCHANGE_NAME,
               type: 'topic',
             },
           ],
@@ -25,9 +28,7 @@ import { EventsService } from './events.service';
         };
       },
     }),
-    MetadataModule,
   ],
-  providers: [EventsService],
-  exports: [EventsService],
+  exports: [RabbitMQModule],
 })
-export class EventsModule {}
+export class RabbitMQWrapperModule {}

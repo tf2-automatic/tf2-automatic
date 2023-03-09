@@ -36,7 +36,6 @@ const validation = Joi.object({
   RABBITMQ_USERNAME: Joi.string().required(),
   RABBITMQ_PASSWORD: Joi.string().required(),
   RABBITMQ_VHOST: Joi.string().allow('').required(),
-  RABBITMQ_PREFIX: Joi.string().optional().min(1),
   DEBUG: Joi.boolean().optional(),
   STORAGE_TYPE: Joi.string().valid('local', 's3').required(),
   STORAGE_LOCAL_PATH: Joi.string().when('STORAGE_TYPE', whenLocal),

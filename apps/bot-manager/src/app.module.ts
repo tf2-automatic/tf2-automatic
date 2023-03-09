@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
 import { InventoriesModule } from './inventories/inventories.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { InventoriesModule } from './inventories/inventories.module';
       },
     }),
     PrometheusModule.register(),
+    EventsModule,
     HealthModule,
     HeartbeatsModule,
     BotsModule,

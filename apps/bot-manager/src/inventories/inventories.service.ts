@@ -1,15 +1,29 @@
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
+  BOT_EXCHANGE_NAME,
   INVENTORIES_BASE_URL,
   Inventory,
   INVENTORY_PATH,
+  Item,
+  TF2LostEvent,
+  TF2_LOST_EVENT,
+  TradeChangedEvent,
+  TRADE_CHANGED_EVENT,
 } from '@tf2-automatic/bot-data';
-import { Bot, InventoryResponse } from '@tf2-automatic/bot-manager-data';
+import {
+  Bot,
+  InventoryLoadedEvent,
+  InventoryResponse,
+  INVENTORY_LOADED_EVENT,
+} from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
+import SteamUser from 'steam-user';
 import SteamID from 'steamid';
+import { EventsService } from '../events/events.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 
 const INVENTORY_EXPIRE_TIME = 600;
@@ -20,7 +34,8 @@ export class InventoriesService {
     @InjectRedis()
     private readonly redis: Redis,
     private readonly httpService: HttpService,
-    private readonly heartbeatsService: HeartbeatsService
+    private readonly heartbeatsService: HeartbeatsService,
+    private readonly eventsService: EventsService
   ) {}
 
   async getInventoryFromBot(
@@ -49,17 +64,21 @@ export class InventoriesService {
 
     object['timestamp'] = now;
 
+    const key = this.getInventoryKey(steamid, appid, contextid);
+
     // Save inventory in Redis
-    await this.redis.hset(
-      `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`,
-      object
-    );
+    await this.redis.hset(key, object);
 
     // Make the inventory expire
-    await this.redis.expire(
-      `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`,
-      INVENTORY_EXPIRE_TIME
-    );
+    await this.redis.expire(key, INVENTORY_EXPIRE_TIME);
+
+    await this.eventsService.publish(INVENTORY_LOADED_EVENT, {
+      steamid64: steamid.getSteamID64(),
+      appid,
+      contextid,
+      timestamp: now,
+      itemCount: inventory.length,
+    } satisfies InventoryLoadedEvent['data']);
 
     return inventory;
   }
@@ -69,9 +88,8 @@ export class InventoriesService {
     appid: number,
     contextid: string
   ): Promise<void> {
-    await this.redis.del(
-      `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`
-    );
+    const key = this.getInventoryKey(steamid, appid, contextid);
+    await this.redis.del(key);
   }
 
   async getInventory(
@@ -116,7 +134,7 @@ export class InventoriesService {
     timestamp: number;
     inventory: Inventory;
   } | null> {
-    const key = `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+    const key = this.getInventoryKey(steamid, appid, contextid);
 
     // Check if inventory is in redis
     const exists = await this.redis.exists(key);
@@ -148,5 +166,75 @@ export class InventoriesService {
       timestamp: Math.floor(timestamp / 1000),
       inventory,
     };
+  }
+
+  @RabbitSubscribe({
+    exchange: BOT_EXCHANGE_NAME,
+    routingKey: [TF2_LOST_EVENT, TRADE_CHANGED_EVENT],
+    queue: 'bot-manager.delete-inventory-items',
+    allowNonJsonMessages: false,
+  })
+  private handleDeleteInventoryItems(
+    event: TF2LostEvent | TradeChangedEvent
+  ): Promise<void> {
+    switch (event.type) {
+      case TRADE_CHANGED_EVENT:
+        return this.handleOfferChanged(event as TradeChangedEvent);
+      case TF2_LOST_EVENT:
+        return this.handleItemLost(event as TF2LostEvent);
+      default:
+        return Promise.resolve();
+    }
+  }
+
+  private async handleOfferChanged(event: TradeChangedEvent): Promise<void> {
+    if (event.data.offer.state !== SteamUser.ETradeOfferState.Accepted) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const ourSteamID = new SteamID(event.metadata.steamid64!);
+    const theirSteamID = new SteamID(event.data.offer.partner);
+
+    // Create an object of inventory keys which each contains an array of items to delete
+    const lostItems: Record<string, string[]> = {};
+
+    const addLostItems = (steamid: SteamID, items: Item[]) => {
+      items.reduce((acc, cur) => {
+        const items = (acc[
+          this.getInventoryKey(steamid, cur.appid, cur.contextid)
+        ] = acc[cur.appid] ?? []);
+
+        items.push('item:' + cur.assetid);
+        return acc;
+      }, lostItems);
+    };
+
+    // Add items to the object
+    addLostItems(ourSteamID, event.data.offer.itemsToGive);
+    addLostItems(theirSteamID, event.data.offer.itemsToReceive);
+
+    // Delete the items
+    await Promise.all(
+      Object.keys(lostItems).map((key) =>
+        this.redis.hdel(key, ...lostItems[key])
+      )
+    );
+  }
+
+  private async handleItemLost(event: TF2LostEvent): Promise<void> {
+    const key = this.getInventoryKey(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      new SteamID(event.metadata.steamid64!),
+      440,
+      '2'
+    );
+
+    // Delete item from cached inventory
+    await this.redis.hdel(key, 'item:' + event.data.id);
+  }
+
+  private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
+    return `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
   }
 }

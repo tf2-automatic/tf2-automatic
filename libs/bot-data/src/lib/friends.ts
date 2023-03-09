@@ -35,35 +35,39 @@ export const FRIEND_MESSAGE_PATH = `${FRIEND_PATH}/message`;
 export const FRIEND_TYPING_PATH = `${FRIEND_PATH}/typing`;
 export const FRIEND_BLOCK_PATH = `${FRIEND_PATH}/block`;
 
-export const FRIEND_EVENT_PREFIX = 'friends';
-export const FRIEND_RELATIONSHIP_EVENT = `${FRIEND_EVENT_PREFIX}.relationship`;
-export const FRIEND_MESSAGE_EVENT = `${FRIEND_EVENT_PREFIX}.message`;
-export const FRIEND_TYPING_EVENT = `${FRIEND_EVENT_PREFIX}.typing`;
+export type FriendRelationshipEventType = 'friends.relationship';
+export type FriendMessageEventType = 'friends.message';
+export type FriendTypingEventType = 'friends.typing';
 
-export interface FriendRelationshipEvent extends BaseEvent {
-  type: typeof FRIEND_RELATIONSHIP_EVENT;
-  data: {
+export const FRIEND_EVENT_PREFIX = 'friends';
+export const FRIEND_RELATIONSHIP_EVENT: FriendRelationshipEventType = `${FRIEND_EVENT_PREFIX}.relationship`;
+export const FRIEND_MESSAGE_EVENT: FriendMessageEventType = `${FRIEND_EVENT_PREFIX}.message`;
+export const FRIEND_TYPING_EVENT: FriendTypingEventType = `${FRIEND_EVENT_PREFIX}.typing`;
+
+export type FriendRelationshipEvent = BaseEvent<
+  FriendRelationshipEventType,
+  {
     steamid64: string;
     relationship: SteamUser.EFriendRelationship;
     oldRelationship: SteamUser.EFriendRelationship;
-  };
-}
+  }
+>;
 
-export interface FriendMessageEvent extends BaseEvent {
-  type: typeof FRIEND_MESSAGE_EVENT;
-  data: {
+export type FriendMessageEvent = BaseEvent<
+  FriendMessageEventType,
+  {
     steamid64: string;
     timestamp: number;
     ordinal: number;
     message: string;
-  };
-}
+  }
+>;
 
-export interface FriendTypingEvent extends BaseEvent {
-  type: typeof FRIEND_TYPING_EVENT;
-  data: {
+export type FriendTypingEvent = BaseEvent<
+  FriendTypingEventType,
+  {
     steamid64: string;
     timestamp: number;
     ordinal: number;
-  };
-}
+  }
+>;

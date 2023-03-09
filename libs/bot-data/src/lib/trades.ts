@@ -86,22 +86,23 @@ export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
 export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
 export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
 
+export type TradeSentEventType = 'trades.sent';
+export type TradeReceivedEventType = 'trades.received';
+export type TradeChangedEventType = 'trades.changed';
+
 export const TRADE_EVENT_PREFIX = 'trades';
-export const TRADE_SENT_EVENT = `${TRADE_EVENT_PREFIX}.sent`;
-export const TRADE_RECEIVED_EVENT = `${TRADE_EVENT_PREFIX}.received`;
-export const TRADE_CHANGED_EVENT = `${TRADE_EVENT_PREFIX}.changed`;
+export const TRADE_SENT_EVENT: TradeSentEventType = `${TRADE_EVENT_PREFIX}.sent`;
+export const TRADE_RECEIVED_EVENT: TradeReceivedEventType = `${TRADE_EVENT_PREFIX}.received`;
+export const TRADE_CHANGED_EVENT: TradeChangedEventType = `${TRADE_EVENT_PREFIX}.changed`;
 
-export interface TradeSentEvent extends BaseEvent {
-  type: typeof TRADE_SENT_EVENT;
-  data: TradeOffer;
-}
+export type TradeSentEvent = BaseEvent<TradeSentEventType, TradeOffer>;
 
-export interface TradeReceivedEvent extends BaseEvent {
-  type: typeof TRADE_RECEIVED_EVENT;
-  data: TradeOffer;
-}
+export type TradeReceivedEvent = BaseEvent<TradeReceivedEventType, TradeOffer>;
 
-export interface TradeChangedEvent extends BaseEvent {
-  type: typeof TRADE_CHANGED_EVENT;
-  data: TradeOffer;
-}
+export type TradeChangedEvent = BaseEvent<
+  TradeChangedEventType,
+  {
+    offer: TradeOffer;
+    oldState: ETradeOfferState;
+  }
+>;
