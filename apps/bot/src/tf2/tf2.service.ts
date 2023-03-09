@@ -146,7 +146,7 @@ export class TF2Service implements OnApplicationShutdown {
       this.manuallyDisconnectedFromGC = true;
       this.client.gamesPlayed([]);
       this.reconnectTimeout = null;
-    }, 1000);
+    }, 10000);
   }
 
   private async process(task: Task): Promise<unknown> {
