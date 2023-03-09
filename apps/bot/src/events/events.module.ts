@@ -1,6 +1,7 @@
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
 import { Config, RabbitMQConfig } from '../common/config/configuration';
 import { MetadataModule } from '../metadata/metadata.module';
 import { EventsService } from './events.service';
@@ -16,7 +17,7 @@ import { EventsService } from './events.service';
         return {
           exchanges: [
             {
-              name: rabbitmqConfig.prefix + '.bot',
+              name: rabbitmqConfig.prefix + '.' + BOT_EXCHANGE_NAME,
               type: 'topic',
             },
           ],
