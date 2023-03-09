@@ -9,6 +9,8 @@ import { BotsModule } from './bots/bots.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { HeartbeatsModule } from './heartbeats/heartbeats.module';
+import { InventoriesModule } from './inventories/inventories.module';
 
 @Module({
   imports: [
@@ -30,14 +32,16 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
             port: redisConfig.port,
             password: redisConfig.password,
             db: redisConfig.db,
-            keyPrefix: redisConfig.keyPrefix + ':bot-manager:',
+            keyPrefix: redisConfig.keyPrefix,
           },
         };
       },
     }),
     PrometheusModule.register(),
     HealthModule,
+    HeartbeatsModule,
     BotsModule,
+    InventoriesModule,
   ],
 })
 export class AppModule {}
