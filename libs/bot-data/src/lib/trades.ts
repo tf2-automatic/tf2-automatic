@@ -103,5 +103,8 @@ export interface TradeReceivedEvent extends BaseEvent {
 
 export interface TradeChangedEvent extends BaseEvent {
   type: typeof TRADE_CHANGED_EVENT;
-  data: TradeOffer;
+  data: {
+    offer: TradeOffer;
+    oldState: ETradeOfferState;
+  };
 }
