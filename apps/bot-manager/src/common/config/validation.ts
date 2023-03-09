@@ -8,6 +8,11 @@ const validation = Joi.object({
   REDIS_PASSWORD: Joi.string().optional(),
   REDIS_DB: Joi.number().positive().optional(),
   REDIS_PREFIX: Joi.string().optional(),
+  RABBITMQ_HOST: Joi.string().required(),
+  RABBITMQ_PORT: Joi.number().required(),
+  RABBITMQ_USERNAME: Joi.string().required(),
+  RABBITMQ_PASSWORD: Joi.string().required(),
+  RABBITMQ_VHOST: Joi.string().allow('').required(),
 });
 
 export { validation };
