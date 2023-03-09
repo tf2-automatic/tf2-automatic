@@ -22,6 +22,6 @@ export class EventsService implements OnModuleDestroy {
       metadata: {
         time: Math.floor(new Date().getTime() / 1000),
       },
-    } as BaseEvent);
+    } as BaseEvent<unknown>);
   }
 }

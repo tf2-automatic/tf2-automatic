@@ -5,8 +5,8 @@ export interface EventMetadata {
   time: number;
 }
 
-export interface BaseEvent {
-  type: string;
-  data: unknown;
+export interface BaseEvent<T, Y = unknown> {
+  type: T;
+  data: Y;
   metadata: EventMetadata;
 }

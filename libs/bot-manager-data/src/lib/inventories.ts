@@ -9,16 +9,18 @@ export interface InventoryResponse {
   inventory: Inventory;
 }
 
-export const INVENTORY_EVENT_PREFIX = 'inventories';
-export const INVENTORY_LOADED_EVENT = `${INVENTORY_EVENT_PREFIX}.loaded`;
+export type InventoryLoadedEventType = 'inventories.loaded';
 
-export interface InventoryLoadedEvent extends BaseEvent {
-  type: typeof INVENTORY_LOADED_EVENT;
-  data: {
+export const INVENTORY_EVENT_PREFIX = 'inventories';
+export const INVENTORY_LOADED_EVENT: InventoryLoadedEventType = `${INVENTORY_EVENT_PREFIX}.loaded`;
+
+export type InventoryLoadedEvent = BaseEvent<
+  InventoryLoadedEventType,
+  {
     steamid64: string;
     appid: number;
     contextid: string;
     timestamp: number;
     itemCount: number;
-  };
-}
+  }
+>;

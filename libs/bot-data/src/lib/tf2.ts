@@ -77,16 +77,13 @@ export const TF2_ITEM_PATH = '/items/:id';
 export const TF2_USE_ITEM_PATH = `${TF2_ITEM_PATH}/use`;
 export const TF2_SORT_PATH = '/sort';
 
+export type TF2GainedEventType = 'tf2.gained';
+export type TF2LostEventType = 'tf2.lost';
+
 export const TF2_EVENT_PREFIX = 'tf2';
-export const TF2_GAINED_EVENT = `${TF2_EVENT_PREFIX}.gained`;
-export const TF2_LOST_EVENT = `${TF2_EVENT_PREFIX}.lost`;
+export const TF2_GAINED_EVENT: TF2GainedEventType = `${TF2_EVENT_PREFIX}.gained`;
+export const TF2_LOST_EVENT: TF2LostEventType = `${TF2_EVENT_PREFIX}.lost`;
 
-export interface TF2GainedEvent extends BaseEvent {
-  type: typeof TF2_GAINED_EVENT;
-  data: TF2Item;
-}
+export type TF2GainedEvent = BaseEvent<TF2GainedEventType, TF2Item>;
 
-export interface TF2LostEvent extends BaseEvent {
-  type: typeof TF2_LOST_EVENT;
-  data: TF2Item;
-}
+export type TF2LostEvent = BaseEvent<TF2LostEvent, TF2Item>;
