@@ -31,6 +31,6 @@ export class EventsService implements OnModuleDestroy {
         steamid64: steamid64,
         time: Math.floor(new Date().getTime() / 1000),
       },
-    } as BaseEvent);
+    } as BaseEvent<unknown>);
   }
 }
