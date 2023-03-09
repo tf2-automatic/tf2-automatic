@@ -28,7 +28,6 @@ export interface RabbitMQConfig {
   username: string;
   password: string;
   vhost: string;
-  prefix: string;
 }
 
 export type StorageConfig = S3StorageConfig | LocalStorageConfig;
@@ -89,7 +88,6 @@ export default (): Config => {
       username: process.env.RABBITMQ_USERNAME as string,
       password: process.env.RABBITMQ_PASSWORD as string,
       vhost: process.env.RABBITMQ_VHOST as string,
-      prefix: (process.env.RABBITMQ_PREFIX as string) ?? 'tf2-automatic',
     },
     storage: getStorageConfig(),
     manager: {

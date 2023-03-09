@@ -17,7 +17,7 @@ import { EventsService } from './events.service';
         return {
           exchanges: [
             {
-              name: rabbitmqConfig.prefix + '.' + BOT_EXCHANGE_NAME,
+              name: BOT_EXCHANGE_NAME,
               type: 'topic',
             },
           ],
