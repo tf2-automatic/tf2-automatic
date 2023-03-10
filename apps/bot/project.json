@@ -13,19 +13,13 @@
         "outputPath": "dist/apps/bot",
         "main": "apps/bot/src/main.ts",
         "tsConfig": "apps/bot/tsconfig.app.json",
-        "assets": ["apps/bot/src/assets"]
+        "webpackConfig": "apps/bot/webpack.config.js",
+        "generatePackageJson": true
       },
       "configurations": {
         "production": {
           "optimization": true,
-          "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/bot/src/environments/environment.ts",
-              "with": "apps/bot/src/environments/environment.prod.ts"
-            }
-          ]
+          "extractLicenses": true
         }
       }
     },
@@ -53,6 +47,21 @@
       "options": {
         "jestConfig": "apps/bot/jest.config.ts",
         "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": true,
+        "cache-from": ["type=local,src=/tmp/.buildx-cache"],
+        "cache-to": ["type=local,dest=/tmp/.buildx-cache-new,mode=max"],
+        "platforms": ["linux/amd64", "linux/arm64"]
       }
     }
   },
