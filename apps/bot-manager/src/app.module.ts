@@ -12,6 +12,8 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
 import { InventoriesModule } from './inventories/inventories.module';
 import { EventsModule } from './events/events.module';
+import { BullModule } from '@nestjs/bullmq';
+import { TradesModule } from './trades/trades.module';
 
 @Module({
   imports: [
@@ -38,12 +40,28 @@ import { EventsModule } from './events/events.module';
         };
       },
     }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService<Config>) => {
+        const redisConfig = configService.getOrThrow<RedisConfig>('redis');
+        return {
+          prefix: redisConfig.keyPrefix,
+          connection: {
+            host: redisConfig.host,
+            port: redisConfig.port,
+            password: redisConfig.password,
+            db: redisConfig.db,
+          },
+        };
+      },
+    }),
     PrometheusModule.register(),
     EventsModule,
     HealthModule,
     HeartbeatsModule,
     BotsModule,
     InventoriesModule,
+    TradesModule,
   ],
 })
 export class AppModule {}
