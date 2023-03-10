@@ -70,11 +70,12 @@ export class InventoriesService {
 
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    // Save inventory in Redis
-    await this.redis.hset(key, object);
-
-    // Make the inventory expire
-    await this.redis.expire(key, INVENTORY_EXPIRE_TIME);
+    // Save inventory in Redis and make it expire
+    await this.redis
+      .pipeline()
+      .hset(key, object)
+      .expire(key, INVENTORY_EXPIRE_TIME)
+      .exec();
 
     await this.eventsService.publish(INVENTORY_LOADED_EVENT, {
       steamid64: steamid.getSteamID64(),
