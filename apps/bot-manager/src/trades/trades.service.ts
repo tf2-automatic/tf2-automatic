@@ -47,8 +47,8 @@ export class TradesService {
     await this.exchangeDetailsQueue.add(
       event.data.offer.id,
       {
+        offer: event.data.offer,
         steamid64: steamid.getSteamID64(),
-        offerId: event.data.offer.id,
       },
       {
         jobId: `offer:${event.data.offer.id}`,

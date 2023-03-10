@@ -3,6 +3,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import type { ConfirmChannel } from 'amqplib';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
+import SteamID from 'steamid';
 
 @Injectable()
 export class EventsService implements OnModuleDestroy {
@@ -14,12 +15,14 @@ export class EventsService implements OnModuleDestroy {
 
   async publish(
     event: string,
-    data: { [key: string]: unknown } = {}
+    data: { [key: string]: unknown } = {},
+    steamid?: SteamID
   ): Promise<void> {
     await this.amqpConnection.publish(BOT_MANAGER_EXCHANGE_NAME, event, {
       type: event,
       data,
       metadata: {
+        steamid64: steamid?.getSteamID64() ?? null,
         time: Math.floor(new Date().getTime() / 1000),
       },
     } as BaseEvent<unknown>);

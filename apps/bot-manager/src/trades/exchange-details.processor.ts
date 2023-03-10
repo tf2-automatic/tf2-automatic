@@ -22,22 +22,27 @@ export class ExchangeDetailsProcessor extends WorkerHost {
   }
 
   async process(job: Job<ExchangeDetailsQueueData>): Promise<void> {
-    const offerId = job.data.offerId;
+    const offer = job.data.offer;
+    const steamid = new SteamID(job.data.steamid64);
 
-    this.logger.debug('Getting exchange details for offer ' + offerId + '...');
+    this.logger.debug('Getting exchange details for offer ' + offer.id + '...');
 
     const details = await this.tradesService.getExchangeDetails(
-      new SteamID(job.data.steamid64),
-      offerId
+      steamid,
+      offer.id
     );
 
     this.logger.debug(
-      'Publishing exchange details for offer ' + offerId + '...'
+      'Publishing exchange details for offer ' + offer.id + '...'
     );
 
-    await this.eventsService.publish(EXCHANGE_DETAILS_EVENT, {
-      offerId,
-      details,
-    } satisfies ExchangeDetailsEvent['data']);
+    await this.eventsService.publish(
+      EXCHANGE_DETAILS_EVENT,
+      {
+        offer: job.data.offer,
+        details,
+      } satisfies ExchangeDetailsEvent['data'],
+      steamid
+    );
   }
 }

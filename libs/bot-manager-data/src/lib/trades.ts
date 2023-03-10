@@ -1,4 +1,8 @@
-import { BaseEvent, TradeOfferExchangeDetails } from '@tf2-automatic/bot-data';
+import {
+  BaseEvent,
+  TradeOffer,
+  TradeOfferExchangeDetails,
+} from '@tf2-automatic/bot-data';
 
 export type ExchangeDetailsEventType = 'trades.exchange-details';
 
@@ -8,7 +12,7 @@ export const EXCHANGE_DETAILS_EVENT: ExchangeDetailsEventType = `${TRADES_EVENT_
 export type ExchangeDetailsEvent = BaseEvent<
   ExchangeDetailsEvent,
   {
-    offerId: string;
+    offer: TradeOffer;
     details: TradeOfferExchangeDetails;
   }
 >;
