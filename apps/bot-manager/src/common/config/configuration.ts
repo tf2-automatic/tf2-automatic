@@ -38,6 +38,7 @@ export default (): Config => {
         process.env.REDIS_DB !== undefined
           ? parseInt(process.env.REDIS_DB, 10)
           : undefined,
+      // FIXME: Remove trialing colon
       keyPrefix:
         (process.env.REDIS_PREFIX ?? 'tf2-automatic') + ':bot-manager:',
     },
