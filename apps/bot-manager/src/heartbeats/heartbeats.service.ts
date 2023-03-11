@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Bot } from '@tf2-automatic/bot-manager-data';
@@ -70,7 +71,11 @@ export class HeartbeatsService {
     }
 
     // Check if the bot is alive / ip + port combination is valid
-    const running = await this.getRunningBot(bot);
+    const running = await this.getRunningBot(bot).catch(() => {
+      throw new InternalServerErrorException(
+        'Bot ' + bot.steamid64 + ' is not accessible'
+      );
+    });
 
     if (running === null || running.steamid64 !== bot.steamid64) {
       // Bot is not the same as we thought it was
@@ -90,7 +95,11 @@ export class HeartbeatsService {
       lastSeen: Math.floor(Date.now() / 1000),
     };
 
-    const running = await this.getRunningBot(bot);
+    const running = await this.getRunningBot(bot).catch(() => {
+      throw new InternalServerErrorException(
+        'Bot ' + bot.steamid64 + ' is not accessible'
+      );
+    });
 
     if (running === null || running.steamid64 !== bot.steamid64) {
       throw new BadRequestException('IP and port is not used for this bot');
