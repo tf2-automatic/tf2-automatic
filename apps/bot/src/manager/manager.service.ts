@@ -40,7 +40,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
       this.ip = ourIp;
     } else {
       this.ip = ip.address(
-        process.env.NODE_ENV === 'development' ? 'private' : 'public',
+        this.configService.get('env') === 'production' ? 'public' : 'private',
         'ipv4'
       );
     }
