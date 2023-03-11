@@ -27,11 +27,24 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
 
   private timeout: NodeJS.Timeout;
 
+  private readonly ip: string;
+
   constructor(
     private readonly configService: ConfigService<Config>,
     private readonly httpService: HttpService,
     private readonly botService: BotService
-  ) {}
+  ) {
+    const ourIp = this.configService.get<string>('ip');
+
+    if (ourIp) {
+      this.ip = ourIp;
+    } else {
+      this.ip = ip.address(
+        process.env.NODE_ENV === 'development' ? 'private' : 'public',
+        'ipv4'
+      );
+    }
+  }
 
   private async sendHeartbeat(): Promise<void> {
     this.logger.debug('Sending heartbeat...');
@@ -45,9 +58,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
           this.botService.getSteamID64()
         ),
         {
-          ip:
-            this.configService.get<string>('ip') ??
-            ip.address('private', 'ipv4'),
+          ip: this.ip,
           // FIXME: Port is apparently a string in the config
           port: parseInt(this.configService.getOrThrow('port'), 10),
         }

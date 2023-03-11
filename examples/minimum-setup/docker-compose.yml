@@ -1,0 +1,42 @@
+version: '3.8'
+volumes:
+  bot:
+  rabbitmq:
+services:
+  rabbitmq:
+    image: rabbitmq:3.9.28-management-alpine
+    expose:
+      - '5672'
+    ports:
+      - '15672:15672'
+    environment:
+      RABBITMQ_DEFAULT_USER: 'test'
+      RABBITMQ_DEFAULT_PASS: 'test'
+    volumes:
+      - 'rabbitmq:/var/lib/rabbitmq'
+  bot:
+    image: ghcr.io/tf2-automatic/bot:latest
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+    ports:
+      - '3000:3000'
+    user: root
+    environment:
+      DEBUG: true
+      # Input your bot's credentials here
+      STEAM_USERNAME: ''
+      STEAM_PASSWORD: ''
+      STEAM_SHARED_SECRET: ''
+      STEAM_IDENTITY_SECRET: ''
+      # RabbitMQ connection details
+      RABBITMQ_HOST: 'rabbitmq'
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: 'test'
+      RABBITMQ_PASSWORD: 'test'
+      RABBITMQ_VHOST: ''
+      # Storage settings
+      STORAGE_TYPE: 'local'
+      STORAGE_LOCAL_PATH: '/data'
+    volumes:
+      - 'bot:/data'
