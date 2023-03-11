@@ -20,4 +20,4 @@ For questions and support please use the [Discord server](https://discord.com/in
 
 ## Contributing
 
-This project is built using TypeScript and is open-source and available on GitHub for anyone to use and contribute to. See [contribution guidelines for this project](.github/CONTRIBUTING.md).
+This project is built using TypeScript and is open-source and available on GitHub for anyone to use and contribute to. See [contribution guidelines for this project](./CONTRIBUTING.md).
