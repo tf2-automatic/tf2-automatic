@@ -1,0 +1,21 @@
+@startuml Deployment diagram
+
+actor "custom application" as client
+collections "bot" as bot
+agent "bot-manager" as bot_manager
+folder "block storage" as bot_storage
+database "redis" as redis
+queue "rabbitmq" as rabbitmq
+
+bot <--> bot_manager : Heartbeats
+
+bot --> bot_storage : Save polldata and files
+bot --> rabbitmq : Publish events
+bot_manager <--> rabbitmq : Receive and publish events
+bot_manager <--> redis : Cache and queues
+
+client --> bot_manager : Get ip and port of bots
+client --> bot : Control bots
+rabbitmq --> client : Receive events
+
+@enduml
