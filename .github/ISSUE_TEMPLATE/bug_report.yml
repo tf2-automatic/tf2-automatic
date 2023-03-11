@@ -8,6 +8,7 @@ body:
         **Before you continue...**
 
         This is not a support forum. If you have any questions, please ask them in the [Discord server](https://discord.tf2automatic.com).
+
   - type: checkboxes
     attributes:
       label: 'Is there an existing issue for this?'
@@ -34,9 +35,7 @@ body:
       label: 'Steps to reproduce'
       description: 'How can the issue be reproduced?'
       placeholder: |
-        1. Start the application
-        2. Send HTTP request to `...`
-        3. See error...
+        1. Start the application 2. Send HTTP request to `...` 3. See error...
   - type: input
     validations:
       required: true
@@ -44,7 +43,7 @@ body:
       label: 'TF2 Automatic version'
       description: |
         Which version of TF2 Automatic are you using?
-      placeholder: '1.0.0'
+        placeholder: '1.0.0'
   - type: checkboxes
     attributes:
       label: 'Projects'
