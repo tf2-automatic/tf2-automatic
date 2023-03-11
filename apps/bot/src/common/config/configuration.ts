@@ -1,4 +1,5 @@
 export interface Config {
+  env: string;
   port: number;
   ip?: string;
   steam: SteamAccountConfig;
@@ -59,6 +60,7 @@ export interface ManagerConfig {
 
 export default (): Config => {
   return {
+    env: process.env.NODE_ENV as string,
     port: parseInt(process.env.PORT as string, 10),
     ip: process.env.IP_ADDRESS as string | undefined,
     steam: {
