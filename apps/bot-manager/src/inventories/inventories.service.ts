@@ -29,6 +29,7 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import { GetInventoryDto } from './dto/get-inventory.dto';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
@@ -100,7 +101,8 @@ export class InventoriesService {
   async getInventory(
     steamid: SteamID,
     appid: number,
-    contextid: string
+    contextid: string,
+    query: GetInventoryDto
   ): Promise<InventoryResponse> {
     // Check if inventory is in the cache
     const cached = await this.getInventoryFromCache(steamid, appid, contextid);
@@ -112,14 +114,21 @@ export class InventoriesService {
       };
     }
 
-    // If the client wants non-cached data then fetch it, store it, and return it
-    const bots = await this.heartbeatsService.getBots();
-    if (bots.length === 0) {
-      throw new ServiceUnavailableException('No bots available');
-    }
+    let bot: Bot;
 
-    // Choose a random bot
-    const bot = bots[Math.floor(Math.random() * bots.length)];
+    if (query.bot !== undefined) {
+      // Get specific bot
+      bot = await this.heartbeatsService.getBot(query.bot);
+    } else {
+      // If the client wants non-cached data then fetch it, store it, and return it
+      const bots = await this.heartbeatsService.getBots();
+      if (bots.length === 0) {
+        throw new ServiceUnavailableException('No bots available');
+      }
+
+      // Choose a random bot
+      bot = bots[Math.floor(Math.random() * bots.length)];
+    }
 
     // Get the inventory of the bot
     return this.getInventoryFromBot(bot, steamid, appid, contextid).then(
