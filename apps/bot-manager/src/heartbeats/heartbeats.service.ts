@@ -124,7 +124,7 @@ export class HeartbeatsService {
       BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
       JSON.stringify(bot),
       'EX',
-      60
+      300
     );
 
     return bot;
