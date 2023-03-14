@@ -11,9 +11,13 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { EscrowWithTimestamp } from './interfaces/escrow.interface';
 
 const ESCROW_EXPIRE_TIME = 24 * 60 * 60;
+
+interface EscrowWithTimestamp {
+  timestamp: number;
+  escrowDays: number;
+}
 
 @Injectable()
 export class EscrowService {
