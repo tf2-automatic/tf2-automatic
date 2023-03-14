@@ -11,6 +11,8 @@
   },
   "private": true,
   "devDependencies": {
+    "@commitlint/cli": "^17.4.4",
+    "@commitlint/config-conventional": "^17.4.4",
     "@nestjs/schematics": "^9.0.4",
     "@nestjs/testing": "^9.3.9",
     "@nrwl/cli": "15.8.6",
@@ -53,8 +55,6 @@
     "typescript": "~4.9.5"
   },
   "dependencies": {
-    "@commitlint/cli": "^17.4.4",
-    "@commitlint/config-conventional": "^17.4.4",
     "@golevelup/nestjs-rabbitmq": "^3.5.0",
     "@liaoliaots/nestjs-redis": "^9.0.5",
     "@nestjs/axios": "^2.0.0",
