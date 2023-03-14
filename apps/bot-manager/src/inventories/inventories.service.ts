@@ -54,7 +54,7 @@ export class InventoriesService {
     appid: number,
     contextid: string
   ): Promise<InventoryWithTimestamp> {
-    const now = Date.now();
+    const now = Math.floor(Date.now() / 1000);
 
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
@@ -155,23 +155,10 @@ export class InventoriesService {
   ): Promise<InventoryWithTimestamp | null> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    // Check if inventory is in redis
-    const exists = await this.redis.exists(key);
-    if (!exists) {
+    const timestamp = await this.redis.hget(key, 'timestamp');
+    if (timestamp === null) {
+      // Inventory is not in the cache
       return null;
-    }
-
-    const rawTimestamp = await this.redis.hget(key, 'timestamp');
-
-    const timestamp = rawTimestamp === null ? null : parseInt(rawTimestamp, 10);
-
-    if (
-      timestamp === null ||
-      Date.now() - timestamp > INVENTORY_EXPIRE_TIME * 1000
-    ) {
-      // If the inventory doesn't have a timestamp, or inventory is older
-      // than expire time, then it's invalid
-      return this.redis.del(key).then(() => null);
     }
 
     const object = await this.redis.hgetall(key);
@@ -183,7 +170,7 @@ export class InventoriesService {
       .map((item) => JSON.parse(object[item]));
 
     return {
-      timestamp: Math.floor(timestamp / 1000),
+      timestamp: parseInt(timestamp, 10),
       inventory,
     };
   }
