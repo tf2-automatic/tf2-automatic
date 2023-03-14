@@ -165,11 +165,12 @@ export class InventoriesService {
 
     const timestamp = rawTimestamp === null ? null : parseInt(rawTimestamp, 10);
 
-    if (timestamp === null) {
-      // If the inventory doesn't have a timestamp then it's invalid
-      return this.redis.del(key).then(() => null);
-    } else if (Date.now() - timestamp > INVENTORY_EXPIRE_TIME * 1000) {
-      // If the inventory is older than expire time seconds then it's invalid
+    if (
+      timestamp === null ||
+      Date.now() - timestamp > INVENTORY_EXPIRE_TIME * 1000
+    ) {
+      // If the inventory doesn't have a timestamp, or inventory is older
+      // than expire time, then it's invalid
       return this.redis.del(key).then(() => null);
     }
 
