@@ -11,6 +11,7 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import { GetEscrowDto } from './dto/get-escrow.dto';
 
 const ESCROW_EXPIRE_TIME = 24 * 60 * 60;
 
@@ -28,7 +29,10 @@ export class EscrowService {
     private readonly heartbeatsService: HeartbeatsService
   ) {}
 
-  async getEscrow(steamid: SteamID): Promise<EscrowResponse> {
+  async getEscrow(
+    steamid: SteamID,
+    query: GetEscrowDto
+  ): Promise<EscrowResponse> {
     const cached = await this.getEscrowFromCache(steamid);
     if (cached !== null) {
       return {
@@ -38,12 +42,18 @@ export class EscrowService {
       };
     }
 
-    const bots = await this.heartbeatsService.getBots();
-    if (bots.length === 0) {
-      throw new ServiceUnavailableException('No bots available');
-    }
+    let bot: Bot;
 
-    const bot = bots[Math.floor(Math.random() * bots.length)];
+    if (query.bot !== undefined) {
+      bot = await this.heartbeatsService.getBot(query.bot);
+    } else {
+      const bots = await this.heartbeatsService.getBots();
+      if (bots.length === 0) {
+        throw new ServiceUnavailableException('No bots available');
+      }
+
+      bot = bots[Math.floor(Math.random() * bots.length)];
+    }
 
     return this.getEscrowFromBot(bot, steamid).then((result) => ({
       cached: false,
