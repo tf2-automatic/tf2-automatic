@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  ValidationPipe,
+} from '@nestjs/common';
 import {
   INVENTORIES_BASE_URL,
   InventoryResponse,
@@ -6,6 +14,7 @@ import {
 } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
+import { GetInventoryDto } from './dto/get-inventory.dto';
 import { InventoriesService } from './inventories.service';
 
 @Controller(INVENTORIES_BASE_URL)
@@ -16,9 +25,20 @@ export class InventoriesController {
   getInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
-    @Param('contextid') contextid: string
+    @Param('contextid') contextid: string,
+    @Query(
+      new ValidationPipe({
+        transform: true,
+      })
+    )
+    query: GetInventoryDto
   ): Promise<InventoryResponse> {
-    return this.inventoriesService.getInventory(steamid, appid, contextid);
+    return this.inventoriesService.getInventory(
+      steamid,
+      appid,
+      contextid,
+      query
+    );
   }
 
   @Delete(INVENTORY_PATH)
