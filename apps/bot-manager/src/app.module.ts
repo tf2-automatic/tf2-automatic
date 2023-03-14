@@ -14,6 +14,7 @@ import { InventoriesModule } from './inventories/inventories.module';
 import { EventsModule } from './events/events.module';
 import { BullModule } from '@nestjs/bullmq';
 import { TradesModule } from './trades/trades.module';
+import { EscrowModule } from './escrow/escrow.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { TradesModule } from './trades/trades.module';
     BotsModule,
     InventoriesModule,
     TradesModule,
+    EscrowModule,
   ],
 })
 export class AppModule {}

@@ -29,8 +29,14 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import { GetInventoryDto } from './dto/get-inventory.dto';
 
 const INVENTORY_EXPIRE_TIME = 600;
+
+interface InventoryWithTimestamp {
+  timestamp: number;
+  inventory: Inventory;
+}
 
 @Injectable()
 export class InventoriesService {
@@ -47,8 +53,8 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<Inventory> {
-    const now = Date.now();
+  ): Promise<InventoryWithTimestamp> {
+    const now = Math.floor(Date.now() / 1000);
 
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
@@ -85,7 +91,10 @@ export class InventoriesService {
       itemCount: inventory.length,
     } satisfies InventoryLoadedEvent['data']);
 
-    return inventory;
+    return {
+      timestamp: now,
+      inventory,
+    };
   }
 
   async deleteInventory(
@@ -100,7 +109,8 @@ export class InventoriesService {
   async getInventory(
     steamid: SteamID,
     appid: number,
-    contextid: string
+    contextid: string,
+    query: GetInventoryDto
   ): Promise<InventoryResponse> {
     // Check if inventory is in the cache
     const cached = await this.getInventoryFromCache(steamid, appid, contextid);
@@ -112,21 +122,28 @@ export class InventoriesService {
       };
     }
 
-    // If the client wants non-cached data then fetch it, store it, and return it
-    const bots = await this.heartbeatsService.getBots();
-    if (bots.length === 0) {
-      throw new ServiceUnavailableException('No bots available');
-    }
+    let bot: Bot;
 
-    // Choose a random bot
-    const bot = bots[Math.floor(Math.random() * bots.length)];
+    if (query.bot !== undefined) {
+      // Get specific bot
+      bot = await this.heartbeatsService.getBot(query.bot);
+    } else {
+      // If the client wants non-cached data then fetch it, store it, and return it
+      const bots = await this.heartbeatsService.getBots();
+      if (bots.length === 0) {
+        throw new ServiceUnavailableException('No bots available');
+      }
+
+      // Choose a random bot
+      bot = bots[Math.floor(Math.random() * bots.length)];
+    }
 
     // Get the inventory of the bot
     return this.getInventoryFromBot(bot, steamid, appid, contextid).then(
-      (inventory) => ({
+      (result) => ({
         cached: false,
-        timestamp: Math.floor(Date.now() / 1000),
-        inventory,
+        timestamp: result.timestamp,
+        inventory: result.inventory,
       })
     );
   }
@@ -135,28 +152,13 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<{
-    timestamp: number;
-    inventory: Inventory;
-  } | null> {
+  ): Promise<InventoryWithTimestamp | null> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    // Check if inventory is in redis
-    const exists = await this.redis.exists(key);
-    if (!exists) {
-      return null;
-    }
-
-    const rawTimestamp = await this.redis.hget(key, 'timestamp');
-
-    const timestamp = rawTimestamp === null ? null : parseInt(rawTimestamp, 10);
-
+    const timestamp = await this.redis.hget(key, 'timestamp');
     if (timestamp === null) {
-      // If the inventory doesn't have a timestamp then it's invalid
-      return this.redis.del(key).then(() => null);
-    } else if (Date.now() - timestamp > INVENTORY_EXPIRE_TIME * 1000) {
-      // If the inventory is older than expire time seconds then it's invalid
-      return this.redis.del(key).then(() => null);
+      // Inventory is not in the cache
+      return null;
     }
 
     const object = await this.redis.hgetall(key);
@@ -168,7 +170,7 @@ export class InventoriesService {
       .map((item) => JSON.parse(object[item]));
 
     return {
-      timestamp: Math.floor(timestamp / 1000),
+      timestamp: parseInt(timestamp, 10),
       inventory,
     };
   }
