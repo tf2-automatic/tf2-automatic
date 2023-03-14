@@ -33,6 +33,11 @@ import { GetInventoryDto } from './dto/get-inventory.dto';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
+interface InventoryWithTimestamp {
+  timestamp: number;
+  inventory: Inventory;
+}
+
 @Injectable()
 export class InventoriesService {
   constructor(
@@ -48,7 +53,7 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<Inventory> {
+  ): Promise<InventoryWithTimestamp> {
     const now = Date.now();
 
     const response = await firstValueFrom(
@@ -86,7 +91,10 @@ export class InventoriesService {
       itemCount: inventory.length,
     } satisfies InventoryLoadedEvent['data']);
 
-    return inventory;
+    return {
+      timestamp: now,
+      inventory,
+    };
   }
 
   async deleteInventory(
@@ -132,10 +140,10 @@ export class InventoriesService {
 
     // Get the inventory of the bot
     return this.getInventoryFromBot(bot, steamid, appid, contextid).then(
-      (inventory) => ({
+      (result) => ({
         cached: false,
-        timestamp: Math.floor(Date.now() / 1000),
-        inventory,
+        timestamp: result.timestamp,
+        inventory: result.inventory,
       })
     );
   }
@@ -144,10 +152,7 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<{
-    timestamp: number;
-    inventory: Inventory;
-  } | null> {
+  ): Promise<InventoryWithTimestamp | null> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
     // Check if inventory is in redis
