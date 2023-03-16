@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { HEALTH_BASE_URL, HEALTH_PATH } from '@tf2-automatic/bot-data';
 import { BotHealthIndicator } from './bot.health';
