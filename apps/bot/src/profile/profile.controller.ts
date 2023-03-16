@@ -3,10 +3,18 @@ import {
   Controller,
   Delete,
   Get,
+  HttpStatus,
   Post,
   Put,
   ValidationPipe,
 } from '@nestjs/common';
+import {
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   PROFILE_AVATAR_PATH,
   PROFILE_BASE_URL,
@@ -19,13 +27,22 @@ import {
 import { UpdateProfileAvatarDto } from './dto/update-profile-avatar.dto';
 import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { TradeOfferUrlModel } from './models/tradeofferurl.model';
 import { ProfileService } from './profile.service';
 
+@ApiTags('Profile')
 @Controller(PROFILE_BASE_URL)
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
   @Put(PROFILE_AVATAR_PATH)
+  @ApiOperation({
+    summary: 'Set avatar',
+    description: 'Set the bot avatar',
+  })
+  @ApiBody({
+    type: UpdateProfileAvatarDto,
+  })
   setAvatar(
     @Body(new ValidationPipe()) dto: UpdateProfileAvatarDto
   ): Promise<void> {
@@ -33,6 +50,13 @@ export class ProfileController {
   }
 
   @Put(PROFILE_PATH)
+  @ApiOperation({
+    summary: 'Edit profile',
+    description: 'Edit the bot profile',
+  })
+  @ApiBody({
+    type: UpdateProfileDto,
+  })
   editProfile(
     @Body(new ValidationPipe()) dto: UpdateProfileDto
   ): Promise<void> {
@@ -40,6 +64,13 @@ export class ProfileController {
   }
 
   @Put(PROFILE_SETTINGS_PATH)
+  @ApiOperation({
+    summary: 'Edit profile settings',
+    description: 'Edit the bot profile settings',
+  })
+  @ApiBody({
+    type: UpdateProfileSettingsDto,
+  })
   editProfileSettings(
     @Body(
       new ValidationPipe({
@@ -52,11 +83,22 @@ export class ProfileController {
   }
 
   @Delete(PROFILE_NAME_PATH)
+  @ApiOperation({
+    summary: 'Delete name history',
+    description: 'Delete the bot name history',
+  })
   deleteNameHistory(): Promise<void> {
     return this.profileService.deleteNameHistory();
   }
 
   @Get(PROFILE_TRADEOFFERURL_PATH)
+  @ApiOperation({
+    summary: 'Get trade offer url',
+    description: 'Get the bot trade offer url',
+  })
+  @ApiOkResponse({
+    type: TradeOfferUrlModel,
+  })
   getTradeOfferUrl(): Promise<TradeOfferUrlResponse> {
     return this.profileService.getTradeOfferUrl().then((url) => {
       return {
@@ -66,6 +108,14 @@ export class ProfileController {
   }
 
   @Post(PROFILE_TRADEOFFERURL_PATH)
+  @ApiOperation({
+    summary: 'Change trade offer url',
+    description: 'Change the bot trade offer url',
+  })
+  @ApiResponse({
+    type: TradeOfferUrlModel,
+    status: HttpStatus.CREATED,
+  })
   changeTradeOfferUrl(): Promise<TradeOfferUrlResponse> {
     return this.profileService.changeTradeOfferUrl().then((url) => {
       return { url };
