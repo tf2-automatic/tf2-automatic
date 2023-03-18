@@ -267,7 +267,7 @@ export class BotService implements OnModuleDestroy {
       this.logger.debug(message);
     });
 
-    await this.login();
+    await this.reconnect();
 
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
