@@ -342,6 +342,8 @@ export class BotService implements OnModuleDestroy {
       });
 
     if (oldTokens !== null) {
+      this.logger.debug('Found old tokens');
+
       // Figure out if the refresh token expired
       const { refreshToken, accessToken } = JSON.parse(
         oldTokens
@@ -558,7 +560,7 @@ export class BotService implements OnModuleDestroy {
       }, 10000);
 
       const login = () => {
-        this.logger.debug('Attempting to log');
+        this.logger.debug('Attempting to login to Steam...');
 
         const loginDetails = {
           refreshToken,
