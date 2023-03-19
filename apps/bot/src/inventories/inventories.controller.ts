@@ -10,6 +10,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiParamSteamID } from '../common/swagger/api-param-steamid64.decorator';
+import { ItemModel } from './models/item.model';
 
 @ApiTags('Inventories')
 @Controller(INVENTORIES_BASE_URL)
@@ -33,8 +34,7 @@ export class InventoriesController {
     example: 2,
   })
   @ApiOkResponse({
-    // TODO: Add inventory model
-    type: [Object],
+    type: [ItemModel],
   })
   getInventory(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,

@@ -7,9 +7,10 @@ import { BotService } from './bot/bot.service';
 import { ShutdownService } from './shutdown/shutdown.service';
 import { DocumentBuilder } from '@nestjs/swagger';
 import { SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger:
       process.env.DEBUG === 'true'
         ? ['log', 'debug', 'error', 'verbose', 'warn']
