@@ -64,7 +64,7 @@
     "@nestjs/config": "^2.3.1",
     "@nestjs/core": "^9.3.9",
     "@nestjs/event-emitter": "^1.4.1",
-    "@nestjs/platform-express": "^9.3.9",
+    "@nestjs/platform-express": "^9.3.10",
     "@nestjs/swagger": "^6.2.1",
     "@nestjs/terminus": "^9.2.1",
     "@willsoto/nestjs-prometheus": "^5.1.0",
