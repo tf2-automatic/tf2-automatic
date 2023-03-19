@@ -14,7 +14,6 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
-  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import {
@@ -25,7 +24,6 @@ import {
   GetTradeResponse,
   GetTradesResponse,
   Item,
-  OfferFilter,
   TradeOfferExchangeDetails,
   TRADES_BASE_URL,
   TRADES_PATH,
@@ -57,13 +55,6 @@ export class TradesController {
   @ApiOkResponse({
     type: TradesModel,
   })
-  @ApiQuery({
-    name: 'filter',
-    enum: OfferFilter,
-    description: 'Filter the trades',
-    type: typeof OfferFilter,
-    example: OfferFilter.ActiveOnly,
-  })
   getTrades(
     @Query(
       new ValidationPipe({
@@ -92,6 +83,13 @@ export class TradesController {
   }
 
   @Post(TRADES_PATH)
+  @ApiOperation({
+    summary: 'Create trade',
+    description: 'Create a trade',
+  })
+  @ApiOkResponse({
+    type: TradeModel,
+  })
   async createTrade(
     @Body(
       new ValidationPipe({

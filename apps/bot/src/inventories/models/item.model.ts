@@ -55,7 +55,10 @@ export class ItemModel implements Item {
   })
   missing?: boolean | undefined;
 
-  @ApiProperty()
+  @ApiProperty({
+    example: '228',
+    description: 'The estimated price of the item in USD cents',
+  })
   est_usd: string;
 
   @ApiProperty({
