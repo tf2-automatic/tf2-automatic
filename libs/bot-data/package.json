@@ -1,4 +1,4 @@
 {
   "name": "@tf2-automatic/bot-data",
-  "version": "0.0.0-dev"
+  "version": "*"
 }
