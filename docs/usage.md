@@ -13,3 +13,5 @@ You can search for `.publish(` in the code base to find events being published. 
 ## Types
 
 If you are using TypeScript to create your applications, you can use the provided types and constants from the `bot-data` and `bot-manager-data` libraries.
+
+An example can be found [here](../examples/bot-data-usage) for getting the inventory from a bot, using the bot-data types and constants.
