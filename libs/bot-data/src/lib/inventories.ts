@@ -53,6 +53,7 @@ export interface Item {
   owner_descriptions?: Description[];
   actions: Action[];
   market_actions?: Action[];
+  app_data?: Record<string, unknown> | undefined;
 }
 
 export type Inventory = Item[];

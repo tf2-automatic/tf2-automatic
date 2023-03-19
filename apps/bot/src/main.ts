@@ -5,14 +5,26 @@ import { AppModule } from './app.module';
 import { Config } from './common/config/configuration';
 import { BotService } from './bot/bot.service';
 import { ShutdownService } from './shutdown/shutdown.service';
+import { DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger:
       process.env.DEBUG === 'true'
         ? ['log', 'debug', 'error', 'verbose', 'warn']
         : ['log', 'warn', 'error'],
   });
+
+  const config = new DocumentBuilder()
+    .setTitle('Bot API Documentation')
+    .setDescription('The documentation for the bot API')
+    .setVersion('current')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
+
   const configService: ConfigService<Config> = app.get(ConfigService);
   const botService: BotService = app.get(BotService);
 

@@ -26,18 +26,40 @@ import {
   FRIEND_BLOCK_PATH,
 } from '@tf2-automatic/bot-data';
 import { SendFriendMessageDto } from './dto/send-friend-message.dto';
+import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FriendModel } from './models/friend.model';
+import { AddFriendModel } from './models/add-friend.model';
+import { DeleteFriendModel } from './models/delete-friend.model';
+import { ApiParamSteamID } from '../common/swagger/api-param-steamid64.decorator';
+import { MessageModel } from './models/message.model';
 
+@ApiTags('Friends')
 @Controller(FRIENDS_BASE_URL)
 export class FriendsController {
   constructor(private readonly friendsService: FriendsService) {}
 
   @Get(FRIENDS_PATH)
+  @ApiOperation({
+    summary: 'Get friends',
+    description: 'Get a list of users and their relationship to the bot',
+  })
+  @ApiOkResponse({
+    type: [FriendModel],
+  })
   getFriends(): Promise<Friends> {
     return this.friendsService.getFriends();
   }
 
   @Post(FRIEND_PATH)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Add friend',
+    description: 'Send a friend request to a user',
+  })
+  @ApiParamSteamID()
+  @ApiOkResponse({
+    type: AddFriendModel,
+  })
   async addFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<AddFriendResponse> {
@@ -49,6 +71,15 @@ export class FriendsController {
   }
 
   @Delete(FRIEND_PATH)
+  @ApiOperation({
+    summary: 'Delete friend',
+    description:
+      'Remove a user from your friends list or cancel a friend request',
+  })
+  @ApiParamSteamID()
+  @ApiOkResponse({
+    type: DeleteFriendModel,
+  })
   async deleteFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<DeleteFriendResponse> {
@@ -60,6 +91,14 @@ export class FriendsController {
   }
 
   @Get(FRIEND_PATH)
+  @ApiOperation({
+    summary: 'Get friend status of a Steam account',
+    description: 'Get the friend relationship status of a Steam account',
+  })
+  @ApiParamSteamID()
+  @ApiOkResponse({
+    type: FriendModel,
+  })
   async isFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<Friend> {
@@ -78,6 +117,17 @@ export class FriendsController {
   }
 
   @Post(FRIEND_MESSAGE_PATH)
+  @ApiOperation({
+    summary: 'Send chat message',
+    description: 'Send a chat message to a Steam account',
+  })
+  @ApiParamSteamID()
+  @ApiBody({
+    type: SendFriendMessageDto,
+  })
+  @ApiOkResponse({
+    type: MessageModel,
+  })
   sendMessage(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
     @Body(new ValidationPipe()) dto: SendFriendMessageDto
@@ -86,6 +136,11 @@ export class FriendsController {
   }
 
   @Post(FRIEND_TYPING_PATH)
+  @ApiOperation({
+    summary: 'Send typing notification',
+    description: 'Send a typing notification to a Steam account',
+  })
+  @ApiParamSteamID()
   sendTyping(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<void> {
@@ -93,6 +148,11 @@ export class FriendsController {
   }
 
   @Post(FRIEND_BLOCK_PATH)
+  @ApiOperation({
+    summary: 'Block a Steam account',
+    description: 'Block a Steam account',
+  })
+  @ApiParamSteamID()
   blockUser(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<void> {
@@ -100,6 +160,11 @@ export class FriendsController {
   }
 
   @Delete(FRIEND_BLOCK_PATH)
+  @ApiOperation({
+    summary: 'Unblock a Steam account',
+    description: 'Unblock a Steam account',
+  })
+  @ApiParamSteamID()
   unblockUser(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<void> {
@@ -107,6 +172,11 @@ export class FriendsController {
   }
 
   @Get(FRIEND_BLOCK_PATH)
+  @ApiOperation({
+    summary: 'Check if a Steam account is blocked',
+    description: 'Check if a Steam account is blocked',
+  })
+  @ApiParamSteamID()
   isBlocked(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<boolean> {
