@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@tf2-automatic/bot-data": "latest",
+    "axios": "^1.3.4"
+  }
+}
