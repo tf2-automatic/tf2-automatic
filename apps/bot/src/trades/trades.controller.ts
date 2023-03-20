@@ -33,13 +33,15 @@ import {
   TRADE_PATH,
   TRADE_RECEIVED_ITEMS_PATH,
 } from '@tf2-automatic/bot-data';
-import { ItemModel } from '../inventories/models/item.model';
-import { ApiParamOfferID } from './decorators/api-param-offer-id.decorator';
+import {
+  ItemModel,
+  ApiParamOfferID,
+  DetailsModel,
+  TradeModel,
+  TradesModel,
+} from '@tf2-automatic/swagger';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { GetTradesDto } from './dto/get-trades.dto';
-import { DetailsModel } from './models/details.model';
-import { TradeModel } from './models/trade.model';
-import { TradesModel } from './models/trades.model';
 import { TradesService } from './trades.service';
 
 @ApiTags('Trades')

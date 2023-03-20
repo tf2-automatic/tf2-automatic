@@ -27,7 +27,7 @@ import {
 import { UpdateProfileAvatarDto } from './dto/update-profile-avatar.dto';
 import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { TradeOfferUrlModel } from './models/tradeofferurl.model';
+import { TradeOfferUrlModel } from '@tf2-automatic/swagger';
 import { ProfileService } from './profile.service';
 
 @ApiTags('Profile')
