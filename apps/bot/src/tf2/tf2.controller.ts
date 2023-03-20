@@ -31,8 +31,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { CraftDto } from './dto/craft.dto';
 import { SortBackpackDto } from './dto/sort-backpack.dto';
-import { TF2AccountModel } from './models/account.model';
-import { CraftResultModel } from './models/craft-result.model';
+import { TF2AccountModel, CraftResultModel } from '@tf2-automatic/swagger';
 import { TF2Service } from './tf2.service';
 
 @ApiTags('TF2')

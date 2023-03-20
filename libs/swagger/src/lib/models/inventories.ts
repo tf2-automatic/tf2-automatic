@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Action, Description, Item, Tag } from '@tf2-automatic/bot-data';
+import {
+  Action,
+  Description,
+  Inventory,
+  Item,
+  Tag,
+} from '@tf2-automatic/bot-data';
+import { InventoryResponse } from '@tf2-automatic/bot-manager-data';
 
 export class ItemModel implements Item {
   @ApiProperty({
@@ -166,4 +173,24 @@ export class ItemModel implements Item {
     description: 'An object containing additional data about the item',
   })
   app_data?: Record<string, unknown> | undefined;
+}
+
+export class CachedInventoryModel implements InventoryResponse {
+  @ApiProperty({
+    example: true,
+    description: 'If the inventory was cached',
+  })
+  cached: boolean;
+
+  @ApiProperty({
+    example: Math.floor(Date.now() / 1000),
+    description: 'The timestamp of when the inventory was fetched',
+  })
+  timestamp: number;
+
+  @ApiProperty({
+    type: [ItemModel],
+    description: 'The items in the inventory',
+  })
+  inventory: Inventory;
 }

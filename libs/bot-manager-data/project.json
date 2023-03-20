@@ -53,7 +53,7 @@
             "forwardAllArgs": false
           },
           {
-            "command": "npm publish",
+            "command": "npm publish --tag {args.tag}",
             "forwardAllArgs": false
           }
         ],
