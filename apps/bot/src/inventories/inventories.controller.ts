@@ -9,8 +9,7 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { ApiParamSteamID } from '../common/swagger/api-param-steamid64.decorator';
-import { ItemModel } from './models/item.model';
+import { ItemModel, ApiParamSteamID } from '@tf2-automatic/swagger';
 
 @ApiTags('Inventories')
 @Controller(INVENTORIES_BASE_URL)

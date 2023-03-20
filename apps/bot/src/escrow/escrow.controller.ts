@@ -7,7 +7,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
-import { ApiParamSteamID } from '../common/swagger/api-param-steamid64.decorator';
+import { ApiParamSteamID } from '@tf2-automatic/swagger';
 import { EscrowService } from './escrow.service';
 
 @ApiTags('Escrow')

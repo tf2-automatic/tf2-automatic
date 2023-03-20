@@ -27,11 +27,13 @@ import {
 } from '@tf2-automatic/bot-data';
 import { SendFriendMessageDto } from './dto/send-friend-message.dto';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { FriendModel } from './models/friend.model';
-import { AddFriendModel } from './models/add-friend.model';
-import { DeleteFriendModel } from './models/delete-friend.model';
-import { ApiParamSteamID } from '../common/swagger/api-param-steamid64.decorator';
-import { MessageModel } from './models/message.model';
+import {
+  FriendModel,
+  AddFriendModel,
+  DeleteFriendModel,
+  MessageModel,
+  ApiParamSteamID,
+} from '@tf2-automatic/swagger';
 
 @ApiTags('Friends')
 @Controller(FRIENDS_BASE_URL)

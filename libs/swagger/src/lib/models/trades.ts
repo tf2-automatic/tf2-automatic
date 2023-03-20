@@ -1,7 +1,68 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Item, TradeOffer } from '@tf2-automatic/bot-data';
+import {
+  ExchangeDetailsItem,
+  GetTradesResponse,
+  Item,
+  TradeOffer,
+  TradeOfferExchangeDetails,
+} from '@tf2-automatic/bot-data';
+import { ItemModel } from './inventories';
+import { ETradeStatus } from 'steam-tradeoffer-manager';
 import { ETradeOfferState, ETradeOfferConfirmationMethod } from 'steam-user';
-import { ItemModel } from '../../inventories/models/item.model';
+
+export class DetailsItemModel extends ItemModel implements ExchangeDetailsItem {
+  @ApiProperty({
+    example: '1234567890',
+    description: 'The new assetid of the item because the trade was accepted',
+  })
+  new_assetid?: string;
+
+  @ApiProperty({
+    example: '1234567890',
+    description: 'The new contextid of the item because the trade was accepted',
+  })
+  new_contextid?: string;
+
+  @ApiProperty({
+    example: '1234567890',
+    description:
+      'The new assetid of the item because the trade was rolled back',
+  })
+  rollback_new_assetid?: string;
+
+  @ApiProperty({
+    example: '1234567890',
+    description:
+      'The new contextid of the item because the trade was rolled back',
+  })
+  rollback_new_contextid?: string;
+}
+
+export class DetailsModel implements TradeOfferExchangeDetails {
+  @ApiProperty({
+    type: Number,
+    example: 3,
+    description: 'The status of the trade and how far it is in the process',
+  })
+  status: ETradeStatus;
+
+  @ApiProperty({
+    type: Number,
+    example: Math.floor(Date.now() / 1000),
+    description: 'The time Steam started processing the trade and moving items',
+  })
+  tradeInitTime: number;
+
+  @ApiProperty({
+    type: [DetailsItemModel],
+  })
+  receivedItems: ExchangeDetailsItem[];
+
+  @ApiProperty({
+    type: [DetailsItemModel],
+  })
+  sentItems: ExchangeDetailsItem[];
+}
 
 const now = Math.floor(Date.now() / 1000);
 
@@ -103,4 +164,18 @@ export class TradeModel implements TradeOffer {
       'If the offer is in escrow, this contains the unix timestamp for when the offer leaves escrow',
   })
   escrowEndsAt: number | null;
+}
+
+export class TradesModel implements GetTradesResponse {
+  @ApiProperty({
+    description: 'Sent trades',
+    type: [TradeModel],
+  })
+  sent: TradeOffer[];
+
+  @ApiProperty({
+    description: 'Received trades',
+    type: [TradeModel],
+  })
+  received: TradeOffer[];
 }
