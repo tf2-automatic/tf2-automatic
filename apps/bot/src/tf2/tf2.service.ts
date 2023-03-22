@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
+import TF2Language from 'tf2/language';
 import { Logger } from '@nestjs/common';
 import {
   CraftResult,
@@ -20,6 +21,9 @@ import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
 import { CraftDto } from './dto/craft.dto';
 import { SortBackpackDto } from './dto/sort-backpack.dto';
+
+// Stop node-tf2 from fetching the item schema
+delete TeamFortress2.prototype._handlers[TF2Language.UpdateItemSchema];
 
 enum TaskType {
   Craft = 'CRAFT',
