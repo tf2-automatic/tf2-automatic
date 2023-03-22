@@ -64,7 +64,7 @@
     "@nestjs/bullmq": "^1.1.0",
     "@nestjs/common": "^9.3.10",
     "@nestjs/config": "^2.3.1",
-    "@nestjs/core": "^9.3.10",
+    "@nestjs/core": "^9.3.11",
     "@nestjs/event-emitter": "^1.4.1",
     "@nestjs/platform-express": "^9.3.10",
     "@nestjs/swagger": "^6.2.1",
