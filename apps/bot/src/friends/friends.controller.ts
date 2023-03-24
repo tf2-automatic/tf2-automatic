@@ -25,7 +25,6 @@ import {
   FRIEND_TYPING_PATH,
   FRIEND_BLOCK_PATH,
 } from '@tf2-automatic/bot-data';
-import { SendFriendMessageDto } from './dto/send-friend-message.dto';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   FriendModel,
@@ -34,6 +33,7 @@ import {
   MessageModel,
   ApiParamSteamID,
 } from '@tf2-automatic/swagger';
+import { SendFriendMessageDto } from '@tf2-automatic/dto';
 
 @ApiTags('Friends')
 @Controller(FRIENDS_BASE_URL)

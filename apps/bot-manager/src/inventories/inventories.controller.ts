@@ -20,7 +20,7 @@ import {
 } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
-import { GetInventoryDto } from './dto/get-inventory.dto';
+import { GetInventoryDto } from '@tf2-automatic/dto';
 import { InventoriesService } from './inventories.service';
 import { ApiParamSteamID, CachedInventoryModel } from '@tf2-automatic/swagger';
 

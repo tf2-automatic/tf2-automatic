@@ -23,11 +23,10 @@ import { EventsService } from '../events/events.service';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import SteamUser from 'steam-user';
-import { GetTradesDto } from './dto/get-trades.dto';
-import { CreateTradeDto } from './dto/create-trade.dto';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
 import sizeof from 'object-sizeof';
+import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
 
 interface EnsureOfferPublishedTask {
   id: string;

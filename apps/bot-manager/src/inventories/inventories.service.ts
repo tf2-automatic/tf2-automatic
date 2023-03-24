@@ -29,7 +29,7 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { GetInventoryDto } from './dto/get-inventory.dto';
+import { GetInventoryDto } from '@tf2-automatic/dto';
 
 const INVENTORY_EXPIRE_TIME = 600;
 

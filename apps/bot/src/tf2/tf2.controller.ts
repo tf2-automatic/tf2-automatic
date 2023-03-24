@@ -29,8 +29,7 @@ import {
   CraftRecipe,
   SortBackpackTypes,
 } from '@tf2-automatic/bot-data';
-import { CraftDto } from './dto/craft.dto';
-import { SortBackpackDto } from './dto/sort-backpack.dto';
+import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
 import { TF2AccountModel, CraftResultModel } from '@tf2-automatic/swagger';
 import { TF2Service } from './tf2.service';
 
