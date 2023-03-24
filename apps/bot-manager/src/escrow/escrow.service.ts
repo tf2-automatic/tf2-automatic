@@ -11,7 +11,7 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { GetEscrowDto } from './dto/get-escrow.dto';
+import { GetEscrowDto } from '@tf2-automatic/dto';
 
 const ESCROW_EXPIRE_TIME = 24 * 60 * 60;
 

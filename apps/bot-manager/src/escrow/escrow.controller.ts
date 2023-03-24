@@ -11,7 +11,7 @@ import { ESCROW_BASE_URL, ESCROW_PATH } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import { ApiParamSteamID, EscrowModel } from '@tf2-automatic/swagger';
 import SteamID from 'steamid';
-import { GetEscrowDto } from './dto/get-escrow.dto';
+import { GetEscrowDto } from '@tf2-automatic/dto';
 import { EscrowService } from './escrow.service';
 
 @ApiTags('Escrow')

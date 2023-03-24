@@ -40,9 +40,8 @@ import {
   TradeModel,
   TradesModel,
 } from '@tf2-automatic/swagger';
-import { CreateTradeDto } from './dto/create-trade.dto';
-import { GetTradesDto } from './dto/get-trades.dto';
 import { TradesService } from './trades.service';
+import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
 
 @ApiTags('Trades')
 @Controller(TRADES_BASE_URL)

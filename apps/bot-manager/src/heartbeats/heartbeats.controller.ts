@@ -13,7 +13,7 @@ import {
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import { ApiParamSteamID, BotModel } from '@tf2-automatic/swagger';
 import SteamID from 'steamid';
-import { BotHeartbeatDto } from './dto/bot-heartbeat.dto';
+import { BotHeartbeatDto } from '@tf2-automatic/dto';
 import { HeartbeatsService } from './heartbeats.service';
 
 @ApiTags('Heartbeats')
