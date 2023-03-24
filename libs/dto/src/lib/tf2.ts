@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Craft, CraftRecipe } from '@tf2-automatic/bot-data';
+import {
+  Craft,
+  CraftRecipe,
+  SortBackpack,
+  SortBackpackTypes,
+} from '@tf2-automatic/bot-data';
 import { IsArray, IsEnum, IsString } from 'class-validator';
 
 export class CraftDto implements Craft {
@@ -19,4 +24,13 @@ export class CraftDto implements Craft {
   })
   @IsEnum(CraftRecipe)
   recipe: CraftRecipe;
+}
+
+export class SortBackpackDto implements SortBackpack {
+  @ApiProperty({
+    enum: SortBackpackTypes,
+    description: 'The type of sorting to use',
+  })
+  @IsEnum(SortBackpackTypes)
+  sort: SortBackpackTypes;
 }

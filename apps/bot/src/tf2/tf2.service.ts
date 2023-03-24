@@ -19,8 +19,7 @@ import {
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
-import { CraftDto } from './dto/craft.dto';
-import { SortBackpackDto } from './dto/sort-backpack.dto';
+import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
 
 // Stop node-tf2 from fetching the item schema
 delete TeamFortress2.prototype._handlers[TF2Language.UpdateItemSchema];

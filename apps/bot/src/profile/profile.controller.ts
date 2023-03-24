@@ -24,9 +24,11 @@ import {
   PROFILE_TRADEOFFERURL_PATH,
   TradeOfferUrlResponse,
 } from '@tf2-automatic/bot-data';
-import { UpdateProfileAvatarDto } from './dto/update-profile-avatar.dto';
-import { UpdateProfileSettingsDto } from './dto/update-profile-settings.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  UpdateProfileAvatarDto,
+  UpdateProfileDto,
+  UpdateProfileSettingsDto,
+} from '@tf2-automatic/dto';
 import { TradeOfferUrlModel } from '@tf2-automatic/swagger';
 import { ProfileService } from './profile.service';
 
