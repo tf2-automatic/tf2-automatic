@@ -127,7 +127,9 @@ export class HeartbeatsService {
   }
 
   async deleteBot(steamid: SteamID): Promise<void> {
-    const result = await this.redis.del(steamid.getSteamID64());
+    const result = await this.redis.del(
+      BOT_KEY.replace('STEAMID64', steamid.getSteamID64())
+    );
 
     if (result === 0) {
       throw new NotFoundException('Bot not found');
