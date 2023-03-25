@@ -48,7 +48,7 @@ export class TradesService {
       event.data.offer.id,
       {
         offer: event.data.offer,
-        steamid64: steamid.getSteamID64(),
+        bot: steamid.getSteamID64(),
       },
       {
         jobId: `offer:${event.data.offer.id}`,
