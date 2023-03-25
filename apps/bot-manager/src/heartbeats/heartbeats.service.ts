@@ -16,8 +16,6 @@ import {
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
-import { ConfigService } from '@nestjs/config';
-import { Config, RedisConfig } from '../common/config/configuration';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
 
 const BOT_PREFIX = ':bots';
@@ -29,33 +27,31 @@ export class HeartbeatsService {
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    private readonly configService: ConfigService<Config>,
     private readonly httpService: HttpService
   ) {}
 
   getBots(): Promise<Bot[]> {
-    const keyPrefix =
-      this.configService.getOrThrow<RedisConfig>('redis').keyPrefix;
+    return this.redis
+      .keys(`${this.redis.options.keyPrefix}${BOT_PREFIX}:*`)
+      .then((keys) => {
+        if (keys.length === 0) {
+          return [];
+        }
 
-    return this.redis.keys(`${keyPrefix}${BOT_PREFIX}:*`).then((keys) => {
-      if (keys.length === 0) {
-        return [];
-      }
+        const botKeys = keys
+          .map((key) => {
+            const steamid = key.split(':').pop();
+            return new SteamID(steamid as string);
+          })
+          .map((steamid) => {
+            return BOT_KEY.replace('STEAMID64', steamid.getSteamID64());
+          });
 
-      const botKeys = keys
-        .map((key) => {
-          const steamid = key.split(':').pop();
-          return new SteamID(steamid as string);
-        })
-        .map((steamid) => {
-          return BOT_KEY.replace('STEAMID64', steamid.getSteamID64());
+        return this.redis.mget(botKeys).then((result) => {
+          const filtered = result.filter((bot) => bot !== null) as string[];
+          return filtered.map((bot) => JSON.parse(bot));
         });
-
-      return this.redis.mget(botKeys).then((result) => {
-        const filtered = result.filter((bot) => bot !== null) as string[];
-        return filtered.map((bot) => JSON.parse(bot));
       });
-    });
   }
 
   async getBot(steamid: SteamID): Promise<Bot> {
