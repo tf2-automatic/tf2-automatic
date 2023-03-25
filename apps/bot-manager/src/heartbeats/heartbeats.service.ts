@@ -20,7 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { Config, RedisConfig } from '../common/config/configuration';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
 
-const BOT_PREFIX = 'bots';
+const BOT_PREFIX = ':bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 
 @Injectable()
