@@ -309,6 +309,6 @@ export class InventoriesService {
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+    return `:inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
   }
 }
