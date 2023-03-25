@@ -12,4 +12,12 @@ export class MetadataService {
   getSteamID(): SteamID | null {
     return this.steamid;
   }
+
+  getOrThrowSteamID(): SteamID {
+    if (!this.steamid) {
+      throw new Error('SteamID is not set');
+    }
+
+    return this.steamid;
+  }
 }

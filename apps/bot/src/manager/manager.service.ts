@@ -9,7 +9,6 @@ import { ConfigService } from '@nestjs/config';
 import { Config, ManagerConfig } from '../common/config/configuration';
 import { firstValueFrom } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
-import { BotService } from '../bot/bot.service';
 import ip from 'ip';
 import {
   HEALTH_BASE_URL,
@@ -17,6 +16,7 @@ import {
   HEARTBEAT_BASE_URL,
   HEARTBEAT_PATH,
 } from '@tf2-automatic/bot-manager-data';
+import { MetadataService } from '../metadata/metadata.service';
 
 @Injectable()
 export class ManagerService implements OnModuleInit, OnModuleDestroy {
@@ -32,7 +32,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService<Config>,
     private readonly httpService: HttpService,
-    private readonly botService: BotService
+    private readonly metadataService: MetadataService
   ) {
     const ourIp = this.configService.get<string>('ip');
 
@@ -55,7 +55,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
           this.configService.getOrThrow('manager').url
         }${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
-          this.botService.getSteamID64()
+          this.metadataService.getOrThrowSteamID().getSteamID64()
         ),
         {
           ip: this.ip,
@@ -88,7 +88,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
           this.configService.getOrThrow('manager').url
         }${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
-          this.botService.getSteamID64()
+          this.metadataService.getOrThrowSteamID().getSteamID64()
         )
       )
     );
@@ -130,15 +130,9 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): Promise<void> {
-    if (!this.enabled) {
-      return Promise.resolve();
-    }
-
     clearInterval(this.timeout);
-    if (!this.botService.isRunning()) {
-      return Promise.resolve();
-    }
-
-    return this.deleteBot();
+    return this.deleteBot().catch((err) => {
+      this.logger.warn('Failed to remove bot: ' + err.message);
+    });
   }
 }
