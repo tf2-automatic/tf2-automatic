@@ -38,7 +38,8 @@ async function bootstrap() {
   try {
     await app.init();
   } catch (err) {
-    Logger.error('Failed to initialize application: ' + err.message);
+    Logger.error('Failed to initialize application');
+    console.error(err);
     await app.close();
     process.exit(1);
   }
@@ -47,8 +48,9 @@ async function bootstrap() {
   try {
     await botService.start();
   } catch (err) {
-    Logger.error('Failed to start bot: ' + err.message);
-    app.close();
+    Logger.error('Failed to start bot');
+    console.error(err);
+    await app.close();
     process.exit(1);
   }
 
