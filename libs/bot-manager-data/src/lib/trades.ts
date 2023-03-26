@@ -1,8 +1,21 @@
 import {
   BaseEvent,
+  CreateTrade,
   TradeOffer,
   TradeOfferExchangeDetails,
 } from '@tf2-automatic/bot-data';
+
+export const TRADES_BASE_URL = '/trades';
+export const TRADES_PATH = `/`;
+export const TRADE_PATH = `/:id`;
+
+export interface QueueTrade extends CreateTrade {
+  bot: string;
+}
+
+export interface QueueTradeResponse {
+  id: string;
+}
 
 export type ExchangeDetailsEventType = 'trades.exchange-details';
 
