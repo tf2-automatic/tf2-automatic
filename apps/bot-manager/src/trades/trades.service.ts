@@ -7,18 +7,34 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
+  CreateTradeResponse,
+  GetTradesResponse,
+  OfferFilter,
   TradeChangedEvent,
   TradeOfferExchangeDetails,
   TRADES_BASE_URL,
+  TRADES_PATH,
   TRADE_CHANGED_EVENT,
   TRADE_EXCHANGE_DETAILS_PATH,
 } from '@tf2-automatic/bot-data';
+import {
+  Bot,
+  QueueTrade,
+  QueueTradeResponse,
+} from '@tf2-automatic/bot-manager-data';
+import {
+  CreateTradeDto,
+  GetTradesDto,
+  QueueTradeDto,
+} from '@tf2-automatic/dto';
 import { Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
+import { v4 as uuidv4 } from 'uuid';
+import { CreateJobQueue } from './interfaces/create-job-queue.interface';
 
 @Injectable()
 export class TradesService {
@@ -26,8 +42,102 @@ export class TradesService {
     private readonly heartbeatsService: HeartbeatsService,
     private readonly httpService: HttpService,
     @InjectQueue('getExchangeDetails')
-    private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>
+    private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
+    @InjectQueue('createTrades')
+    private readonly createTradesQueue: Queue<CreateJobQueue>
   ) {}
+
+  async enqueueTrade(trade: QueueTradeDto): Promise<QueueTradeResponse> {
+    const id = uuidv4();
+
+    const job = await this.createTradesQueue.add(
+      id,
+      {
+        data: {
+          trade: {
+            bot: trade.bot,
+            partner: trade.partner,
+            token: trade.token,
+            message: trade.message,
+            itemsToGive: trade.itemsToGive,
+            itemsToReceive: trade.itemsToReceive,
+          },
+        },
+        options: {
+          retryFor: trade.retryFor ?? 120000,
+          maxRetryDelay: trade.maxRetryDelay ?? 10000,
+        },
+      },
+      {
+        jobId: id,
+        priority: trade.priority,
+      }
+    );
+
+    const jobId = job.id as string;
+
+    return {
+      id: jobId,
+    };
+  }
+
+  dequeueTrade(id: string): Promise<boolean> {
+    return this.createTradesQueue.remove(id).then((res) => {
+      return res === 1;
+    });
+  }
+
+  getQueuedTrades() {
+    return this.createTradesQueue.getJobs().then((jobs) => {
+      return jobs.map((job) => {
+        return {
+          id: job.id,
+          data: job.data.data.trade,
+          options: job.data.options,
+          attempts: job.attemptsMade,
+          lastProcessedAt:
+            job.processedOn === undefined
+              ? null
+              : Math.floor(job.processedOn / 1000),
+          createdAt: Math.floor(job.timestamp / 1000),
+        };
+      });
+    });
+  }
+
+  async createTrade(bot: Bot, trade: QueueTrade): Promise<CreateTradeResponse> {
+    // TODO: Save active trades in redis. Listen for rabbitmq events and update redis based on them.
+
+    const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
+
+    const data: CreateTradeDto = {
+      partner: trade.partner,
+      message: trade.message,
+      itemsToGive: trade.itemsToGive,
+      itemsToReceive: trade.itemsToReceive,
+      token: trade.token,
+    };
+
+    return firstValueFrom(
+      this.httpService.post<CreateTradeResponse>(url, data)
+    ).then((res) => {
+      return res.data;
+    });
+  }
+
+  getActiveTrades(bot: Bot): Promise<GetTradesResponse> {
+    const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
+
+    const params: GetTradesDto = {
+      filter: OfferFilter.ActiveOnly,
+    };
+
+    return firstValueFrom(
+      this.httpService.get<GetTradesResponse>(url, {
+        params,
+      })
+    ).then((res) => res.data);
+  }
 
   @RabbitSubscribe({
     allowNonJsonMessages: false,

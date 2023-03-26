@@ -5,14 +5,17 @@ import {
   GetTrades,
   OfferFilter,
 } from '@tf2-automatic/bot-data';
+import { QueueTrade } from '@tf2-automatic/bot-manager-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -108,4 +111,46 @@ export class GetTradesDto implements GetTrades {
   @IsEnum(OfferFilter)
   @Type(() => Number)
   filter: OfferFilter;
+}
+
+export class QueueTradeDto extends CreateTradeDto implements QueueTrade {
+  @ApiProperty({
+    description: 'The steamid64 of the bot to send the trade offer with',
+    example: '76561198120070906',
+  })
+  @IsSteamID()
+  bot: string;
+
+  @ApiProperty({
+    description:
+      'The priority of the job. The closter to 1 the higher the priority.',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  priority?: number;
+
+  @ApiProperty({
+    description: 'Maximum delay between retries in milliseconds',
+    example: 10000,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(10000)
+  maxRetryDelay?: number;
+
+  @ApiProperty({
+    description:
+      'Maximum amount of time in milliseconds the job will be retried for until it fails',
+    example: 60000,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(10000)
+  retryFor?: number;
 }
