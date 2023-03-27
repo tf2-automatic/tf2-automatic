@@ -5,7 +5,7 @@ import {
   GetTrades,
   OfferFilter,
 } from '@tf2-automatic/bot-data';
-import { QueueTrade } from '@tf2-automatic/bot-manager-data';
+import { QueueTradeOptions } from '@tf2-automatic/bot-manager-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import {
@@ -113,14 +113,7 @@ export class GetTradesDto implements GetTrades {
   filter: OfferFilter;
 }
 
-export class QueueTradeDto extends CreateTradeDto implements QueueTrade {
-  @ApiProperty({
-    description: 'The steamid64 of the bot to send the trade offer with',
-    example: '76561198120070906',
-  })
-  @IsSteamID()
-  bot: string;
-
+export class QueueTradeOptionsDto implements QueueTradeOptions {
   @ApiProperty({
     description:
       'The priority of the job. The closter to 1 the higher the priority.',
@@ -132,6 +125,8 @@ export class QueueTradeDto extends CreateTradeDto implements QueueTrade {
   @Min(1)
   @Max(Number.MAX_SAFE_INTEGER)
   priority?: number;
+
+  retryStrategy?: 'exponential' | 'linear' | 'fixed';
 
   @ApiProperty({
     description: 'Maximum delay between retries in milliseconds',
@@ -163,4 +158,29 @@ export class QueueTradeDto extends CreateTradeDto implements QueueTrade {
   @IsInt()
   @Min(10000)
   retryFor?: number;
+}
+
+export class QueueTradeDto {
+  @ApiProperty({
+    description: 'The trade to send',
+    type: CreateTradeDto,
+  })
+  @ValidateNested()
+  @Type(() => CreateTradeDto)
+  trade: CreateTradeDto;
+
+  @ApiProperty({
+    description: 'The steamid64 of the bot to send the trade offer with',
+    example: '76561198120070906',
+  })
+  @IsSteamID()
+  bot: string;
+
+  @ApiProperty({
+    description: 'The options for the job',
+    type: QueueTradeOptionsDto,
+  })
+  @ValidateNested()
+  @Type(() => QueueTradeOptionsDto)
+  options: QueueTradeOptionsDto;
 }

@@ -7,6 +7,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
+  CreateTrade,
   CreateTradeResponse,
   GetTradesResponse,
   OfferFilter,
@@ -17,11 +18,7 @@ import {
   TRADE_CHANGED_EVENT,
   TRADE_EXCHANGE_DETAILS_PATH,
 } from '@tf2-automatic/bot-data';
-import {
-  Bot,
-  QueueTrade,
-  QueueTradeResponse,
-} from '@tf2-automatic/bot-manager-data';
+import { Bot, QueueTradeResponse } from '@tf2-automatic/bot-manager-data';
 import {
   CreateTradeDto,
   GetTradesDto,
@@ -34,7 +31,7 @@ import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
 import { v4 as uuidv4 } from 'uuid';
-import { CreateJobQueue } from './interfaces/create-job-queue.interface';
+import { CreateTradeQueue } from './interfaces/create-trade-queue.interface';
 
 @Injectable()
 export class TradesService {
@@ -44,34 +41,28 @@ export class TradesService {
     @InjectQueue('getExchangeDetails')
     private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
     @InjectQueue('createTrades')
-    private readonly createTradesQueue: Queue<CreateJobQueue>
+    private readonly createTradesQueue: Queue<CreateTradeQueue>
   ) {}
 
-  async enqueueTrade(trade: QueueTradeDto): Promise<QueueTradeResponse> {
+  async enqueueTrade(dto: QueueTradeDto): Promise<QueueTradeResponse> {
     const id = uuidv4();
 
     const job = await this.createTradesQueue.add(
       id,
       {
         data: {
-          trade: {
-            bot: trade.bot,
-            partner: trade.partner,
-            token: trade.token,
-            message: trade.message,
-            itemsToGive: trade.itemsToGive,
-            itemsToReceive: trade.itemsToReceive,
-          },
+          trade: dto.trade,
         },
+        bot: dto.bot,
         options: {
-          retryFor: trade.retryFor ?? 120000,
-          retryDelay: trade.retryDelay ?? 1000,
-          maxRetryDelay: trade.maxRetryDelay ?? 10000,
+          retryFor: dto.options.retryFor ?? 120000,
+          retryDelay: dto.options.retryDelay ?? 1000,
+          maxRetryDelay: dto.options.maxRetryDelay ?? 10000,
         },
       },
       {
         jobId: id,
-        priority: trade.priority,
+        priority: dto.options.priority,
       }
     );
 
@@ -106,7 +97,10 @@ export class TradesService {
     });
   }
 
-  async createTrade(bot: Bot, trade: QueueTrade): Promise<CreateTradeResponse> {
+  async createTrade(
+    bot: Bot,
+    trade: CreateTrade
+  ): Promise<CreateTradeResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
 
     const data: CreateTradeDto = {

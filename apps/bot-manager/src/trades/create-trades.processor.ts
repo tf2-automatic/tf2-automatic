@@ -1,18 +1,17 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { SteamError, TradeOffer } from '@tf2-automatic/bot-data';
-import { QueueTrade } from '@tf2-automatic/bot-manager-data';
+import { CreateTrade, SteamError, TradeOffer } from '@tf2-automatic/bot-data';
 import { AxiosError } from 'axios';
 import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { CreateJobQueue } from './interfaces/create-job-queue.interface';
+import { CreateTradeQueue } from './interfaces/create-trade-queue.interface';
 import { TradesService } from './trades.service';
 
 type BackoffStrategy = (
   attemptsMade: number,
-  job: MinimalJob<CreateJobQueue>
+  job: MinimalJob<CreateTradeQueue>
 ) => number;
 
 const customBackoffStrategy: BackoffStrategy = (attemptsMade, job) => {
@@ -39,9 +38,9 @@ export class CreateTradesProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<CreateJobQueue>): Promise<string> {
+  async process(job: Job<CreateTradeQueue>): Promise<string> {
     this.logger.log(
-      `Processing trade ${job.id} with ${job.data.data.trade.partner} and bot ${job.data.data.trade.bot}...`
+      `Processing trade ${job.id} with ${job.data.data.trade.partner} and bot ${job.data.bot}...`
     );
 
     // Check if job is too old
@@ -64,8 +63,8 @@ export class CreateTradesProcessor extends WorkerHost {
     }
   }
 
-  private async handleJob(job: Job<CreateJobQueue>): Promise<string> {
-    const botSteamID = new SteamID(job.data.data.trade.bot);
+  private async handleJob(job: Job<CreateTradeQueue>): Promise<string> {
+    const botSteamID = new SteamID(job.data.bot);
 
     this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
 
@@ -138,7 +137,7 @@ export class CreateTradesProcessor extends WorkerHost {
   }
 
   private findMatchingTrade(
-    trade: QueueTrade,
+    trade: CreateTrade,
     time: number,
     trades: TradeOffer[]
   ): TradeOffer | null {
@@ -193,7 +192,7 @@ export class CreateTradesProcessor extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  onFailed(job: Job<CreateJobQueue>, err: Error): void {
+  onFailed(job: Job<CreateTradeQueue>, err: Error): void {
     this.logger.warn(`Failed to process trade ${job.id}: ${err.message}`);
     if (err instanceof AxiosError && err.response) {
       console.log(err.response.data);
@@ -201,7 +200,7 @@ export class CreateTradesProcessor extends WorkerHost {
   }
 
   @OnWorkerEvent('completed')
-  onCompleted(job: Job<CreateJobQueue>): void {
+  onCompleted(job: Job<CreateTradeQueue>): void {
     this.logger.log(`Completed trade ${job.id} sent offer #${job.returnvalue}`);
   }
 }

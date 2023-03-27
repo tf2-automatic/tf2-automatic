@@ -1,10 +1,6 @@
 import { QueueTrade } from '@tf2-automatic/bot-manager-data';
 
-export interface CreateJobQueue {
-  data: {
-    trade: QueueTrade;
-    checkCreatedAfter?: number;
-  };
+export interface CreateTradeQueue extends QueueTrade {
   options: {
     retryFor: number;
     retryDelay: number;
