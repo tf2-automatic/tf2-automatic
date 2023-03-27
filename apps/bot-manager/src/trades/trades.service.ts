@@ -73,7 +73,7 @@ export class TradesService {
     });
   }
 
-  geQueue() {
+  getQueue() {
     return this.tradesQueue.getJobs().then((jobs) => {
       return jobs.map((job) => {
         return {

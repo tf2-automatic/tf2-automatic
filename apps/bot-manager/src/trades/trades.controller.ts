@@ -85,6 +85,6 @@ export class TradesController {
       'Gets all queued trade actions (accept, decline / cancel, send, etc.)',
   })
   getQueue() {
-    return this.tradesService.geQueue();
+    return this.tradesService.getQueue();
   }
 }
