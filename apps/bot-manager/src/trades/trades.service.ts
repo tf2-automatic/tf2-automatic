@@ -54,15 +54,11 @@ export class TradesService {
           trade: dto.trade,
         },
         bot: dto.bot,
-        options: {
-          retryFor: dto.options.retryFor ?? 120000,
-          retryDelay: dto.options.retryDelay ?? 1000,
-          maxRetryDelay: dto.options.maxRetryDelay ?? 10000,
-        },
+        retry: dto.retry,
       },
       {
         jobId: id,
-        priority: dto.options.priority,
+        priority: dto.priority,
       }
     );
 
@@ -84,8 +80,8 @@ export class TradesService {
       return jobs.map((job) => {
         return {
           id: job.id,
-          data: job.data.data.trade,
-          options: job.data.options,
+          trade: job.data.data.trade,
+          bot: job.data.bot,
           attempts: job.attemptsMade,
           lastProcessedAt:
             job.processedOn === undefined

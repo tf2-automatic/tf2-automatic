@@ -9,20 +9,18 @@ export const TRADES_BASE_URL = '/trades';
 export const TRADES_PATH = `/`;
 export const TRADE_PATH = `/:id`;
 
-export interface QueueTradeOptions {
+export interface RetryTradeOptions {
   priority?: number;
-  retryFor?: number;
-  retryDelay?: number;
-  maxRetryDelay?: number;
+  maxTime?: number;
+  delay?: number;
+  maxDelay?: number;
 }
 
 export interface QueueTrade {
-  data: {
-    trade: CreateTrade;
-    checkCreatedAfter?: number;
-  };
+  trade: CreateTrade;
   bot: string;
-  options: QueueTradeOptions;
+  priority?: number;
+  retry?: RetryTradeOptions;
 }
 
 export interface QueueTradeResponse {
