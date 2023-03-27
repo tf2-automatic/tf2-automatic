@@ -37,6 +37,10 @@ export class CreateTradesProcessor extends WorkerHost {
   }
 
   async process(job: Job<CreateJobQueue>): Promise<string> {
+    this.logger.log(
+      `Processing trade ${job.id} with ${job.data.data.trade.partner} and bot ${job.data.data.trade.bot}...`
+    );
+
     // Check if job is too old
     if (job.timestamp < Date.now() - job.data.options.retryFor) {
       throw new UnrecoverableError('Job is too old');
@@ -60,10 +64,17 @@ export class CreateTradesProcessor extends WorkerHost {
   private async handleJob(job: Job<CreateJobQueue>): Promise<string> {
     const botSteamID = new SteamID(job.data.data.trade.bot);
 
+    this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
+
     const bot = await this.heartbeatsService.getBot(botSteamID);
 
     if (job.data.data.checkCreatedAfter !== undefined) {
       // Check if offer was created
+      this.logger.debug(
+        `Checking if a similar offer already offer exists...`,
+        job.id
+      );
+
       const trades = await this.tradesService.getActiveTrades(bot);
 
       const offer = this.findMatchingTrade(
@@ -76,11 +87,15 @@ export class CreateTradesProcessor extends WorkerHost {
         // Offer was already created
         return offer.id;
       }
+
+      this.logger.debug(`Did not find a matching offer`);
     }
 
     const now = Date.now();
 
     try {
+      this.logger.debug(`Creating trade...`);
+
       const offer = await this.tradesService.createTrade(
         bot,
         job.data.data.trade
@@ -172,5 +187,18 @@ export class CreateTradesProcessor extends WorkerHost {
   @OnWorkerEvent('error')
   onError(): void {
     // Do nothing
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job<CreateJobQueue>, err: Error): void {
+    this.logger.warn(`Failed to process trade ${job.id}: ${err.message}`);
+    if (err instanceof AxiosError && err.response) {
+      console.log(err.response.data);
+    }
+  }
+
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job<CreateJobQueue>): void {
+    this.logger.log(`Completed trade ${job.id} sent offer #${job.returnvalue}`);
   }
 }
