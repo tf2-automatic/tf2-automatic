@@ -106,8 +106,6 @@ export class TradesService {
   }
 
   async createTrade(bot: Bot, trade: QueueTrade): Promise<CreateTradeResponse> {
-    // TODO: Save active trades in redis. Listen for rabbitmq events and update redis based on them.
-
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
 
     const data: CreateTradeDto = {
