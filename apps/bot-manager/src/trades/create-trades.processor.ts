@@ -60,7 +60,6 @@ export class CreateTradesProcessor extends WorkerHost {
     }
 
     try {
-      throw new Error('xd');
       // Work on job
       return this.handleJob(job);
     } catch (err) {
