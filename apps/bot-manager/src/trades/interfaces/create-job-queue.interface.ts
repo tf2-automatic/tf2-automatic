@@ -7,6 +7,7 @@ export interface CreateJobQueue {
   };
   options: {
     retryFor: number;
+    retryDelay: number;
     maxRetryDelay: number;
   };
 }

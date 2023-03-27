@@ -65,6 +65,7 @@ export class TradesService {
         },
         options: {
           retryFor: trade.retryFor ?? 120000,
+          retryDelay: trade.retryDelay ?? 1000,
           maxRetryDelay: trade.maxRetryDelay ?? 10000,
         },
       },

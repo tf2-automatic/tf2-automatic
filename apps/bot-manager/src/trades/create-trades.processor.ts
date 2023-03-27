@@ -16,7 +16,10 @@ type BackoffStrategy = (
 ) => number;
 
 const customBackoffStrategy: BackoffStrategy = (attemptsMade, job) => {
-  return Math.min(attemptsMade * 1000, job.data.options.maxRetryDelay);
+  return Math.min(
+    attemptsMade * job.data.options.retryDelay,
+    job.data.options.maxRetryDelay
+  );
 };
 
 @Processor('createTrades', {

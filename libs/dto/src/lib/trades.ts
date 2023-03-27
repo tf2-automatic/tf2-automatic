@@ -144,6 +144,16 @@ export class QueueTradeDto extends CreateTradeDto implements QueueTrade {
   maxRetryDelay?: number;
 
   @ApiProperty({
+    description: 'Delay between retries in milliseconds',
+    example: 1000,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  retryDelay?: number;
+
+  @ApiProperty({
     description:
       'Maximum amount of time in milliseconds the job will be retried for until it fails',
     example: 60000,
