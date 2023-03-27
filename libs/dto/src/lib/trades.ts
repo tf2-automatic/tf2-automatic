@@ -115,18 +115,13 @@ export class GetTradesDto implements GetTrades {
 
 export class QueueTradeOptionsDto implements RetryTradeOptions {
   @ApiProperty({
-    description:
-      'The priority of the job. The closter to 1 the higher the priority.',
-    example: 1,
+    description: 'The retry strategy to use',
     required: false,
+    example: 'exponential',
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(Number.MAX_SAFE_INTEGER)
-  priority?: number;
-
-  retryStrategy?: 'exponential' | 'linear' | 'fixed';
+  @IsEnum(['exponential', 'linear', 'fixed'])
+  strategy?: 'exponential' | 'linear' | 'fixed';
 
   @ApiProperty({
     description:

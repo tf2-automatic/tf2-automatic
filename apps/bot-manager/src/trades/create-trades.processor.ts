@@ -15,15 +15,25 @@ type BackoffStrategy = (
 ) => number;
 
 const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
+  const strategy = job.data.retry.strategy ?? 'exponential';
   const delay = job.data.retry.delay ?? 1000;
   const maxDelay = job.data.retry.maxDelay ?? 10000;
-  return Math.min(attempts * delay, maxDelay);
+
+  let wait = delay;
+
+  if (strategy === 'exponential') {
+    wait = 2 ** (attempts - 1) * delay;
+  } else if (strategy === 'linear') {
+    wait = attempts * delay;
+  }
+
+  return Math.min(wait, maxDelay);
 };
 
 @Processor('createTrades', {
   settings: {
-    backoffStrategy: (attemptsMade: number, _, __, job: MinimalJob) => {
-      return customBackoffStrategy(attemptsMade, job);
+    backoffStrategy: (attempts: number, _, __, job: MinimalJob) => {
+      return customBackoffStrategy(attempts, job);
     },
   },
 })
@@ -42,18 +52,21 @@ export class CreateTradesProcessor extends WorkerHost {
       `Processing trade ${job.id} with ${job.data.data.trade.partner} and bot ${job.data.bot}...`
     );
 
+    const maxTime = job.data?.retry?.maxTime ?? 120000;
+
     // Check if job is too old
-    if (job.timestamp < Date.now() - job.data.options.retryFor) {
+    if (job.timestamp < Date.now() - maxTime) {
       throw new UnrecoverableError('Job is too old');
     }
 
     try {
+      throw new Error('xd');
       // Work on job
       return this.handleJob(job);
     } catch (err) {
       // Check if job will be too old when it can be retried again
       const delay = customBackoffStrategy(job.attemptsMade, job);
-      if (job.timestamp < Date.now() + delay - job.data.options.retryFor) {
+      if (job.timestamp < Date.now() + delay - maxTime) {
         throw new UnrecoverableError('Job is too old to be retried');
       }
 

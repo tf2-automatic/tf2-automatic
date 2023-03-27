@@ -10,7 +10,7 @@ export const TRADES_PATH = `/`;
 export const TRADE_PATH = `/:id`;
 
 export interface RetryTradeOptions {
-  priority?: number;
+  strategy?: 'exponential' | 'linear' | 'fixed';
   maxTime?: number;
   delay?: number;
   maxDelay?: number;
