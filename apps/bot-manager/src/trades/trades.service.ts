@@ -22,7 +22,7 @@ import { Bot, QueueTradeResponse } from '@tf2-automatic/bot-manager-data';
 import {
   CreateTradeDto,
   GetTradesDto,
-  QueueTradeDto,
+  TradeQueueJobDto,
 } from '@tf2-automatic/dto';
 import { Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
@@ -31,7 +31,7 @@ import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
 import { v4 as uuidv4 } from 'uuid';
-import { CreateTradeQueue } from './interfaces/create-trade-queue.interface';
+import { TradeQueue } from './interfaces/trade-queue.interface';
 
 @Injectable()
 export class TradesService {
@@ -40,27 +40,25 @@ export class TradesService {
     private readonly httpService: HttpService,
     @InjectQueue('getExchangeDetails')
     private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
-    @InjectQueue('createTrades')
-    private readonly createTradesQueue: Queue<CreateTradeQueue>
+    @InjectQueue('trades')
+    private readonly tradesQueue: Queue<TradeQueue>
   ) {}
 
-  async enqueueTrade(dto: QueueTradeDto): Promise<QueueTradeResponse> {
+  async enqueueJob(dto: TradeQueueJobDto): Promise<QueueTradeResponse> {
     const id = uuidv4();
 
-    const job = await this.createTradesQueue.add(
-      id,
-      {
-        data: {
-          trade: dto.trade,
-        },
-        bot: dto.bot,
-        retry: dto.retry,
-      },
-      {
-        jobId: id,
-        priority: dto.priority,
-      }
-    );
+    const data: TradeQueue = {
+      type: dto.type,
+      raw: dto.data,
+      extra: {},
+      bot: dto.bot,
+      retry: dto.retry,
+    };
+
+    const job = await this.tradesQueue.add(id, data, {
+      jobId: id,
+      priority: dto.priority,
+    });
 
     const jobId = job.id as string;
 
@@ -69,18 +67,18 @@ export class TradesService {
     };
   }
 
-  dequeueTrade(id: string): Promise<boolean> {
-    return this.createTradesQueue.remove(id).then((res) => {
+  dequeueJob(id: string): Promise<boolean> {
+    return this.tradesQueue.remove(id).then((res) => {
       return res === 1;
     });
   }
 
-  getQueuedTrades() {
-    return this.createTradesQueue.getJobs().then((jobs) => {
+  geQueue() {
+    return this.tradesQueue.getJobs().then((jobs) => {
       return jobs.map((job) => {
         return {
           id: job.id,
-          trade: job.data.data.trade,
+          data: job.data.raw,
           bot: job.data.bot,
           attempts: job.attemptsMade,
           lastProcessedAt:

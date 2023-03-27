@@ -5,11 +5,17 @@ import {
   GetTrades,
   OfferFilter,
 } from '@tf2-automatic/bot-data';
-import { QueueTrade, RetryTradeOptions } from '@tf2-automatic/bot-manager-data';
+import {
+  QueueTrade,
+  QueueTradeType,
+  QueueTradeTypes,
+  RetryTradeOptions,
+} from '@tf2-automatic/bot-manager-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsDefined,
   IsEnum,
   IsInt,
   IsNumber,
@@ -113,7 +119,7 @@ export class GetTradesDto implements GetTrades {
   filter: OfferFilter;
 }
 
-export class QueueTradeOptionsDto implements RetryTradeOptions {
+export class QueueTradeRetryDto implements RetryTradeOptions {
   @ApiProperty({
     description: 'The retry strategy to use',
     required: false,
@@ -155,14 +161,19 @@ export class QueueTradeOptionsDto implements RetryTradeOptions {
   maxDelay?: number;
 }
 
-export class QueueTradeDto implements QueueTrade {
+export class TradeQueueJobDto implements QueueTrade {
   @ApiProperty({
-    description: 'The trade to send',
-    type: CreateTradeDto,
+    description: 'The type of the job',
+    enum: QueueTradeTypes,
   })
-  @ValidateNested()
-  @Type(() => CreateTradeDto)
-  trade: CreateTradeDto;
+  @IsEnum(QueueTradeTypes)
+  type: QueueTradeType;
+
+  @ApiProperty({
+    description: 'The data for the job',
+  })
+  @IsDefined()
+  data: CreateTradeDto;
 
   @ApiProperty({
     description: 'The steamid64 of the bot to send the trade offer with',
@@ -185,11 +196,27 @@ export class QueueTradeDto implements QueueTrade {
 
   @ApiProperty({
     description: 'The options for the job',
-    type: QueueTradeOptionsDto,
+    type: QueueTradeRetryDto,
     required: false,
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => QueueTradeOptionsDto)
-  retry: QueueTradeOptionsDto;
+  @Type(() => QueueTradeRetryDto)
+  retry: QueueTradeRetryDto;
+}
+
+export class CreateTradeJobDto extends TradeQueueJobDto {
+  @ApiProperty({
+    description: 'The type of the job',
+    enum: ['CREATE'],
+  })
+  @IsEnum(['CREATE'])
+  type: 'CREATE';
+
+  @ApiProperty({
+    description: 'The data for the job',
+  })
+  @ValidateNested()
+  @Type(() => CreateTradeDto)
+  data: CreateTradeDto;
 }

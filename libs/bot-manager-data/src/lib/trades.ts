@@ -6,8 +6,8 @@ import {
 } from '@tf2-automatic/bot-data';
 
 export const TRADES_BASE_URL = '/trades';
-export const TRADES_PATH = `/`;
-export const TRADE_PATH = `/:id`;
+export const TRADE_JOBS_PATH = `/`;
+export const TRADE_JOB_PATH = `/:id`;
 
 export interface RetryTradeOptions {
   strategy?: 'exponential' | 'linear' | 'fixed';
@@ -16,8 +16,13 @@ export interface RetryTradeOptions {
   maxDelay?: number;
 }
 
+export const QueueTradeTypes = ['CREATE'] as const;
+export type QueueTradeType = (typeof QueueTradeTypes)[number];
+
 export interface QueueTrade {
-  trade: CreateTrade;
+  type: QueueTradeType;
+  // FIXME: add types
+  data: unknown;
   bot: string;
   priority?: number;
   retry?: RetryTradeOptions;

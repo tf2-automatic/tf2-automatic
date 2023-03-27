@@ -8,7 +8,7 @@ import { ExchangeDetailsProcessor } from './exchange-details.processor';
 import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
 import { DefaultJobOptions } from 'bullmq';
-import { CreateTradesProcessor } from './create-trades.processor';
+import { TradesProcessor } from './trades.processor';
 
 const defaultJobOptions: DefaultJobOptions = {
   attempts: Number.MAX_SAFE_INTEGER,
@@ -28,13 +28,13 @@ const defaultJobOptions: DefaultJobOptions = {
       defaultJobOptions,
     }),
     BullModule.registerQueue({
-      name: 'createTrades',
+      name: 'trades',
       defaultJobOptions,
     }),
     HeartbeatsModule,
     HttpModule,
   ],
-  providers: [TradesService, ExchangeDetailsProcessor, CreateTradesProcessor],
+  providers: [TradesService, ExchangeDetailsProcessor, TradesProcessor],
   controllers: [TradesController],
 })
 export class TradesModule {}

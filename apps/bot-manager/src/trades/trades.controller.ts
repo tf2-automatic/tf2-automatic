@@ -7,14 +7,14 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { Post } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   QueueTradeResponse,
   TRADES_BASE_URL,
-  TRADES_PATH,
-  TRADE_PATH,
+  TRADE_JOBS_PATH,
+  TRADE_JOB_PATH,
 } from '@tf2-automatic/bot-manager-data';
-import { QueueTradeDto } from '@tf2-automatic/dto';
+import { CreateTradeJobDto, TradeQueueJobDto } from '@tf2-automatic/dto';
 import { TradesService } from './trades.service';
 
 @ApiTags('Trades')
@@ -22,36 +22,69 @@ import { TradesService } from './trades.service';
 export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
-  @Post(TRADES_PATH)
+  @Post(TRADE_JOBS_PATH)
   @ApiOperation({
-    summary: 'Enqueue trade',
+    summary: 'Create trade job',
     description: 'Adds a new trade in the queue',
   })
+  @ApiBody({
+    type: TradeQueueJobDto,
+    examples: {
+      'Create trade': {
+        value: {
+          type: 'CREATE',
+          data: {
+            partner: '76561198120070906',
+            token: '_Eq1Y3An',
+            message: 'Hello, I would like to trade with you',
+            itemsToGive: [
+              {
+                assetid: '1234567890',
+                appid: 440,
+                contextid: '2',
+                amount: 1,
+              },
+            ],
+            itemsToReceive: [
+              {
+                assetid: '1234567890',
+                appid: 440,
+                contextid: '2',
+                amount: 1,
+              },
+            ],
+          },
+          bot: '76561198120070906',
+        },
+      },
+    },
+  })
   enqueueTrade(
-    @Body(new ValidationPipe()) trade: QueueTradeDto
+    @Body(new ValidationPipe()) dto: CreateTradeJobDto
   ): Promise<QueueTradeResponse> {
-    return this.tradesService.enqueueTrade(trade);
+    return this.tradesService.enqueueJob(dto);
   }
 
-  @Delete(TRADE_PATH)
+  @Delete(TRADE_JOB_PATH)
   @ApiOperation({
-    summary: 'Dequeue trade',
-    description: 'Removes a trade from the queue',
+    summary: 'Remove trade job',
+    description: 'Removes a job from the queue',
   })
-  getQueuedTrade(@Param('id') id: string) {
-    return this.tradesService.dequeueTrade(id).then((deleted) => {
+  deleteQueueJob(@Param('id') id: string) {
+    return this.tradesService.dequeueJob(id).then((deleted) => {
       return {
         deleted,
       };
     });
   }
 
-  @Get(TRADES_PATH)
+  @Get(TRADE_JOBS_PATH)
   @ApiOperation({
-    summary: 'Get queued trades',
-    description: 'Gets all queued trades',
+    summary: 'Get queue',
+    description:
+      'Gets all queued trade actions (accept, decline / cancel, send, etc.)',
   })
-  getQueuedTrades() {
-    return this.tradesService.getQueuedTrades();
+  getQueue() {
+    return this.tradesService.geQueue();
   }
 }

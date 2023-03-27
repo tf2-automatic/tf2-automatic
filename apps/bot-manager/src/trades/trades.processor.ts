@@ -1,23 +1,24 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { CreateTrade, SteamError, TradeOffer } from '@tf2-automatic/bot-data';
+import { Bot } from '@tf2-automatic/bot-manager-data';
 import { AxiosError } from 'axios';
 import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { CreateTradeQueue } from './interfaces/create-trade-queue.interface';
+import { CreateTradeJob, TradeQueue } from './interfaces/trade-queue.interface';
 import { TradesService } from './trades.service';
 
 type BackoffStrategy = (
   attemptsMade: number,
-  job: MinimalJob<CreateTradeQueue>
+  job: MinimalJob<TradeQueue>
 ) => number;
 
 const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
-  const strategy = job.data.retry.strategy ?? 'exponential';
-  const delay = job.data.retry.delay ?? 1000;
-  const maxDelay = job.data.retry.maxDelay ?? 10000;
+  const strategy = job.data.retry?.strategy ?? 'exponential';
+  const delay = job.data.retry?.delay ?? 1000;
+  const maxDelay = job.data.retry?.maxDelay ?? 10000;
 
   let wait = delay;
 
@@ -30,15 +31,15 @@ const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
   return Math.min(wait, maxDelay);
 };
 
-@Processor('createTrades', {
+@Processor('trades', {
   settings: {
     backoffStrategy: (attempts: number, _, __, job: MinimalJob) => {
       return customBackoffStrategy(attempts, job);
     },
   },
 })
-export class CreateTradesProcessor extends WorkerHost {
-  private readonly logger = new Logger(CreateTradesProcessor.name);
+export class TradesProcessor extends WorkerHost {
+  private readonly logger = new Logger(TradesProcessor.name);
 
   constructor(
     private readonly tradesService: TradesService,
@@ -47,9 +48,9 @@ export class CreateTradesProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<CreateTradeQueue>): Promise<string> {
+  async process(job: Job<TradeQueue>): Promise<unknown> {
     this.logger.log(
-      `Processing trade ${job.id} with ${job.data.data.trade.partner} and bot ${job.data.bot}...`
+      `Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade}...`
     );
 
     const maxTime = job.data?.retry?.maxTime ?? 120000;
@@ -74,14 +75,26 @@ export class CreateTradesProcessor extends WorkerHost {
     }
   }
 
-  private async handleJob(job: Job<CreateTradeQueue>): Promise<string> {
+  private async handleJob(job: Job<TradeQueue>): Promise<unknown> {
     const botSteamID = new SteamID(job.data.bot);
 
     this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
 
     const bot = await this.heartbeatsService.getBot(botSteamID);
 
-    if (job.data.data.checkCreatedAfter !== undefined) {
+    switch (job.data.type) {
+      case 'CREATE':
+        return this.handleCreateJob(job as Job<CreateTradeJob>, bot);
+      default:
+        throw new Error(`Unknown job type ${job.data.type}`);
+    }
+  }
+
+  private async handleCreateJob(
+    job: Job<CreateTradeJob>,
+    bot: Bot
+  ): Promise<string> {
+    if (job.data.extra.checkCreatedAfter !== undefined) {
       // Check if offer was created
       this.logger.debug(
         `Checking if a similar offer already offer exists...`,
@@ -91,8 +104,8 @@ export class CreateTradesProcessor extends WorkerHost {
       const trades = await this.tradesService.getActiveTrades(bot);
 
       const offer = this.findMatchingTrade(
-        job.data.data.trade,
-        job.data.data.checkCreatedAfter,
+        job.data.raw,
+        job.data.extra.checkCreatedAfter,
         trades.sent
       );
 
@@ -109,10 +122,7 @@ export class CreateTradesProcessor extends WorkerHost {
     try {
       this.logger.debug(`Creating trade...`);
 
-      const offer = await this.tradesService.createTrade(
-        bot,
-        job.data.data.trade
-      );
+      const offer = await this.tradesService.createTrade(bot, job.data.raw);
       return offer.id;
     } catch (err) {
       if (!(err instanceof AxiosError)) {
@@ -128,7 +138,7 @@ export class CreateTradesProcessor extends WorkerHost {
 
           if (data.eresult === SteamUser.EResult.Timeout) {
             // Add time to job data it as a potentially active offer and to check if it was created
-            job.data.data.checkCreatedAfter = Math.floor(now / 1000);
+            job.data.extra.checkCreatedAfter = Math.floor(now / 1000);
             await job.update(job.data);
           } else if (
             data.eresult !== SteamUser.EResult.ServiceUnavailable &&
@@ -198,20 +208,21 @@ export class CreateTradesProcessor extends WorkerHost {
   }
 
   @OnWorkerEvent('error')
-  onError(): void {
-    // Do nothing
+  onError(err: Error): void {
+    this.logger.error('Error in worker');
+    console.error(err);
   }
 
   @OnWorkerEvent('failed')
-  onFailed(job: Job<CreateTradeQueue>, err: Error): void {
-    this.logger.warn(`Failed to process trade ${job.id}: ${err.message}`);
+  onFailed(job: Job<TradeQueue>, err: Error): void {
+    this.logger.warn(`Failed job ${job.id}: ${err.message}`);
     if (err instanceof AxiosError && err.response) {
       console.log(err.response.data);
     }
   }
 
   @OnWorkerEvent('completed')
-  onCompleted(job: Job<CreateTradeQueue>): void {
-    this.logger.log(`Completed trade ${job.id} sent offer #${job.returnvalue}`);
+  onCompleted(job: Job<TradeQueue>): void {
+    this.logger.log(`Completed job ${job.id}`);
   }
 }
