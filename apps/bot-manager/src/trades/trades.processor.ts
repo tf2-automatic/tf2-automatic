@@ -46,6 +46,10 @@ const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
       return customBackoffStrategy(attempts, job);
     },
   },
+  limiter: {
+    max: 5,
+    duration: 5000,
+  },
 })
 export class TradesProcessor extends WorkerHost {
   private readonly logger = new Logger(TradesProcessor.name);
