@@ -4,11 +4,11 @@ import { Module } from '@nestjs/common';
 import { EventsModule } from '../events/events.module';
 import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
 import { RabbitMQWrapperModule } from '../rabbitmq-wrapper/rabbitmq-wrapper.module';
-import { ExchangeDetailsProcessor } from './exchange-details.processor';
+import { ExchangeDetailsProcessor } from './processors/exchange-details.processor';
 import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
 import { DefaultJobOptions } from 'bullmq';
-import { TradesProcessor } from './trades.processor';
+import { TradesProcessor } from './processors/trades.processor';
 
 const defaultJobOptions: DefaultJobOptions = {
   attempts: Number.MAX_SAFE_INTEGER,

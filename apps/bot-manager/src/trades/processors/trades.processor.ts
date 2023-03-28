@@ -11,13 +11,13 @@ import { AxiosError } from 'axios';
 import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
-import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
 import {
   CreateTradeJob,
   DeleteTradeJob,
   TradeQueue,
-} from './interfaces/trade-queue.interface';
-import { TradesService } from './trades.service';
+} from '../interfaces/trade-queue.interface';
+import { TradesService } from '../trades.service';
 
 type BackoffStrategy = (
   attemptsMade: number,
