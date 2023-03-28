@@ -14,7 +14,7 @@ import {
   TRADE_JOBS_PATH,
   TRADE_JOB_PATH,
 } from '@tf2-automatic/bot-manager-data';
-import { CreateTradeJobDto, TradeQueueJobDto } from '@tf2-automatic/dto';
+import { TradeQueueJobDto } from '@tf2-automatic/dto';
 import { TradesService } from './trades.service';
 
 @ApiTags('Trades')
@@ -57,10 +57,17 @@ export class TradesController {
           bot: '76561198120070906',
         },
       },
+      'Cancel / decline trade': {
+        value: {
+          type: 'DELETE',
+          data: '1234567890',
+          bot: '76561198120070906',
+        },
+      },
     },
   })
   enqueueTrade(
-    @Body(new ValidationPipe()) dto: CreateTradeJobDto
+    @Body(new ValidationPipe()) dto: TradeQueueJobDto
   ): Promise<QueueTradeResponse> {
     return this.tradesService.enqueueJob(dto);
   }

@@ -4,7 +4,7 @@ import {
   RetryTradeOptions,
 } from '@tf2-automatic/bot-manager-data';
 
-export type TradeQueue = CreateTradeJob;
+export type TradeQueue = CreateTradeJob | DeleteTradeJob;
 
 export type CreateTradeJob = BaseTradeQueue<
   'CREATE',
@@ -14,7 +14,13 @@ export type CreateTradeJob = BaseTradeQueue<
   }
 >;
 
-interface BaseTradeQueue<Event extends QueueTradeType, Raw, Extra> {
+export type DeleteTradeJob = BaseTradeQueue<'DELETE', string>;
+
+interface BaseTradeQueue<
+  Event extends QueueTradeType,
+  Raw,
+  Extra = Record<string, unknown>
+> {
   type: Event;
   raw: Raw;
   extra: Extra;

@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   Asset,
@@ -15,15 +16,19 @@ import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsDefined,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
   IsString,
   Max,
   Min,
+  Validate,
   ValidateNested,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 
 export class AssetDto implements Asset {
@@ -161,19 +166,65 @@ export class QueueTradeRetryDto implements RetryTradeOptions {
   maxDelay?: number;
 }
 
+@ValidatorConstraint()
+export class TradeQueueDataValidator implements ValidatorConstraintInterface {
+  validate(object: unknown, args: ValidationArguments) {
+    const dto = args.object as TradeQueueJobDto;
+    if (!QueueTradeTypes.includes(dto.type)) {
+      return false;
+    }
+
+    switch (dto.type) {
+      case 'CREATE':
+        // Very hacky way to validate the data
+        return new ValidationPipe()
+          .transform(dto.data, {
+            type: 'body',
+            metatype: CreateTradeDto,
+          })
+          .then(() => true)
+          .catch(() => {
+            return false;
+          });
+      case 'DELETE':
+        return typeof object === 'string';
+      default:
+        return false;
+    }
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    // here you can provide default error message if validation failed
+    const dto = args.object as TradeQueueJobDto;
+    if (!QueueTradeTypes.includes(dto.type)) {
+      return "data can't be validated because type is invalid";
+    }
+
+    switch (dto.type) {
+      case 'CREATE':
+        return 'data must be a valid CreateTradeDto';
+      case 'DELETE':
+        return 'data must be a string';
+      default:
+        return 'data is invalid';
+    }
+  }
+}
+
 export class TradeQueueJobDto implements QueueTrade {
   @ApiProperty({
     description: 'The type of the job',
     enum: QueueTradeTypes,
   })
-  @IsEnum(QueueTradeTypes)
+  @IsIn(QueueTradeTypes)
   type: QueueTradeType;
 
   @ApiProperty({
     description: 'The data for the job',
   })
-  @IsDefined()
-  data: CreateTradeDto;
+  @Validate(TradeQueueDataValidator)
+  // FIXME: use correct types
+  data: unknown;
 
   @ApiProperty({
     description: 'The steamid64 of the bot to send the trade offer with',

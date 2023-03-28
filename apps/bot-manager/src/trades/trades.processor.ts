@@ -1,13 +1,22 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { CreateTrade, SteamError, TradeOffer } from '@tf2-automatic/bot-data';
+import {
+  CreateTrade,
+  HttpError,
+  SteamError,
+  TradeOffer,
+} from '@tf2-automatic/bot-data';
 import { Bot } from '@tf2-automatic/bot-manager-data';
 import { AxiosError } from 'axios';
 import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { CreateTradeJob, TradeQueue } from './interfaces/trade-queue.interface';
+import {
+  CreateTradeJob,
+  DeleteTradeJob,
+  TradeQueue,
+} from './interfaces/trade-queue.interface';
 import { TradesService } from './trades.service';
 
 type BackoffStrategy = (
@@ -62,8 +71,23 @@ export class TradesProcessor extends WorkerHost {
 
     try {
       // Work on job
-      return this.handleJob(job);
+      const result = await this.handleJob(job);
+      return result;
     } catch (err) {
+      if (err instanceof AxiosError) {
+        const response =
+          err.response satisfies AxiosError<HttpError>['response'];
+
+        if (
+          response !== undefined &&
+          response.status <= 500 &&
+          response.status >= 400
+        ) {
+          // Don't retry on 4xx errors
+          throw new UnrecoverableError(response.data.message);
+        }
+      }
+
       // Check if job will be too old when it can be retried again
       const delay = customBackoffStrategy(job.attemptsMade, job);
       if (job.timestamp < Date.now() + delay - maxTime) {
@@ -85,7 +109,11 @@ export class TradesProcessor extends WorkerHost {
     switch (job.data.type) {
       case 'CREATE':
         return this.handleCreateJob(job as Job<CreateTradeJob>, bot);
+      case 'DELETE':
+        return this.handleDeleteJob(job as Job<DeleteTradeJob>, bot);
       default:
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         throw new Error(`Unknown job type ${job.data.type}`);
     }
   }
@@ -147,14 +175,15 @@ export class TradesProcessor extends WorkerHost {
             // Fail when receiving eresult that can't be recovered from
             throw new UnrecoverableError(data.message);
           }
-        } else if (response.status <= 500 && response.status >= 400) {
-          // Don't retry on 4xx errors
-          throw new UnrecoverableError(response.data.message);
         }
       }
 
       throw err;
     }
+  }
+
+  private handleDeleteJob(job: Job<DeleteTradeJob>, bot: Bot): Promise<void> {
+    return this.tradesService.deleteTrade(bot, job.data.raw);
   }
 
   private findMatchingTrade(
@@ -216,9 +245,6 @@ export class TradesProcessor extends WorkerHost {
   @OnWorkerEvent('failed')
   onFailed(job: Job<TradeQueue>, err: Error): void {
     this.logger.warn(`Failed job ${job.id}: ${err.message}`);
-    if (err instanceof AxiosError && err.response) {
-      console.log(err.response.data);
-    }
   }
 
   @OnWorkerEvent('completed')

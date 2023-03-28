@@ -1,6 +1,5 @@
 import {
   BaseEvent,
-  CreateTrade,
   TradeOffer,
   TradeOfferExchangeDetails,
 } from '@tf2-automatic/bot-data';
@@ -16,7 +15,7 @@ export interface RetryTradeOptions {
   maxDelay?: number;
 }
 
-export const QueueTradeTypes = ['CREATE'] as const;
+export const QueueTradeTypes = ['CREATE', 'DELETE'] as const;
 export type QueueTradeType = (typeof QueueTradeTypes)[number];
 
 export interface QueueTrade {

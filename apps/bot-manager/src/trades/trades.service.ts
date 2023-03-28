@@ -17,6 +17,7 @@ import {
   TRADES_PATH,
   TRADE_CHANGED_EVENT,
   TRADE_EXCHANGE_DETAILS_PATH,
+  TRADE_PATH,
 } from '@tf2-automatic/bot-data';
 import { Bot, QueueTradeResponse } from '@tf2-automatic/bot-manager-data';
 import {
@@ -49,7 +50,7 @@ export class TradesService {
 
     const data: TradeQueue = {
       type: dto.type,
-      raw: dto.data,
+      raw: dto.data as never,
       extra: {},
       bot: dto.bot,
       retry: dto.retry,
@@ -89,6 +90,16 @@ export class TradesService {
         };
       });
     });
+  }
+
+  async deleteTrade(bot: Bot, tradeId: string): Promise<void> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
+        ':id',
+        tradeId
+      );
+
+    await firstValueFrom(this.httpService.delete(url));
   }
 
   async createTrade(
