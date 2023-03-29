@@ -58,7 +58,7 @@
     "typescript": "~4.9.5"
   },
   "dependencies": {
-    "@golevelup/nestjs-rabbitmq": "^3.5.0",
+    "@golevelup/nestjs-rabbitmq": "^3.6.0",
     "@liaoliaots/nestjs-redis": "^9.0.5",
     "@nestjs/axios": "^2.0.0",
     "@nestjs/bullmq": "^1.1.0",
