@@ -11,7 +11,7 @@
   },
   "private": true,
   "devDependencies": {
-    "@commitlint/cli": "^17.5.0",
+    "@commitlint/cli": "^17.5.1",
     "@commitlint/config-conventional": "^17.4.4",
     "@nestjs/schematics": "^9.0.4",
     "@nestjs/testing": "^9.3.12",
