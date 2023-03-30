@@ -259,19 +259,3 @@ export class TradeQueueJobDto implements QueueTrade {
   @Type(() => QueueTradeRetryDto)
   retry: QueueTradeRetryDto;
 }
-
-export class CreateTradeJobDto extends TradeQueueJobDto {
-  @ApiProperty({
-    description: 'The type of the job',
-    enum: ['CREATE'],
-  })
-  @IsEnum(['CREATE'])
-  type: 'CREATE';
-
-  @ApiProperty({
-    description: 'The data for the job',
-  })
-  @ValidateNested()
-  @Type(() => CreateTradeDto)
-  data: CreateTradeDto;
-}
