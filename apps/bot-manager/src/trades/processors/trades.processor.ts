@@ -83,7 +83,7 @@ export class TradesProcessor extends WorkerHost {
 
         if (
           response !== undefined &&
-          response.status <= 500 &&
+          response.status < 500 &&
           response.status >= 400
         ) {
           // Don't retry on 4xx errors
