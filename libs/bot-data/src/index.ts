@@ -8,3 +8,4 @@ export * from './lib/bot';
 export * from './lib/steam';
 export * from './lib/events';
 export * from './lib/health';
+export * from './lib/errors';
