@@ -22,7 +22,7 @@ jobs:
         id: base
         run: |
           if [[ "${{ github.event_name }}" == "merge_group" ]]; then
-            echo "BRANCH=${{ github.event.merge_group.base_ref }}" >> $GITHUB_OUTPUT
+            echo "BRANCH=$(echo ${{ github.event.merge_group.base_ref }} | cut -b 12-)" >> $GITHUB_OUTPUT
           else
             echo "BRANCH=${{ github.base_ref }}" >> $GITHUB_OUTPUT
           fi
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [affected, unit-test]
     if: |
-      always() &&
+      always() && needs.affected.result == 'success' &&
       (needs.unit-test.result == 'success' || needs.unit-test.result == 'skipped')
     steps:
       - name: Trace
