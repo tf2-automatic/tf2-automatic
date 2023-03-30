@@ -13,6 +13,7 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
 import {
+  AcceptTradeJob,
   CreateTradeJob,
   DeleteTradeJob,
   TradeQueue,
@@ -115,6 +116,8 @@ export class TradesProcessor extends WorkerHost {
         return this.handleCreateJob(job as Job<CreateTradeJob>, bot);
       case 'DELETE':
         return this.handleDeleteJob(job as Job<DeleteTradeJob>, bot);
+      case 'ACCEPT':
+        return this.handleAcceptJob(job as Job<AcceptTradeJob>, bot);
       default:
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
@@ -188,6 +191,10 @@ export class TradesProcessor extends WorkerHost {
 
   private handleDeleteJob(job: Job<DeleteTradeJob>, bot: Bot): Promise<void> {
     return this.tradesService.deleteTrade(bot, job.data.raw);
+  }
+
+  private handleAcceptJob(job: Job<AcceptTradeJob>, bot: Bot): Promise<void> {
+    return this.tradesService.acceptTrade(bot, job.data.raw);
   }
 
   private findMatchingTrade(

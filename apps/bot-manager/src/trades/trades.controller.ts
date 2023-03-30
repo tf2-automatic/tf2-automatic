@@ -64,6 +64,13 @@ export class TradesController {
           bot: '76561198120070906',
         },
       },
+      'Accept trade': {
+        value: {
+          type: 'ACCEPT',
+          data: '1234567890',
+          bot: '76561198120070906',
+        },
+      },
     },
   })
   enqueueTrade(

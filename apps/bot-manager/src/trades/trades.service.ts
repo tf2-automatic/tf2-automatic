@@ -15,6 +15,7 @@ import {
   TradeOfferExchangeDetails,
   TRADES_BASE_URL,
   TRADES_PATH,
+  TRADE_ACCEPT_PATH,
   TRADE_CHANGED_EVENT,
   TRADE_EXCHANGE_DETAILS_PATH,
   TRADE_PATH,
@@ -100,6 +101,16 @@ export class TradesService {
       );
 
     await firstValueFrom(this.httpService.delete(url));
+  }
+
+  async acceptTrade(bot: Bot, tradeId: string): Promise<void> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
+        ':id',
+        tradeId
+      );
+
+    await firstValueFrom(this.httpService.post(url));
   }
 
   async createTrade(
