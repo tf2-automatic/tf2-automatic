@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [affected, unit-test]
     if: |
-      always() &&
+      always() && needs.affected.result == 'success' &&
       (needs.unit-test.result == 'success' || needs.unit-test.result == 'skipped')
     steps:
       - name: Trace
