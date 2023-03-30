@@ -17,6 +17,7 @@ import {
   TRADES_PATH,
   TRADE_ACCEPT_PATH,
   TRADE_CHANGED_EVENT,
+  TRADE_CONFIRMATION_PATH,
   TRADE_EXCHANGE_DETAILS_PATH,
   TRADE_PATH,
 } from '@tf2-automatic/bot-data';
@@ -106,6 +107,16 @@ export class TradesService {
   async acceptTrade(bot: Bot, tradeId: string): Promise<void> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
+        ':id',
+        tradeId
+      );
+
+    await firstValueFrom(this.httpService.post(url));
+  }
+
+  async confirmTrade(bot: Bot, tradeId: string): Promise<void> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
         ':id',
         tradeId
       );

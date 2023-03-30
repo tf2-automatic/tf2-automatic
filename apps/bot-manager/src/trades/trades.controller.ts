@@ -71,6 +71,13 @@ export class TradesController {
           bot: '76561198120070906',
         },
       },
+      'Confirm trade': {
+        value: {
+          type: 'CONFIRM',
+          data: '1234567890',
+          bot: '76561198120070906',
+        },
+      },
     },
   })
   enqueueTrade(

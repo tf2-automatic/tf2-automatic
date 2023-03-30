@@ -15,7 +15,12 @@ export interface RetryTradeOptions {
   maxDelay?: number;
 }
 
-export const QueueTradeTypes = ['CREATE', 'DELETE', 'ACCEPT'] as const;
+export const QueueTradeTypes = [
+  'CREATE',
+  'DELETE',
+  'ACCEPT',
+  'CONFIRM',
+] as const;
 export type QueueTradeType = (typeof QueueTradeTypes)[number];
 
 export interface QueueTrade {

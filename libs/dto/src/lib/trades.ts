@@ -188,6 +188,7 @@ export class TradeQueueDataValidator implements ValidatorConstraintInterface {
           });
       case 'DELETE':
       case 'ACCEPT':
+      case 'CONFIRM':
         return typeof object === 'string';
       default:
         return false;
@@ -206,6 +207,7 @@ export class TradeQueueDataValidator implements ValidatorConstraintInterface {
         return 'data must be a valid CreateTradeDto';
       case 'DELETE':
       case 'ACCEPT':
+      case 'CONFIRM':
         return 'data must be a string';
       default:
         return 'data is invalid';
