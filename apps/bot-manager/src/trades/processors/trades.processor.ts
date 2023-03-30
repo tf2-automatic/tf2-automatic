@@ -13,10 +13,7 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
 import {
-  AcceptTradeJob,
-  ConfirmTradeJob,
   CreateTradeJob,
-  DeleteTradeJob,
   TradeQueue,
 } from '../interfaces/trade-queue.interface';
 import { TradesService } from '../trades.service';
@@ -116,11 +113,11 @@ export class TradesProcessor extends WorkerHost {
       case 'CREATE':
         return this.handleCreateJob(job as Job<CreateTradeJob>, bot);
       case 'DELETE':
-        return this.handleDeleteJob(job as Job<DeleteTradeJob>, bot);
+        return this.tradesService.deleteTrade(bot, job.data.raw);
       case 'ACCEPT':
-        return this.handleAcceptJob(job as Job<AcceptTradeJob>, bot);
+        return this.tradesService.acceptTrade(bot, job.data.raw);
       case 'CONFIRM':
-        return this.handleConfirmJob(job as Job<ConfirmTradeJob>, bot);
+        return this.tradesService.confirmTrade(bot, job.data.raw);
       default:
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
@@ -190,18 +187,6 @@ export class TradesProcessor extends WorkerHost {
 
       throw err;
     }
-  }
-
-  private handleDeleteJob(job: Job<DeleteTradeJob>, bot: Bot): Promise<void> {
-    return this.tradesService.deleteTrade(bot, job.data.raw);
-  }
-
-  private handleAcceptJob(job: Job<AcceptTradeJob>, bot: Bot): Promise<void> {
-    return this.tradesService.acceptTrade(bot, job.data.raw);
-  }
-
-  private handleConfirmJob(job: Job<ConfirmTradeJob>, bot: Bot): Promise<void> {
-    return this.tradesService.confirmTrade(bot, job.data.raw);
   }
 
   private findMatchingTrade(
