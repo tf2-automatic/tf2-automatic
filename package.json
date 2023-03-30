@@ -39,6 +39,7 @@
     "@types/steam-user": "^4.26.1",
     "@types/steamcommunity": "^3.43.2",
     "@types/steamid": "^2.0.1",
+    "@types/uuid": "^9.0.1",
     "@types/write-file-atomic": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^5.56.0",
     "@typescript-eslint/parser": "^5.56.0",
@@ -95,6 +96,7 @@
     "steamid": "^2.0.0",
     "tf2": "^3.0.2",
     "tslib": "^2.5.0",
+    "uuid": "^9.0.0",
     "write-file-atomic": "^5.0.0"
   },
   "config": {

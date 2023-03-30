@@ -6,9 +6,9 @@ import {
 } from '@tf2-automatic/bot-manager-data';
 import { Job } from 'bullmq';
 import SteamID from 'steamid';
-import { EventsService } from '../events/events.service';
-import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
-import { TradesService } from './trades.service';
+import { EventsService } from '../../events/events.service';
+import { ExchangeDetailsQueueData } from '../interfaces/exchange-details-queue.interface';
+import { TradesService } from '../trades.service';
 
 @Processor('getExchangeDetails')
 export class ExchangeDetailsProcessor extends WorkerHost {
