@@ -27,6 +27,7 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
 import sizeof from 'object-sizeof';
 import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
+import Bottleneck from 'bottleneck';
 
 interface EnsureOfferPublishedTask {
   id: string;
@@ -47,6 +48,9 @@ export class TradesService {
     fastq.promise(this.ensureOfferPublished.bind(this), 1);
 
   private ensurePollDataTimeout: NodeJS.Timeout | null = null;
+  private ensureOfferPublishedLimiter = new Bottleneck({
+    minTime: 1000,
+  });
 
   constructor(
     private readonly botService: BotService,
@@ -115,7 +119,7 @@ export class TradesService {
             console.log(err);
           });
         });
-    }, 1000);
+    }, 10000);
   }
 
   private getActiveOfferCounts(): { sent: number; received: number } {
@@ -168,7 +172,9 @@ export class TradesService {
     }
 
     // Get the actual offer
-    const offer = await this._getTrade(id);
+    const offer = await this.ensureOfferPublishedLimiter.schedule(() =>
+      this._getTrade(id)
+    );
     const publishedState = offer.data('published') as
       | TradeOfferData['published']
       | null;
