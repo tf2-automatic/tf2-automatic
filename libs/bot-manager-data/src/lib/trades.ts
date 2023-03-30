@@ -1,5 +1,6 @@
 import {
   BaseEvent,
+  CreateTrade,
   TradeOffer,
   TradeOfferExchangeDetails,
 } from '@tf2-automatic/bot-data';
@@ -23,10 +24,17 @@ export const QueueTradeTypes = [
 ] as const;
 export type QueueTradeType = (typeof QueueTradeTypes)[number];
 
-export interface QueueTrade {
-  type: QueueTradeType;
-  // FIXME: add types
-  data: unknown;
+export type QueueTradeCreate = QueueTrade<'CREATE', CreateTrade>;
+export type QueueTradeDelete = QueueTrade<'DELETE', string>;
+export type QueueTradeAccept = QueueTrade<'ACCEPT', string>;
+export type QueueTradeConfirm = QueueTrade<'CONFIRM', string>;
+
+export interface QueueTrade<
+  Type extends QueueTradeType = QueueTradeType,
+  Data = unknown
+> {
+  type: Type;
+  data: Data;
   bot: string;
   priority?: number;
   retry?: RetryTradeOptions;
