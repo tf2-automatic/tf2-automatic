@@ -149,6 +149,9 @@ export class BotService implements OnModuleDestroy {
       }
 
       this.metadataService.setSteamID(this.client.steamID as SteamID);
+
+      this.eventEmitter.emit('bot.connected');
+
       this.eventsService
         .publish(
           STEAM_CONNECTED_EVENT,
@@ -163,6 +166,8 @@ export class BotService implements OnModuleDestroy {
       this.logger.warn(
         `Disconnected from Steam, eresult: ${SteamUser.EResult[eresult]} (${eresult})`
       );
+
+      this.eventEmitter.emit('bot.disconnected');
 
       this.eventsService
         .publish(STEAM_DISCONNECTED_EVENT, {
@@ -283,6 +288,8 @@ export class BotService implements OnModuleDestroy {
       this.logger.error(
         'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
       );
+
+      this.eventEmitter.emit('bot.disconnected');
 
       // Disable polling
       this.manager.pollInterval = -1;
