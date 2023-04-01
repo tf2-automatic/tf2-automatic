@@ -284,6 +284,8 @@ export class BotService implements OnModuleDestroy {
         'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
       );
 
+      const pollInterval = this.manager.pollInterval;
+
       // Disable polling
       this.manager.pollInterval = -1;
       clearTimeout(this.manager._pollTimer);
@@ -291,10 +293,7 @@ export class BotService implements OnModuleDestroy {
       this.reconnect()
         .then(() => {
           // Re-enable polling
-          this.manager.pollInterval =
-            this.configService.getOrThrow<SteamTradeConfig>(
-              'trade'
-            ).pollInterval;
+          this.manager.pollInterval = pollInterval;
           this.manager.doPoll();
         })
         .catch((err) => {
