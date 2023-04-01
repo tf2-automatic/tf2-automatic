@@ -290,7 +290,7 @@ export class BotService implements OnModuleDestroy {
       );
 
       this.eventEmitter.emit('bot.disconnected');
-      
+
       const pollInterval = this.manager.pollInterval;
 
       // Disable polling
