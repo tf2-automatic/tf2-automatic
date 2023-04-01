@@ -107,7 +107,9 @@ export class TradesProcessor extends WorkerHost {
 
     this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
 
-    const bot = await this.heartbeatsService.getBot(botSteamID);
+    const bot = await this.heartbeatsService.getBot(botSteamID).catch((err) => {
+      throw new Error(err.message);
+    });
 
     switch (job.data.type) {
       case 'CREATE':
