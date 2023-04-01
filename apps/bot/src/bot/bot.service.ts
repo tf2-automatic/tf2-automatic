@@ -290,6 +290,8 @@ export class BotService implements OnModuleDestroy {
       );
 
       this.eventEmitter.emit('bot.disconnected');
+      
+      const pollInterval = this.manager.pollInterval;
 
       // Disable polling
       this.manager.pollInterval = -1;
@@ -298,10 +300,7 @@ export class BotService implements OnModuleDestroy {
       this.reconnect()
         .then(() => {
           // Re-enable polling
-          this.manager.pollInterval =
-            this.configService.getOrThrow<SteamTradeConfig>(
-              'trade'
-            ).pollInterval;
+          this.manager.pollInterval = pollInterval;
           this.manager.doPoll();
         })
         .catch((err) => {
