@@ -29,6 +29,8 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
 
   private readonly ip: string;
 
+  private ready = false;
+
   constructor(
     private readonly configService: ConfigService<Config>,
     private readonly httpService: HttpService,
@@ -67,6 +69,10 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private sendHeartbeatLoop() {
+    if (!this.enabled) {
+      return;
+    }
+
     return this.sendHeartbeat()
       .catch((err) => {
         this.logger.warn('Failed to send heartbeat: ' + err.message);
@@ -106,7 +112,18 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
 
   @OnEvent('bot.ready')
   handleBotReady() {
-    if (this.enabled) {
+    this.ready = true;
+    this.sendHeartbeatLoop();
+  }
+
+  @OnEvent('bot.disconnected')
+  handleBotDisconnected() {
+    this.stopHeartbeatLoop();
+  }
+
+  @OnEvent('bot.connected')
+  handleBotConnected() {
+    if (this.ready) {
       this.sendHeartbeatLoop();
     }
   }
@@ -130,6 +147,14 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy(): Promise<void> {
+    return this.stopHeartbeatLoop();
+  }
+
+  private stopHeartbeatLoop() {
+    if (!this.enabled) {
+      return Promise.resolve();
+    }
+
     clearInterval(this.timeout);
     return this.deleteBot().catch((err) => {
       this.logger.warn('Failed to remove bot: ' + err.message);
