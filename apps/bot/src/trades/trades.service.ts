@@ -400,6 +400,11 @@ export class TradesService {
     this.logger.log(`Accepting trade offer #${id}...`);
 
     const offer = await this._getTrade(id);
+
+    if (offer.state !== SteamTradeOfferManager.ETradeOfferState.Active) {
+      throw new BadRequestException('Offer is not active');
+    }
+
     const state = await this._acceptTrade(offer);
 
     this.logger.log(
