@@ -32,6 +32,7 @@ import {
   TRADE_EXCHANGE_DETAILS_PATH,
   TRADE_PATH,
   TRADE_RECEIVED_ITEMS_PATH,
+  TRADE_COUNTER_PATH,
 } from '@tf2-automatic/bot-data';
 import {
   ItemModel,
@@ -41,7 +42,11 @@ import {
   TradesModel,
 } from '@tf2-automatic/swagger';
 import { TradesService } from './trades.service';
-import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
+import {
+  CounterTradeDto,
+  CreateTradeDto,
+  GetTradesDto,
+} from '@tf2-automatic/dto';
 
 @ApiTags('Trades')
 @Controller(TRADES_BASE_URL)
@@ -100,6 +105,26 @@ export class TradesController {
     dto: CreateTradeDto
   ): Promise<CreateTradeResponse> {
     return this.tradesService.createTrade(dto);
+  }
+
+  @Post(TRADE_COUNTER_PATH)
+  @ApiOperation({
+    summary: 'Counter trade',
+    description: 'Counter a trade by id',
+  })
+  @ApiOkResponse({
+    type: TradeModel,
+  })
+  counterTrade(
+    @Param('id') id: string,
+    @Body(
+      new ValidationPipe({
+        transform: true,
+      })
+    )
+    dto: CounterTradeDto
+  ): Promise<CreateTradeResponse> {
+    return this.tradesService.counterTrade(id, dto);
   }
 
   @Delete(TRADE_PATH)

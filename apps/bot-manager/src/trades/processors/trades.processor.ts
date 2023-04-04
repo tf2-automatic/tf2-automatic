@@ -13,6 +13,7 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
 import {
+  CounterTradeJob,
   CreateTradeJob,
   TradeQueue,
 } from '../interfaces/trade-queue.interface';
@@ -114,6 +115,8 @@ export class TradesProcessor extends WorkerHost {
     switch (job.data.type) {
       case 'CREATE':
         return this.handleCreateJob(job as Job<CreateTradeJob>, bot);
+      case 'COUNTER':
+        return this.handleCounterJob(job as Job<CounterTradeJob>, bot);
       case 'DELETE':
         return this.tradesService.deleteTrade(bot, job.data.raw);
       case 'ACCEPT':
@@ -162,32 +165,66 @@ export class TradesProcessor extends WorkerHost {
       const offer = await this.tradesService.createTrade(bot, job.data.raw);
       return offer.id;
     } catch (err) {
-      if (!(err instanceof AxiosError)) {
-        // Unknown error
-        throw err;
-      }
+      await this.handleSendTradeError(job, err, now);
+      throw err;
+    }
+  }
 
-      const response = err.response;
+  private async handleCounterJob(
+    job: Job<CounterTradeJob>,
+    bot: Bot
+  ): Promise<string> {
+    const offer = await this.tradesService.getTrade(bot, job.data.raw.id);
 
-      if (response) {
-        if (response.data.error === 'SteamException') {
-          const data = response.data as SteamError;
+    if (offer.state !== SteamUser.ETradeOfferState.Active) {
+      throw new UnrecoverableError('Offer is not active');
+    }
 
-          if (data.eresult === SteamUser.EResult.Timeout) {
-            // Add time to job data it as a potentially active offer and to check if it was created
-            job.data.extra.checkCreatedAfter = Math.floor(now / 1000);
-            await job.update(job.data);
-          } else if (
-            data.eresult !== SteamUser.EResult.ServiceUnavailable &&
-            data.eresult !== SteamUser.EResult.Fail
-          ) {
-            // Fail when receiving eresult that can't be recovered from
-            throw new UnrecoverableError(data.message);
-          }
+    const now = Date.now();
+
+    try {
+      this.logger.debug(`Countering trade...`);
+
+      const offer = await this.tradesService.counterTrade(
+        bot,
+        job.data.raw.id,
+        {
+          message: job.data.raw.message,
+          itemsToGive: job.data.raw.itemsToGive,
+          itemsToReceive: job.data.raw.itemsToReceive,
+        }
+      );
+      return offer.id;
+    } catch (err) {
+      await this.handleSendTradeError(job, err, now);
+      throw err;
+    }
+  }
+
+  private async handleSendTradeError(job: Job, err: Error, now: number) {
+    if (!(err instanceof AxiosError)) {
+      // Unknown error
+      throw err;
+    }
+
+    const response = err.response;
+
+    if (response) {
+      if (response.data.error === 'SteamException') {
+        const data = response.data as SteamError;
+
+        if (data.eresult === SteamUser.EResult.Timeout) {
+          // Add time to job data it as a potentially active offer and to check if it was created
+          job.data.extra.checkCreatedAfter = Math.floor(now / 1000);
+          await job.update(job.data);
+        } else if (
+          data.eresult !== SteamUser.EResult.ServiceUnavailable &&
+          data.eresult !== SteamUser.EResult.Fail
+        ) {
+          // Fail when receiving eresult that can't be recovered from
+          throw new UnrecoverableError(data.message);
         }
       }
-
-      throw err;
     }
   }
 
