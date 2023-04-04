@@ -62,13 +62,18 @@ export interface Asset {
   amount?: number;
 }
 
-export interface CreateTrade {
-  partner: string;
-  token?: string;
+interface BaseTrade {
   message?: string;
   itemsToGive: Asset[];
   itemsToReceive: Asset[];
 }
+
+export interface CreateTrade extends BaseTrade {
+  partner: string;
+  token?: string;
+}
+
+export type CounterTrade = BaseTrade;
 
 export type CreateTradeResponse = TradeOffer;
 export type AcceptTradeResponse = TradeOffer;
@@ -85,6 +90,7 @@ export const TRADE_ACCEPT_PATH = `${TRADE_PATH}/accept`;
 export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
 export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
 export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
+export const TRADE_COUNTER_PATH = `${TRADE_PATH}/counter`;
 
 export type TradeSentEventType = 'trades.sent';
 export type TradeReceivedEventType = 'trades.received';

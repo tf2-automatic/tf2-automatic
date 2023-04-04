@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   Asset,
+  CounterTrade,
   CreateTrade,
   GetTrades,
   OfferFilter,
@@ -64,23 +65,7 @@ export class AssetDto implements Asset {
   amount?: number;
 }
 
-export class CreateTradeDto implements CreateTrade {
-  @ApiProperty({
-    description: 'The steamid64 of the account to send the trade offer to',
-    example: '76561198120070906',
-  })
-  @IsSteamID()
-  partner: string;
-
-  @ApiProperty({
-    description: 'The token of the trade offer',
-    example: '_Eq1Y3An',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  token?: string;
-
+export class BaseCreateTrade {
   @ApiProperty({
     description: 'The message to send with the trade offer',
     example: 'Hello, I would like to trade with you',
@@ -112,6 +97,26 @@ export class CreateTradeDto implements CreateTrade {
   @Type(() => AssetDto)
   itemsToReceive: Asset[];
 }
+
+export class CreateTradeDto extends BaseCreateTrade implements CreateTrade {
+  @ApiProperty({
+    description: 'The steamid64 of the account to send the trade offer to',
+    example: '76561198120070906',
+  })
+  @IsSteamID()
+  partner: string;
+
+  @ApiProperty({
+    description: 'The token of the trade offer',
+    example: '_Eq1Y3An',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  token?: string;
+}
+
+export class CounterTradeDto extends BaseCreateTrade implements CounterTrade {}
 
 export class GetTradesDto implements GetTrades {
   @ApiProperty({

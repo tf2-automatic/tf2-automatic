@@ -26,7 +26,11 @@ import SteamUser from 'steam-user';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
 import sizeof from 'object-sizeof';
-import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
+import {
+  CounterTradeDto,
+  CreateTradeDto,
+  GetTradesDto,
+} from '@tf2-automatic/dto';
 import Bottleneck from 'bottleneck';
 
 interface EnsureOfferPublishedTask {
@@ -330,29 +334,52 @@ export class TradesService {
   }
 
   createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
-    this.logger.log(`Sending offer to ${dto.partner}...`);
+    const offer = this.manager.createOffer(dto.partner);
+
+    if (dto.token) {
+      offer.setToken(dto.token);
+    }
+
+    if (dto.message) {
+      offer.setMessage(dto.message);
+    }
+
+    offer.addMyItems(dto.itemsToGive);
+    offer.addTheirItems(dto.itemsToReceive);
+
+    return this.sendOffer(offer);
+  }
+
+  async counterTrade(id: string, dto: CounterTradeDto): Promise<TradeOffer> {
+    const offer = await this._getTrade(id);
+    const counter = offer.counter();
+
+    if (dto.message) {
+      counter.setMessage(dto.message);
+    }
+
+    counter.itemsToGive = [];
+    counter.itemsToReceive = [];
+
+    counter.addMyItems(dto.itemsToGive);
+    counter.addTheirItems(dto.itemsToReceive);
+
+    return this.sendOffer(counter);
+  }
+
+  private sendOffer(
+    offer: SteamTradeOfferManager.TradeOffer
+  ): Promise<CreateTradeResponse> {
+    this.logger.log(`Sending offer to ${offer.partner}...`);
 
     return new Promise<CreateTradeResponse>((resolve, reject) => {
-      const offer = this.manager.createOffer(dto.partner);
-
-      if (dto.token) {
-        offer.setToken(dto.token);
-      }
-
-      if (dto.message) {
-        offer.setMessage(dto.message);
-      }
-
-      offer.addMyItems(dto.itemsToGive);
-      offer.addTheirItems(dto.itemsToReceive);
-
       this.logger.debug(
-        `Items to give: [${dto.itemsToGive
+        `Items to give: [${offer.itemsToGive
           .map((item) => `"${item.appid}_${item.contextid}_${item.assetid}"`)
           .join(',')}]`
       );
       this.logger.debug(
-        `Items to receive: [${dto.itemsToReceive
+        `Items to receive: [${offer.itemsToReceive
           .map((item) => `"${item.appid}_${item.contextid}_${item.assetid}"`)
           .join(',')}]`
       );
@@ -388,7 +415,7 @@ export class TradesService {
       });
     }).then((offer) => {
       this.logger.log(
-        `Offer #${offer.id} sent to ${dto.partner} has state ${
+        `Offer #${offer.id} sent to ${offer.partner} has state ${
           SteamTradeOfferManager.ETradeOfferState[offer.state]
         }`
       );
