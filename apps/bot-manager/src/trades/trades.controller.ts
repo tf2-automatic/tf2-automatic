@@ -57,6 +57,32 @@ export class TradesController {
           bot: '76561198120070906',
         },
       },
+      'Counter trade': {
+        value: {
+          type: 'COUNTER',
+          data: {
+            id: '1234567890',
+            message: 'Hello, I would like to trade with you',
+            itemsToGive: [
+              {
+                assetid: '1234567890',
+                appid: 440,
+                contextid: '2',
+                amount: 1,
+              },
+            ],
+            itemsToReceive: [
+              {
+                assetid: '1234567890',
+                appid: 440,
+                contextid: '2',
+                amount: 1,
+              },
+            ],
+          },
+          bot: '76561198120070906',
+        },
+      },
       'Cancel / decline trade': {
         value: {
           type: 'DELETE',

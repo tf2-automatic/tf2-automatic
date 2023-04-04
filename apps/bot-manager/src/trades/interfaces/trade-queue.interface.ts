@@ -1,4 +1,4 @@
-import { CreateTrade } from '@tf2-automatic/bot-data';
+import { CounterTrade, CreateTrade } from '@tf2-automatic/bot-data';
 import {
   QueueTradeType,
   RetryTradeOptions,
@@ -6,6 +6,7 @@ import {
 
 export type TradeQueue =
   | CreateTradeJob
+  | CounterTradeJob
   | DeleteTradeJob
   | AcceptTradeJob
   | ConfirmTradeJob;
@@ -17,6 +18,8 @@ export type CreateTradeJob = BaseTradeQueue<
     checkCreatedAfter?: number;
   }
 >;
+
+export type CounterTradeJob = BaseTradeQueue<'COUNTER', CounterTrade>;
 
 export type DeleteTradeJob = BaseTradeQueue<'DELETE', string>;
 

@@ -8,6 +8,7 @@ import {
   OfferFilter,
 } from '@tf2-automatic/bot-data';
 import {
+  ManagerCounterTrade,
   QueueTrade,
   QueueTradeType,
   QueueTradeTypes,
@@ -118,6 +119,18 @@ export class CreateTradeDto extends BaseCreateTrade implements CreateTrade {
 
 export class CounterTradeDto extends BaseCreateTrade implements CounterTrade {}
 
+export class ManagerCounterTradeDto
+  extends CounterTradeDto
+  implements ManagerCounterTrade
+{
+  @ApiProperty({
+    description: 'The id of the trade to counter',
+    example: '1234567890',
+  })
+  @IsString()
+  id: string;
+}
+
 export class GetTradesDto implements GetTrades {
   @ApiProperty({
     enum: OfferFilter,
@@ -191,6 +204,16 @@ export class TradeQueueDataValidator implements ValidatorConstraintInterface {
           .catch(() => {
             return false;
           });
+      case 'COUNTER':
+        return new ValidationPipe()
+          .transform(dto.data, {
+            type: 'body',
+            metatype: ManagerCounterTradeDto,
+          })
+          .then(() => true)
+          .catch(() => {
+            return false;
+          });
       case 'DELETE':
       case 'ACCEPT':
       case 'CONFIRM':
@@ -210,6 +233,8 @@ export class TradeQueueDataValidator implements ValidatorConstraintInterface {
     switch (dto.type) {
       case 'CREATE':
         return 'data must be a valid CreateTradeDto';
+      case 'COUNTER':
+        return 'data must be a valid CounterTradeDto';
       case 'DELETE':
       case 'ACCEPT':
       case 'CONFIRM':

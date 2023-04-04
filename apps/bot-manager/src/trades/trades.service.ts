@@ -20,6 +20,9 @@ import {
   TRADE_CONFIRMATION_PATH,
   TRADE_EXCHANGE_DETAILS_PATH,
   TRADE_PATH,
+  GetTradeResponse,
+  TRADE_COUNTER_PATH,
+  CounterTrade,
 } from '@tf2-automatic/bot-data';
 import { Bot, QueueTradeResponse } from '@tf2-automatic/bot-manager-data';
 import {
@@ -143,6 +146,34 @@ export class TradesService {
     ).then((res) => {
       return res.data;
     });
+  }
+
+  counterTrade(
+    bot: Bot,
+    id: string,
+    data: CounterTrade
+  ): Promise<CreateTradeResponse> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_COUNTER_PATH}`.replace(
+        ':id',
+        id
+      );
+
+    return firstValueFrom(this.httpService.post(url, data)).then((res) => {
+      return res.data;
+    });
+  }
+
+  getTrade(bot: Bot, tradeId: string): Promise<GetTradeResponse> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
+        ':id',
+        tradeId
+      );
+
+    return firstValueFrom(this.httpService.get<GetTradeResponse>(url)).then(
+      (res) => res.data
+    );
   }
 
   getActiveTrades(bot: Bot): Promise<GetTradesResponse> {
