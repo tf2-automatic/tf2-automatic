@@ -291,22 +291,10 @@ export class BotService implements OnModuleDestroy {
 
       this.eventEmitter.emit('bot.disconnected');
 
-      const pollInterval = this.manager.pollInterval;
-
-      // Disable polling
-      this.manager.pollInterval = -1;
-      clearTimeout(this.manager._pollTimer);
-
-      this.reconnect()
-        .then(() => {
-          // Re-enable polling
-          this.manager.pollInterval = pollInterval;
-          this.manager.doPoll();
-        })
-        .catch((err) => {
-          this.logger.warn('Failed to reconnect: ' + err.message);
-          this.shutdownService.shutdown();
-        });
+      this.reconnect().catch((err) => {
+        this.logger.warn('Failed to reconnect: ' + err.message);
+        this.shutdownService.shutdown();
+      });
     });
 
     this.running = true;
@@ -587,6 +575,12 @@ export class BotService implements OnModuleDestroy {
 
   private reconnect() {
     if (!this._reconnectPromise) {
+      const pollInterval = this.manager.pollInterval;
+
+      // Disable polling
+      this.manager.pollInterval = -1;
+      clearTimeout(this.manager._pollTimer);
+
       const promise = new Promise<void>((resolve) => {
         // Wait a second before reconnecting to avoid retrying too quickly
         setTimeout(() => {
@@ -612,10 +606,16 @@ export class BotService implements OnModuleDestroy {
         );
       });
 
-      this._reconnectPromise = promise.finally(() => {
-        // Reset promise
-        this._reconnectPromise = null;
-      });
+      this._reconnectPromise = promise
+        .then(() => {
+          // Re-enable polling
+          this.manager.pollInterval = pollInterval;
+          this.manager.doPoll();
+        })
+        .finally(() => {
+          // Reset promise
+          this._reconnectPromise = null;
+        });
     }
 
     return this._reconnectPromise;
