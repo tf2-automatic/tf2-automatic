@@ -86,4 +86,4 @@ export const TF2_LOST_EVENT: TF2LostEventType = `${TF2_EVENT_PREFIX}.lost`;
 
 export type TF2GainedEvent = BaseEvent<TF2GainedEventType, TF2Item>;
 
-export type TF2LostEvent = BaseEvent<TF2LostEvent, TF2Item>;
+export type TF2LostEvent = BaseEvent<TF2LostEventType, TF2Item>;
