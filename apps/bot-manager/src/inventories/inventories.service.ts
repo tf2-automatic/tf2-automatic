@@ -54,11 +54,9 @@ export class InventoriesService {
     contextid: string,
     dto: EnqueueInventoryDto
   ): Promise<void> {
-    const steamid64 = steamid.getSteamID64();
-
     const data: InventoryQueue = {
       raw: {
-        steamid: steamid64,
+        steamid64: steamid.getSteamID64(),
         appid,
         contextid,
       },

@@ -95,7 +95,7 @@ export class InventoriesProcessor extends WorkerHost {
     // Get and save inventory
     const inventory = await this.inventoriesService.getInventoryFromBot(
       bot,
-      new SteamID(job.data.raw.steamid),
+      new SteamID(job.data.raw.steamid64),
       job.data.raw.appid,
       job.data.raw.contextid
     );

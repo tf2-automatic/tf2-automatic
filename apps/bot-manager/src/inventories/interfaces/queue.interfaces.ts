@@ -2,7 +2,7 @@ import { RetryOptions } from '@tf2-automatic/bot-manager-data';
 
 export interface InventoryQueue {
   raw: {
-    steamid: string;
+    steamid64: string;
     appid: number;
     contextid: string;
   };
