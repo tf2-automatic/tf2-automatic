@@ -7,17 +7,8 @@ import { RabbitMQWrapperModule } from '../rabbitmq-wrapper/rabbitmq-wrapper.modu
 import { ExchangeDetailsProcessor } from './processors/exchange-details.processor';
 import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
-import { DefaultJobOptions } from 'bullmq';
 import { TradesProcessor } from './processors/trades.processor';
-
-const defaultJobOptions: DefaultJobOptions = {
-  attempts: Number.MAX_SAFE_INTEGER,
-  backoff: {
-    type: 'custom',
-  },
-  removeOnComplete: true,
-  removeOnFail: true,
-};
+import { defaultJobOptions } from '../common/utils/default-job-options';
 
 @Module({
   imports: [
