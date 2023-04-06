@@ -97,8 +97,9 @@ export class InventoriesController {
 
   @Delete(INVENTORY_PATH)
   @ApiOperation({
-    summary: 'Delete cached inventory',
-    description: 'Delete a inventory of a Steam account from the cache.',
+    summary: 'Delete cached inventory and load job if one exists',
+    description:
+      'Delete a inventory of a Steam account from the cache and queue job if one exists.',
   })
   @ApiParamSteamID()
   @ApiParam({

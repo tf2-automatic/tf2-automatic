@@ -67,7 +67,7 @@ export class InventoriesService {
       retry: dto.retry,
     };
 
-    const id = `${steamid64}_${appid}_${contextid}`;
+    const id = this.getInventoryJobId(steamid, appid, contextid);
 
     await this.inventoriesQueue.add(id, data, {
       jobId: id,
@@ -129,7 +129,12 @@ export class InventoriesService {
     contextid: string
   ): Promise<void> {
     const key = this.getInventoryKey(steamid, appid, contextid);
-    await this.redis.del(key);
+    await Promise.all([
+      this.redis.del(key),
+      this.inventoriesQueue.remove(
+        this.getInventoryJobId(steamid, appid, contextid)
+      ),
+    ]);
   }
 
   async getInventoryFromCache(
@@ -294,5 +299,13 @@ export class InventoriesService {
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
     return `:inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+  }
+
+  private getInventoryJobId(
+    steamid: SteamID,
+    appid: number,
+    contextid: string
+  ) {
+    return `${steamid.getSteamID64()}_${appid}_${contextid}`;
   }
 }
