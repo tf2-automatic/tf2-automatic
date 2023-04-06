@@ -1,10 +1,12 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
-  Query,
+  Post,
   ValidationPipe,
 } from '@nestjs/common';
 import {
@@ -20,7 +22,7 @@ import {
 } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
-import { GetInventoryDto } from '@tf2-automatic/dto';
+import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InventoriesService } from './inventories.service';
 import { ApiParamSteamID, CachedInventoryModel } from '@tf2-automatic/swagger';
 
@@ -28,6 +30,31 @@ import { ApiParamSteamID, CachedInventoryModel } from '@tf2-automatic/swagger';
 @Controller(INVENTORIES_BASE_URL)
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
+
+  @Post(INVENTORY_PATH)
+  @ApiOperation({
+    summary: 'Add inventory to queue',
+    description: 'Adds an inventory load job to the queue.',
+  })
+  @ApiParamSteamID()
+  @ApiParam({
+    name: 'appid',
+    description: 'The appid of the game',
+    example: 440,
+  })
+  @ApiParam({
+    name: 'contextid',
+    description: 'The contextid of the inventory',
+    example: 2,
+  })
+  addInventoryToQueue(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Param('appid', ParseIntPipe) appid: number,
+    @Param('contextid') contextid: string,
+    @Body(new ValidationPipe()) body: EnqueueInventoryDto
+  ): Promise<void> {
+    return this.inventoriesService.addToQueue(steamid, appid, contextid, body);
+  }
 
   @Get(INVENTORY_PATH)
   @ApiOperation({
@@ -50,23 +77,22 @@ export class InventoriesController {
     description: 'The contextid of the inventory',
     example: 2,
   })
-  getInventory(
+  async getInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
-    @Param('contextid') contextid: string,
-    @Query(
-      new ValidationPipe({
-        transform: true,
-      })
-    )
-    query: GetInventoryDto
+    @Param('contextid') contextid: string
   ): Promise<InventoryResponse> {
-    return this.inventoriesService.getInventory(
+    const inventory = await this.inventoriesService.getInventoryFromCache(
       steamid,
       appid,
-      contextid,
-      query
+      contextid
     );
+
+    if (inventory === null) {
+      throw new NotFoundException('Inventory not found');
+    }
+
+    return inventory;
   }
 
   @Delete(INVENTORY_PATH)

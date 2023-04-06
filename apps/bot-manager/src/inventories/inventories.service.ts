@@ -1,7 +1,7 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
   ExchangeDetailsItem,
@@ -20,8 +20,8 @@ import {
   ExchangeDetailsEvent,
   EXCHANGE_DETAILS_EVENT,
   InventoryLoadedEvent,
-  InventoryResponse,
   INVENTORY_LOADED_EVENT,
+  InventoryResponse,
 } from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
@@ -29,14 +29,12 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
-import { GetInventoryDto } from '@tf2-automatic/dto';
+import { EnqueueInventoryDto } from '@tf2-automatic/dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { InventoryQueue } from './interfaces/queue.interfaces';
 
 const INVENTORY_EXPIRE_TIME = 600;
-
-interface InventoryWithTimestamp {
-  timestamp: number;
-  inventory: Inventory;
-}
 
 @Injectable()
 export class InventoriesService {
@@ -45,15 +43,43 @@ export class InventoriesService {
     private readonly redis: Redis,
     private readonly httpService: HttpService,
     private readonly heartbeatsService: HeartbeatsService,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
+    @InjectQueue('inventories')
+    private readonly inventoriesQueue: Queue<InventoryQueue>
   ) {}
+
+  async addToQueue(
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+    dto: EnqueueInventoryDto
+  ): Promise<void> {
+    const steamid64 = steamid.getSteamID64();
+
+    const data: InventoryQueue = {
+      raw: {
+        steamid: steamid64,
+        appid,
+        contextid,
+      },
+      extra: {},
+      bot: dto.bot,
+      retry: dto.retry,
+    };
+
+    const id = `${steamid64}_${appid}_${contextid}`;
+
+    await this.inventoriesQueue.add(id, data, {
+      jobId: id,
+    });
+  }
 
   async getInventoryFromBot(
     bot: Bot,
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<InventoryWithTimestamp> {
+  ): Promise<InventoryResponse> {
     const now = Math.floor(Date.now() / 1000);
 
     const response = await firstValueFrom(
@@ -106,53 +132,11 @@ export class InventoriesService {
     await this.redis.del(key);
   }
 
-  async getInventory(
-    steamid: SteamID,
-    appid: number,
-    contextid: string,
-    query: GetInventoryDto
-  ): Promise<InventoryResponse> {
-    // Check if inventory is in the cache
-    const cached = await this.getInventoryFromCache(steamid, appid, contextid);
-    if (cached !== null) {
-      return {
-        cached: true,
-        timestamp: cached.timestamp,
-        inventory: cached.inventory,
-      };
-    }
-
-    let bot: Bot;
-
-    if (query.bot !== undefined) {
-      // Get specific bot
-      bot = await this.heartbeatsService.getBot(query.bot);
-    } else {
-      // If the client wants non-cached data then fetch it, store it, and return it
-      const bots = await this.heartbeatsService.getBots();
-      if (bots.length === 0) {
-        throw new ServiceUnavailableException('No bots available');
-      }
-
-      // Choose a random bot
-      bot = bots[Math.floor(Math.random() * bots.length)];
-    }
-
-    // Get the inventory of the bot
-    return this.getInventoryFromBot(bot, steamid, appid, contextid).then(
-      (result) => ({
-        cached: false,
-        timestamp: result.timestamp,
-        inventory: result.inventory,
-      })
-    );
-  }
-
   async getInventoryFromCache(
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<InventoryWithTimestamp | null> {
+  ): Promise<InventoryResponse | null> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
     const timestamp = await this.redis.hget(key, 'timestamp');

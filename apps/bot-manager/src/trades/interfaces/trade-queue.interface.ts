@@ -2,7 +2,7 @@ import { CreateTrade } from '@tf2-automatic/bot-data';
 import {
   ManagerCounterTrade,
   QueueTradeType,
-  RetryTradeOptions,
+  RetryOptions,
 } from '@tf2-automatic/bot-manager-data';
 
 export type TradeQueue =
@@ -37,5 +37,5 @@ interface BaseTradeQueue<
   raw: Raw;
   extra: Extra;
   bot: string;
-  retry?: RetryTradeOptions;
+  retry?: RetryOptions;
 }
