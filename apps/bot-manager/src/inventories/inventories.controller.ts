@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -77,22 +76,16 @@ export class InventoriesController {
     description: 'The contextid of the inventory',
     example: 2,
   })
-  async getInventory(
+  getInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string
   ): Promise<InventoryResponse> {
-    const inventory = await this.inventoriesService.getInventoryFromCache(
+    return this.inventoriesService.getInventoryFromCache(
       steamid,
       appid,
       contextid
     );
-
-    if (inventory === null) {
-      throw new NotFoundException('Inventory not found');
-    }
-
-    return inventory;
   }
 
   @Delete(INVENTORY_PATH)

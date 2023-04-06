@@ -1,7 +1,7 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
   ExchangeDetailsItem,
@@ -139,13 +139,13 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string
-  ): Promise<InventoryResponse | null> {
+  ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
     const timestamp = await this.redis.hget(key, 'timestamp');
     if (timestamp === null) {
       // Inventory is not in the cache
-      return null;
+      throw new NotFoundException('Inventory not found');
     }
 
     const object = await this.redis.hgetall(key);
