@@ -10,6 +10,7 @@ import {
   FRIEND_RELATIONSHIP_EVENT,
   FRIEND_TYPING_EVENT,
   SendFriendMessageResponse,
+  Friend,
 } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 import { EventsService } from '../events/events.service';
@@ -112,18 +113,18 @@ export class FriendsService {
   }
 
   async getFriends(): Promise<Friends> {
-    return Object.keys(this.client.myFriends).map((steamid) => {
-      const relationship = this.client.myFriends[steamid];
+    return Object.keys(this.client.myFriends).map((steamid) =>
+      this.getFriend(new SteamID(steamid))
+    );
+  }
 
-      return {
-        steamid64: steamid,
-        isFriend: relationship === SteamUser.EFriendRelationship.Friend,
-        isInvited:
-          relationship === SteamUser.EFriendRelationship.RequestInitiator,
-        hasInvitedUs:
-          relationship === SteamUser.EFriendRelationship.RequestRecipient,
-      };
-    });
+  getFriend(steamid: SteamID): Friend {
+    const relationship = this.client.myFriends[steamid.getSteamID64()];
+
+    return {
+      steamid64: steamid.getSteamID64(),
+      relationship,
+    };
   }
 
   addFriend(steamid: SteamID): Promise<boolean> {
@@ -190,34 +191,6 @@ export class FriendsService {
         this.logger.error('Error deleting friend: ' + err.message);
         throw err;
       });
-  }
-
-  async isFriend(steamid: SteamID): Promise<boolean> {
-    return (
-      this.client.myFriends[steamid.getSteamID64()] ===
-      SteamUser.EFriendRelationship.Friend
-    );
-  }
-
-  async isInvited(steamid: SteamID): Promise<boolean> {
-    return (
-      this.client.myFriends[steamid.getSteamID64()] ===
-      SteamUser.EFriendRelationship.RequestInitiator
-    );
-  }
-
-  async hasInvitedUs(steamid: SteamID): Promise<boolean> {
-    return (
-      this.client.myFriends[steamid.getSteamID64()] ===
-      SteamUser.EFriendRelationship.RequestRecipient
-    );
-  }
-
-  async isBlocked(steamid: SteamID): Promise<boolean> {
-    return (
-      this.client.myFriends[steamid.getSteamID64()] ==
-      SteamUser.EFriendRelationship.Blocked
-    );
   }
 
   blockUser(steamid: SteamID): Promise<void> {
