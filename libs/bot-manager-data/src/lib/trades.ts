@@ -5,6 +5,7 @@ import {
   TradeOffer,
   TradeOfferExchangeDetails,
 } from '@tf2-automatic/bot-data';
+import { RetryOptions } from './misc';
 
 export const TRADES_BASE_URL = '/trades';
 export const TRADE_JOBS_PATH = `/`;
@@ -12,13 +13,6 @@ export const TRADE_JOB_PATH = `/:id`;
 
 export interface ManagerCounterTrade extends CounterTrade {
   id: string;
-}
-
-export interface RetryTradeOptions {
-  strategy?: 'exponential' | 'linear' | 'fixed';
-  maxTime?: number;
-  delay?: number;
-  maxDelay?: number;
 }
 
 export const QueueTradeTypes = [
@@ -44,7 +38,7 @@ export interface QueueTrade<
   data: Data;
   bot: string;
   priority?: number;
-  retry?: RetryTradeOptions;
+  retry?: RetryOptions;
 }
 
 export interface QueueTradeResponse {

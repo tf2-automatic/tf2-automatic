@@ -6,6 +6,9 @@ import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
 import { RabbitMQWrapperModule } from '../rabbitmq-wrapper/rabbitmq-wrapper.module';
 import { InventoriesController } from './inventories.controller';
 import { InventoriesService } from './inventories.service';
+import { BullModule } from '@nestjs/bullmq';
+import { InventoriesProcessor } from './inventories.processor';
+import { defaultJobOptions } from '../common/utils/default-job-options';
 
 @Module({
   imports: [
@@ -14,8 +17,12 @@ import { InventoriesService } from './inventories.service';
     HeartbeatsModule,
     RabbitMQWrapperModule,
     EventsModule,
+    BullModule.registerQueue({
+      name: 'inventories',
+      defaultJobOptions,
+    }),
   ],
   controllers: [InventoriesController],
-  providers: [InventoriesService],
+  providers: [InventoriesService, InventoriesProcessor],
 })
 export class InventoriesModule {}
