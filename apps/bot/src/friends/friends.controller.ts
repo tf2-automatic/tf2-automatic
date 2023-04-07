@@ -172,16 +172,4 @@ export class FriendsController {
   ): Promise<void> {
     return this.friendsService.unblockUser(steamid);
   }
-
-  @Get(FRIEND_BLOCK_PATH)
-  @ApiOperation({
-    summary: 'Check if a Steam account is blocked',
-    description: 'Check if a Steam account is blocked',
-  })
-  @ApiParamSteamID()
-  isBlocked(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<boolean> {
-    return this.friendsService.isBlocked(steamid);
-  }
 }
