@@ -14,7 +14,7 @@
     "@commitlint/cli": "^17.5.1",
     "@commitlint/config-conventional": "^17.4.4",
     "@nestjs/schematics": "^9.1.0",
-    "@nestjs/testing": "^9.3.12",
+    "@nestjs/testing": "^9.4.0",
     "@nrwl/cli": "15.9.2",
     "@nrwl/eslint-plugin-nx": "15.9.2",
     "@nrwl/jest": "15.9.2",
