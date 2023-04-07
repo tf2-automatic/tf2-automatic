@@ -12,7 +12,6 @@ import {
   QueueTrade,
   QueueTradeType,
   QueueTradeTypes,
-  RetryTradeOptions,
 } from '@tf2-automatic/bot-manager-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
@@ -32,6 +31,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
+import { QueueRetryDto } from './misc';
 
 export class AssetDto implements Asset {
   @ApiProperty({
@@ -142,48 +142,6 @@ export class GetTradesDto implements GetTrades {
   filter: OfferFilter;
 }
 
-export class QueueTradeRetryDto implements RetryTradeOptions {
-  @ApiProperty({
-    description: 'The retry strategy to use',
-    required: false,
-    example: 'exponential',
-  })
-  @IsOptional()
-  @IsEnum(['exponential', 'linear', 'fixed'])
-  strategy?: 'exponential' | 'linear' | 'fixed';
-
-  @ApiProperty({
-    description:
-      'Maximum amount of time in milliseconds the job will be retried for until it fails',
-    example: 60000,
-    required: false,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(10000)
-  maxTime?: number;
-
-  @ApiProperty({
-    description: 'Delay between retries in milliseconds',
-    example: 1000,
-    required: false,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(1000)
-  delay?: number;
-
-  @ApiProperty({
-    description: 'Maximum delay between retries in milliseconds',
-    example: 10000,
-    required: false,
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(10000)
-  maxDelay?: number;
-}
-
 @ValidatorConstraint()
 export class TradeQueueDataValidator implements ValidatorConstraintInterface {
   validate(object: unknown, args: ValidationArguments) {
@@ -281,11 +239,11 @@ export class TradeQueueJobDto implements QueueTrade {
 
   @ApiProperty({
     description: 'The options for the job',
-    type: QueueTradeRetryDto,
+    type: QueueRetryDto,
     required: false,
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => QueueTradeRetryDto)
-  retry: QueueTradeRetryDto;
+  @Type(() => QueueRetryDto)
+  retry: QueueRetryDto;
 }

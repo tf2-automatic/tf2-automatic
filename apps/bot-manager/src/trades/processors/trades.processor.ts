@@ -18,27 +18,7 @@ import {
   TradeQueue,
 } from '../interfaces/trade-queue.interface';
 import { TradesService } from '../trades.service';
-
-type BackoffStrategy = (
-  attemptsMade: number,
-  job: MinimalJob<TradeQueue>
-) => number;
-
-const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
-  const strategy = job.data.retry?.strategy ?? 'exponential';
-  const delay = job.data.retry?.delay ?? 1000;
-  const maxDelay = job.data.retry?.maxDelay ?? 10000;
-
-  let wait = delay;
-
-  if (strategy === 'exponential') {
-    wait = 2 ** (attempts - 1) * delay;
-  } else if (strategy === 'linear') {
-    wait = attempts * delay;
-  }
-
-  return Math.min(wait, maxDelay);
-};
+import { customBackoffStrategy } from '../../common/utils/backoff-strategy';
 
 @Processor('trades', {
   settings: {
