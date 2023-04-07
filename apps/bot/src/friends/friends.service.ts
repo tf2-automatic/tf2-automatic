@@ -113,12 +113,17 @@ export class FriendsService {
   }
 
   async getFriends(): Promise<Friends> {
-    return Object.keys(this.client.myFriends).map((steamid) =>
-      this.getFriend(new SteamID(steamid))
-    );
+    return Object.keys(this.client.myFriends).map((steamid64) => {
+      const relationship = this.client.myFriends[steamid64];
+
+      return {
+        steamid64,
+        relationship,
+      };
+    });
   }
 
-  getFriend(steamid: SteamID): Friend {
+  async getFriend(steamid: SteamID): Promise<Friend> {
     const relationship = this.client.myFriends[steamid.getSteamID64()];
 
     return {
@@ -191,6 +196,12 @@ export class FriendsService {
         this.logger.error('Error deleting friend: ' + err.message);
         throw err;
       });
+  }
+
+  isFriend(steamid: SteamID): Promise<boolean> {
+    return this.getFriend(steamid).then(
+      (friend) => friend.relationship === SteamUser.EFriendRelationship.Friend
+    );
   }
 
   blockUser(steamid: SteamID): Promise<void> {
