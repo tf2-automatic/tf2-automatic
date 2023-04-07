@@ -4,6 +4,7 @@ import {
   DeleteFriendResponse,
   Friend,
 } from '@tf2-automatic/bot-data';
+import SteamUser from 'steam-user';
 
 export class AddFriendModel implements AddFriendResponse {
   @ApiProperty({
@@ -30,22 +31,11 @@ export class FriendModel implements Friend {
   steamid64: string;
 
   @ApiProperty({
-    example: true,
-    description: 'If the bot is friends with the user',
+    example: SteamUser.EFriendRelationship.Friend,
+    description: 'The relationship the bot has with the user',
+    enum: SteamUser.EFriendRelationship,
   })
-  isFriend: boolean;
-
-  @ApiProperty({
-    example: false,
-    description: 'If the bot has invited the user',
-  })
-  isInvited: boolean;
-
-  @ApiProperty({
-    example: false,
-    description: 'If the user has invited the bot',
-  })
-  hasInvitedUs: boolean;
+  relationship: SteamUser.EFriendRelationship;
 }
 
 export class MessageModel {

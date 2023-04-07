@@ -104,18 +104,7 @@ export class FriendsController {
   async isFriend(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<Friend> {
-    const [isFriend, isInvited, hasInvitedUs] = await Promise.all([
-      this.friendsService.isFriend(steamid),
-      this.friendsService.isInvited(steamid),
-      this.friendsService.hasInvitedUs(steamid),
-    ]);
-
-    return {
-      steamid64: steamid.getSteamID64(),
-      isFriend,
-      isInvited,
-      hasInvitedUs,
-    };
+    return this.friendsService.getFriend(steamid);
   }
 
   @Post(FRIEND_MESSAGE_PATH)
@@ -171,17 +160,5 @@ export class FriendsController {
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
   ): Promise<void> {
     return this.friendsService.unblockUser(steamid);
-  }
-
-  @Get(FRIEND_BLOCK_PATH)
-  @ApiOperation({
-    summary: 'Check if a Steam account is blocked',
-    description: 'Check if a Steam account is blocked',
-  })
-  @ApiParamSteamID()
-  isBlocked(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
-  ): Promise<boolean> {
-    return this.friendsService.isBlocked(steamid);
   }
 }
