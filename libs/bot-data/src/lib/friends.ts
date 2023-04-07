@@ -3,9 +3,7 @@ import { BaseEvent } from './events';
 
 export interface Friend {
   steamid64: string;
-  isFriend: boolean;
-  isInvited: boolean;
-  hasInvitedUs: boolean;
+  relationship: SteamUser.EFriendRelationship;
 }
 
 export type Friends = Friend[];
