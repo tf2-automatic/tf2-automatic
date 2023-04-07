@@ -28,7 +28,6 @@ import { firstValueFrom } from 'rxjs';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
-import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -42,7 +41,6 @@ export class InventoriesService {
     @InjectRedis()
     private readonly redis: Redis,
     private readonly httpService: HttpService,
-    private readonly heartbeatsService: HeartbeatsService,
     private readonly eventsService: EventsService,
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryQueue>
