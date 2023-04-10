@@ -8,6 +8,8 @@ import {
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
+  TRADE_ERROR_EVENT,
+  TRADE_FAILED_EVENT,
   TradeErrorEvent,
   TradeFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
@@ -74,7 +76,7 @@ export class TradesProcessor extends WorkerHost {
 
       return this.eventsService
         .publish(
-          unrecoverable ? 'trades.failed' : 'trades.error',
+          unrecoverable ? TRADE_FAILED_EVENT : TRADE_ERROR_EVENT,
           data,
           new SteamID(job.data.bot)
         )
