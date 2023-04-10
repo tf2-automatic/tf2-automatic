@@ -2,10 +2,11 @@ import {
   BaseEvent,
   CounterTrade,
   CreateTrade,
+  HttpError,
   TradeOffer,
   TradeOfferExchangeDetails,
 } from '@tf2-automatic/bot-data';
-import { RetryOptions } from './misc';
+import { Job, RetryOptions } from './misc';
 
 export const TRADES_BASE_URL = '/trades';
 export const TRADE_JOBS_PATH = `/`;
@@ -45,9 +46,9 @@ export interface QueueTradeResponse {
   id: string;
 }
 
-export type ExchangeDetailsEventType = 'trades.exchange-details';
-
 export const TRADES_EVENT_PREFIX = 'trades';
+
+export type ExchangeDetailsEventType = 'trades.exchange-details';
 export const EXCHANGE_DETAILS_EVENT: ExchangeDetailsEventType = `${TRADES_EVENT_PREFIX}.exchange-details`;
 
 export type ExchangeDetailsEvent = BaseEvent<
@@ -57,3 +58,19 @@ export type ExchangeDetailsEvent = BaseEvent<
     details: TradeOfferExchangeDetails;
   }
 >;
+
+interface TradeEventData {
+  job: Job;
+  response: HttpError | null;
+  error: string;
+}
+
+export type TradeErrorEventType = 'trades.error';
+export const TRADE_ERROR_EVENT: TradeErrorEventType = `${TRADES_EVENT_PREFIX}.error`;
+
+export type TradeErrorEvent = BaseEvent<TradeErrorEventType, TradeEventData>;
+
+export type TradeFailedEventType = 'trades.failed';
+export const TRADE_FAILED_EVENT: TradeFailedEventType = `${TRADES_EVENT_PREFIX}.failed`;
+
+export type TradeFailedEvent = BaseEvent<TradeFailedEventType, TradeEventData>;

@@ -24,13 +24,13 @@ import {
   TRADE_COUNTER_PATH,
   CounterTrade,
 } from '@tf2-automatic/bot-data';
-import { Bot, QueueTradeResponse } from '@tf2-automatic/bot-manager-data';
+import { Bot, QueueTradeResponse, Job } from '@tf2-automatic/bot-manager-data';
 import {
   CreateTradeDto,
   GetTradesDto,
   TradeQueueJobDto,
 } from '@tf2-automatic/dto';
-import { Queue } from 'bullmq';
+import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
@@ -79,21 +79,9 @@ export class TradesService {
     });
   }
 
-  getQueue() {
+  getQueue(): Promise<Job[]> {
     return this.tradesQueue.getJobs().then((jobs) => {
-      return jobs.map((job) => {
-        return {
-          id: job.id,
-          data: job.data.raw,
-          bot: job.data.bot,
-          attempts: job.attemptsMade,
-          lastProcessedAt:
-            job.processedOn === undefined
-              ? null
-              : Math.floor(job.processedOn / 1000),
-          createdAt: Math.floor(job.timestamp / 1000),
-        };
-      });
+      return jobs.map(this.mapJob);
     });
   }
 
@@ -230,5 +218,20 @@ export class TradesService {
       );
 
     return firstValueFrom(this.httpService.get(url)).then((res) => res.data);
+  }
+
+  mapJob(job: BullJob<TradeQueue>): Job {
+    return {
+      id: job.id as string,
+      type: job.data.type,
+      data: job.data.raw,
+      bot: job.data.bot,
+      attempts: job.attemptsMade,
+      lastProcessedAt:
+        job.processedOn === undefined
+          ? null
+          : Math.floor(job.processedOn / 1000),
+      createdAt: Math.floor(job.timestamp / 1000),
+    };
   }
 }

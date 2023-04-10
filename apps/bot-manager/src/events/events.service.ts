@@ -15,7 +15,7 @@ export class EventsService implements OnModuleDestroy {
 
   async publish(
     event: string,
-    data: { [key: string]: unknown } = {},
+    data: object = {},
     steamid?: SteamID
   ): Promise<void> {
     await this.amqpConnection.publish(BOT_MANAGER_EXCHANGE_NAME, event, {
