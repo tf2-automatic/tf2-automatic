@@ -6,7 +6,13 @@ import {
   SteamError,
   TradeOffer,
 } from '@tf2-automatic/bot-data';
-import { Bot } from '@tf2-automatic/bot-manager-data';
+import {
+  Bot,
+  TRADE_ERROR_EVENT,
+  TRADE_FAILED_EVENT,
+  TradeErrorEvent,
+  TradeFailedEvent,
+} from '@tf2-automatic/bot-manager-data';
 import { AxiosError } from 'axios';
 import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
@@ -19,6 +25,11 @@ import {
 } from '../interfaces/trade-queue.interface';
 import { TradesService } from '../trades.service';
 import { customBackoffStrategy } from '../../common/utils/backoff-strategy';
+import { EventsService } from '../../events/events.service';
+import {
+  CustomError,
+  CustomUnrecoverableError,
+} from '../../common/utils/custom-queue-errors';
 
 @Processor('trades', {
   settings: {
@@ -36,7 +47,8 @@ export class TradesProcessor extends WorkerHost {
 
   constructor(
     private readonly tradesService: TradesService,
-    private readonly heartbeatsService: HeartbeatsService
+    private readonly heartbeatsService: HeartbeatsService,
+    private readonly eventsService: EventsService
   ) {
     super();
   }
@@ -46,6 +58,37 @@ export class TradesProcessor extends WorkerHost {
       `Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade}...`
     );
 
+    return this.processJobWithErrorHandler(job).catch((err) => {
+      const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
+        job: this.tradesService.mapJob(job),
+        error: err.message,
+        response: null,
+      };
+
+      if (
+        err instanceof CustomError ||
+        err instanceof CustomUnrecoverableError
+      ) {
+        data.response = err.response.data;
+      }
+
+      const unrecoverable = err instanceof UnrecoverableError;
+
+      return this.eventsService
+        .publish(
+          unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+          data,
+          new SteamID(job.data.bot)
+        )
+        .finally(() => {
+          throw err;
+        });
+    });
+  }
+
+  private async processJobWithErrorHandler(
+    job: Job<TradeQueue>
+  ): Promise<unknown> {
     const maxTime = job.data?.retry?.maxTime ?? 120000;
 
     // Check if job is too old
@@ -68,14 +111,28 @@ export class TradesProcessor extends WorkerHost {
           response.status >= 400
         ) {
           // Don't retry on 4xx errors
-          throw new UnrecoverableError(response.data.message);
+          throw new CustomUnrecoverableError(response.data.message, response);
         }
       }
 
       // Check if job will be too old when it can be retried again
       const delay = customBackoffStrategy(job.attemptsMade, job);
       if (job.timestamp < Date.now() + delay - maxTime) {
+        if (err instanceof AxiosError && err.response !== undefined) {
+          // Is axios error, throw custom unrecoverable error with axios response
+          throw new CustomUnrecoverableError(
+            'Job is too old to be retried',
+            err.response
+          );
+        }
+
+        // Is not axios error, throw normal unrecoverable error
         throw new UnrecoverableError('Job is too old to be retried');
+      }
+
+      if (err instanceof AxiosError && err.response !== undefined) {
+        // Not a unrecoverable error, and is an axios error, throw custom error with axios response
+        throw new CustomError(err.response.data.message, err.response);
       }
 
       // Unknown error
@@ -106,7 +163,7 @@ export class TradesProcessor extends WorkerHost {
       default:
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        throw new Error(`Unknown job type ${job.data.type}`);
+        throw new UnrecoverableError(`Unknown job type ${job.data.type}`);
     }
   }
 
@@ -202,7 +259,7 @@ export class TradesProcessor extends WorkerHost {
           data.eresult !== SteamUser.EResult.Fail
         ) {
           // Fail when receiving eresult that can't be recovered from
-          throw new UnrecoverableError(data.message);
+          throw new CustomUnrecoverableError(data.message, response);
         }
       }
     }
