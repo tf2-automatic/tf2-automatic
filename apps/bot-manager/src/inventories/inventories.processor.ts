@@ -64,7 +64,7 @@ export class InventoriesProcessor extends WorkerHost {
 
       return this.eventsService
         .publish(
-          unrecoverable ? INVENTORY_FAILED_EVENT : INVENTORY_ERROR_EVENT,
+          unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
           data
         )
         .finally(() => {

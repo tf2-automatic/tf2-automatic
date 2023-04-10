@@ -76,7 +76,7 @@ export class TradesProcessor extends WorkerHost {
 
       return this.eventsService
         .publish(
-          unrecoverable ? TRADE_FAILED_EVENT : TRADE_ERROR_EVENT,
+          unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
           data,
           new SteamID(job.data.bot)
         )
