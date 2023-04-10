@@ -8,7 +8,18 @@ import { customBackoffStrategy } from '../common/utils/backoff-strategy';
 import { InventoriesService } from './inventories.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import SteamID from 'steamid';
-import { Bot } from '@tf2-automatic/bot-manager-data';
+import {
+  Bot,
+  INVENTORY_ERROR_EVENT,
+  INVENTORY_FAILED_EVENT,
+  InventoryErrorEvent,
+  InventoryFailedEvent,
+} from '@tf2-automatic/bot-manager-data';
+import {
+  CustomError,
+  CustomUnrecoverableError,
+} from '../common/utils/custom-queue-errors';
+import { EventsService } from '../events/events.service';
 
 @Processor('inventories', {
   settings: {
@@ -26,7 +37,8 @@ export class InventoriesProcessor extends WorkerHost {
 
   constructor(
     private readonly inventoriesService: InventoriesService,
-    private readonly heartbeatsService: HeartbeatsService
+    private readonly heartbeatsService: HeartbeatsService,
+    private readonly eventsService: EventsService
   ) {
     super();
   }
@@ -34,6 +46,36 @@ export class InventoriesProcessor extends WorkerHost {
   async process(job: Job<InventoryQueue>): Promise<unknown> {
     this.logger.log(`Processing job ${job.id} attempt #${job.attemptsMade}...`);
 
+    return this.processJobWithErrorHandler(job).catch((err) => {
+      const data: (InventoryErrorEvent | InventoryFailedEvent)['data'] = {
+        job: job.data.raw,
+        error: err.message,
+        response: null,
+      };
+
+      if (
+        err instanceof CustomError ||
+        err instanceof CustomUnrecoverableError
+      ) {
+        data.response = err.response.data;
+      }
+
+      const unrecoverable = err instanceof UnrecoverableError;
+
+      return this.eventsService
+        .publish(
+          unrecoverable ? INVENTORY_FAILED_EVENT : INVENTORY_ERROR_EVENT,
+          data
+        )
+        .finally(() => {
+          throw err;
+        });
+    });
+  }
+
+  private async processJobWithErrorHandler(
+    job: Job<InventoryQueue>
+  ): Promise<unknown> {
     const maxTime = job.data?.retry?.maxTime ?? 120000;
 
     // Check if job is too old
@@ -56,14 +98,25 @@ export class InventoriesProcessor extends WorkerHost {
           response.status >= 400
         ) {
           // Don't retry on 4xx errors
-          throw new UnrecoverableError(response.data.message);
+          throw new CustomUnrecoverableError(response.data.message, response);
         }
       }
 
       // Check if job will be too old when it can be retried again
       const delay = customBackoffStrategy(job.attemptsMade, job);
       if (job.timestamp < Date.now() + delay - maxTime) {
+        if (err instanceof AxiosError && err.response !== undefined) {
+          throw new CustomUnrecoverableError(
+            'Job is too old to be retried',
+            err.response
+          );
+        }
+
         throw new UnrecoverableError('Job is too old to be retried');
+      }
+
+      if (err instanceof AxiosError && err.response !== undefined) {
+        throw new CustomError(err.response.data.message, err.response);
       }
 
       // Unknown error
