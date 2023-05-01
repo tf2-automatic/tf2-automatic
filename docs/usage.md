@@ -8,7 +8,9 @@ Swagger is used to document the APIs. Run the application and go to `/docs` on t
 
 ## Events
 
-You can search for `.publish(` in the code base to find events being published. You can then create an application and queue that listens to the messages being published.
+See [Events](./events.md) for a list of events. You can then create an application and queue that listens to the messages being published.
+
+You can search for `.publish(` in the code base to find events being published.
 
 ## Types
 
