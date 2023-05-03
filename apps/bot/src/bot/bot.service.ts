@@ -291,6 +291,14 @@ export class BotService implements OnModuleDestroy {
 
       this.eventEmitter.emit('bot.disconnected');
 
+      this.eventsService
+        .publish(STEAM_DISCONNECTED_EVENT, {
+          eresult: err.eresult,
+        } satisfies SteamDisconnectedEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
+
       this.reconnect().catch((err) => {
         this.logger.warn('Failed to reconnect: ' + err.message);
         this.shutdownService.shutdown();
