@@ -291,6 +291,14 @@ export class BotService implements OnModuleDestroy {
 
       this.eventEmitter.emit('bot.disconnected');
 
+      this.eventsService
+        .publish(STEAM_DISCONNECTED_EVENT, {
+          eresult: err.eresult,
+        } satisfies SteamDisconnectedEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
+
       this.reconnect().catch((err) => {
         this.logger.warn('Failed to reconnect: ' + err.message);
         this.shutdownService.shutdown();
@@ -519,6 +527,11 @@ export class BotService implements OnModuleDestroy {
     const refreshToken = await this.startSession();
 
     return new Promise<void>((resolve, reject) => {
+      if (this.client.steamID !== null) {
+        this.logger.warn('Already logged in');
+        return resolve();
+      }
+
       this.client.removeAllListeners('steamGuard');
 
       const accountConfig =
