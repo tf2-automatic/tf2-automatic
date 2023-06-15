@@ -18,6 +18,7 @@ export class BotController {
 
     return {
       steamid64,
+      apiKey: this.botService.getApiKey(),
     };
   }
 }

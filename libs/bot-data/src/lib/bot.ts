@@ -11,4 +11,5 @@ export type BotReadyEvent = BaseEvent<BotReadyEventType>;
 
 export interface Bot {
   steamid64: string;
+  apiKey: string;
 }

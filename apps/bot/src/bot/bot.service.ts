@@ -505,6 +505,14 @@ export class BotService implements OnModuleDestroy {
     return this.getSteamID().getSteamID64();
   }
 
+  getApiKey(): string {
+    if (!this.manager.apiKey) {
+      throw new Error('Not logged in');
+    }
+
+    return this.manager.apiKey;
+  }
+
   private waitForWebSession(): Promise<string[]> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
