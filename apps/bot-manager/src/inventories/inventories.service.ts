@@ -61,6 +61,7 @@ export class InventoriesService {
       extra: {},
       bot: dto.bot,
       retry: dto.retry,
+      ttl: dto.ttl,
     };
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
@@ -74,7 +75,8 @@ export class InventoriesService {
     bot: Bot,
     steamid: SteamID,
     appid: number,
-    contextid: string
+    contextid: string,
+    ttl: number = INVENTORY_EXPIRE_TIME
   ): Promise<InventoryResponse> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -99,11 +101,7 @@ export class InventoriesService {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
     // Save inventory in Redis and make it expire
-    await this.redis
-      .pipeline()
-      .hset(key, object)
-      .expire(key, INVENTORY_EXPIRE_TIME)
-      .exec();
+    await this.redis.pipeline().hset(key, object).expire(key, ttl).exec();
 
     await this.eventsService.publish(INVENTORY_LOADED_EVENT, {
       steamid64: steamid.getSteamID64(),

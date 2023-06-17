@@ -9,4 +9,5 @@ export interface InventoryQueue {
   extra: Record<string, unknown>;
   bot?: string;
   retry?: RetryOptions;
+  ttl?: number;
 }
