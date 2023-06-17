@@ -34,4 +34,16 @@ export class EnqueueInventoryDto {
   @ValidateNested()
   @Type(() => QueueRetryDto)
   retry: QueueRetryDto;
+
+  @ApiProperty({
+    description:
+      'The time that the inventory will be cached for in seconds. -1 means forever.',
+    example: 3600,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(-1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  ttl: number;
 }

@@ -150,7 +150,8 @@ export class InventoriesProcessor extends WorkerHost {
       bot,
       new SteamID(job.data.raw.steamid64),
       job.data.raw.appid,
-      job.data.raw.contextid
+      job.data.raw.contextid,
+      job.data.ttl
     );
 
     return inventory.timestamp;
