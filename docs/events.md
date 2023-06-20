@@ -104,7 +104,7 @@ Event is made when an inventory is successfully fetched and saved to the cache.
 
 ### inventories.failed (bot-manager)
 
-Event made when a inventory load job fails and won't be retried.
+Event made when a inventory load job fails and will be retried.
 
 `INVENTORY_FAILED_EVENT`
 
@@ -116,7 +116,7 @@ Event made when a inventory load job fails and won't be retried.
 
 ### inventories.error (bot-manager)
 
-Event made when a inventory load job fails and will be retried.
+Event made when a inventory load job fails and won't be retried.
 
 `INVENTORY_ERROR_EVENT`
 
@@ -181,7 +181,7 @@ Event made when a trade offer changes state.
 
 ### trades.failed (bot-manager)
 
-Event made when a trade offer job fails and won't be retried.
+Event made when a trade offer job fails and will be retried.
 
 `TRADE_FAILED_EVENT`
 
@@ -193,11 +193,11 @@ Event made when a trade offer job fails and won't be retried.
 
 ### trades.error (bot-manager)
 
-Event made when a trade offer job fails and will be retried.
+Event made when a trade offer job fails and won't be retried.
 
 `TRADE_ERROR_EVENT`
 
-- `type` - `trades.failed`
+- `type` - `trades.error`
 - `data`
   - `job` - The job that failed
   - `error` - Error message
