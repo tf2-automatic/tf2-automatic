@@ -46,6 +46,6 @@ export type InventoryFailedEventType = 'inventories.failed';
 export const INVENTORY_FAILED_EVENT: InventoryFailedEventType = `${INVENTORY_EVENT_PREFIX}.failed`;
 
 export type InventoryFailedEvent = BaseEvent<
-  InventoryFailedEvent,
+  InventoryFailedEventType,
   InventoryEventData
 >;
