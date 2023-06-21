@@ -14,11 +14,6 @@ export class BotController {
     description: 'Get information about the bot, such as the steamid64.',
   })
   async getBot(): Promise<Bot> {
-    const steamid64 = this.botService.getSteamID64();
-
-    return {
-      steamid64,
-      apiKey: this.botService.getApiKey(),
-    };
+    return this.botService.getBot();
   }
 }
