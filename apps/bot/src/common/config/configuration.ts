@@ -55,6 +55,7 @@ interface BaseStorageConfig {
 export interface ManagerConfig {
   enabled: boolean;
   url?: string;
+  heartbeatInterval?: number;
 }
 
 export default (): Config => {
@@ -93,6 +94,10 @@ export default (): Config => {
     manager: {
       enabled: process.env.BOT_MANAGER_ENABLED === 'true',
       url: process.env.BOT_MANAGER_URL,
+      heartbeatInterval:
+        process.env.BOT_MANAGER_HEARTBEAT_INTERVAL === undefined
+          ? 60000
+          : parseInt(process.env.BOT_MANAGER_HEARTBEAT_INTERVAL as string, 10),
     },
   };
 };

@@ -22,8 +22,8 @@ import { MetadataService } from '../metadata/metadata.service';
 export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ManagerService.name);
 
-  private readonly enabled: boolean =
-    this.configService.getOrThrow<ManagerConfig>('manager').enabled;
+  private readonly managerConfig =
+    this.configService.getOrThrow<ManagerConfig>('manager');
 
   private timeout: NodeJS.Timeout;
 
@@ -53,9 +53,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
 
     await firstValueFrom(
       this.httpService.post(
-        `${
-          this.configService.getOrThrow('manager').url
-        }${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
+        `${this.managerConfig.url}${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
           this.metadataService.getOrThrowSteamID().getSteamID64()
         ),
@@ -69,7 +67,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private sendHeartbeatLoop() {
-    if (!this.enabled) {
+    if (!this.managerConfig.enabled) {
       return;
     }
 
@@ -80,7 +78,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
       .finally(() => {
         this.timeout = setTimeout(
           () => this.sendHeartbeatLoop(),
-          60 * 1000
+          this.managerConfig.heartbeatInterval
         ).unref();
       });
   }
@@ -90,9 +88,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
 
     await firstValueFrom(
       this.httpService.delete(
-        `${
-          this.configService.getOrThrow('manager').url
-        }${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
+        `${this.managerConfig.url}${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
           this.metadataService.getOrThrowSteamID().getSteamID64()
         )
@@ -103,9 +99,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private async isManagerRunning() {
     await firstValueFrom(
       this.httpService.get(
-        `${
-          this.configService.getOrThrow('manager').url
-        }${HEALTH_BASE_URL}${HEALTH_PATH}`
+        `${this.managerConfig.url}${HEALTH_BASE_URL}${HEALTH_PATH}`
       )
     );
   }
@@ -129,7 +123,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit(): Promise<void> {
-    if (!this.enabled) {
+    if (!this.managerConfig.enabled) {
       return Promise.resolve();
     }
 
@@ -151,7 +145,7 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private stopHeartbeatLoop() {
-    if (!this.enabled) {
+    if (!this.managerConfig.enabled) {
       return Promise.resolve();
     }
 

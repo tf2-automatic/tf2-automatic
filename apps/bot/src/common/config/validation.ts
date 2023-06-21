@@ -15,6 +15,11 @@ const whenManager = {
   then: Joi.required(),
 };
 
+const whenManagerOptional = {
+  is: true,
+  then: Joi.optional(),
+};
+
 const validation = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
   PORT: Joi.number().port().required(),
@@ -52,6 +57,12 @@ const validation = Joi.object({
       scheme: ['http', 'https'],
     })
     .when('BOT_MANAGER_ENABLED', whenManager),
+  BOT_MANAGER_HEARTBEAT_INTERVAL: Joi.number()
+    .positive()
+    .integer()
+    .max(60000)
+    .min(1000)
+    .when('BOT_MANAGER_ENABLED', whenManagerOptional),
 });
 
 export { validation };
