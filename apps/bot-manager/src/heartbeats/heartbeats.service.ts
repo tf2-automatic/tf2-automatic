@@ -91,6 +91,7 @@ export class HeartbeatsService {
       steamid64: steamid.getSteamID64(),
       ip: heartbeat.ip,
       port: heartbeat.port,
+      interval: heartbeat.interval,
       lastSeen: Math.floor(Date.now() / 1000),
     };
 

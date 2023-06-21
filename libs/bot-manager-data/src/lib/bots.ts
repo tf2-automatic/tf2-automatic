@@ -6,5 +6,6 @@ export interface Bot {
   steamid64: string;
   ip: string;
   port: number;
+  interval: number;
   lastSeen: number;
 }

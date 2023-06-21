@@ -4,4 +4,5 @@ export const HEARTBEAT_PATH = '/:steamid';
 export interface BotHeartbeat {
   ip: string;
   port: number;
+  interval: number;
 }
