@@ -93,7 +93,7 @@
     "steam-totp": "^2.1.2",
     "steam-tradeoffer-manager": "^2.10.5",
     "steam-user": "^4.28.6",
-    "steamcommunity": "^3.45.0",
+    "steamcommunity": "^3.45.2",
     "steamid": "^2.0.0",
     "tf2": "^3.0.2",
     "tslib": "^2.5.3",
@@ -106,4 +106,3 @@
     }
   }
 }
-
