@@ -20,6 +20,10 @@ Use the command `npx nx serve bot` to run the bot application, and use `npx nx r
 
 Nx automatically loads environment variables from [different files](https://nx.dev/recipes/environment-variables/define-environment-variables). To configure an application, create a file called `.env.local` inside the application directory. Environment variable files are ignored using the .gitignore file, but please make sure you don't commit any secret values.
 
+## Building docker images
+
+If you want to build a docker image of an application, then you first need to compile the application. For example, if you want to build an image for the bot, then use `npx nx build bot`. To build a docker image, then use `docker build -f ./apps/bot/Dockerfile -t bot .` when in the root of the repository, or `docker build -f Dockerfile -t bot ../../` if you are inside the bot folder.
+
 ## Contributing
 
 Commits need to follow the [conventional commit format](https://www.conventionalcommits.org/en/v1.0.0/). Commit message linting has been set up to force you to follow the format. To ensure you follow the format, you can stage your changes and then use `npm run commit` to interactively create a commit message.
