@@ -129,7 +129,7 @@ export class PublisherService
 
     const secondsAgo = Math.floor(
       Date.now() / 1000 - event.metadata.time
-    ).toPrecision(3);
+    ).toFixed(2);
 
     this.logger.debug(
       'Publishing message of type "' +
