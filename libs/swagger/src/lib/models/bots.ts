@@ -21,6 +21,13 @@ export class BotModel implements Bot {
   port: number;
 
   @ApiProperty({
+    example: 60000,
+    description:
+      'The interval the bot is sending the heartbeat in milliseconds',
+  })
+  interval: number;
+
+  @ApiProperty({
     example: Math.floor(Date.now() / 1000),
     description: 'The last time the bot sent a heartbeat',
   })

@@ -22,6 +22,7 @@ import {
   SteamDisconnectedEvent,
   STEAM_CONNECTED_EVENT,
   STEAM_DISCONNECTED_EVENT,
+  Bot,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
 import promiseRetry from 'promise-retry';
@@ -178,6 +179,13 @@ export class BotService implements OnModuleDestroy {
           // Ignore error
         });
     });
+  }
+
+  getBot(): Bot {
+    return {
+      steamid64: this.getSteamID64(),
+      apiKey: this.getApiKey(),
+    };
   }
 
   isReady(): Promise<boolean> {

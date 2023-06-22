@@ -11,6 +11,7 @@ import { firstValueFrom } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import ip from 'ip';
 import {
+  BotHeartbeat,
   HEALTH_BASE_URL,
   HEALTH_PATH,
   HEARTBEAT_BASE_URL,
@@ -51,17 +52,20 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private async sendHeartbeat(): Promise<void> {
     this.logger.debug('Sending heartbeat...');
 
+    const heartbeat: BotHeartbeat = {
+      ip: this.ip,
+      // FIXME: Port is apparently a string in the config
+      port: parseInt(this.configService.getOrThrow('port'), 10),
+      interval: this.managerConfig.heartbeatInterval as number,
+    };
+
     await firstValueFrom(
       this.httpService.post(
         `${this.managerConfig.url}${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
           this.metadataService.getOrThrowSteamID().getSteamID64()
         ),
-        {
-          ip: this.ip,
-          // FIXME: Port is apparently a string in the config
-          port: parseInt(this.configService.getOrThrow('port'), 10),
-        }
+        heartbeat
       )
     );
   }
