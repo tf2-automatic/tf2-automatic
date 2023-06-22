@@ -120,7 +120,7 @@ export class PublisherService
       return false;
     }
 
-    const message = await this.redisOutbox.lindex(OUTBOX_KEY, 0);
+    const message = await this.redisOutbox.lindex(OUTBOX_KEY, -1);
     if (!message) {
       return false;
     }
