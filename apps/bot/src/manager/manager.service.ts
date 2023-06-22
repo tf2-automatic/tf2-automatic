@@ -1,10 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Config, ManagerConfig } from '../common/config/configuration';
 import { firstValueFrom } from 'rxjs';
@@ -12,15 +7,13 @@ import { OnEvent } from '@nestjs/event-emitter';
 import ip from 'ip';
 import {
   BotHeartbeat,
-  HEALTH_BASE_URL,
-  HEALTH_PATH,
   HEARTBEAT_BASE_URL,
   HEARTBEAT_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { MetadataService } from '../metadata/metadata.service';
 
 @Injectable()
-export class ManagerService implements OnModuleInit, OnModuleDestroy {
+export class ManagerService implements OnModuleDestroy {
   private readonly logger = new Logger(ManagerService.name);
 
   private readonly managerConfig =
@@ -100,14 +93,6 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  private async isManagerRunning() {
-    await firstValueFrom(
-      this.httpService.get(
-        `${this.managerConfig.url}${HEALTH_BASE_URL}${HEALTH_PATH}`
-      )
-    );
-  }
-
   @OnEvent('bot.ready')
   handleBotReady() {
     this.ready = true;
@@ -124,24 +109,6 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
     if (this.ready) {
       this.sendHeartbeatLoop();
     }
-  }
-
-  onModuleInit(): Promise<void> {
-    if (!this.managerConfig.enabled) {
-      return Promise.resolve();
-    }
-
-    this.logger.log('Checking if bot manager is running...');
-
-    return this.isManagerRunning()
-      .then(() => {
-        this.logger.debug('Bot manager is running');
-      })
-      .catch((err) => {
-        throw new Error(
-          'Failed to communicate with the bot manager: ' + err.message
-        );
-      });
   }
 
   onModuleDestroy(): Promise<void> {
