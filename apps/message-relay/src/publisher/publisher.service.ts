@@ -127,16 +127,19 @@ export class PublisherService
 
     const event = JSON.parse(message) as OutboxMessage;
 
-    const secondsAgo = Math.floor(
-      Date.now() / 1000 - event.metadata.time
-    ).toFixed(2);
+    const secondsAgo = Math.floor(Date.now() / 1000 - event.metadata.time);
 
     this.logger.debug(
       'Publishing message of type "' +
         event.type +
         '" made ' +
-        secondsAgo +
-        ' seconds ago...'
+        (secondsAgo <= 0
+          ? 'now'
+          : secondsAgo +
+            ' ' +
+            (secondsAgo === 1 ? 'second' : 'seconds') +
+            ' ago') +
+        '...'
     );
 
     await this.eventsService.publish(event.type, event.data, event.metadata);
