@@ -38,7 +38,7 @@ export default (): Config => {
         process.env.REDIS_DB !== undefined
           ? parseInt(process.env.REDIS_DB, 10)
           : undefined,
-      keyPrefix: (process.env.REDIS_PREFIX ?? 'tf2-automatic') + ':bot-manager',
+      keyPrefix: process.env.REDIS_PREFIX ?? 'tf2-automatic',
     },
   };
 };
