@@ -7,11 +7,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  BOT_HEARTBEAT_EVENT,
-  Bot,
-  BotHeartbeatEvent,
-} from '@tf2-automatic/bot-manager-data';
+import { Bot } from '@tf2-automatic/bot-manager-data';
 import {
   Bot as RunningBot,
   BOT_BASE_URL,
@@ -21,7 +17,6 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
-import { OutboxMessage, OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 
 const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
