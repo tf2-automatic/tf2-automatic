@@ -18,7 +18,8 @@ import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
 
-const BOT_PREFIX = ':bots';
+const KEY_PREFIX = 'bot-manager:data:';
+const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 
 @Injectable()
@@ -32,7 +33,7 @@ export class HeartbeatsService {
 
   getBots(): Promise<Bot[]> {
     return this.redis
-      .keys(`${this.redis.options.keyPrefix}${BOT_PREFIX}:*`)
+      .keys(`${this.redis.options.keyPrefix}${KEY_PREFIX}${BOT_PREFIX}:*`)
       .then((keys) => {
         if (keys.length === 0) {
           return [];
@@ -44,7 +45,10 @@ export class HeartbeatsService {
             return new SteamID(steamid as string);
           })
           .map((steamid) => {
-            return BOT_KEY.replace('STEAMID64', steamid.getSteamID64());
+            return (KEY_PREFIX + BOT_KEY).replace(
+              'STEAMID64',
+              steamid.getSteamID64()
+            );
           });
 
         return this.redis.mget(botKeys).then((result) => {
@@ -56,7 +60,7 @@ export class HeartbeatsService {
 
   async getBot(steamid: SteamID): Promise<Bot> {
     const bot = await this.redis
-      .get(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
+      .get(KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
       .then((result) => {
         if (result === null) {
           return null;
@@ -118,7 +122,7 @@ export class HeartbeatsService {
     // TODO: Make sure ip and port combination is unique
 
     await this.redis.set(
-      BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
+      KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
       JSON.stringify(bot),
       'EX',
       300
@@ -129,7 +133,7 @@ export class HeartbeatsService {
 
   async deleteBot(steamid: SteamID): Promise<void> {
     const result = await this.redis.del(
-      BOT_KEY.replace('STEAMID64', steamid.getSteamID64())
+      KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64())
     );
 
     if (result === 0) {

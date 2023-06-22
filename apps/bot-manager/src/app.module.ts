@@ -36,7 +36,7 @@ import { EscrowModule } from './escrow/escrow.module';
             port: redisConfig.port,
             password: redisConfig.password,
             db: redisConfig.db,
-            keyPrefix: redisConfig.keyPrefix + ':data',
+            keyPrefix: redisConfig.keyPrefix + ':',
           },
         };
       },
@@ -46,7 +46,7 @@ import { EscrowModule } from './escrow/escrow.module';
       useFactory: (configService: ConfigService<Config>) => {
         const redisConfig = configService.getOrThrow<RedisConfig>('redis');
         return {
-          prefix: redisConfig.keyPrefix + ':bull',
+          prefix: redisConfig.keyPrefix + ':bot-manager:bull',
           connection: {
             host: redisConfig.host,
             port: redisConfig.port,
