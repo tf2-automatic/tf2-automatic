@@ -126,12 +126,27 @@ export class HeartbeatsService {
 
     // TODO: Make sure ip and port combination is unique
 
-    await this.redis.set(
-      KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-      JSON.stringify(bot),
-      'EX',
-      300
-    );
+    await this.redis
+      .multi()
+      // Save bot
+      .set(
+        KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
+        JSON.stringify(bot),
+        'EX',
+        300
+      )
+      // Add event to outbox
+      .lpush(
+        OUTBOX_KEY,
+        JSON.stringify({
+          type: BOT_HEARTBEAT_EVENT,
+          data: bot satisfies BotHeartbeatEvent['data'],
+          metadata: { steamid64: null, time: Math.floor(Date.now() / 1000) },
+        } satisfies OutboxMessage)
+      )
+      // Publish that there is a new event
+      .publish(OUTBOX_KEY, '')
+      .exec();
 
     return bot;
   }
