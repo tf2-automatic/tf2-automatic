@@ -7,7 +7,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Bot } from '@tf2-automatic/bot-manager-data';
+import {
+  Bot,
+  BOT_HEARTBEAT_EVENT,
+  BotHeartbeatEvent,
+} from '@tf2-automatic/bot-manager-data';
 import {
   Bot as RunningBot,
   BOT_BASE_URL,
@@ -17,6 +21,7 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
+import { OUTBOX_KEY, OutboxMessage } from '@tf2-automatic/transactional-outbox';
 
 const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
@@ -121,12 +126,27 @@ export class HeartbeatsService {
 
     // TODO: Make sure ip and port combination is unique
 
-    await this.redis.set(
-      KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-      JSON.stringify(bot),
-      'EX',
-      300
-    );
+    await this.redis
+      .multi()
+      // Save bot
+      .set(
+        KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
+        JSON.stringify(bot),
+        'EX',
+        300
+      )
+      // Add event to outbox
+      .lpush(
+        OUTBOX_KEY,
+        JSON.stringify({
+          type: BOT_HEARTBEAT_EVENT,
+          data: bot satisfies BotHeartbeatEvent['data'],
+          metadata: { steamid64: null, time: Math.floor(Date.now() / 1000) },
+        } satisfies OutboxMessage)
+      )
+      // Publish that there is a new event
+      .publish(OUTBOX_KEY, '')
+      .exec();
 
     return bot;
   }
