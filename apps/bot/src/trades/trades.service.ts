@@ -152,7 +152,7 @@ export class TradesService {
     };
   }
 
-  private async ensureOfferPublished(
+  private async ensureOfferPublishedProcessor(
     task: EnsureOfferPublishedTask
   ): Promise<void> {
     const id = task.id;
@@ -179,13 +179,20 @@ export class TradesService {
     const offer = await this.ensureOfferPublishedLimiter.schedule(() =>
       this._getTrade(id)
     );
+
+    return this.ensureOfferPublished(offer);
+  }
+
+  private ensureOfferPublished(
+    offer: SteamTradeOfferManager.TradeOffer
+  ): Promise<void> {
     const publishedState = offer.data('published') as
       | TradeOfferData['published']
       | null;
 
     if (offer.state === publishedState) {
       // This check is redundant but it's here just in case
-      return;
+      return Promise.resolve();
     }
 
     return this.publishOffer(offer, publishedState);
