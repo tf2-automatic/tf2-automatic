@@ -246,6 +246,14 @@ export class TradesService {
         SteamTradeOfferManager.EConfirmationMethod.None ||
       offer.data('conf') === true
     ) {
+      // Offer is not waiting to be confirmed or confirmation was already published
+      return Promise.resolve();
+    } else if (
+      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
+      offer.state !==
+        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      // Offer is not active or created needs confirmation
       return Promise.resolve();
     }
 
