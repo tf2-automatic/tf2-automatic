@@ -453,18 +453,34 @@ export class TradesService {
   ): Promise<CreateTradeResponse> {
     this.logger.log(`Sending offer to ${offer.partner}...`);
 
-    return new Promise<CreateTradeResponse>((resolve, reject) => {
-      this.logger.debug(
-        `Items to give: [${offer.itemsToGive
-          .map((item) => `"${item.appid}_${item.contextid}_${item.assetid}"`)
-          .join(',')}]`
-      );
-      this.logger.debug(
-        `Items to receive: [${offer.itemsToReceive
-          .map((item) => `"${item.appid}_${item.contextid}_${item.assetid}"`)
-          .join(',')}]`
+    this.logger.debug(
+      `Items to give: [${offer.itemsToGive
+        .map((item) => `"${item.appid}_${item.contextid}_${item.assetid}"`)
+        .join(',')}]`
+    );
+    this.logger.debug(
+      `Items to receive: [${offer.itemsToReceive
+        .map((item) => `"${item.appid}_${item.contextid}_${item.assetid}"`)
+        .join(',')}]`
+    );
+
+    return this._sendOffer(offer).then(() => {
+      this.logger.log(
+        `Offer #${offer.id} sent to ${offer.partner} has state ${
+          SteamTradeOfferManager.ETradeOfferState[offer.state]
+        }`
       );
 
+      this.sentCounter.inc();
+
+      this.publishOffer(offer);
+
+      return this.mapOffer(offer);
+    });
+  }
+
+  private _sendOffer(offer: SteamTradeOfferManager.TradeOffer): Promise<void> {
+    return new Promise((resolve, reject) => {
       offer.send((err) => {
         if (err) {
           this.logger.error(
@@ -488,19 +504,8 @@ export class TradesService {
           return reject(err);
         }
 
-        this.sentCounter.inc();
-
-        this.publishOffer(offer);
-
-        return resolve(this.mapOffer(offer));
+        resolve();
       });
-    }).then((offer) => {
-      this.logger.log(
-        `Offer #${offer.id} sent to ${offer.partner} has state ${
-          SteamTradeOfferManager.ETradeOfferState[offer.state]
-        }`
-      );
-      return offer;
     });
   }
 
