@@ -35,12 +35,10 @@ import {
 } from '@tf2-automatic/dto';
 import Bottleneck from 'bottleneck';
 
-interface EnsureOfferPublishedTask {
-  id: string;
-}
-
 interface TradeOfferData {
   published?: SteamUser.ETradeOfferState;
+  conf?: number;
+  accept?: number;
 }
 
 @Injectable()
@@ -50,8 +48,11 @@ export class TradesService {
   private readonly manager = this.botService.getManager();
   private readonly community = this.botService.getCommunity();
 
-  private readonly ensureOfferPublishedQueue: queueAsPromised<EnsureOfferPublishedTask> =
-    fastq.promise(this.ensureOfferPublishedProcessor.bind(this), 1);
+  private readonly ensurePolldataPublishedQueue: queueAsPromised<string> =
+    fastq.promise(this.ensurePolldataPublished.bind(this), 1);
+
+  private readonly ensureOfferPublishedQueue: queueAsPromised<SteamTradeOfferManager.TradeOffer> =
+    fastq.promise(this.ensureOfferPublished.bind(this), 1);
 
   private ensurePollDataTimeout: NodeJS.Timeout;
   private ensureOfferPublishedLimiter = new Bottleneck({
@@ -74,11 +75,7 @@ export class TradesService {
     private readonly activeOffers: Gauge
   ) {
     this.manager.on('newOffer', (offer) => {
-      this.logger.log(
-        `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`
-      );
-      this.receivedCounter.inc();
-      this.publishOffer(offer, null);
+      this.handleNewOffer(offer);
     });
 
     this.manager.on('sentOfferChanged', (offer, oldState) => {
@@ -122,18 +119,11 @@ export class TradesService {
     sent: SteamTradeOfferManager.TradeOffer[],
     received: SteamTradeOfferManager.TradeOffer[]
   ) {
-    // Check if confirmation method is set and it has not been published
-    for (const offer of sent) {
-      this.ensureConfirmationPublished(offer).catch(() => {
+    sent.concat(received).forEach((offer) =>
+      this.ensureOfferPublishedQueue.push(offer).catch(() => {
         // Ignore error
-      });
-    }
-
-    for (const offer of received) {
-      this.ensureConfirmationPublished(offer).catch(() => {
-        // Ignore error
-      });
-    }
+      })
+    );
   }
 
   private ensurePollData(): void {
@@ -154,7 +144,7 @@ export class TradesService {
       Object.keys(this.manager.pollData.sent)
         .concat(Object.keys(this.manager.pollData.received))
         .forEach((id) => {
-          this.ensureOfferPublishedQueue.push({ id }).catch((err) => {
+          this.ensurePolldataPublishedQueue.push(id).catch((err) => {
             // Ignore the error
             this.logger.warn('Error ensuring offer published: ' + err.message);
             console.log(err);
@@ -189,11 +179,7 @@ export class TradesService {
     };
   }
 
-  private async ensureOfferPublishedProcessor(
-    task: EnsureOfferPublishedTask
-  ): Promise<void> {
-    const id = task.id;
-
+  private async ensurePolldataPublished(id: string): Promise<void> {
     // Check if offer was already published
     const currentState =
       this.manager.pollData.sent[id] ??
@@ -217,10 +203,16 @@ export class TradesService {
       this._getTrade(id)
     );
 
-    return this.ensureOfferPublished(offer);
+    return this.ensureOfferPublishedQueue.push(offer);
   }
 
-  private ensureOfferPublished(
+  private ensureOfferPublished(offer): Promise<void> {
+    return this.ensureOfferStatePublished(offer).then(() => {
+      return this.ensureConfirmationPublished(offer);
+    });
+  }
+
+  private ensureOfferStatePublished(
     offer: SteamTradeOfferManager.TradeOffer
   ): Promise<void> {
     const publishedState = offer.data('published') as
@@ -241,7 +233,7 @@ export class TradesService {
     if (
       offer.confirmationMethod ==
         SteamTradeOfferManager.EConfirmationMethod.None ||
-      offer.data('conf') === true
+      offer.data('conf') === offer.data('accept')
     ) {
       // Offer is not waiting to be confirmed or confirmation was already published
       return Promise.resolve();
@@ -262,11 +254,18 @@ export class TradesService {
       )
       .then(() => {
         // Update offer data to prevent publishing confirmation multiple times
-        offer.data('conf', true);
+        offer.data('conf', offer.data('accept'));
       })
       .catch(() => {
         // Ignore error
       });
+  }
+
+  private handleNewOffer(offer: SteamTradeOfferManager.TradeOffer) {
+    this.logger.log(
+      `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`
+    );
+    this.receivedCounter.inc();
   }
 
   private handleOfferChanged(
@@ -278,7 +277,6 @@ export class TradesService {
         SteamTradeOfferManager.ETradeOfferState[oldState]
       } -> ${SteamTradeOfferManager.ETradeOfferState[offer.state]}`
     );
-    this.publishOffer(offer, oldState);
   }
 
   private publishOffer(
@@ -470,7 +468,10 @@ export class TradesService {
 
       this.sentCounter.inc();
 
-      this.publishOffer(offer);
+      // Add offer to queue to ensure state and confirmation is published if needed
+      this.ensureOfferPublishedQueue.push(offer).catch(() => {
+        // Ignore error
+      });
 
       return this.mapOffer(offer);
     });
@@ -523,8 +524,13 @@ export class TradesService {
       }`
     );
 
-    // Reset confirmation flag
-    offer.data('conf', false);
+    // Set accept time to result in confirmation being published again
+    offer.data('accept', Date.now());
+
+    // Add offer to queue to ensure state and confirmation is published if needed
+    this.ensureOfferPublishedQueue.push(offer).catch(() => {
+      // Ignore error
+    });
 
     return this.mapOffer(offer);
   }
