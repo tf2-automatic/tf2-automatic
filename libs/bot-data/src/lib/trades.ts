@@ -95,11 +95,13 @@ export const TRADE_COUNTER_PATH = `${TRADE_PATH}/counter`;
 export type TradeSentEventType = 'trades.sent';
 export type TradeReceivedEventType = 'trades.received';
 export type TradeChangedEventType = 'trades.changed';
+export type TradeConfirmationNeededEventType = 'trades.confirmation_needed';
 
 export const TRADE_EVENT_PREFIX = 'trades';
 export const TRADE_SENT_EVENT: TradeSentEventType = `${TRADE_EVENT_PREFIX}.sent`;
 export const TRADE_RECEIVED_EVENT: TradeReceivedEventType = `${TRADE_EVENT_PREFIX}.received`;
 export const TRADE_CHANGED_EVENT: TradeChangedEventType = `${TRADE_EVENT_PREFIX}.changed`;
+export const TRADE_CONFIRMATION_NEEDED_EVENT: TradeConfirmationNeededEventType = `${TRADE_EVENT_PREFIX}.confirmation_needed`;
 
 export type TradeSentEvent = BaseEvent<TradeSentEventType, TradeOffer>;
 
@@ -111,4 +113,9 @@ export type TradeChangedEvent = BaseEvent<
     offer: TradeOffer;
     oldState: ETradeOfferState | null;
   }
+>;
+
+export type TradeConfirmationNeededEvent = BaseEvent<
+  TradeConfirmationNeededEventType,
+  TradeOffer
 >;

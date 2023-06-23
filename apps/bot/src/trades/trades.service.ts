@@ -14,6 +14,8 @@ import {
   TRADE_CHANGED_EVENT,
   TRADE_RECEIVED_EVENT,
   TRADE_SENT_EVENT,
+  TRADE_CONFIRMATION_NEEDED_EVENT,
+  TradeConfirmationNeededEvent,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
@@ -49,7 +51,7 @@ export class TradesService {
   private readonly community = this.botService.getCommunity();
 
   private readonly ensureOfferPublishedQueue: queueAsPromised<EnsureOfferPublishedTask> =
-    fastq.promise(this.ensureOfferPublished.bind(this), 1);
+    fastq.promise(this.ensureOfferPublishedProcessor.bind(this), 1);
 
   private ensurePollDataTimeout: NodeJS.Timeout | null = null;
   private ensureOfferPublishedLimiter = new Bottleneck({
@@ -94,6 +96,44 @@ export class TradesService {
     this.manager.once('pollSuccess', () => {
       this.ensurePollData();
     });
+
+    // Capture offers from getOffers function to detect relevant changes
+    const origGetOffers = this.manager.getOffers.bind(this.manager);
+    this.manager.getOffers = (...args) => {
+      const callback = args.pop();
+      origGetOffers(...args, (err, sent, received) => {
+        if (err) {
+          return callback(err);
+        }
+
+        callback(err, sent, received);
+
+        try {
+          this.handleOffers(sent, received);
+        } catch (err) {
+          // Catch the error because we don't want trade offer manager to think an error occurred
+          this.logger.warn('Error while handling offers: ' + err.message);
+        }
+      });
+    };
+  }
+
+  private handleOffers(
+    sent: SteamTradeOfferManager.TradeOffer[],
+    received: SteamTradeOfferManager.TradeOffer[]
+  ) {
+    // Check if confirmation method is set and it has not been published
+    for (const offer of sent) {
+      this.ensureConfirmationPublished(offer).catch(() => {
+        // Ignore error
+      });
+    }
+
+    for (const offer of received) {
+      this.ensureConfirmationPublished(offer).catch(() => {
+        // Ignore error
+      });
+    }
   }
 
   private ensurePollData(): void {
@@ -196,6 +236,32 @@ export class TradesService {
     }
 
     return this.publishOffer(offer, publishedState);
+  }
+
+  private ensureConfirmationPublished(
+    offer: SteamTradeOfferManager.TradeOffer
+  ): Promise<void> {
+    if (
+      offer.confirmationMethod ==
+        SteamTradeOfferManager.EConfirmationMethod.None ||
+      offer.data('conf') === true
+    ) {
+      return Promise.resolve();
+    }
+
+    // Publish confirmation
+    return this.eventsService
+      .publish(
+        TRADE_CONFIRMATION_NEEDED_EVENT,
+        this.mapOffer(offer) satisfies TradeConfirmationNeededEvent['data']
+      )
+      .then(() => {
+        // Update offer data to prevent publishing confirmation multiple times
+        offer.data('conf', true);
+      })
+      .catch(() => {
+        // Ignore error
+      });
   }
 
   private handleOfferChanged(
