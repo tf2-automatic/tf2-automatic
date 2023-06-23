@@ -49,7 +49,7 @@ export class TradesService {
   private readonly community = this.botService.getCommunity();
 
   private readonly ensureOfferPublishedQueue: queueAsPromised<EnsureOfferPublishedTask> =
-    fastq.promise(this.ensureOfferPublished.bind(this), 1);
+    fastq.promise(this.ensureOfferPublishedProcessor.bind(this), 1);
 
   private ensurePollDataTimeout: NodeJS.Timeout | null = null;
   private ensureOfferPublishedLimiter = new Bottleneck({
