@@ -109,6 +109,6 @@ export type TradeChangedEvent = BaseEvent<
   TradeChangedEventType,
   {
     offer: TradeOffer;
-    oldState: ETradeOfferState;
+    oldState: ETradeOfferState | null;
   }
 >;
