@@ -526,6 +526,9 @@ export class TradesService {
       }`
     );
 
+    // Reset confirmation flag
+    offer.data('conf', false);
+
     return this.mapOffer(offer);
   }
 
