@@ -53,7 +53,7 @@ export class TradesService {
   private readonly ensureOfferPublishedQueue: queueAsPromised<EnsureOfferPublishedTask> =
     fastq.promise(this.ensureOfferPublishedProcessor.bind(this), 1);
 
-  private ensurePollDataTimeout: NodeJS.Timeout | null = null;
+  private ensurePollDataTimeout: NodeJS.Timeout;
   private ensureOfferPublishedLimiter = new Bottleneck({
     minTime: 1000,
   });
@@ -137,10 +137,7 @@ export class TradesService {
   }
 
   private ensurePollData(): void {
-    if (this.ensurePollDataTimeout !== null) {
-      clearTimeout(this.ensurePollDataTimeout);
-      this.ensurePollDataTimeout = null;
-    }
+    clearTimeout(this.ensurePollDataTimeout);
 
     this.ensurePollDataTimeout = setTimeout(() => {
       // Set polldata size inside timeout to minimize amount of times it is calculated
