@@ -32,8 +32,11 @@ import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
+import { OUTBOX_KEY, OutboxMessage } from '@tf2-automatic/transactional-outbox';
 
 const INVENTORY_EXPIRE_TIME = 600;
+
+const KEY_PREFIX = 'bot-manager:data:';
 
 @Injectable()
 export class InventoriesService {
@@ -100,8 +103,27 @@ export class InventoriesService {
 
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    // Save inventory in Redis
-    const pipeline = this.redis.pipeline().hset(key, object);
+    const event = {
+      steamid64: steamid.getSteamID64(),
+      appid,
+      contextid,
+      timestamp: now,
+      itemCount: inventory.length,
+    } satisfies InventoryLoadedEvent['data'];
+
+    // Save inventory in Redis and event in outbox
+    const pipeline = this.redis
+      .multi()
+      .hset(key, object)
+      .lpush(
+        OUTBOX_KEY,
+        JSON.stringify({
+          type: INVENTORY_LOADED_EVENT,
+          data: event,
+          metadata: { steamid64: null, time: Math.floor(Date.now() / 1000) },
+        } satisfies OutboxMessage)
+      )
+      .publish(OUTBOX_KEY, '');
 
     if (ttl > 0) {
       // and make it expire
@@ -109,14 +131,6 @@ export class InventoriesService {
     }
 
     await pipeline.exec();
-
-    await this.eventsService.publish(INVENTORY_LOADED_EVENT, {
-      steamid64: steamid.getSteamID64(),
-      appid,
-      contextid,
-      timestamp: now,
-      itemCount: inventory.length,
-    } satisfies InventoryLoadedEvent['data']);
 
     return {
       timestamp: now,
@@ -299,7 +313,7 @@ export class InventoriesService {
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `:inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+    return `${KEY_PREFIX}:inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
   }
 
   private getInventoryJobId(

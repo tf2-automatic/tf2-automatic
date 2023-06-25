@@ -18,10 +18,7 @@ export class EventsService implements OnModuleDestroy {
     return (this.amqpConnection.channel as ConfirmChannel).waitForConfirms();
   }
 
-  async publish(
-    event: string,
-    data: { [key: string]: unknown } = {}
-  ): Promise<void> {
+  async publish(event: string, data: object = {}): Promise<void> {
     const steamid64 = this.metadataService.getSteamID()?.getSteamID64() ?? null;
 
     await this.amqpConnection.publish(BOT_EXCHANGE_NAME, event, {

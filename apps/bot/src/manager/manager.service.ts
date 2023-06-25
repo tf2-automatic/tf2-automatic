@@ -1,31 +1,26 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Config, ManagerConfig } from '../common/config/configuration';
 import { firstValueFrom } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import ip from 'ip';
 import {
-  HEALTH_BASE_URL,
-  HEALTH_PATH,
+  BotHeartbeat,
   HEARTBEAT_BASE_URL,
   HEARTBEAT_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { MetadataService } from '../metadata/metadata.service';
 
 @Injectable()
-export class ManagerService implements OnModuleInit, OnModuleDestroy {
+export class ManagerService implements OnModuleDestroy {
   private readonly logger = new Logger(ManagerService.name);
 
   private readonly managerConfig =
     this.configService.getOrThrow<ManagerConfig>('manager');
 
   private timeout: NodeJS.Timeout;
+  private attempts = 0;
 
   private readonly ip: string;
 
@@ -51,17 +46,20 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
   private async sendHeartbeat(): Promise<void> {
     this.logger.debug('Sending heartbeat...');
 
+    const heartbeat: BotHeartbeat = {
+      ip: this.ip,
+      // FIXME: Port is apparently a string in the config
+      port: parseInt(this.configService.getOrThrow('port'), 10),
+      interval: this.managerConfig.heartbeatInterval as number,
+    };
+
     await firstValueFrom(
       this.httpService.post(
         `${this.managerConfig.url}${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
           this.metadataService.getOrThrowSteamID().getSteamID64()
         ),
-        {
-          ip: this.ip,
-          // FIXME: Port is apparently a string in the config
-          port: parseInt(this.configService.getOrThrow('port'), 10),
-        }
+        heartbeat
       )
     );
   }
@@ -72,14 +70,25 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
     }
 
     return this.sendHeartbeat()
+      .then(() => {
+        this.attempts = 0;
+      })
       .catch((err) => {
         this.logger.warn('Failed to send heartbeat: ' + err.message);
+        this.attempts++;
       })
       .finally(() => {
-        this.timeout = setTimeout(
-          () => this.sendHeartbeatLoop(),
-          this.managerConfig.heartbeatInterval
-        ).unref();
+        const interval = this.managerConfig.heartbeatInterval as number;
+
+        let wait =
+          this.attempts > 0 ? 2 ** (this.attempts - 1) * 1000 : interval;
+
+        if (wait > interval) {
+          // Don't wait longer than the interval
+          wait = interval;
+        }
+
+        this.timeout = setTimeout(() => this.sendHeartbeatLoop(), wait).unref();
       });
   }
 
@@ -92,14 +101,6 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
           ':steamid',
           this.metadataService.getOrThrowSteamID().getSteamID64()
         )
-      )
-    );
-  }
-
-  private async isManagerRunning() {
-    await firstValueFrom(
-      this.httpService.get(
-        `${this.managerConfig.url}${HEALTH_BASE_URL}${HEALTH_PATH}`
       )
     );
   }
@@ -120,24 +121,6 @@ export class ManagerService implements OnModuleInit, OnModuleDestroy {
     if (this.ready) {
       this.sendHeartbeatLoop();
     }
-  }
-
-  onModuleInit(): Promise<void> {
-    if (!this.managerConfig.enabled) {
-      return Promise.resolve();
-    }
-
-    this.logger.log('Checking if bot manager is running...');
-
-    return this.isManagerRunning()
-      .then(() => {
-        this.logger.debug('Bot manager is running');
-      })
-      .catch((err) => {
-        throw new Error(
-          'Failed to communicate with the bot manager: ' + err.message
-        );
-      });
   }
 
   onModuleDestroy(): Promise<void> {
