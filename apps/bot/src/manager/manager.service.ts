@@ -20,6 +20,7 @@ export class ManagerService implements OnModuleDestroy {
     this.configService.getOrThrow<ManagerConfig>('manager');
 
   private timeout: NodeJS.Timeout;
+  private attempts = 0;
 
   private readonly ip: string;
 
@@ -69,14 +70,25 @@ export class ManagerService implements OnModuleDestroy {
     }
 
     return this.sendHeartbeat()
+      .then(() => {
+        this.attempts = 0;
+      })
       .catch((err) => {
         this.logger.warn('Failed to send heartbeat: ' + err.message);
+        this.attempts++;
       })
       .finally(() => {
-        this.timeout = setTimeout(
-          () => this.sendHeartbeatLoop(),
-          this.managerConfig.heartbeatInterval
-        ).unref();
+        const interval = this.managerConfig.heartbeatInterval as number;
+
+        let wait =
+          this.attempts > 0 ? 2 ** (this.attempts - 1) * 1000 : interval;
+
+        if (wait > interval) {
+          // Don't wait longer than the interval
+          wait = interval;
+        }
+
+        this.timeout = setTimeout(() => this.sendHeartbeatLoop(), wait).unref();
       });
   }
 
