@@ -31,8 +31,8 @@ jobs:
       - name: Get affected
         id: affected
         run: |
-          echo "DOCKER=$(npx nx print-affected --target=docker --select=tasks.target.project | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
-          echo "NPM=$(npx nx print-affected --target=npm --select=tasks.target.project | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+          echo "DOCKER=$(npx nx print-affected --target=docker --select=projects | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+          echo "NPM=$(npx nx print-affected --target=npm --select=projects | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
     outputs:
       docker: ${{ steps.affected.outputs.DOCKER }}
       npm: ${{ steps.affected.outputs.NPM }}
