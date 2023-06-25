@@ -9,7 +9,9 @@ import {
 } from '@nestjs/common';
 import {
   Bot,
+  BOT_DELETED_EVENT,
   BOT_HEARTBEAT_EVENT,
+  BotDeletedEvent,
   BotHeartbeatEvent,
 } from '@tf2-automatic/bot-manager-data';
 import {
@@ -22,6 +24,10 @@ import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
 import { OUTBOX_KEY, OutboxMessage } from '@tf2-automatic/transactional-outbox';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { HeartbeatsQueue } from './interfaces/queue.interface';
+import Redlock from 'redlock';
 
 const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
@@ -30,11 +36,16 @@ const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 @Injectable()
 export class HeartbeatsService {
   private readonly logger = new Logger(HeartbeatsService.name);
+  private readonly redlock: Redlock;
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    private readonly httpService: HttpService
-  ) {}
+    private readonly httpService: HttpService,
+    @InjectQueue('heartbeats')
+    private readonly heartbeatsQueue: Queue<HeartbeatsQueue>
+  ) {
+    this.redlock = new Redlock([this.redis]);
+  }
 
   getBots(): Promise<Bot[]> {
     return this.redis
@@ -63,7 +74,7 @@ export class HeartbeatsService {
       });
   }
 
-  async getBot(steamid: SteamID): Promise<Bot> {
+  private async getBotFromRedis(steamid: SteamID): Promise<Bot | null> {
     const bot = await this.redis
       .get(KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
       .then((result) => {
@@ -74,6 +85,11 @@ export class HeartbeatsService {
         return JSON.parse(result);
       });
 
+    return bot;
+  }
+
+  async getBot(steamid: SteamID): Promise<Bot> {
+    const bot = await this.getBotFromRedis(steamid);
     if (!bot) {
       throw new NotFoundException('Bot not found');
     }
@@ -113,52 +129,101 @@ export class HeartbeatsService {
         bot.port
     );
 
-    const running = await this.getRunningBot(bot).catch((err) => {
-      this.logger.warn('Bot is not accessible: ' + err.message);
-      throw new InternalServerErrorException(
-        'Bot ' + bot.steamid64 + ' is not accessible'
-      );
-    });
+    // Create lock to make sure that a bot can't be saved and deleted at the same time
+    return this.redlock.using(
+      ['bot', steamid.getSteamID64()],
+      1000,
+      async (signal) => {
+        const running = await this.getRunningBot(bot).catch((err) => {
+          this.logger.warn('Bot is not accessible: ' + err.message);
+          throw new InternalServerErrorException(
+            'Bot ' + bot.steamid64 + ' is not accessible'
+          );
+        });
 
-    if (running === null || running.steamid64 !== bot.steamid64) {
-      throw new BadRequestException('IP and port is not used for this bot');
-    }
+        if (running === null || running.steamid64 !== bot.steamid64) {
+          throw new BadRequestException('IP and port is not used for this bot');
+        }
 
-    // TODO: Make sure ip and port combination is unique
+        if (signal.aborted) {
+          throw signal.error;
+        }
 
-    await this.redis
-      .multi()
-      // Save bot
-      .set(
-        KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-        JSON.stringify(bot),
-        'EX',
-        300
-      )
-      // Add event to outbox
-      .lpush(
-        OUTBOX_KEY,
-        JSON.stringify({
-          type: BOT_HEARTBEAT_EVENT,
-          data: bot satisfies BotHeartbeatEvent['data'],
-          metadata: { steamid64: null, time: Math.floor(Date.now() / 1000) },
-        } satisfies OutboxMessage)
-      )
-      // Publish that there is a new event
-      .publish(OUTBOX_KEY, '')
-      .exec();
+        // TODO: Make sure ip and port combination is unique
 
-    return bot;
+        // Add bot to queue to check if it is still alive in the future
+        await this.heartbeatsQueue.add(bot.steamid64, bot, {
+          jobId: bot.steamid64 + ':' + bot.lastSeen,
+          delay: Math.floor(bot.interval * 1.5),
+        });
+
+        await this.redis
+          .multi()
+          // Save bot
+          .set(
+            KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
+            JSON.stringify(bot),
+            'EX',
+            300
+          )
+          // Add event to outbox
+          .lpush(
+            OUTBOX_KEY,
+            JSON.stringify({
+              type: BOT_HEARTBEAT_EVENT,
+              data: bot satisfies BotHeartbeatEvent['data'],
+              metadata: {
+                steamid64: null,
+                time: Math.floor(Date.now() / 1000),
+              },
+            } satisfies OutboxMessage)
+          )
+          // Publish that there is a new event
+          .publish(OUTBOX_KEY, '')
+          .exec();
+
+        return bot;
+      }
+    );
   }
 
   async deleteBot(steamid: SteamID): Promise<void> {
-    const result = await this.redis.del(
-      KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64())
-    );
+    // Create lock
+    await this.redlock.using(
+      ['bot', steamid.getSteamID64()],
+      1000,
+      async (signal) => {
+        const bot = await this.getBotFromRedis(steamid);
+        if (bot === null) {
+          // Bot does not exist
+          throw new NotFoundException('Bot not found');
+        }
 
-    if (result === 0) {
-      throw new NotFoundException('Bot not found');
-    }
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        // Delete bot and add event to outbox
+        await this.redis
+          .multi()
+          .del(
+            KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64())
+          )
+          .lpush(
+            OUTBOX_KEY,
+            JSON.stringify({
+              type: BOT_DELETED_EVENT,
+              data: bot satisfies BotDeletedEvent['data'],
+              metadata: {
+                steamid64: null,
+                time: Math.floor(Date.now() / 1000),
+              },
+            } satisfies OutboxMessage)
+          )
+          .publish(OUTBOX_KEY, '')
+          .exec();
+      }
+    );
   }
 
   private async getRunningBot(bot: Bot): Promise<RunningBot | null> {
