@@ -42,3 +42,7 @@ The bot also saves different files, such as [polldata](https://github.com/Doctor
 ### RabbitMQ
 
 RabbitMQ is a message broker that allows for messages to be published and routed to different queues. Applications can consume the messages in the queue. Examples on how to use RabbitMQ can be found [here](https://www.rabbitmq.com/tutorials/tutorial-one-javascript.html).
+
+## Continue reading
+
+Continue reading about the design [here](design.md).

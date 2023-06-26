@@ -7,5 +7,7 @@ TF2 Automatic is a platform for building trading bots. This project is made up o
 See the following guides to get an overview of the project and guides on how to use it:
 
 - Understand the [architecture](architecture.md)
+- [Design](design.md) choices
 - Basic [setup](setup.md)
 - [Usage](usage.md) guide
+- Overview of [features](features.md)
