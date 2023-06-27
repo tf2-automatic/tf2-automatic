@@ -6,7 +6,7 @@ This section goes over the design of different parts of the system.
 
 Many different features depend on queueing, such as sending trades or loading inventories. Queues are used to retry actions to ensure that they are successfully made. The retry options for jobs are configurable and allow you to control how frequently, and for how long, retries may happen.
 
-https://github.com/tf2-automatic/tf2-automatic/blob/f54cd7e6251be311aeea768bbde22d2e2c72d43b/libs/bot-manager-data/src/lib/misc.ts#L1C1-L6
+https://github.com/tf2-automatic/tf2-automatic/blob/f54cd7e6251be311aeea768bbde22d2e2c72d43b/libs/bot-manager-data/src/lib/misc.ts#L1-L6
 
 The retry settings are shown above. Different retry strategies can be used, and different delays and timings can be used.
 
