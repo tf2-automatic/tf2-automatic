@@ -37,6 +37,10 @@ Offers are regularly fetched from Steam on a fixed interval, but they are also f
 
 Like for transactional outbox, changes are ensured to be published, but they may be published more than once.
 
+## Heartbeats and liveliness
+
+Bots send heartbeats to the bot-manager at fixed intervals. Heartbeats are used to keep track of active bots and remove the ones that no longer send heartbeats. When a heartbeat is made, a job is added to an internal queue that will run after a bot should have made a new heartbeat. When the job runs, it will check if the bot has made a new heartbeat. If it has not made a new heartbeat, then it will be removed from the bots list. Bots will also be removed from the list because of a ttl made in Redis, but they should be removed earlier by the bot-manager. Because of this the bots list should only contain active and responsive bots.
+
 ## Continue reading
 
 Continue reading about the features of the system [here](features.md).
