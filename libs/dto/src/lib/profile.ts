@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UpdateProfile, UpdateProfileAvatar } from '@tf2-automatic/bot-data';
+import {
+  UpdateProfile,
+  UpdateProfileAvatar,
+  UpdateProfileSettings,
+} from '@tf2-automatic/bot-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import {
@@ -23,7 +27,7 @@ export class UpdateProfileAvatarDto implements UpdateProfileAvatar {
   url: string;
 }
 
-export class UpdateProfileSettingsDto {
+export class UpdateProfileSettingsDto implements UpdateProfileSettings {
   @ApiProperty({
     description: 'The privacy state of the profile',
     example: SteamCommunity.PrivacyState.Public,
