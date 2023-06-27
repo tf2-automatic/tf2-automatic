@@ -3,8 +3,9 @@ import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min, ValidateNested } from 'class-validator';
 import { QueueRetryDto } from './misc';
+import { EnqueueInventory } from '@tf2-automatic/bot-manager-data';
 
-export class EnqueueInventoryDto {
+export class EnqueueInventoryDto implements EnqueueInventory {
   @ApiProperty({
     description: 'The steamid64 of the bot to fetch the inventory with',
     example: '76561198120070906',
@@ -33,7 +34,7 @@ export class EnqueueInventoryDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => QueueRetryDto)
-  retry: QueueRetryDto;
+  retry?: QueueRetryDto;
 
   @ApiProperty({
     description:
@@ -45,5 +46,5 @@ export class EnqueueInventoryDto {
   @IsInt()
   @Min(-1)
   @Max(Number.MAX_SAFE_INTEGER)
-  ttl: number;
+  ttl?: number;
 }

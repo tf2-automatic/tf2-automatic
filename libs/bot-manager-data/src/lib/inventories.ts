@@ -1,4 +1,5 @@
 import { BaseEvent, HttpError, Inventory } from '@tf2-automatic/bot-data';
+import { RetryOptions } from './misc';
 
 export const INVENTORIES_BASE_URL = '/inventories';
 export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
@@ -6,6 +7,13 @@ export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
 export interface InventoryResponse {
   timestamp: number;
   inventory: Inventory;
+}
+
+export interface EnqueueInventory {
+  bot?: string;
+  priority?: number;
+  retry?: RetryOptions;
+  ttl?: number;
 }
 
 export const INVENTORY_EVENT_PREFIX = 'inventories';
