@@ -49,6 +49,34 @@ Event made when the bot is ready and listening for HTTP requests.
 - `type` - `bot.ready`
 - `data` - Empty object
 
+### bots.heartbeat (bot-manager)
+
+Event made when the bot makes a heartbeat that is received by the bot-manager.
+
+`BOT_HEARTBEAT_EVENT`
+
+- `type` - `bots.heartbeat`
+- `data`
+  - `steamid64`
+  - `ip`
+  - `port`
+  - `interval`
+  - `latseSeen`
+
+### bots.deleted (bot-manager)
+
+Event made when the bot is no longer responsive and is removed from the bots list.
+
+`BOT_DELETED_EVENT`
+
+- `type` - `bots.deleted`
+- `data`
+  - `steamid64`
+  - `ip`
+  - `port`
+  - `interval`
+  - `latseSeen`
+
 ## Friends
 
 Events received when friend relationship changes or when receiving messages from friends.
@@ -59,9 +87,11 @@ Event made when friend relationship changes.
 
 `FRIEND_RELATIONSHIP_EVENT`
 
-- `steamid64`
-- `relationship`
-- `oldRelationship`
+- `type` - `friends.relationship`
+- `data`
+  - `steamid64`
+  - `relationship`
+  - `oldRelationship`
 
 ### friends.message (bot)
 
@@ -69,10 +99,12 @@ Event made when a message from a friend is received.
 
 `FRIEND_MESSAGE_EVENT`
 
-- `steamid64`
-- `timestamp`
-- `ordinal`
-- `message`
+- `type` - `friends.message`
+- `data`
+  - `steamid64`
+  - `timestamp`
+  - `ordinal`
+  - `message`
 
 ### friends.typing (bot)
 
@@ -80,9 +112,11 @@ Event made when a friend is typing a message.
 
 `FRIEND_TYPING_EVENT`
 
-- `steamid64`
-- `timestamp`
-- `ordinal`
+- `type` - `friends.typing`
+- `data`
+  - `steamid64`
+  - `timestamp`
+  - `ordinal`
 
 ## Inventories
 
