@@ -10,6 +10,7 @@ import {
 import {
   ManagerCounterTrade,
   QueueTrade,
+  QueueTradeJobData,
   QueueTradeType,
   QueueTradeTypes,
 } from '@tf2-automatic/bot-manager-data';
@@ -215,8 +216,7 @@ export class TradeQueueJobDto implements QueueTrade {
     description: 'The data for the job',
   })
   @Validate(TradeQueueDataValidator)
-  // FIXME: use correct types
-  data: unknown;
+  data: QueueTradeJobData;
 
   @ApiProperty({
     description: 'The steamid64 of the bot to send the trade offer with',
@@ -245,5 +245,5 @@ export class TradeQueueJobDto implements QueueTrade {
   @IsOptional()
   @ValidateNested()
   @Type(() => QueueRetryDto)
-  retry: QueueRetryDto;
+  retry?: QueueRetryDto;
 }
