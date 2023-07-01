@@ -131,7 +131,7 @@ export class HeartbeatsService {
 
     // Create lock to make sure that a bot can't be saved and deleted at the same time
     return this.redlock.using(
-      ['bot', steamid.getSteamID64()],
+      [`bots:${steamid.getSteamID64()}`],
       1000,
       async (signal) => {
         const running = await this.getRunningBot(bot).catch((err) => {
@@ -190,7 +190,7 @@ export class HeartbeatsService {
   async deleteBot(steamid: SteamID): Promise<void> {
     // Create lock
     await this.redlock.using(
-      ['bot', steamid.getSteamID64()],
+      [`bots:${steamid.getSteamID64()}`],
       1000,
       async (signal) => {
         const bot = await this.getBotFromRedis(steamid);
