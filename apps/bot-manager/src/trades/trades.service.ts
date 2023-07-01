@@ -4,7 +4,7 @@ import {
 } from '@golevelup/nestjs-rabbitmq';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
   CreateTrade,
@@ -24,12 +24,13 @@ import {
   TRADE_COUNTER_PATH,
   CounterTrade,
 } from '@tf2-automatic/bot-data';
-import { Bot, QueueTradeResponse, Job } from '@tf2-automatic/bot-manager-data';
 import {
-  CreateTradeDto,
-  GetTradesDto,
-  TradeQueueJobDto,
-} from '@tf2-automatic/dto';
+  Bot,
+  QueueTradeResponse,
+  Job,
+  QueueTradeJob,
+} from '@tf2-automatic/bot-manager-data';
+import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamUser from 'steam-user';
@@ -38,39 +39,68 @@ import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { TradeQueue } from './interfaces/trade-queue.interface';
+import { Redis } from 'ioredis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import Redlock from 'redlock';
 
 @Injectable()
 export class TradesService {
+  private readonly redlock: Redlock;
+
   constructor(
     private readonly heartbeatsService: HeartbeatsService,
     private readonly httpService: HttpService,
     @InjectQueue('getExchangeDetails')
     private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
     @InjectQueue('trades')
-    private readonly tradesQueue: Queue<TradeQueue>
-  ) {}
+    private readonly tradesQueue: Queue<TradeQueue>,
+    @InjectRedis() private readonly redis: Redis
+  ) {
+    this.redlock = new Redlock([this.redis]);
+  }
 
-  async enqueueJob(dto: TradeQueueJobDto): Promise<QueueTradeResponse> {
-    const id = uuidv4();
+  async enqueueJob(dto: QueueTradeJob): Promise<QueueTradeResponse> {
+    const createJob = async (id: string) => {
+      const data: TradeQueue = {
+        type: dto.type,
+        raw: dto.data as never,
+        extra: {},
+        bot: dto.bot,
+        retry: dto.retry,
+      };
 
-    const data: TradeQueue = {
-      type: dto.type,
-      raw: dto.data as never,
-      extra: {},
-      bot: dto.bot,
-      retry: dto.retry,
+      const job = await this.tradesQueue.add(id, data, {
+        jobId: id,
+        priority: dto.priority,
+      });
+
+      const jobId = job.id as string;
+
+      return {
+        id: jobId,
+      };
     };
 
-    const job = await this.tradesQueue.add(id, data, {
-      jobId: id,
-      priority: dto.priority,
+    if (dto.type === 'CREATE') {
+      // Not dealing with a specific offer so we need to generate an idb
+      return createJob(uuidv4());
+    }
+
+    // Get the id of the offer
+    const id = dto.type === 'COUNTER' ? dto.data.id : dto.data;
+
+    return this.redlock.using([`trades:${id}`], 1000, async (signal) => {
+      const exists = await this.tradesQueue.getJob(id);
+      if (exists) {
+        throw new ConflictException('A job already exists for the offer');
+      }
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      return createJob(id);
     });
-
-    const jobId = job.id as string;
-
-    return {
-      id: jobId,
-    };
   }
 
   dequeueJob(id: string): Promise<boolean> {
