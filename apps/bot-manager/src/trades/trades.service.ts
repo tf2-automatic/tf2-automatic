@@ -81,16 +81,34 @@ export class TradesService {
       };
     };
 
-    if (dto.type === 'CREATE') {
-      // Not dealing with a specific offer so we need to generate an idb
+    let offerId: string | null;
+
+    switch (dto.type) {
+      case 'CREATE':
+        // Don't use the id from the dto, as it's not unique.
+        offerId = null;
+        break;
+      case 'ACCEPT':
+      case 'CONFIRM':
+      case 'DELETE':
+        offerId = dto.data;
+        break;
+      case 'COUNTER':
+        offerId = dto.data.id;
+        break;
+      default:
+        // @ts-expect-error Gives compile-time error if all cases are not handled.
+        throw new Error('Unknown task type: ' + dto.type);
+    }
+
+    if (offerId == null) {
       return createJob(uuidv4());
     }
 
-    // Get the id of the offer
-    const id = dto.type === 'COUNTER' ? dto.data.id : dto.data;
+    const jobId = offerId;
 
-    return this.redlock.using([`trades:${id}`], 1000, async (signal) => {
-      const exists = await this.tradesQueue.getJob(id);
+    return this.redlock.using([`trades:${jobId}`], 1000, async (signal) => {
+      const exists = await this.tradesQueue.getJob(jobId);
       if (exists) {
         throw new ConflictException('A job already exists for the offer');
       }
@@ -99,7 +117,7 @@ export class TradesService {
         throw signal.error;
       }
 
-      return createJob(id);
+      return createJob(jobId);
     });
   }
 
