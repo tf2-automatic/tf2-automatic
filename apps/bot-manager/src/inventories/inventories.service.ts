@@ -194,7 +194,8 @@ export class InventoriesService {
       case TF2_LOST_EVENT:
         return this.handleItemLost(event as TF2LostEvent);
       default:
-        return Promise.resolve();
+        // @ts-expect-error Gives compile-time error if all cases are not handled.
+        throw new Error('Unknown type: ' + event.type);
     }
   }
 
