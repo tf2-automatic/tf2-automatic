@@ -105,9 +105,9 @@ export class TradesService {
       return createJob(uuidv4());
     }
 
-    const jobId = offerId;
+    const jobId = 'trades:' + offerId;
 
-    return this.redlock.using([`trades:${jobId}`], 1000, async (signal) => {
+    return this.redlock.using([jobId], 1000, async (signal) => {
       const exists = await this.tradesQueue.getJob(jobId);
       if (exists) {
         throw new ConflictException('A job already exists for the offer');
