@@ -204,38 +204,7 @@ export class InventoriesService {
     steamid: SteamID,
     items: ExchangeDetailsItem[]
   ) {
-    const mapItem = (item: ExchangeDetailsItem): Item => {
-      const newItem = { ...item };
-
-      // Overwrite assetid and contextid using new values first
-
-      if (item.new_assetid !== undefined) {
-        newItem.assetid = item.new_assetid;
-        delete newItem.new_assetid;
-      }
-
-      if (item.new_contextid !== undefined) {
-        newItem.contextid = item.new_contextid;
-        delete newItem.new_contextid;
-      }
-
-      // Overwrite assetid and contextid using rollback values at the end
-      // because the rollback values are more accurate
-
-      if (item.rollback_new_assetid !== undefined) {
-        newItem.assetid = item.rollback_new_assetid;
-        delete newItem.rollback_new_assetid;
-      }
-
-      if (item.rollback_new_contextid !== undefined) {
-        newItem.contextid = item.rollback_new_contextid;
-        delete newItem.rollback_new_contextid;
-      }
-
-      return newItem;
-    };
-
-    items.map(mapItem).reduce((acc, cur) => {
+    items.reduce((acc, cur) => {
       const items = (acc[
         this.getInventoryKey(steamid, cur.appid, cur.contextid)
       ] = acc[cur.appid] ?? []);
