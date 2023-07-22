@@ -87,10 +87,11 @@ export class InventoriesService {
 
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
-        `http://${bot.ip}:${bot.port}${INVENTORIES_BASE_URL}${INVENTORY_PATH}?tradableOnly=${tradableOnly}`
+        `http://${bot.ip}:${bot.port}${INVENTORIES_BASE_URL}${INVENTORY_PATH}`
           .replace(':steamid', steamid.getSteamID64())
           .replace(':appid', appid.toString())
-          .replace(':contextid', contextid)
+          .replace(':contextid', contextid),
+        { params: { tradableOnly: tradableOnly } }
       )
     );
 
