@@ -38,6 +38,7 @@ export class InventoriesController {
     description:
       'Set to false to include non-tradable items in the response. Defaults to true',
     example: true,
+    required: false,
   })
   @ApiOkResponse({
     type: [ItemModel],
