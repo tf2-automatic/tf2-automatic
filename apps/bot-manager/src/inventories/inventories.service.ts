@@ -65,6 +65,7 @@ export class InventoriesService {
       bot: dto.bot,
       retry: dto.retry,
       ttl: dto.ttl,
+      tradableOnly: dto.tradableOnly,
     };
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
@@ -79,7 +80,8 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string,
-    ttl: number = INVENTORY_EXPIRE_TIME
+    ttl: number = INVENTORY_EXPIRE_TIME,
+    tradableOnly = true
   ): Promise<InventoryResponse> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -88,7 +90,8 @@ export class InventoriesService {
         `http://${bot.ip}:${bot.port}${INVENTORIES_BASE_URL}${INVENTORY_PATH}`
           .replace(':steamid', steamid.getSteamID64())
           .replace(':appid', appid.toString())
-          .replace(':contextid', contextid)
+          .replace(':contextid', contextid),
+        { params: { tradableOnly: tradableOnly } }
       )
     );
 
