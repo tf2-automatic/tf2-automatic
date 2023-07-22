@@ -234,7 +234,12 @@ export class TradesService {
     errorHandler: requeueErrorHandler,
   })
   public async handleTradeChanged(event: TradeChangedEvent) {
-    if (event.data.offer.state !== SteamUser.ETradeOfferState.Accepted) {
+    if (
+      (event.data.offer.state === SteamUser.ETradeOfferState.Canceled &&
+        event.data.offer.tradeID !== null) ||
+      event.data.offer.state !== SteamUser.ETradeOfferState.Accepted
+    ) {
+      // Trade is not canceled and was previously accepted, or it is not accepted
       return;
     }
 

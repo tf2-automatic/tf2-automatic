@@ -199,48 +199,100 @@ export class InventoriesService {
     }
   }
 
+  private addGainedItems(
+    gainedItems: Record<string, [string, string][]>,
+    steamid: SteamID,
+    items: ExchangeDetailsItem[]
+  ) {
+    const mapItem = (item: ExchangeDetailsItem): Item => {
+      const newItem = { ...item };
+
+      // Overwrite assetid and contextid using new values first
+
+      if (item.new_assetid !== undefined) {
+        newItem.assetid = item.new_assetid;
+        delete newItem.new_assetid;
+      }
+
+      if (item.new_contextid !== undefined) {
+        newItem.contextid = item.new_contextid;
+        delete newItem.new_contextid;
+      }
+
+      // Overwrite assetid and contextid using rollback values at the end
+      // because the rollback values are more accurate
+
+      if (item.rollback_new_assetid !== undefined) {
+        newItem.assetid = item.rollback_new_assetid;
+        delete newItem.rollback_new_assetid;
+      }
+
+      if (item.rollback_new_contextid !== undefined) {
+        newItem.contextid = item.rollback_new_contextid;
+        delete newItem.rollback_new_contextid;
+      }
+
+      return newItem;
+    };
+
+    items.map(mapItem).reduce((acc, cur) => {
+      const items = (acc[
+        this.getInventoryKey(steamid, cur.appid, cur.contextid)
+      ] = acc[cur.appid] ?? []);
+
+      items.push(['item:' + cur.assetid, JSON.stringify(cur)]);
+      return acc;
+    }, gainedItems);
+  }
+
+  private addLostItems(
+    lostItems: Record<string, string[]>,
+    steamid: SteamID,
+    items: Item[]
+  ) {
+    items.reduce((acc, cur) => {
+      const items = (acc[
+        this.getInventoryKey(steamid, cur.appid, cur.contextid)
+      ] = acc[cur.appid] ?? []);
+
+      items.push('item:' + cur.assetid);
+      return acc;
+    }, lostItems);
+  }
+
   @RabbitSubscribe({
     exchange: BOT_MANAGER_EXCHANGE_NAME,
     routingKey: EXCHANGE_DETAILS_EVENT,
-    queue: 'bot-manager.add-inventory-items',
+    queue: 'bot-manager.update-inventory-items',
     allowNonJsonMessages: false,
   })
   private async handleAddInventoryItems(
     event: ExchangeDetailsEvent
   ): Promise<void> {
     const gainedItems: Record<string, [string, string][]> = {};
+    const lostItems: Record<string, string[]> = {};
 
-    const addGainedItems = (steamid: SteamID, items: Item[]) => {
-      items.reduce((acc, cur) => {
-        const items = (acc[
-          this.getInventoryKey(steamid, cur.appid, cur.contextid)
-        ] = acc[cur.appid] ?? []);
-
-        items.push(['item:' + cur.assetid, JSON.stringify(cur)]);
-        return acc;
-      }, gainedItems);
-    };
-
-    const mapItem = (item: ExchangeDetailsItem): Item => {
-      const newItem = { ...item };
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newItem.assetid = item.new_assetid!;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newItem.contextid = item.new_contextid!;
-      delete newItem.new_assetid;
-      delete newItem.new_contextid;
-      return newItem;
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ourSteamID = new SteamID(event.metadata.steamid64!);
+    const ourSteamID = new SteamID(event.metadata.steamid64 as string);
     const theirSteamID = new SteamID(event.data.offer.partner);
 
-    const receivedItems = event.data.details.receivedItems.map(mapItem);
-    const sentItems = event.data.details.sentItems.map(mapItem);
+    const receivedItems = event.data.details.receivedItems;
+    const sentItems = event.data.details.sentItems;
 
-    addGainedItems(ourSteamID, receivedItems);
-    addGainedItems(theirSteamID, sentItems);
+    if (event.data.offer.state === SteamUser.ETradeOfferState.Accepted) {
+      // Offer is accepted, add the items to the inventories
+      this.addGainedItems(gainedItems, ourSteamID, receivedItems);
+      this.addGainedItems(gainedItems, theirSteamID, sentItems);
+    } else if (
+      event.data.offer.state === SteamUser.ETradeOfferState.Canceled &&
+      event.data.offer.tradeID !== null
+    ) {
+      // Offer is most likely rolled back, move the items back to the inventories
+
+      this.addGainedItems(gainedItems, ourSteamID, sentItems);
+      this.addGainedItems(gainedItems, theirSteamID, receivedItems);
+      this.addLostItems(lostItems, ourSteamID, receivedItems);
+      this.addLostItems(lostItems, theirSteamID, sentItems);
+    }
 
     // Check if cached inventories exist for the given items
     const inventoriesExists = await Promise.all(
@@ -254,16 +306,24 @@ export class InventoriesService {
       })
     );
 
-    await Promise.all(
-      inventoriesExists
-        .filter((inventory) => inventory.exists)
-        .map((inventory) => {
-          const items = gainedItems[inventory.key];
+    const transaction = this.redis.multi();
 
-          // Add the items to the cached inventories
-          return this.redis.hmset(inventory.key, ...items.flat());
-        })
+    // Add the items to the cached inventories
+    inventoriesExists
+      .filter((inventory) => inventory.exists)
+      .forEach((inventory) => {
+        const items = gainedItems[inventory.key];
+
+        // Add the items to the cached inventories
+        transaction.hmset(inventory.key, ...items.flat());
+      });
+
+    // Delete the items from the cached inventories
+    Object.keys(lostItems).forEach((key) =>
+      transaction.hdel(key, ...lostItems[key])
     );
+
+    await transaction.exec();
   }
 
   private async handleOfferChanged(event: TradeChangedEvent): Promise<void> {
@@ -293,12 +353,14 @@ export class InventoriesService {
     addLostItems(ourSteamID, event.data.offer.itemsToGive);
     addLostItems(theirSteamID, event.data.offer.itemsToReceive);
 
+    const transaction = this.redis.multi();
+
     // Delete the items
-    await Promise.all(
-      Object.keys(lostItems).map((key) =>
-        this.redis.hdel(key, ...lostItems[key])
-      )
+    Object.keys(lostItems).forEach((key) =>
+      transaction.hdel(key, ...lostItems[key])
     );
+
+    await transaction.exec();
   }
 
   private async handleItemLost(event: TF2LostEvent): Promise<void> {
