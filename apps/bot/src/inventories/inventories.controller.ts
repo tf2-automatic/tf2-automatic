@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseBoolPipe, Query } from '@nestjs/common';
 import { InventoriesService } from './inventories.service';
 import { INVENTORIES_BASE_URL, INVENTORY_PATH } from '@tf2-automatic/bot-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
@@ -47,7 +47,7 @@ export class InventoriesController {
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
     @Param('appid') appid: number,
     @Param('contextid') contextid: number,
-    @Query('tradableOnly') tradableOnly?: boolean
+    @Query('tradableOnly', ParseBoolPipe) tradableOnly?: boolean
   ) {
     return this.inventoriesService.getInventory(
       steamid,
