@@ -331,8 +331,7 @@ export class InventoriesService {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ourSteamID = new SteamID(event.metadata.steamid64!);
+    const ourSteamID = new SteamID(event.metadata.steamid64 as string);
     const theirSteamID = new SteamID(event.data.offer.partner);
 
     // Create an object of inventory keys which each contains an array of items to delete
