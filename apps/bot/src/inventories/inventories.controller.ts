@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { InventoriesService } from './inventories.service';
 import { INVENTORIES_BASE_URL, INVENTORY_PATH } from '@tf2-automatic/bot-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
@@ -7,6 +7,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { ItemModel, ApiParamSteamID } from '@tf2-automatic/swagger';
@@ -32,14 +33,26 @@ export class InventoriesController {
     description: 'The contextid of the inventory',
     example: 2,
   })
+  @ApiQuery({
+    name: 'tradableOnly',
+    description:
+      'Set to false to include non-tradable items in the response. Defaults to true',
+    example: true,
+  })
   @ApiOkResponse({
     type: [ItemModel],
   })
   getInventory(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
     @Param('appid') appid: number,
-    @Param('contextid') contextid: number
+    @Param('contextid') contextid: number,
+    @Query('tradableOnly') tradableOnly?: boolean
   ) {
-    return this.inventoriesService.getInventory(steamid, appid, contextid);
+    return this.inventoriesService.getInventory(
+      steamid,
+      appid,
+      contextid,
+      tradableOnly
+    );
   }
 }
