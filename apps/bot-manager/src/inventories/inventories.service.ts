@@ -314,7 +314,7 @@ export class InventoriesService {
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `${KEY_PREFIX}:inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+    return `${KEY_PREFIX}inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
   }
 
   private getInventoryJobId(
