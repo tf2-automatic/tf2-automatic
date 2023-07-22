@@ -327,7 +327,10 @@ export class InventoriesService {
   }
 
   private async handleOfferChanged(event: TradeChangedEvent): Promise<void> {
-    if (event.data.offer.state !== SteamUser.ETradeOfferState.Accepted) {
+    if (
+      event.data.offer.state !== SteamUser.ETradeOfferState.Accepted &&
+      event.data.offer.state !== SteamUser.ETradeOfferState.InEscrow
+    ) {
       return;
     }
 
