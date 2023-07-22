@@ -278,21 +278,60 @@ export class InventoriesService {
     const receivedItems = event.data.details.receivedItems;
     const sentItems = event.data.details.sentItems;
 
-    if (event.data.offer.state === SteamUser.ETradeOfferState.Accepted) {
-      // Offer is accepted, add the items to the inventories
-      this.addGainedItems(gainedItems, ourSteamID, receivedItems);
-      this.addGainedItems(gainedItems, theirSteamID, sentItems);
-    } else if (
-      event.data.offer.state === SteamUser.ETradeOfferState.Canceled &&
-      event.data.offer.tradeID !== null
-    ) {
-      // Offer is most likely rolled back, move the items back to the inventories
+    const addItems = (
+      // Account that received the items
+      receiver: SteamID,
+      // Account that sent the items
+      sender: SteamID,
+      items: ExchangeDetailsItem[]
+    ) => {
+      items.forEach((item) => {
+        if (item.rollback_new_assetid || item.rollback_new_contextid) {
+          // Item is rolled back, it is moved from receiver to sender
 
-      this.addGainedItems(gainedItems, ourSteamID, sentItems);
-      this.addGainedItems(gainedItems, theirSteamID, receivedItems);
-      this.addLostItems(lostItems, ourSteamID, receivedItems);
-      this.addLostItems(lostItems, theirSteamID, sentItems);
-    }
+          // Delete item by old assetid
+          this.addLostItems(lostItems, receiver, [item]);
+
+          if (item.rollback_new_assetid) {
+            item.assetid = item.rollback_new_assetid;
+            delete item.rollback_new_assetid;
+          }
+
+          if (item.rollback_new_contextid) {
+            item.contextid = item.rollback_new_contextid;
+            delete item.rollback_new_contextid;
+          }
+
+          delete item.new_assetid;
+          delete item.new_contextid;
+
+          // Add item using new assetid and contextid
+          this.addGainedItems(gainedItems, sender, [item]);
+        } else if (item.new_assetid || item.new_contextid) {
+          // Item is moved from sender to receiver
+
+          // Delete item by old assetid
+          this.addLostItems(lostItems, sender, [item]);
+
+          if (item.new_assetid) {
+            item.assetid = item.new_assetid;
+            delete item.new_assetid;
+          }
+
+          if (item.new_contextid) {
+            item.contextid = item.new_contextid;
+            delete item.new_contextid;
+          }
+
+          // Add item using new assetid and contextid
+          this.addGainedItems(gainedItems, receiver, [item]);
+        }
+      });
+    };
+
+    // We are the owner of the received items, and the partner is the owner of the sent items
+    addItems(ourSteamID, theirSteamID, receivedItems);
+    addItems(theirSteamID, ourSteamID, sentItems);
 
     // Check if cached inventories exist for the given items
     const inventoriesExists = await Promise.all(
