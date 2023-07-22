@@ -33,7 +33,6 @@ import {
 import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
-import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
@@ -234,12 +233,8 @@ export class TradesService {
     errorHandler: requeueErrorHandler,
   })
   public async handleTradeChanged(event: TradeChangedEvent) {
-    if (
-      (event.data.offer.state === SteamUser.ETradeOfferState.Canceled &&
-        event.data.offer.tradeID !== null) ||
-      event.data.offer.state !== SteamUser.ETradeOfferState.Accepted
-    ) {
-      // Trade is not canceled and was previously accepted, or it is not accepted
+    if (event.data.offer.tradeID === null) {
+      // Trade has not been accepted
       return;
     }
 
