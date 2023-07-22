@@ -10,4 +10,5 @@ export interface InventoryQueue {
   bot?: string;
   retry?: RetryOptions;
   ttl?: number;
+  tradableOnly?: boolean;
 }
