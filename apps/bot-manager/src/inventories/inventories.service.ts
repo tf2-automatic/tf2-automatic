@@ -338,20 +338,9 @@ export class InventoriesService {
     // Create an object of inventory keys which each contains an array of items to delete
     const lostItems: Record<string, string[]> = {};
 
-    const addLostItems = (steamid: SteamID, items: Item[]) => {
-      items.reduce((acc, cur) => {
-        const items = (acc[
-          this.getInventoryKey(steamid, cur.appid, cur.contextid)
-        ] = acc[cur.appid] ?? []);
-
-        items.push('item:' + cur.assetid);
-        return acc;
-      }, lostItems);
-    };
-
     // Add items to the object
-    addLostItems(ourSteamID, event.data.offer.itemsToGive);
-    addLostItems(theirSteamID, event.data.offer.itemsToReceive);
+    this.addLostItems(lostItems, ourSteamID, event.data.offer.itemsToGive);
+    this.addLostItems(lostItems, theirSteamID, event.data.offer.itemsToReceive);
 
     const transaction = this.redis.multi();
 
