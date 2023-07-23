@@ -1,5 +1,5 @@
 import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { InjectRedis } from '@songkeys/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {

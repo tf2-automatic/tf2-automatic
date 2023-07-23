@@ -5,7 +5,7 @@ import configuration, {
   RedisConfig,
 } from './common/config/configuration';
 import { validation } from './common/config/validation';
-import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { RedisModule } from '@songkeys/nestjs-redis';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { EventsModule } from './events/events.module';
 import { PublisherModule } from './publisher/publisher.module';

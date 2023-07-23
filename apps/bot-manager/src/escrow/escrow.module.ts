@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { EscrowService } from './escrow.service';
 import { EscrowController } from './escrow.controller';
-import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { RedisModule } from '@songkeys/nestjs-redis';
 import { HttpModule } from '@nestjs/axios';
 import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
 
