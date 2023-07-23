@@ -28,12 +28,12 @@ export class EscrowService {
     @InjectRedis()
     private readonly redis: Redis,
     private readonly httpService: HttpService,
-    private readonly heartbeatsService: HeartbeatsService
+    private readonly heartbeatsService: HeartbeatsService,
   ) {}
 
   async getEscrow(
     steamid: SteamID,
-    query: GetEscrowDto
+    query: GetEscrowDto,
   ): Promise<EscrowResponse> {
     const cached = await this.getEscrowFromCache(steamid);
     if (cached !== null) {
@@ -66,7 +66,7 @@ export class EscrowService {
 
   async getEscrowFromBot(
     bot: Bot,
-    steamid: SteamID
+    steamid: SteamID,
   ): Promise<EscrowWithTimestamp> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -74,9 +74,9 @@ export class EscrowService {
       this.httpService.get<GetEscrowResponse>(
         `http://${bot.ip}:${bot.port}${ESCROW_BASE_URL}${ESCROW_GET_DURATION}`.replace(
           ':steamid',
-          steamid.getSteamID64()
-        )
-      )
+          steamid.getSteamID64(),
+        ),
+      ),
     );
 
     const object = {
@@ -96,7 +96,7 @@ export class EscrowService {
   }
 
   async getEscrowFromCache(
-    steamid: SteamID
+    steamid: SteamID,
   ): Promise<EscrowWithTimestamp | null> {
     const key = `${KEY_PREFIX}escrow:${steamid.getSteamID64()}`;
     const object = await this.redis.hgetall(key);

@@ -3,7 +3,7 @@ import { MinimalJob } from 'bullmq';
 
 type BackoffStrategy = (
   attemptsMade: number,
-  job: MinimalJob<{ retry?: RetryOptions }>
+  job: MinimalJob<{ retry?: RetryOptions }>,
 ) => number;
 
 export const customBackoffStrategy: BackoffStrategy = (attempts, job) => {

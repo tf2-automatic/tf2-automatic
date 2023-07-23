@@ -50,7 +50,7 @@ export class InventoriesController {
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
-    @Body(new ValidationPipe()) body: EnqueueInventoryDto
+    @Body(new ValidationPipe()) body: EnqueueInventoryDto,
   ): Promise<void> {
     return this.inventoriesService.addToQueue(steamid, appid, contextid, body);
   }
@@ -79,12 +79,12 @@ export class InventoriesController {
   getInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
-    @Param('contextid') contextid: string
+    @Param('contextid') contextid: string,
   ): Promise<InventoryResponse> {
     return this.inventoriesService.getInventoryFromCache(
       steamid,
       appid,
-      contextid
+      contextid,
     );
   }
 
@@ -108,7 +108,7 @@ export class InventoriesController {
   deleteInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
-    @Param('contextid') contextid: string
+    @Param('contextid') contextid: string,
   ): Promise<void> {
     return this.inventoriesService.deleteInventory(steamid, appid, contextid);
   }

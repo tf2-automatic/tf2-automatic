@@ -38,7 +38,7 @@ export class InventoriesProcessor extends WorkerHost {
   constructor(
     private readonly inventoriesService: InventoriesService,
     private readonly heartbeatsService: HeartbeatsService,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
   ) {
     super();
   }
@@ -65,7 +65,7 @@ export class InventoriesProcessor extends WorkerHost {
       return this.eventsService
         .publish(
           unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
-          data
+          data,
         )
         .finally(() => {
           throw err;
@@ -74,7 +74,7 @@ export class InventoriesProcessor extends WorkerHost {
   }
 
   private async processJobWithErrorHandler(
-    job: Job<InventoryQueue>
+    job: Job<InventoryQueue>,
   ): Promise<unknown> {
     const maxTime = job.data?.retry?.maxTime ?? 120000;
 
@@ -108,7 +108,7 @@ export class InventoriesProcessor extends WorkerHost {
         if (err instanceof AxiosError && err.response !== undefined) {
           throw new CustomUnrecoverableError(
             'Job is too old to be retried',
-            err.response
+            err.response,
           );
         }
 
@@ -152,7 +152,7 @@ export class InventoriesProcessor extends WorkerHost {
       job.data.raw.appid,
       job.data.raw.contextid,
       job.data.ttl,
-      job.data.tradableOnly
+      job.data.tradableOnly,
     );
 
     return inventory.timestamp;

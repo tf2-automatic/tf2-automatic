@@ -20,7 +20,7 @@ export class BotHealthIndicator extends HealthIndicator {
     } else {
       throw new HealthCheckError(
         'Bot check failed',
-        this.getStatus(key, false, { message: 'Not ready' })
+        this.getStatus(key, false, { message: 'Not ready' }),
       );
     }
   }

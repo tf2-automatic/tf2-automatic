@@ -46,7 +46,7 @@ export type QueueTradeConfirm = QueueTrade<'CONFIRM', string>;
 
 export interface QueueTrade<
   Type extends QueueTradeType = QueueTradeType,
-  Data = unknown
+  Data = unknown,
 > {
   type: Type;
   data: Data;

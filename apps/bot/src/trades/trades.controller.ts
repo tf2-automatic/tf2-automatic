@@ -65,9 +65,9 @@ export class TradesController {
     @Query(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    dto: GetTradesDto
+    dto: GetTradesDto,
   ): Promise<GetTradesResponse> {
     return this.tradesService.getTrades(dto);
   }
@@ -100,9 +100,9 @@ export class TradesController {
     @Body(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    dto: CreateTradeDto
+    dto: CreateTradeDto,
   ): Promise<CreateTradeResponse> {
     return this.tradesService.createTrade(dto);
   }
@@ -120,9 +120,9 @@ export class TradesController {
     @Body(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    dto: CounterTradeDto
+    dto: CounterTradeDto,
   ): Promise<CreateTradeResponse> {
     return this.tradesService.counterTrade(id, dto);
   }
@@ -167,7 +167,7 @@ export class TradesController {
     description: 'Accept a confirmation by id',
   })
   acceptConfirmation(
-    @Param('id') id: string
+    @Param('id') id: string,
   ): Promise<AcceptConfirmationResponse> {
     return this.tradesService.acceptConfirmation(id).then(() => {
       return { success: true };
@@ -187,7 +187,7 @@ export class TradesController {
     description: 'Trade offer not found',
   })
   getExchangeDetails(
-    @Param('id') id: string
+    @Param('id') id: string,
   ): Promise<TradeOfferExchangeDetails> {
     return this.tradesService.getExchangeDetails(id);
   }

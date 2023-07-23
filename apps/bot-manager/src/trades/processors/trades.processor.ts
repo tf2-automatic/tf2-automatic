@@ -48,14 +48,14 @@ export class TradesProcessor extends WorkerHost {
   constructor(
     private readonly tradesService: TradesService,
     private readonly heartbeatsService: HeartbeatsService,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
   ) {
     super();
   }
 
   async process(job: Job<TradeQueue>): Promise<unknown> {
     this.logger.log(
-      `Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade}...`
+      `Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade}...`,
     );
 
     return this.processJobWithErrorHandler(job).catch((err) => {
@@ -78,7 +78,7 @@ export class TradesProcessor extends WorkerHost {
         .publish(
           unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
           data,
-          new SteamID(job.data.bot)
+          new SteamID(job.data.bot),
         )
         .finally(() => {
           throw err;
@@ -87,7 +87,7 @@ export class TradesProcessor extends WorkerHost {
   }
 
   private async processJobWithErrorHandler(
-    job: Job<TradeQueue>
+    job: Job<TradeQueue>,
   ): Promise<unknown> {
     const maxTime = job.data?.retry?.maxTime ?? 120000;
 
@@ -122,7 +122,7 @@ export class TradesProcessor extends WorkerHost {
           // Is axios error, throw custom unrecoverable error with axios response
           throw new CustomUnrecoverableError(
             'Job is too old to be retried',
-            err.response
+            err.response,
           );
         }
 
@@ -169,13 +169,13 @@ export class TradesProcessor extends WorkerHost {
 
   private async handleCreateJob(
     job: Job<CreateTradeJob>,
-    bot: Bot
+    bot: Bot,
   ): Promise<string> {
     if (job.data.extra.checkCreatedAfter !== undefined) {
       // Check if offer was created
       this.logger.debug(
         `Checking if a similar offer already offer exists...`,
-        job.id
+        job.id,
       );
 
       const trades = await this.tradesService.getActiveTrades(bot);
@@ -183,7 +183,7 @@ export class TradesProcessor extends WorkerHost {
       const offer = this.findMatchingTrade(
         job.data.raw,
         job.data.extra.checkCreatedAfter,
-        trades.sent
+        trades.sent,
       );
 
       if (offer) {
@@ -209,7 +209,7 @@ export class TradesProcessor extends WorkerHost {
 
   private async handleCounterJob(
     job: Job<CounterTradeJob>,
-    bot: Bot
+    bot: Bot,
   ): Promise<string> {
     const offer = await this.tradesService.getTrade(bot, job.data.raw.id);
 
@@ -229,7 +229,7 @@ export class TradesProcessor extends WorkerHost {
           message: job.data.raw.message,
           itemsToGive: job.data.raw.itemsToGive,
           itemsToReceive: job.data.raw.itemsToReceive,
-        }
+        },
       );
       return offer.id;
     } catch (err) {
@@ -253,7 +253,7 @@ export class TradesProcessor extends WorkerHost {
         if (data.eresult === SteamUser.EResult.Timeout) {
           // Add time to job data it as a potentially active offer and to check if it was created
           job.data.extra.checkCreatedAfter = Math.floor(now / 1000);
-          await job.update(job.data);
+          await job.updateData(job.data);
         } else if (
           data.eresult !== SteamUser.EResult.ServiceUnavailable &&
           data.eresult !== SteamUser.EResult.Fail
@@ -268,7 +268,7 @@ export class TradesProcessor extends WorkerHost {
   private findMatchingTrade(
     trade: CreateTrade,
     time: number,
-    trades: TradeOffer[]
+    trades: TradeOffer[],
   ): TradeOffer | null {
     // Get trades created after specific time
     const itemsInTrade = trade.itemsToGive.concat(trade.itemsToReceive);
@@ -286,7 +286,7 @@ export class TradesProcessor extends WorkerHost {
       }
 
       const itemsInActiveTrade = activeTrade.itemsToGive.concat(
-        activeTrade.itemsToReceive
+        activeTrade.itemsToReceive,
       );
 
       // Check if the amount of items is the same
@@ -301,7 +301,7 @@ export class TradesProcessor extends WorkerHost {
             item.assetid === item2.assetid &&
             item.appid === item2.appid &&
             item.contextid === item2.contextid &&
-            item.amount === item2.amount
+            item.amount === item2.amount,
         );
         if (match === undefined) {
           return false;

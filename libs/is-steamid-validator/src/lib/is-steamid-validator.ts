@@ -23,7 +23,7 @@ export function IsSteamID(validationOptions?: ValidationOptions) {
       validate: (value): boolean => isSteamID(value),
       defaultMessage: buildMessage(
         (eachPrefix) => eachPrefix + '$property must be a SteamID',
-        validationOptions
+        validationOptions,
       ),
     },
   });

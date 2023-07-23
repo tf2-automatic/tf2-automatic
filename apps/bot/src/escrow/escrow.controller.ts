@@ -31,7 +31,7 @@ export class EscrowController {
   getEscrowDuration(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Query('token')
-    token?: string
+    token?: string,
   ): Promise<GetEscrowResponse> {
     return this.escrowService
       .getEscrowDuration(steamid, token)

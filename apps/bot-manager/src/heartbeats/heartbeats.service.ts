@@ -42,7 +42,7 @@ export class HeartbeatsService {
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
-    private readonly heartbeatsQueue: Queue<HeartbeatsQueue>
+    private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
   ) {
     this.redlock = new Redlock([this.redis]);
   }
@@ -63,7 +63,7 @@ export class HeartbeatsService {
           .map((steamid) => {
             return (KEY_PREFIX + BOT_KEY).replace(
               'STEAMID64',
-              steamid.getSteamID64()
+              steamid.getSteamID64(),
             );
           });
 
@@ -97,7 +97,7 @@ export class HeartbeatsService {
     // Check if the bot is alive / ip + port combination is valid
     const running = await this.getRunningBot(bot).catch(() => {
       throw new InternalServerErrorException(
-        'Bot ' + bot.steamid64 + ' is not accessible'
+        'Bot ' + bot.steamid64 + ' is not accessible',
       );
     });
 
@@ -126,7 +126,7 @@ export class HeartbeatsService {
         ' at ' +
         bot.ip +
         ':' +
-        bot.port
+        bot.port,
     );
 
     // Create lock to make sure that a bot can't be saved and deleted at the same time
@@ -137,7 +137,7 @@ export class HeartbeatsService {
         const running = await this.getRunningBot(bot).catch((err) => {
           this.logger.warn('Bot is not accessible: ' + err.message);
           throw new InternalServerErrorException(
-            'Bot ' + bot.steamid64 + ' is not accessible'
+            'Bot ' + bot.steamid64 + ' is not accessible',
           );
         });
 
@@ -164,7 +164,7 @@ export class HeartbeatsService {
             KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
             JSON.stringify(bot),
             'EX',
-            300
+            300,
           )
           // Add event to outbox
           .lpush(
@@ -176,14 +176,14 @@ export class HeartbeatsService {
                 steamid64: null,
                 time: Math.floor(Date.now() / 1000),
               },
-            } satisfies OutboxMessage)
+            } satisfies OutboxMessage),
           )
           // Publish that there is a new event
           .publish(OUTBOX_KEY, '')
           .exec();
 
         return bot;
-      }
+      },
     );
   }
 
@@ -207,7 +207,7 @@ export class HeartbeatsService {
         await this.redis
           .multi()
           .del(
-            KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64())
+            KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
           )
           .lpush(
             OUTBOX_KEY,
@@ -218,11 +218,11 @@ export class HeartbeatsService {
                 steamid64: null,
                 time: Math.floor(Date.now() / 1000),
               },
-            } satisfies OutboxMessage)
+            } satisfies OutboxMessage),
           )
           .publish(OUTBOX_KEY, '')
           .exec();
-      }
+      },
     );
   }
 
@@ -232,8 +232,8 @@ export class HeartbeatsService {
         `http://${bot.ip}:${bot.port}${BOT_BASE_URL}${BOT_PATH}`,
         {
           timeout: 5000,
-        }
-      )
+        },
+      ),
     ).catch((err) => {
       if (err.code === 'ECONNREFUSED') {
         return null;

@@ -16,7 +16,7 @@ export class ExchangeDetailsProcessor extends WorkerHost {
 
   constructor(
     private readonly tradesService: TradesService,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
   ) {
     super();
   }
@@ -30,7 +30,7 @@ export class ExchangeDetailsProcessor extends WorkerHost {
     const details = await this.tradesService.getExchangeDetails(bot, offer.id);
 
     this.logger.debug(
-      'Publishing exchange details for offer ' + offer.id + '...'
+      'Publishing exchange details for offer ' + offer.id + '...',
     );
 
     await this.eventsService.publish(
@@ -39,7 +39,7 @@ export class ExchangeDetailsProcessor extends WorkerHost {
         offer: job.data.offer,
         details,
       } satisfies ExchangeDetailsEvent['data'],
-      bot
+      bot,
     );
   }
 }

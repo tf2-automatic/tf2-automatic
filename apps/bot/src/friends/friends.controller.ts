@@ -63,7 +63,7 @@ export class FriendsController {
     type: AddFriendModel,
   })
   async addFriend(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
   ): Promise<AddFriendResponse> {
     const added = await this.friendsService.addFriend(steamid);
 
@@ -83,7 +83,7 @@ export class FriendsController {
     type: DeleteFriendModel,
   })
   async deleteFriend(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
   ): Promise<DeleteFriendResponse> {
     await this.friendsService.deleteFriend(steamid);
 
@@ -102,7 +102,7 @@ export class FriendsController {
     type: FriendModel,
   })
   async isFriend(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
   ): Promise<Friend> {
     return this.friendsService.getFriend(steamid);
   }
@@ -121,7 +121,7 @@ export class FriendsController {
   })
   sendMessage(
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
-    @Body(new ValidationPipe()) dto: SendFriendMessageDto
+    @Body(new ValidationPipe()) dto: SendFriendMessageDto,
   ): Promise<SendFriendMessageResponse> {
     return this.friendsService.sendFriendMessage(steamid, dto.message);
   }
@@ -133,7 +133,7 @@ export class FriendsController {
   })
   @ApiParamSteamID()
   sendTyping(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
   ): Promise<void> {
     return this.friendsService.sendFriendTyping(steamid);
   }
@@ -145,7 +145,7 @@ export class FriendsController {
   })
   @ApiParamSteamID()
   blockUser(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
   ): Promise<void> {
     return this.friendsService.blockUser(steamid);
   }
@@ -157,7 +157,7 @@ export class FriendsController {
   })
   @ApiParamSteamID()
   unblockUser(
-    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID
+    @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
   ): Promise<void> {
     return this.friendsService.unblockUser(steamid);
   }

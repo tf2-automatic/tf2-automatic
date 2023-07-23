@@ -47,13 +47,13 @@ export class InventoriesController {
     @Param('steamid', new ParseSteamIDPipe()) steamid: SteamID,
     @Param('appid') appid: number,
     @Param('contextid') contextid: number,
-    @Query('tradableOnly', ParseBoolPipe) tradableOnly?: boolean
+    @Query('tradableOnly', ParseBoolPipe) tradableOnly?: boolean,
   ) {
     return this.inventoriesService.getInventory(
       steamid,
       appid,
       contextid,
-      tradableOnly
+      tradableOnly,
     );
   }
 }
