@@ -39,7 +39,7 @@ import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.in
 import { v4 as uuidv4 } from 'uuid';
 import { TradeQueue } from './interfaces/trade-queue.interface';
 import { Redis } from 'ioredis';
-import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { InjectRedis } from '@songkeys/nestjs-redis';
 import Redlock from 'redlock';
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { InjectRedis } from '@songkeys/nestjs-redis';
 import {
   Injectable,
   OnApplicationBootstrap,
@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { createSafeRedisLeader } from 'safe-redis-leader';
+import { SafeRedisLeader } from 'ts-safe-redis-leader';
 import { EventsService } from '../events/events.service';
 import { OutboxMessage, OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 
@@ -16,7 +16,7 @@ export class PublisherService
 {
   private readonly logger = new Logger(PublisherService.name);
 
-  private leader: any;
+  private leader: SafeRedisLeader;
   private isLeader = false;
   private working = false;
   private timeout: NodeJS.Timeout;
@@ -28,16 +28,16 @@ export class PublisherService
     private readonly redisOutbox: Redis,
     @InjectRedis()
     private readonly redis: Redis,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
   ) {}
 
   async onApplicationBootstrap() {
-    this.leader = await createSafeRedisLeader({
-      asyncRedis: this.redis,
-      ttl: 1000,
-      wait: 2000,
-      key: 'publisher-leader-election',
-    });
+    this.leader = new SafeRedisLeader(
+      this.redis,
+      1000,
+      2000,
+      'publisher-leader-election',
+    );
 
     this.leader.on('elected', () => {
       this.elected();
@@ -139,7 +139,7 @@ export class PublisherService
             ' ' +
             (secondsAgo === 1 ? 'second' : 'seconds') +
             ' ago') +
-        '...'
+        '...',
     );
 
     await this.eventsService.publish(event.type, event.data, event.metadata);

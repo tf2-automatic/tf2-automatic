@@ -1,4 +1,4 @@
-import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { RedisModule } from '@songkeys/nestjs-redis';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { EventsModule } from '../events/events.module';
