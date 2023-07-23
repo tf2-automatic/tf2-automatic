@@ -122,25 +122,40 @@ export class InventoriesService {
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
-    const pipeline = this.redis
-      .multi()
-      .hset(key, object)
-      .lpush(
-        OUTBOX_KEY,
-        JSON.stringify({
-          type: INVENTORY_LOADED_EVENT,
-          data: event,
-          metadata: { steamid64: null, time: Math.floor(Date.now() / 1000) },
-        } satisfies OutboxMessage)
-      )
-      .publish(OUTBOX_KEY, '');
+    await this.redlock.using(
+      [
+        this.getInventoryResource({
+          steamid64: steamid.getSteamID64(),
+          appid,
+          contextid,
+        }),
+      ],
+      1000,
+      async () => {
+        const pipeline = this.redis
+          .multi()
+          .hset(key, object)
+          .lpush(
+            OUTBOX_KEY,
+            JSON.stringify({
+              type: INVENTORY_LOADED_EVENT,
+              data: event,
+              metadata: {
+                steamid64: null,
+                time: Math.floor(Date.now() / 1000),
+              },
+            } satisfies OutboxMessage)
+          )
+          .publish(OUTBOX_KEY, '');
 
-    if (ttl > 0) {
-      // and make it expire
-      pipeline.expire(key, ttl);
-    }
+        if (ttl > 0) {
+          // and make it expire
+          pipeline.expire(key, ttl);
+        }
 
-    await pipeline.exec();
+        await pipeline.exec();
+      }
+    );
 
     return {
       timestamp: now,
@@ -153,13 +168,23 @@ export class InventoriesService {
     appid: number,
     contextid: string
   ): Promise<void> {
-    const key = this.getInventoryKey(steamid, appid, contextid);
-    await Promise.all([
-      this.redis.del(key),
-      this.inventoriesQueue.remove(
-        this.getInventoryJobId(steamid, appid, contextid)
-      ),
-    ]);
+    await this.inventoriesQueue.remove(
+      this.getInventoryJobId(steamid, appid, contextid)
+    );
+
+    return this.redlock.using(
+      [
+        this.getInventoryResource({
+          steamid64: steamid.getSteamID64(),
+          appid,
+          contextid,
+        }),
+      ],
+      1000,
+      async () => {
+        await this.redis.del(this.getInventoryKey(steamid, appid, contextid));
+      }
+    );
   }
 
   async getInventoryFromCache(
@@ -169,24 +194,40 @@ export class InventoriesService {
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    const timestamp = await this.redis.hget(key, 'timestamp');
-    if (timestamp === null) {
-      // Inventory is not in the cache
-      throw new NotFoundException('Inventory not found');
-    }
+    return this.redlock.using(
+      [
+        this.getInventoryResource({
+          steamid64: steamid.getSteamID64(),
+          appid,
+          contextid,
+        }),
+      ],
+      1000,
+      async (signal) => {
+        const timestamp = await this.redis.hget(key, 'timestamp');
+        if (timestamp === null) {
+          // Inventory is not in the cache
+          throw new NotFoundException('Inventory not found');
+        }
 
-    const object = await this.redis.hgetall(key);
+        if (signal.aborted) {
+          throw signal.error;
+        }
 
-    const inventory = Object.keys(object)
-      .filter((key) => {
-        return key.startsWith('item:');
-      })
-      .map((item) => JSON.parse(object[item]));
+        const object = await this.redis.hgetall(key);
 
-    return {
-      timestamp: parseInt(timestamp, 10),
-      inventory,
-    };
+        const inventory = Object.keys(object)
+          .filter((key) => {
+            return key.startsWith('item:');
+          })
+          .map((item) => JSON.parse(object[item]));
+
+        return {
+          timestamp: parseInt(timestamp, 10),
+          inventory,
+        };
+      }
+    );
   }
 
   @RabbitSubscribe({
