@@ -22,6 +22,8 @@ import {
   InventoryLoadedEvent,
   INVENTORY_LOADED_EVENT,
   InventoryResponse,
+  INVENTORY_CHANGED_EVENT,
+  InventoryChangedEvent,
 } from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
@@ -33,6 +35,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
 import { OUTBOX_KEY, OutboxMessage } from '@tf2-automatic/transactional-outbox';
+import Redlock from 'redlock';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
@@ -40,6 +43,8 @@ const KEY_PREFIX = 'bot-manager:data:';
 
 @Injectable()
 export class InventoriesService {
+  private readonly redlock: Redlock;
+
   constructor(
     @InjectRedis()
     private readonly redis: Redis,
@@ -47,7 +52,9 @@ export class InventoriesService {
     private readonly eventsService: EventsService,
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryQueue>
-  ) {}
+  ) {
+    this.redlock = new Redlock([this.redis]);
+  }
 
   async addToQueue(
     steamid: SteamID,
@@ -199,34 +206,41 @@ export class InventoriesService {
     }
   }
 
-  private addGainedItems(
-    gainedItems: Record<string, [string, string][]>,
+  private addAssetIds(
+    result: Record<string, string[]>,
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+    assetids: string[]
+  ) {
+    assetids.forEach((assetid) => {
+      const key = JSON.stringify({
+        steamid64: steamid.getSteamID64(),
+        appid: appid,
+        contextid: contextid,
+      });
+
+      result[key] = result[key] ?? [];
+      result[key].push(assetid);
+    });
+  }
+
+  private addItems(
+    result: Record<string, Item[]>,
     steamid: SteamID,
     items: ExchangeDetailsItem[]
   ) {
     items.reduce((acc, cur) => {
-      const items = (acc[
-        this.getInventoryKey(steamid, cur.appid, cur.contextid)
-      ] = acc[cur.appid] ?? []);
+      const key = JSON.stringify({
+        steamid64: steamid.getSteamID64(),
+        appid: cur.appid,
+        contextid: cur.contextid,
+      });
 
-      items.push(['item:' + cur.assetid, JSON.stringify(cur)]);
+      acc[key] = acc[key] ?? [];
+      acc[key].push(cur);
       return acc;
-    }, gainedItems);
-  }
-
-  private addLostItems(
-    lostItems: Record<string, string[]>,
-    steamid: SteamID,
-    items: Item[]
-  ) {
-    items.reduce((acc, cur) => {
-      const items = (acc[
-        this.getInventoryKey(steamid, cur.appid, cur.contextid)
-      ] = acc[cur.appid] ?? []);
-
-      items.push('item:' + cur.assetid);
-      return acc;
-    }, lostItems);
+    }, result);
   }
 
   @RabbitSubscribe({
@@ -238,7 +252,7 @@ export class InventoriesService {
   private async handleAddInventoryItems(
     event: ExchangeDetailsEvent
   ): Promise<void> {
-    const gainedItems: Record<string, [string, string][]> = {};
+    const gainedItems: Record<string, Item[]> = {};
     const lostItems: Record<string, string[]> = {};
 
     const ourSteamID = new SteamID(event.metadata.steamid64 as string);
@@ -259,10 +273,13 @@ export class InventoriesService {
           // Item is rolled back, it is moved from receiver to sender
 
           // Delete item by old assetid
-          this.addLostItems(lostItems, receiver, [item]);
+          this.addAssetIds(lostItems, receiver, item.appid, item.contextid, [
+            item.assetid,
+          ]);
 
           if (item.rollback_new_assetid) {
             item.assetid = item.rollback_new_assetid;
+            item.id = item.assetid;
             delete item.rollback_new_assetid;
           }
 
@@ -275,15 +292,18 @@ export class InventoriesService {
           delete item.new_contextid;
 
           // Add item using new assetid and contextid
-          this.addGainedItems(gainedItems, sender, [item]);
+          this.addItems(gainedItems, sender, [item]);
         } else if (item.new_assetid || item.new_contextid) {
           // Item is moved from sender to receiver
 
           // Delete item by old assetid
-          this.addLostItems(lostItems, sender, [item]);
+          this.addAssetIds(lostItems, receiver, item.appid, item.contextid, [
+            item.assetid,
+          ]);
 
           if (item.new_assetid) {
             item.assetid = item.new_assetid;
+            item.id = item.assetid;
             delete item.new_assetid;
           }
 
@@ -293,7 +313,7 @@ export class InventoriesService {
           }
 
           // Add item using new assetid and contextid
-          this.addGainedItems(gainedItems, receiver, [item]);
+          this.addItems(gainedItems, receiver, [item]);
         }
       });
     };
@@ -302,36 +322,143 @@ export class InventoriesService {
     addItems(ourSteamID, theirSteamID, receivedItems);
     addItems(theirSteamID, ourSteamID, sentItems);
 
-    // Check if cached inventories exist for the given items
-    const inventoriesExists = await Promise.all(
-      Object.keys(gainedItems).map((key) => {
-        return this.redis.exists(key).then((exists) => {
-          return {
+    return this.updateInventories(lostItems, gainedItems);
+  }
+
+  private async updateInventories(
+    lostItems: Record<string, string[]>,
+    gainedItems: Record<string, Item[]>
+  ) {
+    const inventories = Object.keys(lostItems)
+      .concat(Object.keys(gainedItems))
+      .reduce((acc, item) => {
+        acc.add(item);
+        return acc;
+      }, new Set<string>());
+
+    const resources = Array.from(inventories).map((inventory) => {
+      const parts = JSON.parse(inventory);
+      return this.getInventoryResource(parts);
+    });
+
+    return this.redlock.using(resources, 5000, async (signal) => {
+      // Check if cached inventories exist for the given items
+      const inventoriesExists = await Promise.all(
+        Object.keys(gainedItems).map((key) =>
+          this.redis.exists(this.getInventoryKeyFromObject(JSON.parse(key)))
+        )
+      );
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      const transaction = this.redis.multi();
+
+      // Add gained items to the cached inventories
+      Object.keys(gainedItems)
+        // Only add items to inventories that are already cached
+        .filter((_, i) => inventoriesExists[i])
+        .forEach((inventory) => {
+          const items = gainedItems[inventory];
+
+          const key = this.getInventoryKeyFromObject(JSON.parse(inventory));
+
+          // Add the items to the cached inventories
+          transaction.hmset(
             key,
-            exists,
-          };
+            ...items
+              .map((item) => ['item:' + item.assetid, JSON.stringify(item)])
+              .flat()
+          );
         });
-      })
-    );
 
-    const transaction = this.redis.multi();
+      const changes: Record<string, { gained: Item[]; lost: Item[] }> = {};
 
-    // Add the items to the cached inventories
-    inventoriesExists
-      .filter((inventory) => inventory.exists)
-      .forEach((inventory) => {
-        const items = gainedItems[inventory.key];
-
-        // Add the items to the cached inventories
-        transaction.hmset(inventory.key, ...items.flat());
+      Object.keys(gainedItems).forEach((key) => {
+        changes[key] = changes[key] ?? { gained: [], lost: [] };
+        changes[key].gained.push(...gainedItems[key]);
       });
 
-    // Delete the items from the cached inventories
-    Object.keys(lostItems).forEach((key) =>
-      transaction.hdel(key, ...lostItems[key])
-    );
+      // Get lost items from the cached inventories
+      await Promise.all(
+        Object.keys(lostItems).map((key) => {
+          const parts = JSON.parse(key);
 
-    await transaction.exec();
+          return (
+            this.redis
+              // Get the items from the cached inventories
+              .hmget(
+                this.getInventoryKeyFromObject(parts),
+                ...lostItems[key].map((assetid) => 'item:' + assetid)
+              )
+              .then((raw) => {
+                // Filter out null values and parse the items
+                const items = raw
+                  .filter((item): item is string => {
+                    return typeof item === 'string';
+                  })
+                  .map((item) => JSON.parse(item));
+
+                // Add the items to the changes object
+                changes[key] = changes[key] ?? { gained: [], lost: [] };
+                changes[key].lost.push(...items);
+              })
+          );
+        })
+      );
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      // Delete the items from the cached inventories
+      Object.keys(lostItems).forEach((key) =>
+        transaction.hdel(
+          this.getInventoryKeyFromObject(JSON.parse(key)),
+          ...lostItems[key].map((assetid) => 'item:' + assetid)
+        )
+      );
+
+      let changed = false;
+
+      Object.keys(changes).forEach((key) => {
+        const parts = JSON.parse(key);
+        const change = changes[key];
+
+        if (change.gained.length === 0 && change.lost.length === 0) {
+          return;
+        }
+
+        changed = true;
+
+        const changedEvent: InventoryChangedEvent['data'] = {
+          steamid64: parts.steamid64,
+          appid: parts.appid,
+          contextid: parts.contextid,
+          gained: change.gained,
+          lost: change.lost,
+        };
+
+        transaction.lpush(
+          OUTBOX_KEY,
+          JSON.stringify({
+            type: INVENTORY_CHANGED_EVENT,
+            data: changedEvent,
+            metadata: {
+              steamid64: null,
+              time: Math.floor(Date.now() / 1000),
+            },
+          } satisfies OutboxMessage)
+        );
+      });
+
+      if (changed) {
+        transaction.publish(OUTBOX_KEY, '');
+      }
+
+      await transaction.exec();
+    });
   }
 
   private async handleOfferChanged(event: TradeChangedEvent): Promise<void> {
@@ -349,33 +476,55 @@ export class InventoriesService {
     const lostItems: Record<string, string[]> = {};
 
     // Add items to the object
-    this.addLostItems(lostItems, ourSteamID, event.data.offer.itemsToGive);
-    this.addLostItems(lostItems, theirSteamID, event.data.offer.itemsToReceive);
+    event.data.offer.itemsToGive.forEach((item) => {
+      this.addAssetIds(lostItems, ourSteamID, item.appid, item.contextid, [
+        item.assetid,
+      ]);
+    });
 
-    const transaction = this.redis.multi();
+    event.data.offer.itemsToReceive.forEach((item) => {
+      this.addAssetIds(lostItems, theirSteamID, item.appid, item.contextid, [
+        item.assetid,
+      ]);
+    });
 
-    // Delete the items
-    Object.keys(lostItems).forEach((key) =>
-      transaction.hdel(key, ...lostItems[key])
-    );
-
-    await transaction.exec();
+    return this.updateInventories(lostItems, {});
   }
 
   private async handleItemLost(event: TF2LostEvent): Promise<void> {
-    const key = this.getInventoryKey(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      new SteamID(event.metadata.steamid64!),
+    const lostItems: Record<string, string[]> = {};
+
+    this.addAssetIds(
+      lostItems,
+      new SteamID(event.metadata.steamid64 as string),
       440,
-      '2'
+      '2',
+      [event.data.id]
     );
 
-    // Delete item from cached inventory
-    await this.redis.hdel(key, 'item:' + event.data.id);
+    return this.updateInventories(lostItems, {});
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
     return `${KEY_PREFIX}inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+  }
+
+  private getInventoryKeyFromObject(data: {
+    steamid64: string;
+    appid: number;
+    contextid: string;
+  }) {
+    const { steamid64, appid, contextid } = data;
+    return this.getInventoryKey(new SteamID(steamid64), appid, contextid);
+  }
+
+  private getInventoryResource(data: {
+    steamid64: string;
+    appid: number;
+    contextid: string;
+  }) {
+    const { steamid64, appid, contextid } = data;
+    return `inventories:${steamid64}:${appid}:${contextid}`;
   }
 
   private getInventoryJobId(
