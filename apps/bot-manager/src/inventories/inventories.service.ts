@@ -202,48 +202,108 @@ export class InventoriesService {
     }
   }
 
+  private addGainedItems(
+    gainedItems: Record<string, [string, string][]>,
+    steamid: SteamID,
+    items: ExchangeDetailsItem[]
+  ) {
+    items.reduce((acc, cur) => {
+      const items = (acc[
+        this.getInventoryKey(steamid, cur.appid, cur.contextid)
+      ] = acc[cur.appid] ?? []);
+
+      items.push(['item:' + cur.assetid, JSON.stringify(cur)]);
+      return acc;
+    }, gainedItems);
+  }
+
+  private addLostItems(
+    lostItems: Record<string, string[]>,
+    steamid: SteamID,
+    items: Item[]
+  ) {
+    items.reduce((acc, cur) => {
+      const items = (acc[
+        this.getInventoryKey(steamid, cur.appid, cur.contextid)
+      ] = acc[cur.appid] ?? []);
+
+      items.push('item:' + cur.assetid);
+      return acc;
+    }, lostItems);
+  }
+
   @RabbitSubscribe({
     exchange: BOT_MANAGER_EXCHANGE_NAME,
     routingKey: EXCHANGE_DETAILS_EVENT,
-    queue: 'bot-manager.add-inventory-items',
+    queue: 'bot-manager.update-inventory-items',
     allowNonJsonMessages: false,
   })
   private async handleAddInventoryItems(
     event: ExchangeDetailsEvent
   ): Promise<void> {
     const gainedItems: Record<string, [string, string][]> = {};
+    const lostItems: Record<string, string[]> = {};
 
-    const addGainedItems = (steamid: SteamID, items: Item[]) => {
-      items.reduce((acc, cur) => {
-        const items = (acc[
-          this.getInventoryKey(steamid, cur.appid, cur.contextid)
-        ] = acc[cur.appid] ?? []);
-
-        items.push(['item:' + cur.assetid, JSON.stringify(cur)]);
-        return acc;
-      }, gainedItems);
-    };
-
-    const mapItem = (item: ExchangeDetailsItem): Item => {
-      const newItem = { ...item };
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newItem.assetid = item.new_assetid!;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      newItem.contextid = item.new_contextid!;
-      delete newItem.new_assetid;
-      delete newItem.new_contextid;
-      return newItem;
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ourSteamID = new SteamID(event.metadata.steamid64!);
+    const ourSteamID = new SteamID(event.metadata.steamid64 as string);
     const theirSteamID = new SteamID(event.data.offer.partner);
 
-    const receivedItems = event.data.details.receivedItems.map(mapItem);
-    const sentItems = event.data.details.sentItems.map(mapItem);
+    const receivedItems = event.data.details.receivedItems;
+    const sentItems = event.data.details.sentItems;
 
-    addGainedItems(ourSteamID, receivedItems);
-    addGainedItems(theirSteamID, sentItems);
+    const addItems = (
+      // Account that received the items
+      receiver: SteamID,
+      // Account that sent the items
+      sender: SteamID,
+      items: ExchangeDetailsItem[]
+    ) => {
+      items.forEach((item) => {
+        if (item.rollback_new_assetid || item.rollback_new_contextid) {
+          // Item is rolled back, it is moved from receiver to sender
+
+          // Delete item by old assetid
+          this.addLostItems(lostItems, receiver, [item]);
+
+          if (item.rollback_new_assetid) {
+            item.assetid = item.rollback_new_assetid;
+            delete item.rollback_new_assetid;
+          }
+
+          if (item.rollback_new_contextid) {
+            item.contextid = item.rollback_new_contextid;
+            delete item.rollback_new_contextid;
+          }
+
+          delete item.new_assetid;
+          delete item.new_contextid;
+
+          // Add item using new assetid and contextid
+          this.addGainedItems(gainedItems, sender, [item]);
+        } else if (item.new_assetid || item.new_contextid) {
+          // Item is moved from sender to receiver
+
+          // Delete item by old assetid
+          this.addLostItems(lostItems, sender, [item]);
+
+          if (item.new_assetid) {
+            item.assetid = item.new_assetid;
+            delete item.new_assetid;
+          }
+
+          if (item.new_contextid) {
+            item.contextid = item.new_contextid;
+            delete item.new_contextid;
+          }
+
+          // Add item using new assetid and contextid
+          this.addGainedItems(gainedItems, receiver, [item]);
+        }
+      });
+    };
+
+    // We are the owner of the received items, and the partner is the owner of the sent items
+    addItems(ourSteamID, theirSteamID, receivedItems);
+    addItems(theirSteamID, ourSteamID, sentItems);
 
     // Check if cached inventories exist for the given items
     const inventoriesExists = await Promise.all(
@@ -257,51 +317,52 @@ export class InventoriesService {
       })
     );
 
-    await Promise.all(
-      inventoriesExists
-        .filter((inventory) => inventory.exists)
-        .map((inventory) => {
-          const items = gainedItems[inventory.key];
+    const transaction = this.redis.multi();
 
-          // Add the items to the cached inventories
-          return this.redis.hmset(inventory.key, ...items.flat());
-        })
+    // Add the items to the cached inventories
+    inventoriesExists
+      .filter((inventory) => inventory.exists)
+      .forEach((inventory) => {
+        const items = gainedItems[inventory.key];
+
+        // Add the items to the cached inventories
+        transaction.hmset(inventory.key, ...items.flat());
+      });
+
+    // Delete the items from the cached inventories
+    Object.keys(lostItems).forEach((key) =>
+      transaction.hdel(key, ...lostItems[key])
     );
+
+    await transaction.exec();
   }
 
   private async handleOfferChanged(event: TradeChangedEvent): Promise<void> {
-    if (event.data.offer.state !== SteamUser.ETradeOfferState.Accepted) {
+    if (
+      event.data.offer.state !== SteamUser.ETradeOfferState.Accepted &&
+      event.data.offer.state !== SteamUser.ETradeOfferState.InEscrow
+    ) {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ourSteamID = new SteamID(event.metadata.steamid64!);
+    const ourSteamID = new SteamID(event.metadata.steamid64 as string);
     const theirSteamID = new SteamID(event.data.offer.partner);
 
     // Create an object of inventory keys which each contains an array of items to delete
     const lostItems: Record<string, string[]> = {};
 
-    const addLostItems = (steamid: SteamID, items: Item[]) => {
-      items.reduce((acc, cur) => {
-        const items = (acc[
-          this.getInventoryKey(steamid, cur.appid, cur.contextid)
-        ] = acc[cur.appid] ?? []);
-
-        items.push('item:' + cur.assetid);
-        return acc;
-      }, lostItems);
-    };
-
     // Add items to the object
-    addLostItems(ourSteamID, event.data.offer.itemsToGive);
-    addLostItems(theirSteamID, event.data.offer.itemsToReceive);
+    this.addLostItems(lostItems, ourSteamID, event.data.offer.itemsToGive);
+    this.addLostItems(lostItems, theirSteamID, event.data.offer.itemsToReceive);
+
+    const transaction = this.redis.multi();
 
     // Delete the items
-    await Promise.all(
-      Object.keys(lostItems).map((key) =>
-        this.redis.hdel(key, ...lostItems[key])
-      )
+    Object.keys(lostItems).forEach((key) =>
+      transaction.hdel(key, ...lostItems[key])
     );
+
+    await transaction.exec();
   }
 
   private async handleItemLost(event: TF2LostEvent): Promise<void> {
