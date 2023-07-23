@@ -35,9 +35,9 @@ export class EscrowController {
     @Query(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    query: GetEscrowDto
+    query: GetEscrowDto,
   ) {
     return this.escrowService.getEscrow(steamid, query);
   }

@@ -27,7 +27,7 @@ export class FriendsService {
     private readonly botService: BotService,
     private readonly eventsService: EventsService,
     @InjectMetric('bot_friend_relationships')
-    private readonly friendRelationships: Gauge
+    private readonly friendRelationships: Gauge,
   ) {
     this.client.on('friendsList', () => {
       this.updateFriendRelationsMetric();
@@ -49,7 +49,7 @@ export class FriendsService {
           .catch(() => {
             // Ignore error
           });
-      }
+      },
     );
 
     this.client.chat.on('friendTyping', (message) => {
@@ -85,30 +85,31 @@ export class FriendsService {
       {
         relationship: 'friends',
       },
-      relations.filter((r) => r === SteamUser.EFriendRelationship.Friend).length
+      relations.filter((r) => r === SteamUser.EFriendRelationship.Friend)
+        .length,
     );
     this.friendRelationships.set(
       {
         relationship: 'invited',
       },
       relations.filter(
-        (r) => r === SteamUser.EFriendRelationship.RequestInitiator
-      ).length
+        (r) => r === SteamUser.EFriendRelationship.RequestInitiator,
+      ).length,
     );
     this.friendRelationships.set(
       {
         relationship: 'invitedUs',
       },
       relations.filter(
-        (r) => r === SteamUser.EFriendRelationship.RequestRecipient
-      ).length
+        (r) => r === SteamUser.EFriendRelationship.RequestRecipient,
+      ).length,
     );
     this.friendRelationships.set(
       {
         relationship: 'blocked',
       },
       relations.filter((r) => r === SteamUser.EFriendRelationship.Blocked)
-        .length
+        .length,
     );
   }
 
@@ -176,7 +177,7 @@ export class FriendsService {
 
       const listener = (
         sid: SteamID,
-        relationship: SteamUser.EFriendRelationship
+        relationship: SteamUser.EFriendRelationship,
       ) => {
         if (
           steamid.getSteamID64() === sid.getSteamID64() &&
@@ -200,7 +201,7 @@ export class FriendsService {
 
   isFriend(steamid: SteamID): Promise<boolean> {
     return this.getFriend(steamid).then(
-      (friend) => friend.relationship === SteamUser.EFriendRelationship.Friend
+      (friend) => friend.relationship === SteamUser.EFriendRelationship.Friend,
     );
   }
 
@@ -230,7 +231,7 @@ export class FriendsService {
 
   sendFriendMessage(
     steamid: SteamID,
-    message: string
+    message: string,
   ): Promise<SendFriendMessageResponse> {
     return this.client.chat
       .sendFriendMessage(steamid, message)
@@ -238,7 +239,7 @@ export class FriendsService {
         return {
           modified_message: result.modified_message,
           server_timestamp: Math.floor(
-            result.server_timestamp.getTime() / 1000
+            result.server_timestamp.getTime() / 1000,
           ),
           ordinal: result.ordinal,
         };

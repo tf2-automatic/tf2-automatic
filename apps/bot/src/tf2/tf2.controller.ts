@@ -80,9 +80,9 @@ export class TF2Controller {
     @Body(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    body: CraftDto
+    body: CraftDto,
   ): Promise<CraftResult> {
     return this.tf2Service.craft(body);
   }
@@ -147,9 +147,9 @@ export class TF2Controller {
     @Body(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    body: SortBackpackDto
+    body: SortBackpackDto,
   ): Promise<TF2ActionResult> {
     return this.tf2Service.sortBackpack(body).then(() => {
       return {

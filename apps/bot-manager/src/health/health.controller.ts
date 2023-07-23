@@ -9,7 +9,7 @@ import { RedisHealthIndicator } from './redis.health';
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
-    private readonly redisHealthIndicator: RedisHealthIndicator
+    private readonly redisHealthIndicator: RedisHealthIndicator,
   ) {}
 
   @Get(HEALTH_PATH)

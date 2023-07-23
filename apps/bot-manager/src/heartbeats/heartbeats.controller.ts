@@ -34,7 +34,7 @@ export class HeartbeatsController {
   @ApiParamSteamID('SteamID64 of the bot sending the heartbeat')
   handleHeartbeat(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
-    @Body(ValidationPipe) heartbeat: BotHeartbeatDto
+    @Body(ValidationPipe) heartbeat: BotHeartbeatDto,
   ) {
     return this.heartbeatsService.saveBot(steamid, heartbeat);
   }

@@ -107,7 +107,7 @@ export class TradesController {
     },
   })
   enqueueTrade(
-    @Body(new ValidationPipe()) dto: TradeQueueJobDto
+    @Body(new ValidationPipe()) dto: TradeQueueJobDto,
   ): Promise<QueueTradeResponse> {
     return this.tradesService.enqueueJob(dto);
   }

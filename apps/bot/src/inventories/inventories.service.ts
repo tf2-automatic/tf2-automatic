@@ -17,11 +17,11 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: number,
-    tradableOnly = true
+    tradableOnly = true,
   ): Promise<Inventory> {
     return new Promise((resolve, reject) => {
       this.logger.debug(
-        `Getting inventory ${steamid}/${appid}/${contextid}?tradableOnly=${tradableOnly}...`
+        `Getting inventory ${steamid}/${appid}/${contextid}?tradableOnly=${tradableOnly}...`,
       );
 
       const callback = (err: Error, inventory: Inventory) => {
@@ -30,7 +30,7 @@ export class InventoriesService {
           reject(err);
         } else {
           this.logger.debug(
-            `Got inventory ${steamid}/${appid}/${contextid} with ${inventory.length} items`
+            `Got inventory ${steamid}/${appid}/${contextid} with ${inventory.length} items`,
           );
           resolve(inventory);
         }
@@ -41,7 +41,7 @@ export class InventoriesService {
           appid,
           contextid,
           tradableOnly,
-          callback
+          callback,
         );
       } else {
         this.manager.getUserInventoryContents(
@@ -49,7 +49,7 @@ export class InventoriesService {
           appid,
           contextid,
           tradableOnly,
-          callback
+          callback,
         );
       }
     });

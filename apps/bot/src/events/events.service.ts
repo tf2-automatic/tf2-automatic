@@ -11,7 +11,7 @@ export class EventsService implements OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService<Config>,
     private readonly amqpConnection: AmqpConnection,
-    private readonly metadataService: MetadataService
+    private readonly metadataService: MetadataService,
   ) {}
 
   async onModuleDestroy(): Promise<void> {

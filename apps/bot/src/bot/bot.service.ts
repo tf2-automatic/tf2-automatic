@@ -82,7 +82,7 @@ export class BotService implements OnModuleDestroy {
     private metadataService: MetadataService,
     private eventEmitter: EventEmitter2,
     @InjectMetric('steam_api_request_duration_seconds')
-    private readonly steamApiRequestDuration: Summary
+    private readonly steamApiRequestDuration: Summary,
   ) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -90,7 +90,7 @@ export class BotService implements OnModuleDestroy {
       requestID,
       _,
       options,
-      continueRequest
+      continueRequest,
     ) => {
       const url = new URL(options.url);
       url.search = '';
@@ -101,7 +101,7 @@ export class BotService implements OnModuleDestroy {
         this.steamApiRequestDuration.startTimer({
           method: options.method ?? 'GET',
           url: url.toString().replace(/\/\d+/g, '/:number'),
-        })
+        }),
       );
       continueRequest();
     };
@@ -158,7 +158,7 @@ export class BotService implements OnModuleDestroy {
       this.eventsService
         .publish(
           STEAM_CONNECTED_EVENT,
-          {} satisfies SteamConnectedEvent['data']
+          {} satisfies SteamConnectedEvent['data'],
         )
         .catch(() => {
           // Ignore error
@@ -167,7 +167,7 @@ export class BotService implements OnModuleDestroy {
 
     this.client.on('disconnected', (eresult, msg) => {
       this.logger.warn(
-        `Disconnected from Steam, eresult: ${SteamUser.EResult[eresult]} (${eresult})`
+        `Disconnected from Steam, eresult: ${SteamUser.EResult[eresult]} (${eresult})`,
       );
 
       this.eventEmitter.emit('bot.disconnected');
@@ -224,12 +224,12 @@ export class BotService implements OnModuleDestroy {
 
   private handleReadEvent(
     filename: string,
-    callback: (err: Error | null, contents?: Buffer | null) => void
+    callback: (err: Error | null, contents?: Buffer | null) => void,
   ): void {
     this.storageService
       .read(filename)
       .then((contents) =>
-        callback(null, contents ? Buffer.from(contents, 'utf8') : null)
+        callback(null, contents ? Buffer.from(contents, 'utf8') : null),
       )
       .catch((err) => callback(err));
   }
@@ -237,7 +237,7 @@ export class BotService implements OnModuleDestroy {
   private handleWriteEvent(
     filename: string,
     contents: Buffer | string,
-    callback: (err: Error | null) => void
+    callback: (err: Error | null) => void,
   ): void {
     this.storageService
       .write(filename, contents.toString())
@@ -272,7 +272,7 @@ export class BotService implements OnModuleDestroy {
       this.community.resetItemNotifications((err) => {
         if (err) {
           this.logger.error(
-            'Failed to reset item notifications: ' + err.message
+            'Failed to reset item notifications: ' + err.message,
           );
         }
       });
@@ -296,7 +296,11 @@ export class BotService implements OnModuleDestroy {
 
     this.client.on('error', (err) => {
       this.logger.error(
-        'Steam client error: ' + err.message + ' (eresult: ' + err.eresult + ')'
+        'Steam client error: ' +
+          err.message +
+          ' (eresult: ' +
+          err.eresult +
+          ')',
       );
 
       this.eventEmitter.emit('bot.disconnected');
@@ -358,7 +362,7 @@ export class BotService implements OnModuleDestroy {
 
       // Figure out if the refresh token expired
       const { refreshToken, accessToken } = JSON.parse(
-        oldTokens
+        oldTokens,
       ) satisfies SteamTokens;
 
       this.session.refreshToken = refreshToken;
@@ -394,7 +398,7 @@ export class BotService implements OnModuleDestroy {
 
       if (actions.length !== 1) {
         throw new Error(
-          'Unexpected number of valid actions: ' + actions.length
+          'Unexpected number of valid actions: ' + actions.length,
         );
       }
 
@@ -405,7 +409,7 @@ export class BotService implements OnModuleDestroy {
       }
 
       await this.session.submitSteamGuardCode(
-        SteamTotp.generateAuthCode(accountConfig.sharedSecret)
+        SteamTotp.generateAuthCode(accountConfig.sharedSecret),
       );
     }
 
@@ -450,7 +454,7 @@ export class BotService implements OnModuleDestroy {
           JSON.stringify({
             refreshToken,
             accessToken: this.session!.accessToken,
-          } satisfies SteamTokens)
+          } satisfies SteamTokens),
         )
         .catch((err) => {
           this.logger.warn('Failed to save refresh token: ' + err.message);
@@ -557,7 +561,7 @@ export class BotService implements OnModuleDestroy {
 
       this.client.on('steamGuard', (domain, callback) => {
         this.logger.debug(
-          'Steam guard code requested (domain: ' + domain + ')'
+          'Steam guard code requested (domain: ' + domain + ')',
         );
         callback(SteamTotp.generateAuthCode(accountConfig.sharedSecret));
       });
@@ -621,7 +625,7 @@ export class BotService implements OnModuleDestroy {
         return promiseRetry(
           (retry, attempt) => {
             this.logger.debug(
-              'Attempting to connect to Steam (attempt ' + attempt + ')...'
+              'Attempting to connect to Steam (attempt ' + attempt + ')...',
             );
             return this.login().catch((err) => {
               this.logger.warn('Failed to connect: ' + err.message);
@@ -633,7 +637,7 @@ export class BotService implements OnModuleDestroy {
             maxTimeout: 1000 * 60 * 60 * 2,
             minTimeout: 10000,
             randomize: true,
-          }
+          },
         );
       });
 

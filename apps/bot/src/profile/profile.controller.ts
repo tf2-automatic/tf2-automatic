@@ -46,7 +46,7 @@ export class ProfileController {
     type: UpdateProfileAvatarDto,
   })
   setAvatar(
-    @Body(new ValidationPipe()) dto: UpdateProfileAvatarDto
+    @Body(new ValidationPipe()) dto: UpdateProfileAvatarDto,
   ): Promise<void> {
     return this.profileService.setAvatar(dto);
   }
@@ -60,7 +60,7 @@ export class ProfileController {
     type: UpdateProfileDto,
   })
   editProfile(
-    @Body(new ValidationPipe()) dto: UpdateProfileDto
+    @Body(new ValidationPipe()) dto: UpdateProfileDto,
   ): Promise<void> {
     return this.profileService.editProfile(dto);
   }
@@ -77,9 +77,9 @@ export class ProfileController {
     @Body(
       new ValidationPipe({
         transform: true,
-      })
+      }),
     )
-    dto: UpdateProfileSettingsDto
+    dto: UpdateProfileSettingsDto,
   ): Promise<void> {
     return this.profileService.editProfileSettings(dto);
   }

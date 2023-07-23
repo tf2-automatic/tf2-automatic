@@ -62,7 +62,7 @@ export class S3StorageEngine implements StorageEngine {
       this.config.bucket,
       fullPath,
       data,
-      data.length
+      data.length,
     );
 
     return true;

@@ -27,16 +27,6 @@ export interface UpdateProfileSettings {
   friendList?: SteamCommunity.PrivacyState;
 }
 
-export class UpdateProfileSettings {
-  profile?: SteamCommunity.PrivacyState;
-  comments?: SteamCommunity.PrivacyState;
-  inventory?: SteamCommunity.PrivacyState;
-  inventoryGifts?: boolean;
-  gameDetails?: SteamCommunity.PrivacyState;
-  playtime?: boolean;
-  friendList?: SteamCommunity.PrivacyState;
-}
-
 export interface UpdateProfileAvatarResponse {
   success: boolean;
 }

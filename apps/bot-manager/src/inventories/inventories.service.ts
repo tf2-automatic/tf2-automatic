@@ -51,7 +51,7 @@ export class InventoriesService {
     private readonly httpService: HttpService,
     private readonly eventsService: EventsService,
     @InjectQueue('inventories')
-    private readonly inventoriesQueue: Queue<InventoryQueue>
+    private readonly inventoriesQueue: Queue<InventoryQueue>,
   ) {
     this.redlock = new Redlock([this.redis]);
   }
@@ -60,7 +60,7 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string,
-    dto: EnqueueInventoryDto
+    dto: EnqueueInventoryDto,
   ): Promise<void> {
     const data: InventoryQueue = {
       raw: {
@@ -88,7 +88,7 @@ export class InventoriesService {
     appid: number,
     contextid: string,
     ttl: number = INVENTORY_EXPIRE_TIME,
-    tradableOnly = true
+    tradableOnly = true,
   ): Promise<InventoryResponse> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -98,8 +98,8 @@ export class InventoriesService {
           .replace(':steamid', steamid.getSteamID64())
           .replace(':appid', appid.toString())
           .replace(':contextid', contextid),
-        { params: { tradableOnly: tradableOnly } }
-      )
+        { params: { tradableOnly: tradableOnly } },
+      ),
     );
 
     const inventory = response.data;
@@ -144,7 +144,7 @@ export class InventoriesService {
                 steamid64: null,
                 time: Math.floor(Date.now() / 1000),
               },
-            } satisfies OutboxMessage)
+            } satisfies OutboxMessage),
           )
           .publish(OUTBOX_KEY, '');
 
@@ -154,7 +154,7 @@ export class InventoriesService {
         }
 
         await pipeline.exec();
-      }
+      },
     );
 
     return {
@@ -166,10 +166,10 @@ export class InventoriesService {
   async deleteInventory(
     steamid: SteamID,
     appid: number,
-    contextid: string
+    contextid: string,
   ): Promise<void> {
     await this.inventoriesQueue.remove(
-      this.getInventoryJobId(steamid, appid, contextid)
+      this.getInventoryJobId(steamid, appid, contextid),
     );
 
     return this.redlock.using(
@@ -183,14 +183,14 @@ export class InventoriesService {
       1000,
       async () => {
         await this.redis.del(this.getInventoryKey(steamid, appid, contextid));
-      }
+      },
     );
   }
 
   async getInventoryFromCache(
     steamid: SteamID,
     appid: number,
-    contextid: string
+    contextid: string,
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
@@ -226,7 +226,7 @@ export class InventoriesService {
           timestamp: parseInt(timestamp, 10),
           inventory,
         };
-      }
+      },
     );
   }
 
@@ -237,7 +237,7 @@ export class InventoriesService {
     allowNonJsonMessages: false,
   })
   private handleDeleteInventoryItems(
-    event: TF2LostEvent | TradeChangedEvent
+    event: TF2LostEvent | TradeChangedEvent,
   ): Promise<void> {
     switch (event.type) {
       case TRADE_CHANGED_EVENT:
@@ -255,7 +255,7 @@ export class InventoriesService {
     steamid: SteamID,
     appid: number,
     contextid: string,
-    assetids: string[]
+    assetids: string[],
   ) {
     assetids.forEach((assetid) => {
       const key = JSON.stringify({
@@ -272,7 +272,7 @@ export class InventoriesService {
   private addItems(
     result: Record<string, Item[]>,
     steamid: SteamID,
-    items: ExchangeDetailsItem[]
+    items: ExchangeDetailsItem[],
   ) {
     items.reduce((acc, cur) => {
       const key = JSON.stringify({
@@ -294,7 +294,7 @@ export class InventoriesService {
     allowNonJsonMessages: false,
   })
   private async handleAddInventoryItems(
-    event: ExchangeDetailsEvent
+    event: ExchangeDetailsEvent,
   ): Promise<void> {
     const gainedItems: Record<string, Item[]> = {};
     const lostItems: Record<string, string[]> = {};
@@ -310,7 +310,7 @@ export class InventoriesService {
       receiver: SteamID,
       // Account that sent the items
       sender: SteamID,
-      items: ExchangeDetailsItem[]
+      items: ExchangeDetailsItem[],
     ) => {
       items.forEach((item) => {
         if (item.rollback_new_assetid || item.rollback_new_contextid) {
@@ -371,7 +371,7 @@ export class InventoriesService {
 
   private async updateInventories(
     lostItems: Record<string, string[]>,
-    gainedItems: Record<string, Item[]>
+    gainedItems: Record<string, Item[]>,
   ) {
     const inventories = Object.keys(lostItems)
       .concat(Object.keys(gainedItems))
@@ -389,8 +389,8 @@ export class InventoriesService {
       // Check if cached inventories exist for the given items
       const inventoriesExists = await Promise.all(
         Object.keys(gainedItems).map((key) =>
-          this.redis.exists(this.getInventoryKeyFromObject(JSON.parse(key)))
-        )
+          this.redis.exists(this.getInventoryKeyFromObject(JSON.parse(key))),
+        ),
       );
 
       if (signal.aborted) {
@@ -413,7 +413,7 @@ export class InventoriesService {
             key,
             ...items
               .map((item) => ['item:' + item.assetid, JSON.stringify(item)])
-              .flat()
+              .flat(),
           );
         });
 
@@ -434,7 +434,7 @@ export class InventoriesService {
               // Get the items from the cached inventories
               .hmget(
                 this.getInventoryKeyFromObject(parts),
-                ...lostItems[key].map((assetid) => 'item:' + assetid)
+                ...lostItems[key].map((assetid) => 'item:' + assetid),
               )
               .then((raw) => {
                 // Filter out null values and parse the items
@@ -449,7 +449,7 @@ export class InventoriesService {
                 changes[key].lost.push(...items);
               })
           );
-        })
+        }),
       );
 
       if (signal.aborted) {
@@ -460,8 +460,8 @@ export class InventoriesService {
       Object.keys(lostItems).forEach((key) =>
         transaction.hdel(
           this.getInventoryKeyFromObject(JSON.parse(key)),
-          ...lostItems[key].map((assetid) => 'item:' + assetid)
-        )
+          ...lostItems[key].map((assetid) => 'item:' + assetid),
+        ),
       );
 
       let changed = false;
@@ -493,7 +493,7 @@ export class InventoriesService {
               steamid64: null,
               time: Math.floor(Date.now() / 1000),
             },
-          } satisfies OutboxMessage)
+          } satisfies OutboxMessage),
         );
       });
 
@@ -543,7 +543,7 @@ export class InventoriesService {
       new SteamID(event.metadata.steamid64 as string),
       440,
       '2',
-      [event.data.id]
+      [event.data.id],
     );
 
     return this.updateInventories(lostItems, {});
@@ -574,7 +574,7 @@ export class InventoriesService {
   private getInventoryJobId(
     steamid: SteamID,
     appid: number,
-    contextid: string
+    contextid: string,
   ) {
     return `${steamid.getSteamID64()}_${appid}_${contextid}`;
   }

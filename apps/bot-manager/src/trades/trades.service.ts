@@ -53,7 +53,7 @@ export class TradesService {
     private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
     @InjectQueue('trades')
     private readonly tradesQueue: Queue<TradeQueue>,
-    @InjectRedis() private readonly redis: Redis
+    @InjectRedis() private readonly redis: Redis,
   ) {
     this.redlock = new Redlock([this.redis]);
   }
@@ -136,7 +136,7 @@ export class TradesService {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
         ':id',
-        tradeId
+        tradeId,
       );
 
     await firstValueFrom(this.httpService.delete(url));
@@ -146,7 +146,7 @@ export class TradesService {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
         ':id',
-        tradeId
+        tradeId,
       );
 
     await firstValueFrom(this.httpService.post(url));
@@ -156,7 +156,7 @@ export class TradesService {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
         ':id',
-        tradeId
+        tradeId,
       );
 
     await firstValueFrom(this.httpService.post(url));
@@ -164,7 +164,7 @@ export class TradesService {
 
   async createTrade(
     bot: Bot,
-    trade: CreateTrade
+    trade: CreateTrade,
   ): Promise<CreateTradeResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
 
@@ -177,7 +177,7 @@ export class TradesService {
     };
 
     return firstValueFrom(
-      this.httpService.post<CreateTradeResponse>(url, data)
+      this.httpService.post<CreateTradeResponse>(url, data),
     ).then((res) => {
       return res.data;
     });
@@ -186,12 +186,12 @@ export class TradesService {
   counterTrade(
     bot: Bot,
     id: string,
-    data: CounterTrade
+    data: CounterTrade,
   ): Promise<CreateTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_COUNTER_PATH}`.replace(
         ':id',
-        id
+        id,
       );
 
     return firstValueFrom(this.httpService.post(url, data)).then((res) => {
@@ -203,11 +203,11 @@ export class TradesService {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
         ':id',
-        tradeId
+        tradeId,
       );
 
     return firstValueFrom(this.httpService.get<GetTradeResponse>(url)).then(
-      (res) => res.data
+      (res) => res.data,
     );
   }
 
@@ -221,7 +221,7 @@ export class TradesService {
     return firstValueFrom(
       this.httpService.get<GetTradesResponse>(url, {
         params,
-      })
+      }),
     ).then((res) => res.data);
   }
 
@@ -249,20 +249,20 @@ export class TradesService {
       },
       {
         jobId: `offer:${event.data.offer.id}`,
-      }
+      },
     );
   }
 
   async getExchangeDetails(
     steamid: SteamID,
-    offerId: string
+    offerId: string,
   ): Promise<TradeOfferExchangeDetails> {
     const bot = await this.heartbeatsService.getBot(steamid);
 
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_EXCHANGE_DETAILS_PATH}`.replace(
         ':id',
-        offerId
+        offerId,
       );
 
     return firstValueFrom(this.httpService.get(url)).then((res) => res.data);

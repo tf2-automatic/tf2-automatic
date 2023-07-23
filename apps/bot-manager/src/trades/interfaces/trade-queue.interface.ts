@@ -31,7 +31,7 @@ export type ConfirmTradeJob = BaseTradeQueue<'CONFIRM', string>;
 interface BaseTradeQueue<
   Event extends QueueTradeType,
   Raw,
-  Extra = Record<string, unknown>
+  Extra = Record<string, unknown>,
 > {
   type: Event;
   raw: Raw;

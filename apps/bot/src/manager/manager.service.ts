@@ -30,7 +30,7 @@ export class ManagerService implements OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService<Config>,
     private readonly httpService: HttpService,
-    private readonly metadataService: MetadataService
+    private readonly metadataService: MetadataService,
   ) {
     const ourIp = this.configService.get<string>('ip');
 
@@ -39,7 +39,7 @@ export class ManagerService implements OnModuleDestroy {
     } else {
       this.ip = ip.address(
         process.env.NODE_ENV === 'development' ? 'private' : 'public',
-        'ipv4'
+        'ipv4',
       );
     }
   }
@@ -58,10 +58,10 @@ export class ManagerService implements OnModuleDestroy {
       this.httpService.post(
         `${this.managerConfig.url}${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
-          this.metadataService.getOrThrowSteamID().getSteamID64()
+          this.metadataService.getOrThrowSteamID().getSteamID64(),
         ),
-        heartbeat
-      )
+        heartbeat,
+      ),
     );
   }
 
@@ -103,9 +103,9 @@ export class ManagerService implements OnModuleDestroy {
       this.httpService.delete(
         `${this.managerConfig.url}${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`.replace(
           ':steamid',
-          this.metadataService.getOrThrowSteamID().getSteamID64()
-        )
-      )
+          this.metadataService.getOrThrowSteamID().getSteamID64(),
+        ),
+      ),
     );
   }
 

@@ -1,7 +1,7 @@
 import { ApiParam } from '@nestjs/swagger';
 
 export const ApiParamSteamID = (
-  description = 'SteamID64 of a Steam account'
+  description = 'SteamID64 of a Steam account',
 ) => {
   return ApiParam({
     name: 'steamid',

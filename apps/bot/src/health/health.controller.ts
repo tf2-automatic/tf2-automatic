@@ -9,7 +9,7 @@ import { BotHealthIndicator } from './bot.health';
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
-    private readonly botHealthIndicator: BotHealthIndicator
+    private readonly botHealthIndicator: BotHealthIndicator,
   ) {}
 
   @Get(HEALTH_PATH)

@@ -20,7 +20,7 @@ export class EscrowService {
 
   constructor(
     private readonly botService: BotService,
-    private readonly friendsService: FriendsService
+    private readonly friendsService: FriendsService,
   ) {}
 
   async getEscrowDuration(steamid: SteamID, token?: string): Promise<number> {
@@ -29,7 +29,7 @@ export class EscrowService {
 
       if (!isFriend) {
         throw new BadRequestException(
-          'Token is required when not friends with the user'
+          'Token is required when not friends with the user',
         );
       }
     }
@@ -41,7 +41,7 @@ export class EscrowService {
   }
 
   private getUserDetails(
-    offer: SteamTradeOfferManager.TradeOffer
+    offer: SteamTradeOfferManager.TradeOffer,
   ): Promise<UserDetails> {
     return new Promise((resolve, reject) => {
       offer.getUserDetails((err, me, them) => {

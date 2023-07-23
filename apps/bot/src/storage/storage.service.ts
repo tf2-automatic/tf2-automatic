@@ -61,7 +61,7 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
   onApplicationShutdown() {
     // Wait for all writes to finish
     return Promise.all(
-      Array.from(this.nextWrites.values()).map((write) => write.promise)
+      Array.from(this.nextWrites.values()).map((write) => write.promise),
     )
       .then(() => {
         return Promise.all(this.currentWrites.values());
@@ -81,7 +81,7 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
 
     const promise = this.engine.read(relativePath).catch((err) => {
       this.logger.error(
-        `Failed to read file "${relativePath}": ${err.message}`
+        `Failed to read file "${relativePath}": ${err.message}`,
       );
       throw err;
     });
@@ -102,7 +102,7 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
 
     return this.engine.write(task.relativePath, task.data).catch((err) => {
       this.logger.error(
-        `Failed to write to file "${task.relativePath}": ${err.message}`
+        `Failed to write to file "${task.relativePath}": ${err.message}`,
       );
       throw err;
     });

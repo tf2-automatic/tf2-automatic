@@ -72,7 +72,7 @@ export class TF2Service implements OnApplicationShutdown {
 
   private readonly queue: queueAsPromised<Task> = fastq.promise(
     this.process.bind(this),
-    1
+    1,
   );
 
   private account: TF2Account | null = null;
@@ -82,7 +82,7 @@ export class TF2Service implements OnApplicationShutdown {
 
   constructor(
     private readonly botService: BotService,
-    private readonly eventsService: EventsService
+    private readonly eventsService: EventsService,
   ) {
     this.client.on('loggedOn', () => {
       // Bot is logged in, connect to TF2 GC
@@ -189,7 +189,7 @@ export class TF2Service implements OnApplicationShutdown {
         craft.recipe +
         ', assetids: [' +
         craft.assetids.join(', ') +
-        '])'
+        '])',
     );
 
     craft.assetids.forEach((assetid) => {
@@ -207,13 +207,13 @@ export class TF2Service implements OnApplicationShutdown {
             recipe +
             ', assetids: [' +
             assetids.join(', ') +
-            '])'
+            '])',
         );
         return {
           recipe,
           assetids,
         };
-      }
+      },
     );
   }
 
@@ -362,7 +362,7 @@ export class TF2Service implements OnApplicationShutdown {
   private waitForNoEvent(
     eventName: string,
     timeoutDuration: number,
-    filter?: (...args) => boolean
+    filter?: (...args) => boolean,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const createTimeout = () => {
@@ -415,7 +415,7 @@ export class TF2Service implements OnApplicationShutdown {
    */
   private waitForEvent(
     eventName: string,
-    filter?: (...args) => boolean
+    filter?: (...args) => boolean,
   ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
       const listener = (...args) => {
