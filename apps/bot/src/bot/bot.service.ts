@@ -42,6 +42,8 @@ interface SteamTokens {
   accessToken: string;
 }
 
+type HistogramEndCallback = (labels?: unknown) => void;
+
 @Injectable()
 export class BotService implements OnModuleDestroy {
   private logger = new Logger(BotService.name);
@@ -70,7 +72,7 @@ export class BotService implements OnModuleDestroy {
   private lastWebLogin: Date | null = null;
   private running = false;
 
-  private histogramEnds: Map<string, (unknown) => void> = new Map();
+  private histogramEnds: Map<string, HistogramEndCallback> = new Map();
 
   constructor(
     private shutdownService: ShutdownService,
