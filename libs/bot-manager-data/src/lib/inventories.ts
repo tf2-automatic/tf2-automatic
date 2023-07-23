@@ -1,4 +1,4 @@
-import { BaseEvent, HttpError, Inventory } from '@tf2-automatic/bot-data';
+import { BaseEvent, HttpError, Inventory, Item } from '@tf2-automatic/bot-data';
 import { RetryOptions } from './misc';
 
 export const INVENTORIES_BASE_URL = '/inventories';
@@ -57,4 +57,18 @@ export const INVENTORY_FAILED_EVENT: InventoryFailedEventType = `${INVENTORY_EVE
 export type InventoryFailedEvent = BaseEvent<
   InventoryFailedEventType,
   InventoryEventData
+>;
+
+export type InventoryChangedEventType = 'inventories.changed';
+export const INVENTORY_CHANGED_EVENT: InventoryChangedEventType = `${INVENTORY_EVENT_PREFIX}.changed`;
+
+export type InventoryChangedEvent = BaseEvent<
+  InventoryChangedEventType,
+  {
+    steamid64: string;
+    appid: number;
+    contextid: string;
+    gained: Item[];
+    lost: Item[];
+  }
 >;
