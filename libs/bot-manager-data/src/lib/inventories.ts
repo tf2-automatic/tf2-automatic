@@ -14,6 +14,7 @@ export interface EnqueueInventory {
   priority?: number;
   retry?: RetryOptions;
   ttl?: number;
+  tradableOnly?: boolean;
 }
 
 export const INVENTORY_EVENT_PREFIX = 'inventories';

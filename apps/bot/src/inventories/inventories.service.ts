@@ -16,11 +16,12 @@ export class InventoriesService {
   async getInventory(
     steamid: SteamID,
     appid: number,
-    contextid: number
+    contextid: number,
+    tradableOnly = true
   ): Promise<Inventory> {
     return new Promise((resolve, reject) => {
       this.logger.debug(
-        `Getting inventory ${steamid}/${appid}/${contextid}...`
+        `Getting inventory ${steamid}/${appid}/${contextid}?tradableOnly=${tradableOnly}...`
       );
 
       const callback = (err: Error, inventory: Inventory) => {
@@ -36,13 +37,18 @@ export class InventoriesService {
       };
 
       if (steamid.getSteamID64() === this.botService.getSteamID64()) {
-        this.manager.getInventoryContents(appid, contextid, true, callback);
+        this.manager.getInventoryContents(
+          appid,
+          contextid,
+          tradableOnly,
+          callback
+        );
       } else {
         this.manager.getUserInventoryContents(
           steamid,
           appid,
           contextid,
-          true,
+          tradableOnly,
           callback
         );
       }
