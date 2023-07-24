@@ -12,6 +12,7 @@ import {
   SortBackpackTypes,
   TF2Account,
   TF2GainedEvent,
+  TF2Item,
   TF2LostEvent,
   TF2_GAINED_EVENT,
   TF2_LOST_EVENT,
@@ -280,6 +281,14 @@ export class TF2Service implements OnApplicationShutdown {
     return this.queue.push(task).then((result) => {
       return result as ReturnType<TF2Service['processSortBackpack']>;
     });
+  }
+
+  getBackpack(): TF2Item[] {
+    if (this.tf2.backpack === undefined) {
+      throw new BadRequestException('Backpack not loaded');
+    }
+
+    return this.tf2.backpack;
   }
 
   private processSortBackpack(): Promise<void> {
