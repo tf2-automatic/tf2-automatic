@@ -44,8 +44,8 @@ export interface SortBackpack {
 }
 
 export interface TF2Item {
-  attribute: unknown[];
-  equipped_state: unknown[];
+  attribute: Attribute[];
+  equipped_state: EquippedState[];
   id: string;
   account_id: number;
   inventory: number;
@@ -57,13 +57,29 @@ export interface TF2Item {
   origin: number;
   custom_name: string | null;
   custom_desc: string | null;
-  interior_item: null;
+  interior_item: TF2Item | null;
   in_use: boolean;
   style: number;
-  original_id: string;
-  contains_equipped_state: null;
+  original_id: string | null;
+  contains_equipped_state: unknown;
   contains_equipped_state_v2: boolean;
   position: number;
+}
+
+export interface Attribute {
+  def_index: number;
+  value: unknown;
+  value_bytes: TF2Buffer;
+}
+
+export interface EquippedState {
+  new_class: number;
+  new_slot: number;
+}
+
+export interface TF2Buffer {
+  type: 'Buffer';
+  data: [number, number, number, number];
 }
 
 export interface TF2ActionResult {
@@ -73,6 +89,7 @@ export interface TF2ActionResult {
 export const TF2_BASE_URL = '/tf2';
 export const TF2_ACCOUNT_PATH = '/account';
 export const TF2_CRAFT_PATH = '/craft';
+export const TF2_BACKPACK_PATH = '/backpack';
 export const TF2_ITEM_PATH = '/items/:id';
 export const TF2_USE_ITEM_PATH = `${TF2_ITEM_PATH}/use`;
 export const TF2_SORT_PATH = '/sort';

@@ -28,9 +28,15 @@ import {
   TF2ActionResult,
   CraftRecipe,
   SortBackpackTypes,
+  TF2_BACKPACK_PATH,
+  TF2Item,
 } from '@tf2-automatic/bot-data';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
-import { TF2AccountModel, CraftResultModel } from '@tf2-automatic/swagger';
+import {
+  TF2AccountModel,
+  CraftResultModel,
+  TF2ItemModel,
+} from '@tf2-automatic/swagger';
 import { TF2Service } from './tf2.service';
 
 @ApiTags('TF2')
@@ -156,5 +162,17 @@ export class TF2Controller {
         success: true,
       };
     });
+  }
+
+  @Get(TF2_BACKPACK_PATH)
+  @ApiOperation({
+    summary: 'Get backpack',
+    description: 'Get items in backpack',
+  })
+  @ApiOkResponse({
+    type: [TF2ItemModel],
+  })
+  getBackpack(): TF2Item[] {
+    return this.tf2Service.getBackpack();
   }
 }
