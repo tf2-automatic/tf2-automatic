@@ -15,7 +15,6 @@ import {
   TRADE_RECEIVED_EVENT,
   TRADE_SENT_EVENT,
   TRADE_CONFIRMATION_NEEDED_EVENT,
-  TradeConfirmationNeededEvent,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
@@ -248,10 +247,9 @@ export class TradesService {
 
     // Publish confirmation
     return this.eventsService
-      .publish(
-        TRADE_CONFIRMATION_NEEDED_EVENT,
-        this.mapOffer(offer) satisfies TradeConfirmationNeededEvent['data'],
-      )
+      .publish(TRADE_CONFIRMATION_NEEDED_EVENT, {
+        offer: this.mapOffer(offer),
+      })
       .then(() => {
         // Update offer data to prevent publishing confirmation multiple times
         offer.data('conf', offer.data('accept'));

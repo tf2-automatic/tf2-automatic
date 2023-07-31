@@ -48,6 +48,10 @@ export interface TradeOffer {
   escrowEndsAt: number | null;
 }
 
+interface BaseOfferEvent {
+  offer: TradeOffer;
+}
+
 export interface GetTradesResponse {
   sent: TradeOffer[];
   received: TradeOffer[];
@@ -103,19 +107,19 @@ export const TRADE_RECEIVED_EVENT: TradeReceivedEventType = `${TRADE_EVENT_PREFI
 export const TRADE_CHANGED_EVENT: TradeChangedEventType = `${TRADE_EVENT_PREFIX}.changed`;
 export const TRADE_CONFIRMATION_NEEDED_EVENT: TradeConfirmationNeededEventType = `${TRADE_EVENT_PREFIX}.confirmation_needed`;
 
-export type TradeSentEvent = BaseEvent<TradeSentEventType, TradeOffer>;
+export type TradeSentEvent = BaseEvent<TradeSentEventType, BaseOfferEvent>;
 
-export type TradeReceivedEvent = BaseEvent<TradeReceivedEventType, TradeOffer>;
+export type TradeReceivedEvent = BaseEvent<
+  TradeReceivedEventType,
+  BaseOfferEvent
+>;
 
 export type TradeChangedEvent = BaseEvent<
   TradeChangedEventType,
-  {
-    offer: TradeOffer;
-    oldState: ETradeOfferState | null;
-  }
+  BaseOfferEvent & { oldState: ETradeOfferState | null }
 >;
 
 export type TradeConfirmationNeededEvent = BaseEvent<
   TradeConfirmationNeededEventType,
-  TradeOffer
+  BaseOfferEvent
 >;
