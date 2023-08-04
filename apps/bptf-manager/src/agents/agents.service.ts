@@ -14,7 +14,7 @@ import Redlock from 'redlock';
 import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 
-const KEY_PREFIX = 'bptf-manager:data';
+const KEY_PREFIX = 'bptf-manager:data:';
 
 interface RepeatableJob {
   key: string;
