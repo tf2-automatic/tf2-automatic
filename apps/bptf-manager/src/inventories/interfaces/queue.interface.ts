@@ -7,6 +7,7 @@ export interface EnqueueJobData {
 export interface InventoriesJobData {
   steamid64: string;
   attempts: number;
+  attemptsSinceLastRefresh: number;
   refreshed: number;
 }
 

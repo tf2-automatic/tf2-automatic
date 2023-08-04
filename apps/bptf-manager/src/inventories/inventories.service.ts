@@ -92,6 +92,7 @@ export class InventoriesService {
     steamid: SteamID,
     status: InventoryStatus,
     attempts: number = 0,
+    attemptsSinceLastRefresh: number = 0,
   ): Promise<void> {
     const steamid64 = steamid.getSteamID64();
 
@@ -111,6 +112,7 @@ export class InventoriesService {
       {
         steamid64,
         attempts,
+        attemptsSinceLastRefresh,
         refreshed: status.timestamp,
       },
       {

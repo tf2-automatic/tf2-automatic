@@ -25,7 +25,7 @@ export class InventoriesProcessor extends WorkerHost {
   ): Promise<InventoriesJobResult> {
     this.logger.log(
       `Refreshing inventory for ${job.data.steamid64} attempt #${
-        job.data.attempts + 1
+        job.data.attemptsSinceLastRefresh + 1
       }...`,
     );
 
@@ -48,11 +48,11 @@ export class InventoriesProcessor extends WorkerHost {
         ' second(s) ago',
     );
 
+    // If the inventory was refreshed since the job started
+    const refreshed = status.timestamp > job.data.refreshed;
+
     // Check if the inventory has been refreshed since we last requested it to be refreshed
-    if (
-      inventory !== null &&
-      status.timestamp >= inventory.status.current_time
-    ) {
+    if (refreshed && inventory !== null) {
       // Get the refresh point of the inventory
       const refreshPoint = await this.inventoriesService.getRefreshPoint(
         steamid,
@@ -71,6 +71,7 @@ export class InventoriesProcessor extends WorkerHost {
       steamid,
       status,
       job.data.attempts + 1,
+      refreshed ? 0 : job.data.attemptsSinceLastRefresh + 1,
     );
 
     return {
@@ -96,9 +97,9 @@ export class InventoriesProcessor extends WorkerHost {
   onCompleted(job: Job<InventoriesJobData, InventoriesJobResult>): void {
     if (job.returnvalue.done) {
       this.logger.log(
-        `Inventory has been updated for ${job.data.steamid64} after ${
-          job.data.attempts + 1
-        } attempt(s)`,
+        `Inventory has been updated for ${
+          job.data.steamid64
+        } after a total of ${job.data.attempts + 1} attempt(s)`,
       );
     }
   }
