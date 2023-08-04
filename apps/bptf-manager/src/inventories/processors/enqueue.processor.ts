@@ -33,7 +33,7 @@ export class EnqueueInventoriesProcessor extends WorkerHost {
 
     const result = await this.inventoriesService.getInventoryStatus(
       steamid,
-      token.token,
+      token.value,
     );
 
     await this.inventoriesService.enqueueRefresh(steamid, result);

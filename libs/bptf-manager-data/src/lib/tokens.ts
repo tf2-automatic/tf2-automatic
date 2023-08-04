@@ -8,7 +8,7 @@ export const TOKEN_PATH = '/:steamid';
 
 export interface Token {
   steamid64: string;
-  token: string;
+  value: string;
 }
 
 export class SaveTokenDto implements Token {
@@ -25,5 +25,5 @@ export class SaveTokenDto implements Token {
     type: String,
   })
   @IsString()
-  token!: string;
+  value!: string;
 }

@@ -36,7 +36,7 @@ export class InventoriesProcessor extends WorkerHost {
       this.inventoriesService.getInventory(steamid),
       // Refresh the inventory
       this.tokensService.getRandomToken().then((token) => {
-        return this.inventoriesService.refreshInventory(steamid, token.token);
+        return this.inventoriesService.refreshInventory(steamid, token.value);
       }),
     ]);
 

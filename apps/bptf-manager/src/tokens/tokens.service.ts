@@ -15,7 +15,7 @@ export class TokensService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
   async saveToken(dto: SaveTokenDto): Promise<void> {
-    await this.redis.set(this.getKey(dto.steamid64), dto.token);
+    await this.redis.set(this.getKey(dto.steamid64), dto.value);
   }
 
   async deleteToken(steamid: SteamID): Promise<void> {
@@ -29,15 +29,15 @@ export class TokensService {
   async getToken(steamid: SteamID): Promise<Token> {
     const steamid64 = steamid.getSteamID64();
 
-    const token = await this.redis.get(this.getKey(steamid64));
+    const value = await this.redis.get(this.getKey(steamid64));
 
-    if (!token) {
+    if (!value) {
       throw new NotFoundException('Token not found');
     }
 
     return {
       steamid64,
-      token,
+      value,
     };
   }
 
@@ -86,10 +86,10 @@ export class TokensService {
       .map((steamid64, index) => {
         return {
           steamid64,
-          token: tokens[index],
+          value: tokens[index],
         };
       })
-      .filter((element): element is Token => element.token !== null);
+      .filter((element): element is Token => element.value !== null);
   }
 
   private getKey(steamid64: string) {
