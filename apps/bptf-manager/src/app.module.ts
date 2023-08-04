@@ -11,6 +11,7 @@ import { ListingsModule } from './listings/listings.module';
 import { InventoriesModule } from './inventories/inventories.module';
 import { TokensModule } from './tokens/tokens.module';
 import { BullModule } from '@nestjs/bullmq';
+import { AgentsModule } from './agents/agents.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { BullModule } from '@nestjs/bullmq';
     PrometheusModule.register(),
     InventoriesModule,
     TokensModule,
+    AgentsModule,
   ],
   controllers: [],
   providers: [],

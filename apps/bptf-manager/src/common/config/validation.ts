@@ -8,6 +8,7 @@ const validation = Joi.object({
   REDIS_PASSWORD: Joi.string().optional(),
   REDIS_DB: Joi.number().positive().optional(),
   REDIS_PREFIX: Joi.string().optional(),
+  AGENTS_REGISTER_INTERVAL: Joi.number().positive().optional().min(60000),
 });
 
 export { validation };
