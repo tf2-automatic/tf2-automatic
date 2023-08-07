@@ -54,6 +54,7 @@ import { AgentsModule } from './agents/agents.module';
       },
     }),
     PrometheusModule.register(),
+    ListingsModule,
     InventoriesModule,
     TokensModule,
     AgentsModule,
