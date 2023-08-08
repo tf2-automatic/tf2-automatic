@@ -8,4 +8,9 @@ export interface JobResult {
   done: boolean;
 }
 
-export type JobName = 'create' | 'delete' | 'deleteArchived';
+export type JobName =
+  | 'create'
+  | 'delete'
+  | 'deleteArchived'
+  | 'deleteAll'
+  | 'deleteAllArchived';

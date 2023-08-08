@@ -60,7 +60,9 @@ export class ListingsController {
   @ApiParamSteamID()
   @Get('/:steamid/desired')
   getDesired(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    return this.listingsService.getAllDesired(steamid);
+    return this.listingsService
+      .getAllDesired(steamid)
+      .then((desired) => this.listingsService.mapDesired(desired));
   }
 
   @ApiOperation({

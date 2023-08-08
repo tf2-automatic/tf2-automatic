@@ -31,5 +31,6 @@ const defaultJobOptions: DefaultJobOptions = {
     UnregisterAgentsProcessor,
   ],
   controllers: [AgentsController],
+  exports: [AgentsService],
 })
 export class AgentsModule {}

@@ -17,3 +17,7 @@ export interface BatchDeleteListingResponse {
   deleted: number;
   batchOpLimit: number;
 }
+
+export interface DeleteAllListingsResponse {
+  deleted: number;
+}

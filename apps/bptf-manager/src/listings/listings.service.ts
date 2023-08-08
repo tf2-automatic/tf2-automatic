@@ -18,10 +18,13 @@ import { firstValueFrom } from 'rxjs';
 import {
   BatchCreateListingResponse,
   BatchDeleteListingResponse,
+  DeleteAllListingsResponse,
   DeleteListingsResponse,
 } from './interfaces/bptf-response.interface';
 import Redlock from 'redlock';
 import { JobData, JobName, JobResult } from './interfaces/queue.interface';
+import { AgentsService } from '../agents/agents.service';
+import { OnEvent } from '@nestjs/event-emitter';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -34,25 +37,69 @@ export class ListingsService {
     @InjectQueue('listings')
     private readonly listingsQueue: Queue<JobData, JobResult, JobName>,
     @InjectRedis() private readonly redis: Redis,
+    private readonly agentsService: AgentsService,
   ) {
     this.redlock = new Redlock([redis]);
   }
 
+  @OnEvent('agents.registering')
+  async startCreatingListings(steamid: SteamID): Promise<void> {
+    const desired = await this.getAllDesired(steamid);
+
+    if (desired.length > 0) {
+      // Queue all desired listings
+      await this.redis.zadd(
+        this.getCreateKey(steamid),
+        ...desired.flatMap((d) => [
+          d.priority ?? Number.MAX_SAFE_INTEGER,
+          d.hash,
+        ]),
+      );
+    }
+
+    return this.createJob(steamid, 'create');
+  }
+
+  @OnEvent('agents.unregistering')
+  async startDeletingListings(steamid: SteamID): Promise<void> {
+    await Promise.all([
+      this.createJob(steamid, 'deleteAll'),
+      this.createJob(steamid, 'deleteAllArchived'),
+    ]);
+  }
+
   async createJob(
     steamid: SteamID,
-    type: 'delete' | 'create' | 'deleteArchived',
+    type:
+      | 'delete'
+      | 'create'
+      | 'deleteArchived'
+      | 'deleteAll'
+      | 'deleteAllArchived',
   ): Promise<void> {
+    if (type === 'create') {
+      const registering = await this.agentsService.isRegistering(steamid);
+      if (!registering) {
+        // Agent is not running, don't create the job for creating listings
+        return;
+      }
+    }
+
     let priority: number | undefined;
 
     switch (type) {
       case 'delete':
-        priority = 2;
+        priority = 3;
         break;
       case 'deleteArchived':
-        priority = 1;
+        priority = 2;
         break;
       case 'create':
-        priority = 3;
+        priority = 4;
+        break;
+      case 'deleteAll':
+      case 'deleteAllArchived':
+        priority = 1;
         break;
     }
 
@@ -224,10 +271,10 @@ export class ListingsService {
   }
 
   // TODO: Add pagination
-  async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
+  async getAllDesired(steamid: SteamID): Promise<DesiredListingInternal[]> {
     const values = await this.redis.hvals(this.getDesiredKey(steamid));
 
-    return this.mapDesired(values.map((v) => JSON.parse(v)));
+    return values.map((v) => JSON.parse(v));
   }
 
   async getDesired(
@@ -448,6 +495,8 @@ export class ListingsService {
   }
 
   async handleDeletedListings(steamid: SteamID, ids: string[]): Promise<void> {
+    // TODO: Remove listing ids from the desired listings?
+
     await this.redlock.using(
       ['listings:' + steamid.getSteamID64()],
       5000,
@@ -458,6 +507,77 @@ export class ListingsService {
           .srem(this.getDeleteKey(steamid), ...ids)
           // Remove listings
           .hdel(this.getCurrentKey(steamid), ...ids)
+          .exec();
+      },
+    );
+  }
+
+  async handleDeletedAllListings(steamid: SteamID) {
+    await this.redlock.using(
+      ['listings:' + steamid.getSteamID64()],
+      5000,
+      async () => {
+        const now = Math.floor(Date.now() / 1000);
+
+        const desired = await this.getAllDesired(steamid);
+
+        const transaction = this.redis.multi();
+
+        if (desired.length > 0) {
+          const updated: Record<string, string> = {};
+
+          desired.forEach((d) => {
+            if (!d.archived) {
+              delete d.id;
+              d.updatedAt = now;
+              updated[d.hash] = JSON.stringify(d);
+            }
+          });
+
+          // Update desired listings by removing the listing id for non-archived listings
+          transaction.hset(this.getDesiredKey(steamid), updated);
+        }
+
+        await transaction
+          // Remove current listings
+          .del(this.getCurrentKey(steamid))
+          // Clear delete queue
+          .del(this.getDeleteKey(steamid))
+          .exec();
+      },
+    );
+  }
+
+  async handleDeletedAllArchivedListings(steamid: SteamID) {
+    await this.redlock.using(
+      ['listings:' + steamid.getSteamID64()],
+      5000,
+      async () => {
+        const now = Math.floor(Date.now() / 1000);
+
+        const desired = await this.getAllDesired(steamid);
+
+        const transaction = this.redis.multi();
+
+        if (desired.length > 0) {
+          const updated: Record<string, string> = {};
+
+          desired.forEach((d) => {
+            if (d.archived) {
+              delete d.id;
+              delete d.archived;
+              d.updatedAt = now;
+              updated[d.hash] = JSON.stringify(d);
+            }
+          });
+
+          // Update desired listings by removing the listing id for non-archived listings
+          transaction.hset(this.getDesiredKey(steamid), updated);
+        }
+
+        await transaction
+          // Clear delete archived queue
+          .del(this.getArchivedDeleteKey(steamid))
           .exec();
       },
     );
@@ -543,9 +663,9 @@ export class ListingsService {
     });
   }
 
-  /* deleteAllListings(token: Token): Promise<void> {
+  deleteAllListings(token: Token): Promise<DeleteAllListingsResponse> {
     return firstValueFrom(
-      this.httpService.delete(
+      this.httpService.delete<DeleteAllListingsResponse>(
         'https://backpack.tf/api/v2/classifieds/listings',
         {
           headers: {
@@ -557,9 +677,25 @@ export class ListingsService {
     ).then((response) => {
       return response.data;
     });
-  } */
+  }
 
-  private mapDesired(desired: DesiredListingInternal[]): DesiredListing[] {
+  deleteAllArchivedListings(token: Token): Promise<DeleteAllListingsResponse> {
+    return firstValueFrom(
+      this.httpService.delete<DeleteAllListingsResponse>(
+        'https://backpack.tf/api/v2/classifieds/archive',
+        {
+          headers: {
+            'X-Auth-Token': token.value,
+          },
+          timeout: 60000,
+        },
+      ),
+    ).then((response) => {
+      return response.data;
+    });
+  }
+
+  mapDesired(desired: DesiredListingInternal[]): DesiredListing[] {
     return desired.map((d) => ({
       id: d.id ?? null,
       archived: d.archived,

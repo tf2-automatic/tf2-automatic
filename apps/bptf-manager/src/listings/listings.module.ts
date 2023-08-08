@@ -5,6 +5,7 @@ import { ListingsProcessor } from './listings.processor';
 import { BullModule } from '@nestjs/bullmq';
 import { HttpModule } from '@nestjs/axios';
 import { TokensModule } from '../tokens/tokens.module';
+import { AgentsModule } from '../agents/agents.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TokensModule } from '../tokens/tokens.module';
       },
     }),
     TokensModule,
+    AgentsModule,
   ],
   providers: [ListingsService, ListingsProcessor],
   controllers: [ListingsController],

@@ -11,6 +11,9 @@ import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
 import { Config, RedisConfig } from '../common/config/configuration';
 import { JobData, JobName, JobResult } from './interfaces/queue.interface';
+import { AgentsService } from '../agents/agents.service';
+
+type CustomJob = Job<JobData, JobResult, JobName>;
 
 @Processor('listings')
 export class ListingsProcessor
@@ -18,7 +21,8 @@ export class ListingsProcessor
   implements OnModuleDestroy
 {
   private readonly logger = new Logger(ListingsProcessor.name);
-  private readonly group: Bottleneck.Group;
+  private readonly batchGroup: Bottleneck.Group;
+  private readonly deleteAllGroup: Bottleneck.Group;
 
   private readonly createBatchSize = 50;
   private readonly deleteBatchSize = 100;
@@ -28,12 +32,13 @@ export class ListingsProcessor
     private readonly listingsService: ListingsService,
     private readonly tokensService: TokensService,
     private readonly configService: ConfigService<Config>,
+    private readonly agentsService: AgentsService,
   ) {
     super();
 
     const redisConfig = this.configService.getOrThrow<RedisConfig>('redis');
 
-    this.group = new Bottleneck.Group({
+    this.batchGroup = new Bottleneck.Group({
       datastore: 'ioredis',
       clientOptions: {
         host: redisConfig.host,
@@ -42,42 +47,76 @@ export class ListingsProcessor
         db: redisConfig.db,
         keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
       },
-      id: 'listings',
+      id: 'listings:batch',
       maxConcurrent: 1,
       minTime: 1000,
       reservoir: 10,
       reservoirRefreshAmount: 10,
       reservoirRefreshInterval: 60 * 1000,
-      timeout: 60 * 1000,
     });
 
-    this.group.on('created', (limiter, key) => {
-      this.logger.debug('Created limiter for ' + key);
+    this.createGroupListeners(this.batchGroup);
+
+    this.deleteAllGroup = new Bottleneck.Group({
+      datastore: 'ioredis',
+      clientOptions: {
+        host: redisConfig.host,
+        port: redisConfig.port,
+        password: redisConfig.password,
+        db: redisConfig.db,
+        keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
+      },
+      id: 'listings:deleteAll',
+      maxConcurrent: 1,
+      minTime: 60000,
+    });
+
+    this.createGroupListeners(this.deleteAllGroup);
+  }
+
+  private createGroupListeners(group: Bottleneck.Group): void {
+    group.on('created', (limiter, key) => {
+      this.logger.debug(
+        'Created limiter for ' + key + ' for group ' + group.id,
+      );
 
       limiter.on('error', (err) => {
         if (err.message === 'ERR SETTINGS_KEY_NOT_FOUND') {
-          this.logger.debug('Limiter key ' + key + ' disappeared, deleting...');
-          this.group
+          this.logger.debug(
+            'Limiter key ' +
+              key +
+              ' for group ' +
+              group.id +
+              ' disappeared, deleting...',
+          );
+          group
             .deleteKey(key)
             .then(() => {
-              this.logger.debug('Deleted limiter key ' + key);
+              this.logger.debug(
+                'Deleted limiter key ' + key + ' from group ' + group.id,
+              );
               limiter.removeAllListeners();
             })
             .catch((err) => {
-              this.logger.warn('Failed to delete limiter key ' + key);
+              this.logger.warn(
+                'Failed to delete limiter key ' +
+                  key +
+                  ' from group ' +
+                  group.id,
+              );
               console.error(err);
             });
 
           return;
         }
 
-        this.logger.warn('Limiter error for ' + key);
+        this.logger.warn('Limiter error for ' + key + ' for group ' + group.id);
         console.error(err);
       });
     });
   }
 
-  async process(job: Job<JobData, JobResult, JobName>): Promise<JobResult> {
+  async process(job: CustomJob): Promise<JobResult> {
     this.logger.debug(`Processing job ${job.id}...`);
 
     switch (job.name) {
@@ -87,6 +126,10 @@ export class ListingsProcessor
         return this.handleDeleteAction(job);
       case 'deleteArchived':
         return this.handleDeleteArchivedAction(job);
+      case 'deleteAll':
+        return this.handleDeleteAllAction(job);
+      case 'deleteAllArchived':
+        return this.handleDeleteAllArchivedAction(job);
       default:
         this.logger.warn('Unknown task type: ' + job.name);
         return {
@@ -97,10 +140,18 @@ export class ListingsProcessor
     }
   }
 
-  private async handleCreateAction(
-    job: Job<JobData, JobResult, JobName>,
-  ): Promise<JobResult> {
+  private async handleCreateAction(job: CustomJob): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
+
+    const registering = await this.agentsService.isRegistering(steamid);
+    if (!registering) {
+      // Agent is not running, don't create listings
+      return {
+        more: false,
+        amount: 0,
+        done: false,
+      };
+    }
 
     const hashes = await this.listingsService.getHashesToCreate(
       steamid,
@@ -121,7 +172,7 @@ export class ListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    return this.group.key(steamid.getSteamID64()).schedule(async () => {
+    return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
       // Get listings with highest priority
       const desired = await this.listingsService.getDesired(steamid, hashes);
 
@@ -144,7 +195,7 @@ export class ListingsProcessor
           if (err instanceof AxiosError) {
             if (err.response?.status === 429) {
               // We are rate limited, find the correct reservoir
-              const limiters = this.group.limiters();
+              const limiters = this.batchGroup.limiters();
               const match = limiters.find((l) => l.key === steamid.toString());
 
               if (match) {
@@ -192,7 +243,7 @@ export class ListingsProcessor
     });
   }
 
-  async handleDeleteAction(job: Job): Promise<JobResult> {
+  async handleDeleteAction(job: CustomJob): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const ids = await this.listingsService.getListingIdsToDelete(
@@ -229,7 +280,7 @@ export class ListingsProcessor
     };
   }
 
-  async handleDeleteArchivedAction(job: Job): Promise<JobResult> {
+  async handleDeleteArchivedAction(job: CustomJob): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const ids = await this.listingsService.getArchivedListingIdsToDelete(
@@ -251,7 +302,7 @@ export class ListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    return this.group.key(steamid.getSteamID64()).schedule(async () => {
+    return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
       this.logger.log(
         'Deleting ' +
           ids.length +
@@ -273,6 +324,68 @@ export class ListingsProcessor
         done: true,
       };
     });
+  }
+
+  async handleDeleteAllAction(job: CustomJob): Promise<JobResult> {
+    const steamid = new SteamID(job.data.steamid64);
+
+    const token = await this.tokensService.getToken(steamid);
+
+    this.logger.debug(
+      'Scheduling to delete all listings for ' + steamid.getSteamID64() + '...',
+    );
+
+    return this.deleteAllGroup
+      .key(steamid.getSteamID64() + ':listings')
+      .schedule(async () => {
+        this.logger.log(
+          'Deleting all listings for ' + steamid.getSteamID64() + '...',
+        );
+
+        const result = await this.listingsService.deleteAllListings(token);
+
+        await this.listingsService.handleDeletedAllListings(steamid);
+
+        return {
+          more: false,
+          amount: result.deleted,
+          done: true,
+        };
+      });
+  }
+
+  async handleDeleteAllArchivedAction(job: CustomJob): Promise<JobResult> {
+    const steamid = new SteamID(job.data.steamid64);
+
+    const token = await this.tokensService.getToken(steamid);
+
+    this.logger.debug(
+      'Scheduling to delete all archived listings for ' +
+        steamid.getSteamID64() +
+        '...',
+    );
+
+    return this.deleteAllGroup
+      .key(steamid.getSteamID64() + ':archive')
+      .schedule(async () => {
+        this.logger.log(
+          'Deleting all archived listings for ' +
+            steamid.getSteamID64() +
+            '...',
+        );
+
+        const result = await this.listingsService.deleteAllArchivedListings(
+          token,
+        );
+
+        await this.listingsService.handleDeletedAllArchivedListings(steamid);
+
+        return {
+          more: false,
+          amount: result.deleted,
+          done: true,
+        };
+      });
   }
 
   @OnWorkerEvent('error')
@@ -304,19 +417,28 @@ export class ListingsProcessor
     if (job.returnvalue.done) {
       switch (job.name) {
         case 'create':
-        case 'delete':
           this.logger.log(
-            `${job.name.charAt(0).toUpperCase() + job.name.slice(1)}d ${
+            `Created ${
+              job.returnvalue.amount
+            } listing(s) for ${steamid.getSteamID64()}`,
+          );
+          break;
+        case 'delete':
+        case 'deleteAll':
+          this.logger.log(
+            `Deleted ${
               job.returnvalue.amount
             } listing(s) for ${steamid.getSteamID64()}`,
           );
           break;
         case 'deleteArchived':
+        case 'deleteAllArchived':
           this.logger.log(
             `Deleted ${
               job.returnvalue.amount
             } archived listing(s) for ${steamid.getSteamID64()}`,
           );
+          break;
       }
     }
 
@@ -339,6 +461,9 @@ export class ListingsProcessor
   }
 
   onModuleDestroy() {
-    return this.group.disconnect(true);
+    return Promise.all([
+      this.batchGroup.disconnect(true),
+      this.deleteAllGroup.disconnect(true),
+    ]);
   }
 }

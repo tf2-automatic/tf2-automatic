@@ -12,6 +12,7 @@ import { InventoriesModule } from './inventories/inventories.module';
 import { TokensModule } from './tokens/tokens.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AgentsModule } from './agents/agents.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AgentsModule } from './agents/agents.module';
       },
     }),
     PrometheusModule.register(),
+    EventEmitterModule.forRoot(),
     ListingsModule,
     InventoriesModule,
     TokensModule,

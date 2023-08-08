@@ -13,6 +13,7 @@ import { TokensService } from '../tokens/tokens.service';
 import Redlock from 'redlock';
 import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -39,6 +40,7 @@ export class AgentsService {
     private readonly tokensService: TokensService,
     @InjectRedis() private readonly redis: Redis,
     private readonly configService: ConfigService<Config>,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.redlock = new Redlock([redis]);
   }
@@ -64,48 +66,76 @@ export class AgentsService {
     return value === 'true';
   }
 
-  async enqueueRegisterAgent(steamid: SteamID) {
+  async enqueueRegisterAgent(steamid: SteamID): Promise<void> {
     const steamid64 = steamid.getSteamID64();
 
-    await this.setRegistering(steamid, true);
+    await this.redlock.using(
+      [`bptf-manager:agents:${steamid64}`],
+      1000,
+      async () => {
+        await this.setRegistering(steamid, true);
 
-    const job = await this.getRepeatableJob(steamid);
-    if (job) {
-      // Job is already queued
-      return;
-    }
+        const job = await this.getRepeatableJob(steamid);
+        if (job) {
+          // Job is already queued
+          return;
+        }
 
-    const every =
-      this.configService.getOrThrow<AgentsConfig>('agents').registerInterval;
+        this.eventEmitter.emit('agents.registering', steamid);
 
-    return this.registerAgentsQueue.add(
-      steamid64,
-      {
-        steamid64,
-      },
-      {
-        jobId: `register:${steamid64}`,
-        repeat: {
-          every,
-          immediately: true,
-        },
+        const every =
+          this.configService.getOrThrow<AgentsConfig>(
+            'agents',
+          ).registerInterval;
+
+        return this.registerAgentsQueue.add(
+          steamid64,
+          {
+            steamid64,
+          },
+          {
+            jobId: `register:${steamid64}`,
+            repeat: {
+              every,
+              immediately: true,
+            },
+          },
+        );
       },
     );
   }
 
   async enqueueUnregisterAgent(steamid: SteamID): Promise<void> {
-    // Stop more attempts to refresh the agent
-    await this.setRegistering(steamid, false);
-
     const steamid64 = steamid.getSteamID64();
 
-    await this.unregisterAgentsQueue.add(
-      steamid64,
-      {
-        steamid64,
-      },
-      {
-        jobId: `unregister:${steamid64}`,
+    await this.redlock.using(
+      [`bptf-manager:agents:${steamid64}`],
+      1000,
+      async (signal) => {
+        const registering = await this.isRegistering(steamid);
+
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        // Stop more attempts to refresh the agent
+        await this.setRegistering(steamid, false);
+
+        if (!registering) {
+          return;
+        }
+
+        this.eventEmitter.emit('agents.unregistering', steamid);
+
+        await this.unregisterAgentsQueue.add(
+          steamid64,
+          {
+            steamid64,
+          },
+          {
+            jobId: `unregister:${steamid64}`,
+          },
+        );
       },
     );
   }
@@ -194,7 +224,7 @@ export class AgentsService {
     token: Token,
     userAgent: string = 'github.com/tf2-automatic/tf2-automatic',
   ): Promise<AgentResponse> {
-    const resource = `bptf-manager:agents:${token.steamid64}`;
+    const resource = `bptf-manager:agents:register:${token.steamid64}`;
 
     return this.redlock.using([resource], 5000, {}, async () => {
       return firstValueFrom(
@@ -215,7 +245,7 @@ export class AgentsService {
   }
 
   unregisterAgent(token: Token): Promise<AgentResponse> {
-    const resource = `bptf-manager:agents:${token.steamid64}`;
+    const resource = `bptf-manager:agents:register:${token.steamid64}`;
 
     return this.redlock.using([resource], 5000, {}, async () => {
       return firstValueFrom(
