@@ -4,13 +4,16 @@ import { Job, Worker } from 'bullmq';
 import { ListingsService } from './listings.service';
 import SteamID from 'steamid';
 import { TokensService } from '../tokens/tokens.service';
-import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
-import { Listing } from '@tf2-automatic/bptf-manager-data';
 import { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
 import { Config, RedisConfig } from '../common/config/configuration';
-import { JobData, JobName, JobResult } from './interfaces/queue.interface';
+import {
+  JobData,
+  JobName,
+  JobResult,
+  JobType,
+} from './interfaces/queue.interface';
 import { AgentsService } from '../agents/agents.service';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
@@ -120,15 +123,15 @@ export class ListingsProcessor
     this.logger.debug(`Processing job ${job.id}...`);
 
     switch (job.name) {
-      case 'create':
+      case JobType.Create:
         return this.handleCreateAction(job);
-      case 'delete':
+      case JobType.Delete:
         return this.handleDeleteAction(job);
-      case 'deleteArchived':
+      case JobType.DeleteArchived:
         return this.handleDeleteArchivedAction(job);
-      case 'deleteAll':
+      case JobType.DeleteAll:
         return this.handleDeleteAllAction(job);
-      case 'deleteAllArchived':
+      case JobType.DeleteAllArchived:
         return this.handleDeleteAllArchivedAction(job);
       default:
         this.logger.warn('Unknown task type: ' + job.name);
@@ -176,9 +179,7 @@ export class ListingsProcessor
       // Get listings with highest priority
       const desired = await this.listingsService.getDesired(steamid, hashes);
 
-      const create = desired
-        .filter((d): d is DesiredListingInternal => d !== null)
-        .map((d) => d.listing);
+      const create = Object.values(desired).map((d) => d.listing);
 
       this.logger.log(
         'Creating ' +
@@ -210,34 +211,19 @@ export class ListingsProcessor
           throw err;
         });
 
-      const created: Record<string, Listing> = {};
-      const updated: Record<string, Listing> = {};
-      const failed: Record<string, string | null> = {};
-
-      // Figure out which listings were created and which weren't
-      result.forEach((e, i) => {
+      let created = 0;
+      result.forEach((e) => {
         if (e.result !== undefined) {
-          if (e.result.listedAt > e.result.bumpedAt) {
-            updated[hashes[i]] = e.result;
-          } else {
-            created[hashes[i]] = e.result;
-          }
-        } else {
-          failed[hashes[i]] = e.error?.message ?? null;
+          created++;
         }
       });
 
       // Save listings
-      await this.listingsService.handleCreatedListings(
-        steamid,
-        created,
-        updated,
-        failed,
-      );
+      await this.listingsService.handleCreatedListings(steamid, hashes, result);
 
       return {
         more: hashes.length === this.createBatchSize,
-        amount: Object.keys(created).length + Object.keys(updated).length,
+        amount: created,
         done: true,
       };
     });
@@ -416,23 +402,23 @@ export class ListingsProcessor
 
     if (job.returnvalue.done) {
       switch (job.name) {
-        case 'create':
+        case JobType.Create:
           this.logger.log(
             `Created ${
               job.returnvalue.amount
             } listing(s) for ${steamid.getSteamID64()}`,
           );
           break;
-        case 'delete':
-        case 'deleteAll':
+        case JobType.Delete:
+        case JobType.DeleteAll:
           this.logger.log(
             `Deleted ${
               job.returnvalue.amount
             } listing(s) for ${steamid.getSteamID64()}`,
           );
           break;
-        case 'deleteArchived':
-        case 'deleteAllArchived':
+        case JobType.DeleteArchived:
+        case JobType.DeleteAllArchived:
           this.logger.log(
             `Deleted ${
               job.returnvalue.amount
@@ -446,7 +432,7 @@ export class ListingsProcessor
       // We just created some listings and now might have to delete some
 
       // TODO: Only create job if it is actually needed
-      this.listingsService.createJob(steamid, 'delete').catch((err) => {
+      this.listingsService.createJob(steamid, JobType.Delete).catch((err) => {
         this.logger.error('Failed to create job');
         console.error(err);
       });
@@ -461,7 +447,7 @@ export class ListingsProcessor
   }
 
   onModuleDestroy() {
-    return Promise.all([
+    return Promise.allSettled([
       this.batchGroup.disconnect(true),
       this.deleteAllGroup.disconnect(true),
     ]);

@@ -8,9 +8,12 @@ export interface JobResult {
   done: boolean;
 }
 
-export type JobName =
-  | 'create'
-  | 'delete'
-  | 'deleteArchived'
-  | 'deleteAll'
-  | 'deleteAllArchived';
+export type JobName = JobType;
+
+export enum JobType {
+  Create = 'create',
+  Delete = 'delete',
+  DeleteArchived = 'delete-archived',
+  DeleteAll = 'delete-all',
+  DeleteAllArchived = 'delete-all-archived',
+}

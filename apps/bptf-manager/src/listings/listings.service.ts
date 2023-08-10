@@ -8,7 +8,7 @@ import {
 } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import hash from 'object-hash';
-import { Redis } from 'ioredis';
+import { ChainableCommander, Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -22,7 +22,12 @@ import {
   DeleteListingsResponse,
 } from './interfaces/bptf-response.interface';
 import Redlock from 'redlock';
-import { JobData, JobName, JobResult } from './interfaces/queue.interface';
+import {
+  JobData,
+  JobName,
+  JobResult,
+  JobType,
+} from './interfaces/queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -42,90 +47,15 @@ export class ListingsService {
     this.redlock = new Redlock([redis]);
   }
 
-  @OnEvent('agents.registering')
-  async startCreatingListings(steamid: SteamID): Promise<void> {
-    const desired = await this.getAllDesired(steamid);
-
-    if (desired.length > 0) {
-      // Queue all desired listings
-      await this.redis.zadd(
-        this.getCreateKey(steamid),
-        ...desired.flatMap((d) => [
-          d.priority ?? Number.MAX_SAFE_INTEGER,
-          d.hash,
-        ]),
-      );
-    }
-
-    return this.createJob(steamid, 'create');
-  }
-
-  @OnEvent('agents.unregistering')
-  async startDeletingListings(steamid: SteamID): Promise<void> {
-    await Promise.all([
-      this.createJob(steamid, 'deleteAll'),
-      this.createJob(steamid, 'deleteAllArchived'),
-    ]);
-  }
-
-  async createJob(
-    steamid: SteamID,
-    type:
-      | 'delete'
-      | 'create'
-      | 'deleteArchived'
-      | 'deleteAll'
-      | 'deleteAllArchived',
-  ): Promise<void> {
-    if (type === 'create') {
-      const registering = await this.agentsService.isRegistering(steamid);
-      if (!registering) {
-        // Agent is not running, don't create the job for creating listings
-        return;
-      }
-    }
-
-    let priority: number | undefined;
-
-    switch (type) {
-      case 'delete':
-        priority = 3;
-        break;
-      case 'deleteArchived':
-        priority = 2;
-        break;
-      case 'create':
-        priority = 4;
-        break;
-      case 'deleteAll':
-      case 'deleteAllArchived':
-        priority = 1;
-        break;
-    }
-
-    await this.listingsQueue.add(
-      type,
-      {
-        steamid64: steamid.getSteamID64(),
-      },
-      {
-        jobId: type + ':' + steamid.getSteamID64(),
-        priority,
-      },
-    );
-  }
-
   async addDesired(
     steamid: SteamID,
     dto: DesiredListingDto[],
   ): Promise<DesiredListing[]> {
     const now = Math.floor(Date.now() / 1000);
 
-    const hashes = dto.map((create) => this.createHash(create.listing));
-
-    const desired: DesiredListingInternal[] = dto.map((create, index) => {
+    const desired: DesiredListingInternal[] = dto.map((create) => {
       const obj: DesiredListingInternal = {
-        hash: hashes[index],
+        hash: this.createHash(create.listing),
         steamid64: steamid.getSteamID64(),
         listing: create.listing,
         updatedAt: now,
@@ -141,67 +71,61 @@ export class ListingsService {
     return this.redlock.using(
       ['listings:' + steamid.getSteamID64()],
       1000,
-      async () => {
-        // TODO: Only get desired of the listings that are not forced to be created
-        const currentDesired = await this.getDesired(steamid, hashes);
+      async (signal) => {
+        // Get current listings and check if they are different from the new listings
+        const current = await this.getDesired(
+          steamid,
+          // Only get listings that are not forced
+          desired.filter((d, i) => dto[i].force !== true).map((d) => d.hash),
+        );
 
-        desired.forEach((d, index) => {
-          if (dto[index].force === true) {
-            // Listing is forced to be created so we don't care about the current listing
-            return;
-          }
+        if (signal.aborted) {
+          throw signal.error;
+        }
 
-          const current = currentDesired[index];
+        desired.forEach((d) => {
+          // Update desired based on current listings
+          const c = current[d.hash];
 
-          // Check if a current listing exists, if it has an id, and if the raw listings match
-          if (
-            current !== null &&
-            hash(current.listing, {
+          if (c) {
+            // Need to ignore types because new listings have DesiredListing type and current listings are a normal object
+            const currentHash = hash(c.listing, {
               respectType: false,
-            }) ===
-              hash(d.listing, {
-                respectType: false,
-              })
-          ) {
-            // Listings are the same so keep some properties
-            d.id = current.id;
-            d.archived = current.archived;
-          }
+            });
+            const newHash = hash(d.listing, {
+              respectType: false,
+            });
 
-          return d;
+            if (currentHash === newHash) {
+              // Listings are the same so keep some properties
+              d.id = c.id;
+              d.archived = c.archived;
+            }
+          }
         });
 
-        const desiredToQueue = desired.filter((d) => d.id === undefined);
+        // The listings without an id needs to be created
+        const queue = desired.filter((d) => d.id === undefined);
 
         const transaction = this.redis.multi();
 
-        transaction
-          // Add to the desired listings hash
-          .hset(
-            this.getDesiredKey(steamid),
-            ...desired.flatMap((d) => [d.hash, JSON.stringify(d)]),
-          )
-          // Remove from the delete queue
-          .srem(this.getDeleteKey(steamid), ...hashes);
+        this.chainableSaveDesired(transaction, steamid, desired);
+        this.chainableRemoveDeleteQueue(
+          transaction,
+          steamid,
+          desired.map((d) => d.hash),
+        );
 
-        if (desiredToQueue.length > 0) {
+        if (queue.length > 0) {
           // Add to the create queue
-          transaction.zadd(
-            this.getCreateKey(steamid),
-            ...desiredToQueue.flatMap((d) => [
-              d.priority ?? Number.MAX_SAFE_INTEGER,
-              d.hash,
-            ]),
-          );
+          this.chainableCreateDesired(transaction, steamid, queue);
         }
 
         await transaction.exec();
 
-        if (desiredToQueue.length > 0) {
+        if (queue.length > 0) {
           // Add job to create listings (ignore errors)
-          await this.createJob(steamid, 'create').catch(() => {
-            // Ignore error
-          });
+          await Promise.allSettled([this.createJob(steamid, JobType.Create)]);
         }
 
         return this.mapDesired(desired);
@@ -216,53 +140,45 @@ export class ListingsService {
       ['listings:' + steamid.getSteamID64()],
       1000,
       async (signal) => {
-        const desired = await this.getDesired(steamid, hashes);
-
-        const matches = desired.filter(
-          (d): d is DesiredListingInternal => d !== null && d.id !== undefined,
-        );
-
-        const listingIds = matches.map((d) => d.id!);
-        const archivedListingIds = matches
-          .filter((d) => d.archived === true)
-          .map((d) => d.id!);
+        const desiredMap = await this.getDesired(steamid, hashes);
 
         if (signal.aborted) {
           throw signal.error;
         }
 
-        const transaction = this.redis.multi();
-
-        transaction
-          // Remove hashes from the desired listings hash
-          .hdel(this.getDesiredKey(steamid), ...hashes)
-          // Remove hashes from the create queue
-          .zrem(this.getCreateKey(steamid), ...hashes);
-
-        if (listingIds.length > 0) {
-          transaction
-            // Add ids to the delete queue
-            .sadd(this.getDeleteKey(steamid), ...listingIds);
+        const desired = Object.values(desiredMap);
+        if (desired.length > 0) {
+          // It is okay to only remove the matched listings because unmatched listings don't exist anyway
+          const transaction = this.redis.multi();
+          this.chainableDeleteDesired(transaction, steamid, desired);
+          await transaction.exec();
         }
-
-        if (archivedListingIds.length > 0) {
-          transaction
-            // Add ids to the archived delete queue
-            .sadd(this.getArchivedDeleteKey(steamid), ...archivedListingIds);
-        }
-
-        await transaction.exec();
 
         const promises: Promise<void>[] = [];
 
-        if (archivedListingIds.length > 0) {
+        let hasListings,
+          hasArchived = false;
+
+        desired.forEach((d) => {
+          if (d.archived === true) {
+            hasArchived = true;
+          } else if (d.listing !== undefined) {
+            hasListings = true;
+          }
+
+          if (hasListings && hasArchived) {
+            return;
+          }
+        });
+
+        if (hasArchived) {
           // Add jobs to delete archived listings
-          promises.push(this.createJob(steamid, 'deleteArchived'));
+          promises.push(this.createJob(steamid, JobType.DeleteArchived));
         }
 
-        if (listingIds.length > 0) {
+        if (hasListings) {
           // Add jobs to delete listings
-          promises.push(this.createJob(steamid, 'delete'));
+          promises.push(this.createJob(steamid, JobType.Delete));
         }
 
         await Promise.allSettled(promises);
@@ -280,9 +196,9 @@ export class ListingsService {
   async getDesired(
     steamid: SteamID,
     hashes: string[],
-  ): Promise<(DesiredListingInternal | null)[]> {
+  ): Promise<Record<string, DesiredListingInternal>> {
     if (hashes.length === 0) {
-      return [];
+      return {};
     }
 
     const values = await this.redis.hmget(
@@ -290,9 +206,19 @@ export class ListingsService {
       ...hashes,
     );
 
-    return values.map((desired) =>
-      desired === null ? null : JSON.parse(desired),
-    );
+    const result: Record<string, DesiredListingInternal> = {};
+
+    values.forEach((raw) => {
+      if (raw === null) {
+        return;
+      }
+
+      const desired = JSON.parse(raw) as DesiredListingInternal;
+
+      result[desired.hash] = desired;
+    });
+
+    return result;
   }
 
   async getCurrent(steamid: SteamID): Promise<Listing[]> {
@@ -301,18 +227,70 @@ export class ListingsService {
     return values.map((v) => JSON.parse(v));
   }
 
-  async getCurrentByIds(
-    steamid: SteamID,
-    ids: string[],
-  ): Promise<(Listing | null)[]> {
-    if (ids.length === 0) {
-      return [];
+  @OnEvent('agents.registering')
+  async startCreatingListings(steamid: SteamID): Promise<void> {
+    // TODO: Queue a job to compare current listings to desired listings and create/delete listings based on that
+
+    const desired = await this.getAllDesired(steamid);
+
+    if (desired.length > 0) {
+      // Queue all desired listings
+      await this.redis.zadd(
+        this.getCreateKey(steamid),
+        ...desired.flatMap((d) => [
+          d.priority ?? Number.MAX_SAFE_INTEGER,
+          d.hash,
+        ]),
+      );
     }
 
-    const values = await this.redis.hmget(this.getCurrentKey(steamid), ...ids);
+    return this.createJob(steamid, JobType.Create);
+  }
 
-    return values.map((current) =>
-      current === null ? null : JSON.parse(current),
+  @OnEvent('agents.unregistering')
+  async startDeletingListings(steamid: SteamID): Promise<void> {
+    await Promise.all([
+      this.createJob(steamid, JobType.DeleteAll),
+      this.createJob(steamid, JobType.DeleteAllArchived),
+    ]);
+  }
+
+  async createJob(steamid: SteamID, type: JobType): Promise<void> {
+    if (type === 'create') {
+      const registering = await this.agentsService.isRegistering(steamid);
+      if (!registering) {
+        // Agent is not running, don't create the job for creating listings
+        return;
+      }
+    }
+
+    let priority: number | undefined;
+
+    switch (type) {
+      case JobType.Delete:
+        priority = 3;
+        break;
+      case JobType.DeleteArchived:
+        priority = 2;
+        break;
+      case JobType.Create:
+        priority = 4;
+        break;
+      case JobType.DeleteAll:
+      case JobType.DeleteAllArchived:
+        priority = 1;
+        break;
+    }
+
+    await this.listingsQueue.add(
+      type,
+      {
+        steamid64: steamid.getSteamID64(),
+      },
+      {
+        jobId: type + ':' + steamid.getSteamID64(),
+        priority,
+      },
     );
   }
 
@@ -333,165 +311,107 @@ export class ListingsService {
 
   async handleCreatedListings(
     steamid: SteamID,
-    created: Record<string, Listing>,
-    updated: Record<string, Listing>,
-    failed: Record<string, string | null>,
+    hashes: string[],
+    result: BatchCreateListingResponse[],
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
+    const created: Record<string, Listing> = {};
+    const updated: Record<string, Listing> = {};
+    const failed: Record<string, string | null> = {};
+
+    // Figure out which listings were created and which weren't
+    result.forEach((e, i) => {
+      if (e.result !== undefined) {
+        if (e.result.listedAt > e.result.bumpedAt) {
+          updated[hashes[i]] = e.result;
+        } else {
+          created[hashes[i]] = e.result;
+        }
+      } else {
+        failed[hashes[i]] = e.error?.message ?? null;
+      }
+    });
+
+    const transaction = this.redis.multi();
+
+    const failedHashes = Object.keys(failed);
+
+    // Update failed listings
+    if (failedHashes.length > 0) {
+      // Update the failed desired listings with the error message
+      const desiredMap = await this.getDesired(steamid, failedHashes);
+
+      const desired = Object.values(desiredMap);
+      desired.forEach((desired) => {
+        desired.updatedAt = now;
+        desired.message =
+          failed[desired.hash] ?? 'Unknown error while creating listing';
+      });
+
+      this.chainableSaveDesired(transaction, steamid, desired);
+    }
+
     const changed = Object.assign({}, created, updated);
+    const changedHashes = Object.keys(changed);
 
-    await this.redlock.using(
-      ['listings:' + steamid.getSteamID64()],
-      5000,
-      async (signal) => {
-        // Check for failed listings
-        if (Object.keys(failed).length > 0) {
-          // Set failed message
-          const desired = await this.getDesired(steamid, Object.keys(failed));
+    // Update overwritten listings
+    if (changedHashes.length > 0) {
+      // Check for listings that were overwritten
 
-          if (signal.aborted) {
-            throw signal.error;
-          }
+      const ids = Object.values(changed).map((l) => l.id);
 
-          // Filter out null values and add the error message
-          const set = desired
-            .filter((d): d is DesiredListingInternal => d !== null)
-            .map((d) => {
-              if (d) {
-                d.message = failed[d.hash] ?? 'Unknown error';
-              }
+      // Get listings by listing id
+      const hashes = (
+        await this.redis.hmget(this.getHashFromListingKey(steamid), ...ids)
+      ).filter((m): m is string => m !== null);
 
-              return d;
-            });
+      if (hashes.length > 0) {
+        const desiredMap = await this.getDesired(steamid, hashes);
 
-          if (set.length > 0) {
-            // Overwrite the desired listings with the error message
-            await this.redis
-              .multi()
-              .hset(
-                this.getDesiredKey(steamid),
-                ...set.flatMap((d) => [d.hash, JSON.stringify(d)]),
-              ) // Remove hashes from the create queue
-              .zrem(this.getCreateKey(steamid), ...Object.keys(failed))
-              .exec();
+        const desired = Object.values(desiredMap);
+        desired.forEach((desired) => {
+          desired.updatedAt = now;
+          desired.message = 'Overwritten by new listing';
+          delete desired.id;
+        });
 
-            if (signal.aborted) {
-              throw signal.error;
-            }
-          }
+        if (desired.length > 0) {
+          this.chainableSaveDesired(transaction, steamid, desired);
         }
+      }
+    }
 
-        const hashes = Object.keys(changed);
+    // Update desired listings that were changed
+    if (changedHashes.length > 0) {
+      const desiredMap = await this.getDesired(steamid, changedHashes);
 
-        if (hashes.length > 0) {
-          // Check for listings that were overwritten
+      const desired = Object.values(desiredMap);
+      desired.forEach((desired) => {
+        desired.id = changed[desired.hash].id;
+        desired.archived = changed[desired.hash].archived;
+        desired.updatedAt = now;
+      });
 
-          // Get hash of listings using the listing ids
-          const matches = await this.redis.hmget(
-            this.getHashFromListingKey(steamid),
-            ...Object.values(changed).map((l) => l.id),
-          );
+      if (desired.length > 0) {
+        this.chainableSaveDesired(transaction, steamid, desired);
+      }
 
-          if (signal.aborted) {
-            throw signal.error;
-          }
+      const archivedIds = changedHashes
+        .filter((hash) => changed[hash].archived === true)
+        .map((hash) => changed[hash].id);
 
-          if (matches.length > 0) {
-            // There are listings that were overwritten, add a message to them that explains they were overwritten
-            const desired = await this.getDesired(
-              steamid,
-              matches.filter((m): m is string => m !== null),
-            );
+      if (archivedIds.length > 0) {
+        this.chainableAddDeleteQueue(transaction, steamid, archivedIds);
+      }
 
-            if (signal.aborted) {
-              throw signal.error;
-            }
+      // Save backpack.tf listings
+      this.chainableSaveListings(transaction, steamid, changed);
+    }
 
-            // Filter out null values and add the error message
-            const set = desired
-              .filter((d): d is DesiredListingInternal => d !== null)
-              .map((d) => {
-                if (d) {
-                  d.message = 'Listing was overwritten';
-                  d.updatedAt = now;
-                  delete d.id;
-                }
+    this.chainableRemoveCreateQueue(transaction, steamid, hashes);
 
-                return d;
-              });
-
-            if (set.length > 0) {
-              // Overwrite the desired listings with the error message
-              await this.redis.hset(
-                this.getDesiredKey(steamid),
-                ...set.flatMap((d) => [d.hash, JSON.stringify(d)]),
-              );
-
-              if (signal.aborted) {
-                throw signal.error;
-              }
-            }
-          }
-        }
-        if (hashes.length > 0) {
-          // Update the desired listings with the new listing id
-          const desired = await this.getDesired(steamid, hashes);
-
-          if (signal.aborted) {
-            throw signal.error;
-          }
-
-          const transaction = this.redis.multi();
-
-          const archivedIds = hashes
-            .filter((hash) => changed[hash].archived === true)
-            .map((hash) => changed[hash].id);
-
-          // Filter out null values and add the listing id
-          const set = desired
-            .filter((d): d is DesiredListingInternal => d !== null)
-            .map((d) => {
-              if (d) {
-                d.id = changed[d.hash].id;
-                d.archived = changed[d.hash].archived;
-                d.updatedAt = now;
-              }
-
-              return d;
-            });
-
-          if (set.length > 0) {
-            transaction
-              // Overwrite the desired listings with the listing id
-              .hset(
-                this.getDesiredKey(steamid),
-                ...set.flatMap((d) => [d.hash, JSON.stringify(d)]),
-              );
-          }
-
-          if (archivedIds.length > 0) {
-            transaction
-              // Add archived listings to the delete queue to make sure an older listing is not active
-              .sadd(this.getDeleteKey(steamid), ...archivedIds);
-          }
-
-          transaction
-            // Save listings
-            .hmset(
-              this.getCurrentKey(steamid),
-              hashes.flatMap((hash) => [
-                changed[hash].id,
-                JSON.stringify(changed[hash]),
-              ]),
-            )
-            // Remove hashes from the create queue
-            .zrem(this.getCreateKey(steamid), ...hashes);
-
-          await transaction.exec();
-        }
-      },
-    );
+    await transaction.exec();
   }
 
   async handleDeletedListings(steamid: SteamID, ids: string[]): Promise<void> {
@@ -521,7 +441,12 @@ export class ListingsService {
 
         const desired = await this.getAllDesired(steamid);
 
-        const transaction = this.redis.multi();
+        const transaction = this.redis
+          .multi()
+          // Remove current listings
+          .del(this.getCurrentKey(steamid))
+          // Clear delete queue
+          .del(this.getDeleteKey(steamid));
 
         if (desired.length > 0) {
           const updated: Record<string, string> = {};
@@ -538,12 +463,7 @@ export class ListingsService {
           transaction.hset(this.getDesiredKey(steamid), updated);
         }
 
-        await transaction
-          // Remove current listings
-          .del(this.getCurrentKey(steamid))
-          // Clear delete queue
-          .del(this.getDeleteKey(steamid))
-          .exec();
+        await transaction.exec();
       },
     );
   }
@@ -600,6 +520,121 @@ export class ListingsService {
           .exec();
       },
     );
+  }
+
+  /**
+   * Add desired listings to create queue
+   */
+  private chainableCreateDesired(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    desired: DesiredListingInternal[],
+  ): void {
+    chainable.zadd(
+      this.getCreateKey(steamid),
+      ...desired.flatMap((d) => [
+        d.priority ?? Number.MAX_SAFE_INTEGER,
+        d.hash,
+      ]),
+    );
+  }
+
+  private chainableAddDeleteQueue(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    ids: string[],
+  ): void {
+    chainable.sadd(this.getDeleteKey(steamid), ...ids);
+  }
+
+  /**
+   * Save desired listings
+   */
+  private chainableSaveDesired(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    desired: DesiredListingInternal[],
+  ): void {
+    chainable
+      // Add to the desired listings hash
+      .hset(
+        this.getDesiredKey(steamid),
+        ...desired.flatMap((d) => [d.hash, JSON.stringify(d)]),
+      )
+      // Remove from the delete queue
+      .srem(this.getDeleteKey(steamid), ...desired.map((d) => d.hash));
+  }
+
+  /**
+   * Remove desired listings from delete queue
+   */
+  private chainableRemoveDeleteQueue(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    hashes: string[],
+  ): void {
+    chainable.srem(this.getDeleteKey(steamid), ...hashes);
+  }
+
+  /**
+   * Delete desired listings
+   */
+  private chainableDeleteDesired(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    desired: DesiredListingInternal[],
+  ): void {
+    const hashes = desired.map((d) => d.hash);
+
+    chainable
+      // Remove from the desired listings hash
+      .hdel(this.getDesiredKey(steamid), ...hashes);
+
+    // Remove hashes from the create queue
+    this.chainableRemoveCreateQueue(chainable, steamid, hashes);
+
+    const ids = desired.filter((d) => d.id !== undefined).map((d) => d.id!);
+    if (ids.length > 0) {
+      // Add ids to the delete queue
+      this.chainableAddDeleteQueue(chainable, steamid, ids);
+    }
+
+    const archivedIds = desired
+      .filter((d) => d.archived === true && d.id !== undefined)
+      .map((d) => d.id!);
+    if (archivedIds.length > 0) {
+      // Add ids to the delete queue
+      chainable.sadd(this.getArchivedDeleteKey(steamid), ...archivedIds);
+    }
+  }
+
+  /**
+   * Remove desired listings from create queue
+   */
+  private chainableRemoveCreateQueue(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    hashes: string[],
+  ): void {
+    chainable.zrem(this.getCreateKey(steamid), ...hashes);
+  }
+
+  private chainableSaveListings(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    listings: Record<string, Listing>,
+  ): void {
+    chainable
+      // Save listings
+      .hset(
+        this.getCurrentKey(steamid),
+        ...Object.values(listings).flatMap((listing) => [
+          listing.id,
+          JSON.stringify(listing),
+        ]),
+      )
+      // Remove from the delete queue
+      .srem(this.getDeleteKey(steamid), ...Object.keys(listings));
   }
 
   createListings(
