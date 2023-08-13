@@ -1,29 +1,29 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
-import { ListingsService } from './listings.service';
+import { ListingsService } from '../listings.service';
 import SteamID from 'steamid';
-import { TokensService } from '../tokens/tokens.service';
+import { TokensService } from '../../tokens/tokens.service';
 import { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
-import { Config, RedisConfig } from '../common/config/configuration';
+import { Config, RedisConfig } from '../../common/config/configuration';
 import {
   JobData,
   JobName,
   JobResult,
   JobType,
-} from './interfaces/queue.interface';
-import { AgentsService } from '../agents/agents.service';
+} from '../interfaces/manage-listings-queue.interface';
+import { AgentsService } from '../../agents/agents.service';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 
-@Processor('listings')
-export class ListingsProcessor
+@Processor('manage-listings')
+export class ManageListingsProcessor
   extends WorkerHost<Worker<JobData, JobResult, JobName>>
   implements OnModuleDestroy
 {
-  private readonly logger = new Logger(ListingsProcessor.name);
+  private readonly logger = new Logger(ManageListingsProcessor.name);
   private readonly batchGroup: Bottleneck.Group;
   private readonly deleteAllGroup: Bottleneck.Group;
 
@@ -395,7 +395,7 @@ export class ListingsProcessor
   }
 
   @OnWorkerEvent('completed')
-  onCompleted(job: Job<JobData, JobResult, JobName>): void {
+  onCompleted(job: CustomJob): void {
     const steamid = new SteamID(job.data.steamid64);
 
     this.logger.debug('Completed job ' + job.id);

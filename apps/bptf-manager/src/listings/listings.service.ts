@@ -27,7 +27,7 @@ import {
   JobName,
   JobResult,
   JobType,
-} from './interfaces/queue.interface';
+} from './interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { OnEvent } from '@nestjs/event-emitter';
 
@@ -39,8 +39,8 @@ export class ListingsService {
 
   constructor(
     private readonly httpService: HttpService,
-    @InjectQueue('listings')
-    private readonly listingsQueue: Queue<JobData, JobResult, JobName>,
+    @InjectQueue('manage-listings')
+    private readonly manageListingsQueue: Queue<JobData, JobResult, JobName>,
     @InjectRedis() private readonly redis: Redis,
     private readonly agentsService: AgentsService,
   ) {
@@ -282,7 +282,7 @@ export class ListingsService {
         break;
     }
 
-    await this.listingsQueue.add(
+    await this.manageListingsQueue.add(
       type,
       {
         steamid64: steamid.getSteamID64(),
