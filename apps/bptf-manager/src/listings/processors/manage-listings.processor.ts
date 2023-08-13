@@ -9,18 +9,18 @@ import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
 import { Config, RedisConfig } from '../../common/config/configuration';
 import {
-  JobData,
-  JobName,
-  JobResult,
-  JobType,
+  JobData as ManageJobData,
+  JobName as ManageJobName,
+  JobResult as ManageJobResult,
+  JobType as ManageJobType,
 } from '../interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../../agents/agents.service';
 
-type CustomJob = Job<JobData, JobResult, JobName>;
+type CustomJob = Job<ManageJobData, ManageJobResult, ManageJobName>;
 
 @Processor('manage-listings')
 export class ManageListingsProcessor
-  extends WorkerHost<Worker<JobData, JobResult, JobName>>
+  extends WorkerHost<Worker<ManageJobData, ManageJobResult, ManageJobName>>
   implements OnModuleDestroy
 {
   private readonly logger = new Logger(ManageListingsProcessor.name);
@@ -119,19 +119,19 @@ export class ManageListingsProcessor
     });
   }
 
-  async process(job: CustomJob): Promise<JobResult> {
+  async process(job: CustomJob): Promise<ManageJobResult> {
     this.logger.debug(`Processing job ${job.id}...`);
 
     switch (job.name) {
-      case JobType.Create:
+      case ManageJobType.Create:
         return this.handleCreateAction(job);
-      case JobType.Delete:
+      case ManageJobType.Delete:
         return this.handleDeleteAction(job);
-      case JobType.DeleteArchived:
+      case ManageJobType.DeleteArchived:
         return this.handleDeleteArchivedAction(job);
-      case JobType.DeleteAll:
+      case ManageJobType.DeleteAll:
         return this.handleDeleteAllAction(job);
-      case JobType.DeleteAllArchived:
+      case ManageJobType.DeleteAllArchived:
         return this.handleDeleteAllArchivedAction(job);
       default:
         this.logger.warn('Unknown task type: ' + job.name);
@@ -143,7 +143,7 @@ export class ManageListingsProcessor
     }
   }
 
-  private async handleCreateAction(job: CustomJob): Promise<JobResult> {
+  private async handleCreateAction(job: CustomJob): Promise<ManageJobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const registering = await this.agentsService.isRegistering(steamid);
@@ -229,7 +229,7 @@ export class ManageListingsProcessor
     });
   }
 
-  async handleDeleteAction(job: CustomJob): Promise<JobResult> {
+  async handleDeleteAction(job: CustomJob): Promise<ManageJobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const ids = await this.listingsService.getListingIdsToDelete(
@@ -266,7 +266,7 @@ export class ManageListingsProcessor
     };
   }
 
-  async handleDeleteArchivedAction(job: CustomJob): Promise<JobResult> {
+  async handleDeleteArchivedAction(job: CustomJob): Promise<ManageJobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const ids = await this.listingsService.getArchivedListingIdsToDelete(
@@ -312,7 +312,7 @@ export class ManageListingsProcessor
     });
   }
 
-  async handleDeleteAllAction(job: CustomJob): Promise<JobResult> {
+  async handleDeleteAllAction(job: CustomJob): Promise<ManageJobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
@@ -340,7 +340,9 @@ export class ManageListingsProcessor
       });
   }
 
-  async handleDeleteAllArchivedAction(job: CustomJob): Promise<JobResult> {
+  async handleDeleteAllArchivedAction(
+    job: CustomJob,
+  ): Promise<ManageJobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
@@ -402,23 +404,23 @@ export class ManageListingsProcessor
 
     if (job.returnvalue.done) {
       switch (job.name) {
-        case JobType.Create:
+        case ManageJobType.Create:
           this.logger.log(
             `Created ${
               job.returnvalue.amount
             } listing(s) for ${steamid.getSteamID64()}`,
           );
           break;
-        case JobType.Delete:
-        case JobType.DeleteAll:
+        case ManageJobType.Delete:
+        case ManageJobType.DeleteAll:
           this.logger.log(
             `Deleted ${
               job.returnvalue.amount
             } listing(s) for ${steamid.getSteamID64()}`,
           );
           break;
-        case JobType.DeleteArchived:
-        case JobType.DeleteAllArchived:
+        case ManageJobType.DeleteArchived:
+        case ManageJobType.DeleteAllArchived:
           this.logger.log(
             `Deleted ${
               job.returnvalue.amount
@@ -433,7 +435,7 @@ export class ManageListingsProcessor
 
       // TODO: Only create job if it is actually needed
       this.listingsService
-        .createManageListingsJob(steamid, JobType.Delete)
+        .createManageListingsJob(steamid, ManageJobType.Delete)
         .catch((err) => {
           this.logger.error('Failed to create job');
           console.error(err);
