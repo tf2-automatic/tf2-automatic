@@ -125,7 +125,9 @@ export class ListingsService {
 
         if (queue.length > 0) {
           // Add job to create listings (ignore errors)
-          await Promise.allSettled([this.createJob(steamid, JobType.Create)]);
+          await Promise.allSettled([
+            this.createManageListingsJob(steamid, JobType.Create),
+          ]);
         }
 
         return this.mapDesired(desired);
@@ -173,12 +175,14 @@ export class ListingsService {
 
         if (hasArchived) {
           // Add jobs to delete archived listings
-          promises.push(this.createJob(steamid, JobType.DeleteArchived));
+          promises.push(
+            this.createManageListingsJob(steamid, JobType.DeleteArchived),
+          );
         }
 
         if (hasListings) {
           // Add jobs to delete listings
-          promises.push(this.createJob(steamid, JobType.Delete));
+          promises.push(this.createManageListingsJob(steamid, JobType.Delete));
         }
 
         await Promise.allSettled(promises);
@@ -244,18 +248,21 @@ export class ListingsService {
       );
     }
 
-    return this.createJob(steamid, JobType.Create);
+    return this.createManageListingsJob(steamid, JobType.Create);
   }
 
   @OnEvent('agents.unregistering')
   async startDeletingListings(steamid: SteamID): Promise<void> {
     await Promise.all([
-      this.createJob(steamid, JobType.DeleteAll),
-      this.createJob(steamid, JobType.DeleteAllArchived),
+      this.createManageListingsJob(steamid, JobType.DeleteAll),
+      this.createManageListingsJob(steamid, JobType.DeleteAllArchived),
     ]);
   }
 
-  async createJob(steamid: SteamID, type: JobType): Promise<void> {
+  async createManageListingsJob(
+    steamid: SteamID,
+    type: JobType,
+  ): Promise<void> {
     if (type === 'create') {
       const registering = await this.agentsService.isRegistering(steamid);
       if (!registering) {

@@ -432,17 +432,21 @@ export class ManageListingsProcessor
       // We just created some listings and now might have to delete some
 
       // TODO: Only create job if it is actually needed
-      this.listingsService.createJob(steamid, JobType.Delete).catch((err) => {
-        this.logger.error('Failed to create job');
-        console.error(err);
-      });
+      this.listingsService
+        .createManageListingsJob(steamid, JobType.Delete)
+        .catch((err) => {
+          this.logger.error('Failed to create job');
+          console.error(err);
+        });
     }
 
     if (job.returnvalue.more === true) {
-      this.listingsService.createJob(steamid, job.name).catch((err) => {
-        this.logger.error('Failed to create job');
-        console.error(err);
-      });
+      this.listingsService
+        .createManageListingsJob(steamid, job.name)
+        .catch((err) => {
+          this.logger.error('Failed to create job');
+          console.error(err);
+        });
     }
   }
 
