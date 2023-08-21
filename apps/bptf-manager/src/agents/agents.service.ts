@@ -241,6 +241,11 @@ export class AgentsService {
           },
         ),
       ).then((response) => {
+        this.eventEmitter.emit(
+          'agents.registered',
+          new SteamID(token.steamid64),
+        );
+
         return response.data;
       });
     });
@@ -261,6 +266,10 @@ export class AgentsService {
           },
         ),
       ).then((response) => {
+        this.eventEmitter.emit(
+          'agents.unregistered',
+          new SteamID(token.steamid64),
+        );
         return response.data;
       });
     });

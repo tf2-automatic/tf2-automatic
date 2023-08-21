@@ -74,4 +74,24 @@ export class ListingsController {
   getCurrent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.listingsService.getCurrent(steamid);
   }
+
+  @ApiOperation({
+    summary: 'Get listing limits',
+    description: 'Get listing limits from the database',
+  })
+  @ApiParamSteamID()
+  @Get('/:steamid/limits')
+  getLimits(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
+    return this.listingsService.getLimits(steamid);
+  }
+
+  @ApiOperation({
+    summary: 'Refresh listing limits',
+    description: 'Requests listing limits to be refreshed',
+  })
+  @ApiParamSteamID()
+  @Post('/:steamid/limits/refresh')
+  refreshLimits(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
+    return this.listingsService.refreshLimits(steamid);
+  }
 }

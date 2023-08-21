@@ -21,3 +21,20 @@ export interface BatchDeleteListingResponse {
 export interface DeleteAllListingsResponse {
   deleted: number;
 }
+
+export interface ListingLimitsResponse {
+  listings: {
+    promotionSlotsAvailable: number;
+    used: number;
+    total: number;
+    baseline: number;
+    donationBonus: number;
+    giftedPremiumMonthsBonus: number;
+    multiplier: number;
+    twitterFollowerBonus: number;
+    acceptedSuggestionBonus: number;
+    mvpDonationBonus: number;
+    groupMembershipBonus: number;
+    bumpInterval: number;
+  };
+}

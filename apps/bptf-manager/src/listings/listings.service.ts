@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   DesiredListingDto,
   ListingDto,
@@ -23,6 +23,7 @@ import {
   BatchDeleteListingResponse,
   DeleteAllListingsResponse,
   DeleteListingsResponse,
+  ListingLimitsResponse,
 } from './interfaces/bptf-response.interface';
 import Redlock from 'redlock';
 import {
@@ -33,6 +34,7 @@ import {
 } from './interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ListingLimits } from './interfaces/limits.interface';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -48,10 +50,37 @@ export class ListingsService {
       ManageJobResult,
       ManageJobName
     >,
+    @InjectQueue('listing-limits')
+    private readonly listingLimitsQueue: Queue,
     @InjectRedis() private readonly redis: Redis,
     private readonly agentsService: AgentsService,
   ) {
     this.redlock = new Redlock([redis]);
+  }
+
+  @OnEvent('agents.registering')
+  private async startCreatingListings(steamid: SteamID): Promise<void> {
+    // TODO: Queue a job to compare current listings to desired listings and create/delete listings based on that
+
+    const desired = await this.getAllDesired(steamid);
+
+    if (desired.length > 0) {
+      // Queue all desired listings
+      await this.redis.zadd(
+        this.getCreateKey(steamid),
+        ...desired.flatMap((d) => [
+          d.priority ?? Number.MAX_SAFE_INTEGER,
+          d.hash,
+        ]),
+      );
+    }
+
+    return this.createManageListingsJob(steamid, ManageJobType.Create);
+  }
+
+  @OnEvent('agents.unregistering')
+  private async startDeletingListings(steamid: SteamID): Promise<void> {
+    await this.createManageListingsJob(steamid, ManageJobType.DeleteAll);
   }
 
   async addDesired(
@@ -213,29 +242,39 @@ export class ListingsService {
     return values.map((v) => JSON.parse(v));
   }
 
-  @OnEvent('agents.registering')
-  async startCreatingListings(steamid: SteamID): Promise<void> {
-    // TODO: Queue a job to compare current listings to desired listings and create/delete listings based on that
+  async getLimits(steamid: SteamID): Promise<ListingLimits> {
+    const current = await this.redis.get(this.getLimitsKey(steamid));
 
-    const desired = await this.getAllDesired(steamid);
-
-    if (desired.length > 0) {
-      // Queue all desired listings
-      await this.redis.zadd(
-        this.getCreateKey(steamid),
-        ...desired.flatMap((d) => [
-          d.priority ?? Number.MAX_SAFE_INTEGER,
-          d.hash,
-        ]),
-      );
+    if (current === null) {
+      throw new NotFoundException('Listing limits not found');
     }
 
-    return this.createManageListingsJob(steamid, ManageJobType.Create);
+    return JSON.parse(current);
   }
 
-  @OnEvent('agents.unregistering')
-  async startDeletingListings(steamid: SteamID): Promise<void> {
-    await this.createManageListingsJob(steamid, ManageJobType.DeleteAll);
+  @OnEvent('agents.registered')
+  async refreshLimits(steamid: SteamID): Promise<void> {
+    await this.listingLimitsQueue.add(
+      'refresh',
+      {
+        steamid64: steamid.getSteamID64(),
+      },
+      {
+        jobId: 'refresh:' + steamid.getSteamID64(),
+      },
+    );
+  }
+
+  async saveLimits(
+    steamid: SteamID,
+    limits: ListingLimitsResponse,
+  ): Promise<void> {
+    const save: ListingLimits = {
+      listings: limits.listings.total,
+      promoted: limits.listings.promotionSlotsAvailable,
+      updatedAt: Math.floor(Date.now() / 1000),
+    };
+    await this.redis.set(this.getLimitsKey(steamid), JSON.stringify(save));
   }
 
   async createManageListingsJob(
@@ -740,5 +779,9 @@ export class ListingsService {
 
   private getHashFromListingKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:hash:${steamid.getSteamID64()}`;
+  }
+
+  private getLimitsKey(steamid: SteamID): string {
+    return `${KEY_PREFIX}listings:limits:${steamid.getSteamID64()}`;
   }
 }
