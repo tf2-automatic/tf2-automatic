@@ -54,9 +54,8 @@ export class InventoriesProcessor extends WorkerHost {
     // Check if the inventory has been refreshed since we last requested it to be refreshed
     if (refreshed && inventory !== null) {
       // Get the refresh point of the inventory
-      const refreshPoint = await this.inventoriesService.getRefreshPoint(
-        steamid,
-      );
+      const refreshPoint =
+        await this.inventoriesService.getRefreshPoint(steamid);
 
       // Check if the inventory was refreshed after the refresh point
       if (refreshPoint === null || inventory.refresh >= refreshPoint) {
