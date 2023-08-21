@@ -81,7 +81,8 @@ export class AgentsService {
           return;
         }
 
-        this.eventEmitter.emit('agents.registering', steamid);
+        // Notify all listeners that the agent is registering
+        await this.eventEmitter.emitAsync('agents.registering', steamid);
 
         const every =
           this.configService.getOrThrow<AgentsConfig>(
@@ -125,7 +126,8 @@ export class AgentsService {
           return;
         }
 
-        this.eventEmitter.emit('agents.unregistering', steamid);
+        // Notify all listeners that the agent is no longer registering
+        await this.eventEmitter.emitAsync('agents.unregistering', steamid);
 
         await this.unregisterAgentsQueue.add(
           steamid64,

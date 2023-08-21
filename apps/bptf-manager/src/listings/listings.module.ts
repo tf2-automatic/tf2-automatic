@@ -22,16 +22,6 @@ import { AgentsModule } from '../agents/agents.module';
         removeOnFail: true,
       },
     }),
-      defaultJobOptions: {
-        attempts: Number.MAX_SAFE_INTEGER,
-        backoff: {
-          type: 'exponential',
-          delay: 500,
-        },
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
-    }),
     TokensModule,
     AgentsModule,
   ],

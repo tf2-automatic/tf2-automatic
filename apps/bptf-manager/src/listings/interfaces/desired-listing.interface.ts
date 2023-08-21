@@ -1,5 +1,18 @@
 import { ListingDto } from '@tf2-automatic/bptf-manager-data';
 
+export enum ListingError {
+  // Item does not exist in the agent's inventory on backpack.tf
+  ItemDoesNotExist = 'DOES_NOT_EXIST',
+  // Item is not valid (missing properties, wrong values, etc.)
+  InvalidItem = 'INVALID_ITEM',
+  // Invalid currencies (missing price, negative price, etc.)
+  InvalidCurrencies = 'MISSING_PRICE',
+  // A different listing was made for the same item which resulted in this listing being overwritten
+  Overwritten = 'OVERWRITTEN',
+  // The listing was not made and the reason is unknown
+  Unknown = 'UNKNOWN',
+}
+
 export interface DesiredListing {
   // Hash of the assetid or item obejct used as a unique identifier
   hash: string;
@@ -7,14 +20,14 @@ export interface DesiredListing {
   steamid64: string;
   // The id of the backpack.tf listing
   id?: string;
-  // If the listing is archived
-  archived?: boolean;
   // The raw listing
   listing: ListingDto;
   // Priority of the listing
   priority?: number;
   // If this is set then something went wrong and this explains the error
-  message?: string;
+  error?: ListingError;
+  // The time when the listing was last attempted to be made
+  lastAttemptedAt?: number;
   // Timestamp of when the desired listing was last updated
   updatedAt: number;
 }

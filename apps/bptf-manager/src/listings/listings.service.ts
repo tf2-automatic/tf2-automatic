@@ -10,7 +10,10 @@ import SteamID from 'steamid';
 import hash from 'object-hash';
 import { ChainableCommander, Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
-import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
+import {
+  DesiredListing as DesiredListingInternal,
+  ListingError,
+} from './interfaces/desired-listing.interface';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { HttpService } from '@nestjs/axios';
@@ -23,10 +26,10 @@ import {
 } from './interfaces/bptf-response.interface';
 import Redlock from 'redlock';
 import {
-  JobData,
-  JobName,
-  JobResult,
-  JobType,
+  JobData as ManageJobData,
+  JobName as ManageJobName,
+  JobResult as ManageJobResult,
+  JobType as ManageJobType,
 } from './interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -40,7 +43,11 @@ export class ListingsService {
   constructor(
     private readonly httpService: HttpService,
     @InjectQueue('manage-listings')
-    private readonly manageListingsQueue: Queue<JobData, JobResult, JobName>,
+    private readonly manageListingsQueue: Queue<
+      ManageJobData,
+      ManageJobResult,
+      ManageJobName
+    >,
     @InjectRedis() private readonly redis: Redis,
     private readonly agentsService: AgentsService,
   ) {
@@ -99,7 +106,8 @@ export class ListingsService {
             if (currentHash === newHash) {
               // Listings are the same so keep some properties
               d.id = c.id;
-              d.archived = c.archived;
+              d.error = c.error;
+              d.lastAttemptedAt = c.lastAttemptedAt;
             }
           }
         });
@@ -126,7 +134,7 @@ export class ListingsService {
         if (queue.length > 0) {
           // Add job to create listings (ignore errors)
           await Promise.allSettled([
-            this.createManageListingsJob(steamid, JobType.Create),
+            this.createManageListingsJob(steamid, ManageJobType.Create),
           ]);
         }
 
@@ -154,38 +162,12 @@ export class ListingsService {
           const transaction = this.redis.multi();
           this.chainableDeleteDesired(transaction, steamid, desired);
           await transaction.exec();
+
+          await Promise.allSettled([
+            this.createManageListingsJob(steamid, ManageJobType.DeleteArchived),
+            this.createManageListingsJob(steamid, ManageJobType.Delete),
+          ]);
         }
-
-        const promises: Promise<void>[] = [];
-
-        let hasListings,
-          hasArchived = false;
-
-        desired.forEach((d) => {
-          if (d.archived === true) {
-            hasArchived = true;
-          } else if (d.listing !== undefined) {
-            hasListings = true;
-          }
-
-          if (hasListings && hasArchived) {
-            return;
-          }
-        });
-
-        if (hasArchived) {
-          // Add jobs to delete archived listings
-          promises.push(
-            this.createManageListingsJob(steamid, JobType.DeleteArchived),
-          );
-        }
-
-        if (hasListings) {
-          // Add jobs to delete listings
-          promises.push(this.createManageListingsJob(steamid, JobType.Delete));
-        }
-
-        await Promise.allSettled(promises);
       },
     );
   }
@@ -248,20 +230,17 @@ export class ListingsService {
       );
     }
 
-    return this.createManageListingsJob(steamid, JobType.Create);
+    return this.createManageListingsJob(steamid, ManageJobType.Create);
   }
 
   @OnEvent('agents.unregistering')
   async startDeletingListings(steamid: SteamID): Promise<void> {
-    await Promise.all([
-      this.createManageListingsJob(steamid, JobType.DeleteAll),
-      this.createManageListingsJob(steamid, JobType.DeleteAllArchived),
-    ]);
+    await this.createManageListingsJob(steamid, ManageJobType.DeleteAll);
   }
 
   async createManageListingsJob(
     steamid: SteamID,
-    type: JobType,
+    type: ManageJobType,
   ): Promise<void> {
     if (type === 'create') {
       const registering = await this.agentsService.isRegistering(steamid);
@@ -274,17 +253,16 @@ export class ListingsService {
     let priority: number | undefined;
 
     switch (type) {
-      case JobType.Delete:
+      case ManageJobType.Delete:
         priority = 3;
         break;
-      case JobType.DeleteArchived:
+      case ManageJobType.DeleteArchived:
         priority = 2;
         break;
-      case JobType.Create:
+      case ManageJobType.Create:
         priority = 4;
         break;
-      case JobType.DeleteAll:
-      case JobType.DeleteAllArchived:
+      case ManageJobType.DeleteAll:
         priority = 1;
         break;
     }
@@ -352,8 +330,32 @@ export class ListingsService {
       const desired = Object.values(desiredMap);
       desired.forEach((desired) => {
         desired.updatedAt = now;
-        desired.message =
-          failed[desired.hash] ?? 'Unknown error while creating listing';
+        desired.lastAttemptedAt = now;
+
+        const errorMessage = failed[desired.hash];
+
+        let error: ListingError = ListingError.Unknown;
+
+        if (
+          errorMessage === 'Item is invalid.' ||
+          errorMessage?.startsWith('Warning: ')
+        ) {
+          error = ListingError.InvalidItem;
+        } else if (errorMessage === '') {
+          error = ListingError.ItemDoesNotExist;
+        } else if (
+          errorMessage === 'Listing value cannot be zero.' ||
+          errorMessage === 'Cyclic currency value'
+        ) {
+          error = ListingError.InvalidCurrencies;
+        } else if (
+          errorMessage?.startsWith('Your listing cap has been reached')
+        ) {
+          // Don't mark listing cap as an error because it should be handled by the system
+          return;
+        }
+
+        desired.error = error;
       });
 
       this.chainableSaveDesired(transaction, steamid, desired);
@@ -379,7 +381,7 @@ export class ListingsService {
         const desired = Object.values(desiredMap);
         desired.forEach((desired) => {
           desired.updatedAt = now;
-          desired.message = 'Overwritten by new listing';
+          desired.error = ListingError.Overwritten;
           delete desired.id;
         });
 
@@ -396,11 +398,12 @@ export class ListingsService {
       const desired = Object.values(desiredMap);
       desired.forEach((desired) => {
         desired.id = changed[desired.hash].id;
-        desired.archived = changed[desired.hash].archived;
+        desired.lastAttemptedAt = now;
         desired.updatedAt = now;
       });
 
       if (desired.length > 0) {
+        // Save listings with their new listings id
         this.chainableSaveDesired(transaction, steamid, desired);
       }
 
@@ -409,6 +412,9 @@ export class ListingsService {
         .map((hash) => changed[hash].id);
 
       if (archivedIds.length > 0) {
+        // Attempt to delete active listings using the archived listing ids
+        // because we don't want to have both an active and archived lisitng
+        // at the same time.
         this.chainableAddDeleteQueue(transaction, steamid, archivedIds);
       }
 
@@ -422,8 +428,8 @@ export class ListingsService {
   }
 
   async handleDeletedListings(steamid: SteamID, ids: string[]): Promise<void> {
-    // TODO: Remove listing ids from the desired listings?
-
+    // It is not nessesary or easily possible to remove listing ids from the desired listings
+    // because they are already deleted
     await this.redlock.using(
       ['listings:' + steamid.getSteamID64()],
       5000,
@@ -459,11 +465,9 @@ export class ListingsService {
           const updated: Record<string, string> = {};
 
           desired.forEach((d) => {
-            if (!d.archived) {
-              delete d.id;
-              d.updatedAt = now;
-              updated[d.hash] = JSON.stringify(d);
-            }
+            delete d.id;
+            d.updatedAt = now;
+            updated[d.hash] = JSON.stringify(d);
           });
 
           // Update desired listings by removing the listing id for non-archived listings
@@ -471,41 +475,6 @@ export class ListingsService {
         }
 
         await transaction.exec();
-      },
-    );
-  }
-
-  async handleDeletedAllArchivedListings(steamid: SteamID) {
-    await this.redlock.using(
-      ['listings:' + steamid.getSteamID64()],
-      5000,
-      async () => {
-        const now = Math.floor(Date.now() / 1000);
-
-        const desired = await this.getAllDesired(steamid);
-
-        const transaction = this.redis.multi();
-
-        if (desired.length > 0) {
-          const updated: Record<string, string> = {};
-
-          desired.forEach((d) => {
-            if (d.archived) {
-              delete d.id;
-              delete d.archived;
-              d.updatedAt = now;
-              updated[d.hash] = JSON.stringify(d);
-            }
-          });
-
-          // Update desired listings by removing the listing id for non-archived listings
-          transaction.hset(this.getDesiredKey(steamid), updated);
-        }
-
-        await transaction
-          // Clear delete archived queue
-          .del(this.getArchivedDeleteKey(steamid))
-          .exec();
       },
     );
   }
@@ -604,14 +573,7 @@ export class ListingsService {
     if (ids.length > 0) {
       // Add ids to the delete queue
       this.chainableAddDeleteQueue(chainable, steamid, ids);
-    }
-
-    const archivedIds = desired
-      .filter((d) => d.archived === true && d.id !== undefined)
-      .map((d) => d.id!);
-    if (archivedIds.length > 0) {
-      // Add ids to the delete queue
-      chainable.sadd(this.getArchivedDeleteKey(steamid), ...archivedIds);
+      chainable.sadd(this.getArchivedDeleteKey(steamid), ...ids);
     }
   }
 
@@ -740,10 +702,10 @@ export class ListingsService {
   mapDesired(desired: DesiredListingInternal[]): DesiredListing[] {
     return desired.map((d) => ({
       id: d.id ?? null,
-      archived: d.archived,
-      message: d.message,
       listing: d.listing,
       priority: d.priority,
+      error: d.error,
+      lastAttemptedAt: d.lastAttemptedAt,
       updatedAt: d.updatedAt,
     }));
   }

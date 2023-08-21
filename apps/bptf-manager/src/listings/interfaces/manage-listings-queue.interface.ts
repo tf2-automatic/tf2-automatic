@@ -15,5 +15,4 @@ export enum JobType {
   Delete = 'delete',
   DeleteArchived = 'delete-archived',
   DeleteAll = 'delete-all',
-  DeleteAllArchived = 'delete-all-archived',
 }

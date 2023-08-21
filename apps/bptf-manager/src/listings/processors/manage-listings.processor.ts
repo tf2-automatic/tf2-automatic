@@ -51,6 +51,7 @@ export class ManageListingsProcessor
         keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
       },
       id: 'listings:batch',
+      // Concurrency has to be one because we don't want to be able to create and delete listings at the same time.
       maxConcurrent: 1,
       minTime: 1000,
       reservoir: 10,
@@ -131,8 +132,6 @@ export class ManageListingsProcessor
         return this.handleDeleteArchivedAction(job);
       case JobType.DeleteAll:
         return this.handleDeleteAllAction(job);
-      case JobType.DeleteAllArchived:
-        return this.handleDeleteAllArchivedAction(job);
       default:
         this.logger.warn('Unknown task type: ' + job.name);
         return {
@@ -322,53 +321,22 @@ export class ManageListingsProcessor
     );
 
     return this.deleteAllGroup
-      .key(steamid.getSteamID64() + ':listings')
+      .key(steamid.getSteamID64())
       .schedule(async () => {
         this.logger.log(
           'Deleting all listings for ' + steamid.getSteamID64() + '...',
         );
 
-        const result = await this.listingsService.deleteAllListings(token);
+        const [active, archived] = await Promise.all([
+          this.listingsService.deleteAllListings(token),
+          this.listingsService.deleteAllArchivedListings(token),
+        ]);
 
         await this.listingsService.handleDeletedAllListings(steamid);
 
         return {
           more: false,
-          amount: result.deleted,
-          done: true,
-        };
-      });
-  }
-
-  async handleDeleteAllArchivedAction(job: CustomJob): Promise<JobResult> {
-    const steamid = new SteamID(job.data.steamid64);
-
-    const token = await this.tokensService.getToken(steamid);
-
-    this.logger.debug(
-      'Scheduling to delete all archived listings for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
-    return this.deleteAllGroup
-      .key(steamid.getSteamID64() + ':archive')
-      .schedule(async () => {
-        this.logger.log(
-          'Deleting all archived listings for ' +
-            steamid.getSteamID64() +
-            '...',
-        );
-
-        const result = await this.listingsService.deleteAllArchivedListings(
-          token,
-        );
-
-        await this.listingsService.handleDeletedAllArchivedListings(steamid);
-
-        return {
-          more: false,
-          amount: result.deleted,
+          amount: active.deleted + archived.deleted,
           done: true,
         };
       });
@@ -418,7 +386,6 @@ export class ManageListingsProcessor
           );
           break;
         case JobType.DeleteArchived:
-        case JobType.DeleteAllArchived:
           this.logger.log(
             `Deleted ${
               job.returnvalue.amount

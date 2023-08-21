@@ -36,10 +36,10 @@ export class DesiredListingDto {
 
 export interface DesiredListing {
   id: string | null;
-  archived?: boolean;
   listing: ListingDto;
   priority?: number;
-  message?: string;
+  error?: string;
+  lastAttemptedAt?: number;
   updatedAt: number;
 }
 
