@@ -12,8 +12,6 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
-import { TokensService } from '../tokens/tokens.service';
-import { DesiredListingsService } from './desired-listings.service';
 import { DesiredListing } from './interfaces/desired-listing.interface';
 import {
   CurrentListingsCreateFailedEvent,
@@ -32,8 +30,6 @@ export class CurrentListingsService {
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly tokensService: TokensService,
-    private readonly desiredListingsService: DesiredListingsService,
   ) {
     this.redlock = new Redlock([redis]);
   }

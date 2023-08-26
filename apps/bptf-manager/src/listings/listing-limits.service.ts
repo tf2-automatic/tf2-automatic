@@ -5,7 +5,6 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ListingLimitsResponse } from './interfaces/bptf-response.interface';
-import Redlock from 'redlock';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ListingLimits } from './interfaces/limits.interface';
 
@@ -13,15 +12,11 @@ const KEY_PREFIX = 'bptf-manager:data:';
 
 @Injectable()
 export class ListingLimitsService {
-  private readonly redlock: Redlock;
-
   constructor(
     @InjectQueue('listing-limits')
     private readonly listingLimitsQueue: Queue,
     @InjectRedis() private readonly redis: Redis,
-  ) {
-    this.redlock = new Redlock([redis]);
-  }
+  ) {}
 
   async getLimits(steamid: SteamID): Promise<ListingLimits> {
     const current = await this.redis.get(this.getLimitsKey(steamid));
