@@ -71,18 +71,35 @@ export class CurrentListingsService {
         '...',
     );
 
+    const steamid = new SteamID(token.steamid64);
+
+    // Figure out what listings should be deleted from the database
+    const exists = await this.redis.smismember(
+      this.getCurrentShouldNotDeleteEntryKey(steamid),
+      ...ids,
+    );
+
     // Delete listings on backpack.tf
     const result = await this._deleteListings(token, ids);
 
     this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
 
-    // FIXME: Only delete listings that were completely removed from backpack.tf
+    // Filter out listings that should not be deleted (for example, when deleting active listing because newest was archived)
+    const remove =
+      exists.length === 0 ? ids : ids.filter((id, index) => !exists[index]);
 
     // Delete current listings in database
-    await this.redis.hdel(
-      this.getCurrentKey(new SteamID(token.steamid64)),
-      ...ids,
-    );
+    const transaction = this.redis.multi();
+
+    if (remove.length > 0) {
+      // Remove listings from database
+      transaction.hdel(this.getCurrentKey(steamid), ...remove);
+    }
+
+    // Remove flag that listings should not be deleted
+    transaction.srem(this.getCurrentShouldNotDeleteEntryKey(steamid), ...ids);
+
+    await transaction.exec();
 
     // Publish that the listings have been deleted
     await this.eventEmitter.emitAsync('current-listings.deleted', ids);
@@ -341,5 +358,9 @@ export class CurrentListingsService {
 
   private getCurrentKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:current:${steamid.getSteamID64()}`;
+  }
+
+  getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
+    return `${KEY_PREFIX}listings:current:keep:${steamid.getSteamID64()}`;
   }
 }

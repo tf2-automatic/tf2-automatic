@@ -125,7 +125,16 @@ export class ManageListingsService {
 
     if (archivedIds.length > 0) {
       // Queue active listings to be deleted
-      await this.redis.sadd(this.getDeleteKey(event.steamid), ...archivedIds);
+      await this.redis
+        .multi()
+        .sadd(this.getDeleteKey(event.steamid), ...archivedIds)
+        .sadd(
+          this.currentListingsService.getCurrentShouldNotDeleteEntryKey(
+            event.steamid,
+          ),
+          ...archivedIds,
+        )
+        .exec();
 
       await this.createJob(event.steamid, ManageJobType.Delete);
     }
