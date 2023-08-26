@@ -380,7 +380,7 @@ export class DesiredListingsService {
   }
 
   private getDesiredKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}:data:listings:desired:${steamid.getSteamID64()}`;
+    return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
   }
 
   private getHashFromListingKey(steamid: SteamID): string {
