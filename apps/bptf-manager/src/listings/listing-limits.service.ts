@@ -4,7 +4,6 @@ import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { ListingLimitsResponse } from './interfaces/bptf-response.interface';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ListingLimits } from './interfaces/limits.interface';
 
@@ -19,13 +18,21 @@ export class ListingLimitsService {
   ) {}
 
   async getLimits(steamid: SteamID): Promise<ListingLimits> {
-    const current = await this.redis.get(this.getLimitsKey(steamid));
+    const current = await this.redis.hgetall(this.getLimitsKey(steamid));
 
-    if (current === null) {
+    if (
+      current.listings === undefined ||
+      current.promoted === undefined ||
+      current.updatedAt === undefined
+    ) {
       throw new NotFoundException('Listing limits not found');
     }
 
-    return JSON.parse(current);
+    return {
+      listings: parseInt(current.listings, 10),
+      promoted: parseInt(current.promoted, 10),
+      updatedAt: parseInt(current.updatedAt, 10),
+    };
   }
 
   @OnEvent('agents.registered')
@@ -43,14 +50,13 @@ export class ListingLimitsService {
 
   async saveLimits(
     steamid: SteamID,
-    limits: ListingLimitsResponse,
+    limits: Partial<Omit<ListingLimits, 'updatedAt'>>,
   ): Promise<void> {
-    const save: ListingLimits = {
-      listings: limits.listings.total,
-      promoted: limits.listings.promotionSlotsAvailable,
+    const save: Partial<ListingLimits> = Object.assign(limits, {
       updatedAt: Math.floor(Date.now() / 1000),
-    };
-    await this.redis.set(this.getLimitsKey(steamid), JSON.stringify(save));
+    });
+
+    await this.redis.hmset(this.getLimitsKey(steamid), save);
   }
 
   private getLimitsKey(steamid: SteamID): string {
