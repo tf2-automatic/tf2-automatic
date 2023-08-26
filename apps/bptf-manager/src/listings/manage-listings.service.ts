@@ -199,8 +199,72 @@ export class ManageListingsService {
     );
   }
 
-  getListingsToCreate(steamid: SteamID, count: number): Promise<string[]> {
-    return this.redis.zrange(this.getCreateKey(steamid), 0, count - 1);
+  async getListingsToCreate(
+    steamid: SteamID,
+    count: number,
+  ): Promise<string[]> {
+    // Prioritize updating listings over creating new ones
+
+    const desired =
+      await this.desiredListingsService.getAllDesiredInternal(steamid);
+
+    // Get hashes of desired listings that have an id
+    const desiredHashes = desired
+      .filter((d) => d.id !== undefined)
+      .map((d) => d.hash);
+
+    const hashes = new Set<string>();
+
+    const originalKey = this.getCreateKey(steamid);
+    const copyKey = originalKey + ':copy';
+
+    await this.redis.copy(this.getCreateKey(steamid), copyKey);
+
+    if (desiredHashes.length > 0) {
+      // Check if the desired listings are already in the queue
+      const scores = await this.redis.zmscore(copyKey, ...desiredHashes);
+
+      for (const [index, score] of scores.entries()) {
+        if (hashes.size >= count) {
+          // Don't need any more hashes
+          break;
+        }
+
+        if (score !== null) {
+          // Desired listing is already in the queue, add it to the set
+          hashes.add(desiredHashes[index]);
+        }
+      }
+    }
+
+    // Remove hashes from the copied sorted set
+    if (hashes.size > 0) {
+      await this.redis.zrem(copyKey, ...Array.from(hashes.values()));
+    }
+
+    // Check if we have enough hashes
+    if (count > hashes.size) {
+      // Get remaining hashes by priority
+      const queue = await this.redis.zrange(
+        copyKey,
+        0,
+        count - hashes.size - 1,
+      );
+
+      for (const hash of queue) {
+        if (hashes.size >= count) {
+          // Don't need any more hashes
+          break;
+        }
+
+        hashes.add(hash);
+      }
+    }
+
+    // Not needed but would save memory so why not
+    await this.redis.del(copyKey);
+
+    return Array.from(hashes.values());
   }
 
   async createListings(
