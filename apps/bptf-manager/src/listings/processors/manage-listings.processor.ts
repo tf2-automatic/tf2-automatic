@@ -1,7 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
-import { ListingsService } from '../listings.service';
 import SteamID from 'steamid';
 import { TokensService } from '../../tokens/tokens.service';
 import { AxiosError } from 'axios';
@@ -15,10 +14,14 @@ import {
   JobType,
 } from '../interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../../agents/agents.service';
+import { ManageListingsService } from '../manage-listings.service';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 
-@Processor('manage-listings')
+@Processor('manage-listings', {
+  // For some reason even though there are jobs in the queue it takes 5 seconds for them to be processed, this is a workaround
+  drainDelay: 0,
+})
 export class ManageListingsProcessor
   extends WorkerHost<Worker<JobData, JobResult, JobName>>
   implements OnModuleDestroy
@@ -32,7 +35,7 @@ export class ManageListingsProcessor
   private readonly deleteArchivedBatchSize = 100;
 
   constructor(
-    private readonly listingsService: ListingsService,
+    private readonly manageListingsService: ManageListingsService,
     private readonly tokensService: TokensService,
     private readonly configService: ConfigService<Config>,
     private readonly agentsService: AgentsService,
@@ -155,7 +158,7 @@ export class ManageListingsProcessor
       };
     }
 
-    const hashes = await this.listingsService.getHashesToCreate(
+    const hashes = await this.manageListingsService.getListingsToCreate(
       steamid,
       this.createBatchSize,
     );
@@ -168,29 +171,16 @@ export class ManageListingsProcessor
       };
     }
 
+    const token = await this.tokensService.getToken(steamid);
+
     this.logger.debug(
       'Scheduling create listings for ' + steamid.getSteamID64() + '...',
     );
 
-    const token = await this.tokensService.getToken(steamid);
-
     return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
-      // Get listings with highest priority
-      const desired = await this.listingsService.getDesired(steamid, hashes);
-
-      const create = Object.values(desired).map((d) => d.listing);
-
-      this.logger.log(
-        'Creating ' +
-          create.length +
-          ' listing(s) for ' +
-          steamid.getSteamID64() +
-          '...',
-      );
-
       // Create listings
-      const result = await this.listingsService
-        .createListings(token, create)
+      const result = await this.manageListingsService
+        .createListings(token, hashes)
         .catch((err) => {
           if (err instanceof AxiosError) {
             if (err.response?.status === 429) {
@@ -217,9 +207,6 @@ export class ManageListingsProcessor
         }
       });
 
-      // Save listings
-      await this.listingsService.handleCreatedListings(steamid, hashes, result);
-
       return {
         more: hashes.length === this.createBatchSize,
         amount: created,
@@ -231,7 +218,7 @@ export class ManageListingsProcessor
   async handleDeleteAction(job: CustomJob): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
-    const ids = await this.listingsService.getListingIdsToDelete(
+    const ids = await this.manageListingsService.getListingsToDelete(
       steamid,
       this.deleteBatchSize,
     );
@@ -244,19 +231,9 @@ export class ManageListingsProcessor
       };
     }
 
-    this.logger.log(
-      'Deleting ' +
-        ids.length +
-        ' listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
     const token = await this.tokensService.getToken(steamid);
 
-    const result = await this.listingsService.deleteListings(token, ids);
-
-    await this.listingsService.handleDeletedListings(steamid, ids);
+    const result = await this.manageListingsService.deleteListings(token, ids);
 
     return {
       more: ids.length === this.deleteBatchSize,
@@ -268,7 +245,7 @@ export class ManageListingsProcessor
   async handleDeleteArchivedAction(job: CustomJob): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
-    const ids = await this.listingsService.getArchivedListingIdsToDelete(
+    const ids = await this.manageListingsService.getArchivedListingToDelete(
       steamid,
       this.deleteArchivedBatchSize,
     );
@@ -288,20 +265,10 @@ export class ManageListingsProcessor
     const token = await this.tokensService.getToken(steamid);
 
     return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
-      this.logger.log(
-        'Deleting ' +
-          ids.length +
-          ' archived listing(s) for ' +
-          steamid.getSteamID64() +
-          '...',
-      );
-
-      const result = await this.listingsService.deleteArchivedListings(
+      const result = await this.manageListingsService.deleteArchivedListings(
         token,
         ids,
       );
-
-      await this.listingsService.handleDeletedArchivedListings(steamid, ids);
 
       return {
         more: ids.length === this.deleteArchivedBatchSize,
@@ -323,20 +290,12 @@ export class ManageListingsProcessor
     return this.deleteAllGroup
       .key(steamid.getSteamID64())
       .schedule(async () => {
-        this.logger.log(
-          'Deleting all listings for ' + steamid.getSteamID64() + '...',
-        );
-
-        const [active, archived] = await Promise.all([
-          this.listingsService.deleteAllListings(token),
-          this.listingsService.deleteAllArchivedListings(token),
-        ]);
-
-        await this.listingsService.handleDeletedAllListings(steamid);
+        const deleted =
+          await this.manageListingsService.deleteAllListings(token);
 
         return {
           more: false,
-          amount: active.deleted + archived.deleted,
+          amount: deleted,
           done: true,
         };
       });
@@ -368,39 +327,12 @@ export class ManageListingsProcessor
 
     this.logger.debug('Completed job ' + job.id);
 
-    if (job.returnvalue.done) {
-      switch (job.name) {
-        case JobType.Create:
-          this.logger.log(
-            `Created ${
-              job.returnvalue.amount
-            } listing(s) for ${steamid.getSteamID64()}`,
-          );
-          break;
-        case JobType.Delete:
-        case JobType.DeleteAll:
-          this.logger.log(
-            `Deleted ${
-              job.returnvalue.amount
-            } listing(s) for ${steamid.getSteamID64()}`,
-          );
-          break;
-        case JobType.DeleteArchived:
-          this.logger.log(
-            `Deleted ${
-              job.returnvalue.amount
-            } archived listing(s) for ${steamid.getSteamID64()}`,
-          );
-          break;
-      }
-    }
-
     if (job.name === 'create' && job.returnvalue.done === true) {
       // We just created some listings and now might have to delete some
 
       // TODO: Only create job if it is actually needed
-      this.listingsService
-        .createManageListingsJob(steamid, JobType.Delete)
+      this.manageListingsService
+        .createJob(steamid, JobType.Delete)
         .catch((err) => {
           this.logger.error('Failed to create job');
           console.error(err);
@@ -408,12 +340,10 @@ export class ManageListingsProcessor
     }
 
     if (job.returnvalue.more === true) {
-      this.listingsService
-        .createManageListingsJob(steamid, job.name)
-        .catch((err) => {
-          this.logger.error('Failed to create job');
-          console.error(err);
-        });
+      this.manageListingsService.createJob(steamid, job.name).catch((err) => {
+        this.logger.error('Failed to create job');
+        console.error(err);
+      });
     }
   }
 

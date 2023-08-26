@@ -7,7 +7,7 @@ import {
   ParseArrayPipe,
   Post,
 } from '@nestjs/common';
-import { ListingsService } from './listings.service';
+import { ListingLimitsService } from './listing-limits.service';
 import {
   DesiredListing,
   DesiredListingDto,
@@ -17,11 +17,17 @@ import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiParamSteamID } from '@tf2-automatic/swagger';
+import { DesiredListingsService } from './desired-listings.service';
+import { CurrentListingsService } from './current-listings.service';
 
 @ApiTags('Listings')
 @Controller('listings')
 export class ListingsController {
-  constructor(private readonly listingsService: ListingsService) {}
+  constructor(
+    private readonly listingLimitsService: ListingLimitsService,
+    private readonly desiredListingsService: DesiredListingsService,
+    private readonly currentListingsService: CurrentListingsService,
+  ) {}
 
   // TODO: Add API responses and request bodies
 
@@ -36,7 +42,7 @@ export class ListingsController {
     @Body(new ParseArrayPipe({ items: DesiredListingDto }))
     add: DesiredListingDto[],
   ): Promise<DesiredListing[]> {
-    return this.listingsService.addDesired(steamid, add);
+    return this.desiredListingsService.addDesired(steamid, add);
   }
 
   @ApiOperation({
@@ -50,7 +56,7 @@ export class ListingsController {
     @Body(new ParseArrayPipe({ items: ListingDto }))
     remove: ListingDto[],
   ) {
-    return this.listingsService.removeDesired(steamid, remove);
+    return this.desiredListingsService.removeDesired(steamid, remove);
   }
 
   @ApiOperation({
@@ -60,9 +66,7 @@ export class ListingsController {
   @ApiParamSteamID()
   @Get('/:steamid/desired')
   getDesired(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    return this.listingsService
-      .getAllDesired(steamid)
-      .then((desired) => this.listingsService.mapDesired(desired));
+    return this.desiredListingsService.getAllDesired(steamid);
   }
 
   @ApiOperation({
@@ -72,7 +76,7 @@ export class ListingsController {
   @ApiParamSteamID()
   @Get('/:steamid/current')
   getCurrent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    return this.listingsService.getCurrent(steamid);
+    return this.currentListingsService.getAllCurrent(steamid);
   }
 
   @ApiOperation({
@@ -82,7 +86,7 @@ export class ListingsController {
   @ApiParamSteamID()
   @Get('/:steamid/limits')
   getLimits(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    return this.listingsService.getLimits(steamid);
+    return this.listingLimitsService.getLimits(steamid);
   }
 
   @ApiOperation({
@@ -92,6 +96,6 @@ export class ListingsController {
   @ApiParamSteamID()
   @Post('/:steamid/limits/refresh')
   refreshLimits(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    return this.listingsService.refreshLimits(steamid);
+    return this.listingLimitsService.refreshLimits(steamid);
   }
 }

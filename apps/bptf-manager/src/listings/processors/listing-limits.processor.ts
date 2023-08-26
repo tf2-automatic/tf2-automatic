@@ -1,6 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { ListingsService } from '../listings.service';
+import { ListingLimitsService } from '../listing-limits.service';
 import { TokensService } from '../../tokens/tokens.service';
 import { Job } from 'bullmq';
 import axios, { AxiosError } from 'axios';
@@ -13,7 +13,7 @@ export class ListingLimitsProcessor extends WorkerHost {
   private readonly logger = new Logger(ListingLimitsProcessor.name);
 
   constructor(
-    private readonly listingsService: ListingsService,
+    private readonly listingLimitsService: ListingLimitsService,
     private readonly tokensService: TokensService,
   ) {
     super();
@@ -28,7 +28,7 @@ export class ListingLimitsProcessor extends WorkerHost {
 
     const result = await this.getLimits(token);
 
-    await this.listingsService.saveLimits(steamid, result);
+    await this.listingLimitsService.saveLimits(steamid, result);
   }
 
   private getLimits(token: Token): Promise<ListingLimitsResponse> {

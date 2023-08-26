@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ListingsService } from './listings.service';
 import { ListingsController } from './listings.controller';
 import { ManageListingsProcessor } from './processors/manage-listings.processor';
 import { BullModule } from '@nestjs/bullmq';
@@ -7,6 +6,10 @@ import { HttpModule } from '@nestjs/axios';
 import { TokensModule } from '../tokens/tokens.module';
 import { AgentsModule } from '../agents/agents.module';
 import { ListingLimitsProcessor } from './processors/listing-limits.processor';
+import { ManageListingsService } from './manage-listings.service';
+import { DesiredListingsService } from './desired-listings.service';
+import { CurrentListingsService } from './current-listings.service';
+import { ListingLimitsService } from './listing-limits.service';
 
 @Module({
   imports: [
@@ -38,7 +41,14 @@ import { ListingLimitsProcessor } from './processors/listing-limits.processor';
     TokensModule,
     AgentsModule,
   ],
-  providers: [ListingsService, ManageListingsProcessor, ListingLimitsProcessor],
+  providers: [
+    DesiredListingsService,
+    CurrentListingsService,
+    ManageListingsService,
+    ListingLimitsService,
+    ManageListingsProcessor,
+    ListingLimitsProcessor,
+  ],
   controllers: [ListingsController],
 })
 export class ListingsModule {}
