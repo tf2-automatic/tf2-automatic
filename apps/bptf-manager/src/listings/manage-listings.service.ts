@@ -150,8 +150,6 @@ export class ManageListingsService {
       .del(this.getDeleteKey(steamid))
       // Clear archived delete queue
       .del(this.getArchivedDeleteKey(steamid))
-      // Clear create queue
-      .del(this.getCreateKey(steamid))
       .exec();
   }
 
