@@ -20,6 +20,7 @@ import {
   DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
+import { ListingLimitsService } from './listing-limits.service';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -29,6 +30,7 @@ export class DesiredListingsService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly eventEmitter: EventEmitter2,
+    private readonly listingLimitsService: ListingLimitsService,
   ) {
     this.redlock = new Redlock([redis]);
   }
@@ -286,6 +288,8 @@ export class DesiredListingsService {
       failedHashes,
     );
 
+    let maxCap: number | undefined;
+
     const desired = Object.values(desiredMap);
     desired.forEach((desired) => {
       desired.updatedAt = now;
@@ -295,7 +299,17 @@ export class DesiredListingsService {
 
       let error: ListingError = ListingError.Unknown;
 
-      if (
+      const listingCapMatch = errorMessage?.match(/\((\d+)\/(\d+)\slistings\)/);
+
+      if (listingCapMatch) {
+        // Don't mark listing cap as an error because it should be handled by the system
+        const [, , max] = listingCapMatch;
+        const cap = parseInt(max);
+        if (maxCap === undefined || cap < maxCap) {
+          maxCap = cap;
+        }
+        return;
+      } else if (
         errorMessage === 'Item is invalid.' ||
         errorMessage?.startsWith('Warning: ')
       ) {
@@ -307,11 +321,6 @@ export class DesiredListingsService {
         errorMessage === 'Cyclic currency value'
       ) {
         error = ListingError.InvalidCurrencies;
-      } else if (
-        errorMessage?.startsWith('Your listing cap has been reached')
-      ) {
-        // Don't mark listing cap as an error because it should be handled by the system
-        return;
       }
 
       desired.error = error;
@@ -319,6 +328,13 @@ export class DesiredListingsService {
 
     const transaction = this.redis.multi();
     this.chainableSaveDesired(transaction, event.steamid, desired);
+
+    if (maxCap !== undefined) {
+      await this.listingLimitsService.saveLimits(event.steamid, {
+        listings: maxCap,
+      });
+    }
+
     await transaction.exec();
   }
 
