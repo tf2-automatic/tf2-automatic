@@ -60,8 +60,6 @@ export class ManageListingsService {
 
   @OnEvent('desired-listings.added')
   private async addedDesired(event: DesiredListingsAddedEvent) {
-    const queue = event.listings.filter((listing) => listing.id === undefined);
-
     const transaction = this.redis.multi();
 
     // Remove from delete queue
@@ -70,16 +68,12 @@ export class ManageListingsService {
       ...event.listings.map((d) => d.hash),
     );
 
-    if (queue.length > 0) {
-      // Add to create queue
-      this.chainableQueueDesired(transaction, event.steamid, queue);
-    }
+    // Add to create queue
+    this.chainableQueueDesired(transaction, event.steamid, event.listings);
 
     await transaction.exec();
 
-    if (queue.length > 0) {
-      await this.createJob(event.steamid, ManageJobType.Create);
-    }
+    await this.createJob(event.steamid, ManageJobType.Create);
   }
 
   @OnEvent('desired-listings.removed')

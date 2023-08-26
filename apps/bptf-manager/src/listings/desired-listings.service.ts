@@ -71,11 +71,18 @@ export class DesiredListingsService {
           throw signal.error;
         }
 
+        const changed: DesiredListingInternal[] = [];
+
         desired.forEach((d) => {
           // Update desired based on current listings
           const c = current[d.hash];
 
           if (c) {
+            // Listings are for the same items so keep some properties
+            d.id = c.id;
+            d.error = c.error;
+            d.lastAttemptedAt = c.lastAttemptedAt;
+
             // Need to ignore types because new listings have DesiredListing type and current listings are a normal object
             const currentHash = hash(c.listing, {
               respectType: false,
@@ -84,12 +91,13 @@ export class DesiredListingsService {
               respectType: false,
             });
 
-            if (currentHash === newHash) {
-              // Listings are the same so keep some properties
-              d.id = c.id;
-              d.error = c.error;
-              d.lastAttemptedAt = c.lastAttemptedAt;
+            if (currentHash !== newHash) {
+              // Listings changed
+              changed.push(d);
             }
+          } else {
+            // No matching listing found so it is new
+            changed.push(d);
           }
         });
 
@@ -97,10 +105,12 @@ export class DesiredListingsService {
         this.chainableSaveDesired(transaction, steamid, desired);
         await transaction.exec();
 
-        await this.eventEmitter.emitAsync('desired-listings.added', {
-          steamid,
-          listings: desired,
-        } satisfies DesiredListingsAddedEvent);
+        if (changed.length > 0) {
+          await this.eventEmitter.emitAsync('desired-listings.added', {
+            steamid,
+            listings: changed,
+          } satisfies DesiredListingsAddedEvent);
+        }
 
         return this.mapDesired(desired);
       },
