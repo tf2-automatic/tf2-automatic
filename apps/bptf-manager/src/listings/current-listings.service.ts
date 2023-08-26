@@ -1,7 +1,6 @@
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Listing, ListingDto, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
-import Redlock from 'redlock';
 import {
   BatchCreateListingResponse,
   BatchDeleteListingResponse,
@@ -24,15 +23,11 @@ const KEY_PREFIX = 'bptf-manager:data:';
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
-  private readonly redlock: Redlock;
-
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
-  ) {
-    this.redlock = new Redlock([redis]);
-  }
+  ) {}
 
   async getAllCurrent(steamid: SteamID): Promise<Listing[]> {
     const values = await this.redis.hvals(this.getCurrentKey(steamid));
