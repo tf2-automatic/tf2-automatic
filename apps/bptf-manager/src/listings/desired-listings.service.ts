@@ -284,7 +284,7 @@ export class DesiredListingsService {
     }
   }
 
-  @OnEvent('current-listings.failed', { suppressErrors: true })
+  @OnEvent('current-listings.failed', { suppressErrors: false })
   private async currentListingsFailed(
     event: CurrentListingsCreateFailedEvent,
   ): Promise<void> {
