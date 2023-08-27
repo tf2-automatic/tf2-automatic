@@ -20,6 +20,7 @@ import { DesiredListing } from './interfaces/desired-listing.interface';
 import { CurrentListingsService } from './current-listings.service';
 import { Token } from '@tf2-automatic/bptf-manager-data';
 import { BatchCreateListingResponse } from './interfaces/bptf-response.interface';
+import { ListingLimitsService } from './listing-limits.service';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -29,6 +30,7 @@ export class ManageListingsService {
     private readonly agentsService: AgentsService,
     private readonly desiredListingsService: DesiredListingsService,
     private readonly currentListingsService: CurrentListingsService,
+    private readonly listingLimitsService: ListingLimitsService,
     @InjectQueue('manage-listings')
     private readonly queue: Queue<
       ManageJobData,
@@ -203,6 +205,10 @@ export class ManageListingsService {
     steamid: SteamID,
     count: number,
   ): Promise<string[]> {
+    await this.listingLimitsService.waitForRefresh(steamid);
+
+    const limits = await this.listingLimitsService.getLimits(steamid);
+
     // Prioritize updating listings over creating new ones
 
     const desired =
@@ -243,7 +249,7 @@ export class ManageListingsService {
     }
 
     // Check if we have enough hashes
-    if (count > hashes.size) {
+    if (count > hashes.size && limits.cap > limits.used) {
       // Get remaining hashes by priority
       const queue = await this.redis.zrange(
         copyKey,

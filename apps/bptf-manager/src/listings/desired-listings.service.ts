@@ -20,7 +20,6 @@ import {
   DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
-import { ListingLimitsService } from './listing-limits.service';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -30,7 +29,6 @@ export class DesiredListingsService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly eventEmitter: EventEmitter2,
-    private readonly listingLimitsService: ListingLimitsService,
   ) {
     this.redlock = new Redlock([redis]);
   }
@@ -265,6 +263,7 @@ export class DesiredListingsService {
         desired.id = event.results[desired.hash].id;
         desired.lastAttemptedAt = now;
         desired.updatedAt = now;
+        delete desired.error;
       });
 
       if (desired.length > 0) {
@@ -298,53 +297,15 @@ export class DesiredListingsService {
       failedHashes,
     );
 
-    let maxCap: number | undefined;
-
     const desired = Object.values(desiredMap);
     desired.forEach((desired) => {
       desired.updatedAt = now;
       desired.lastAttemptedAt = now;
-
-      const errorMessage = event.results[desired.hash];
-
-      let error: ListingError = ListingError.Unknown;
-
-      const listingCapMatch = errorMessage?.match(/\((\d+)\/(\d+)\slistings\)/);
-
-      if (listingCapMatch) {
-        // Don't mark listing cap as an error because it should be handled by the system
-        const [, , max] = listingCapMatch;
-        const cap = parseInt(max);
-        if (maxCap === undefined || cap < maxCap) {
-          maxCap = cap;
-        }
-        return;
-      } else if (
-        errorMessage === 'Item is invalid.' ||
-        errorMessage?.startsWith('Warning: ')
-      ) {
-        error = ListingError.InvalidItem;
-      } else if (errorMessage === '') {
-        error = ListingError.ItemDoesNotExist;
-      } else if (
-        errorMessage === 'Listing value cannot be zero.' ||
-        errorMessage === 'Cyclic currency value'
-      ) {
-        error = ListingError.InvalidCurrencies;
-      }
-
-      desired.error = error;
+      desired.error = event.results[desired.hash];
     });
 
     const transaction = this.redis.multi();
     this.chainableSaveDesired(transaction, event.steamid, desired);
-
-    if (maxCap !== undefined) {
-      await this.listingLimitsService.saveLimits(event.steamid, {
-        listings: maxCap,
-      });
-    }
-
     await transaction.exec();
   }
 

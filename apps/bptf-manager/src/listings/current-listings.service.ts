@@ -11,12 +11,18 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
-import { DesiredListing } from './interfaces/desired-listing.interface';
+import {
+  DesiredListing,
+  ListingError,
+} from './interfaces/desired-listing.interface';
 import {
   CurrentListingsCreateFailedEvent,
   CurrentListingsCreatedEvent,
+  CurrentListingsDeletedEvent,
 } from './interfaces/events.interface';
 import { Logger } from '@nestjs/common';
+import { ListingLimitsService } from './listing-limits.service';
+import { ListingLimits } from './interfaces/limits.interface';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -27,6 +33,7 @@ export class CurrentListingsService {
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly listingLimitsService: ListingLimitsService,
   ) {}
 
   async getAllCurrent(steamid: SteamID): Promise<Listing[]> {
@@ -79,6 +86,8 @@ export class CurrentListingsService {
       ...ids,
     );
 
+    const limits = await this.listingLimitsService.getLimits(steamid);
+
     // Delete listings on backpack.tf
     const result = await this._deleteListings(token, ids);
 
@@ -99,10 +108,20 @@ export class CurrentListingsService {
     // Remove flag that listings should not be deleted
     transaction.srem(this.getCurrentShouldNotDeleteEntryKey(steamid), ...ids);
 
+    if (result.deleted > 0) {
+      // Remove old listings from old limits
+      this.listingLimitsService.chainableSaveLimits(transaction, steamid, {
+        used: Math.max(limits.used - result.deleted, 0),
+      });
+    }
+
     await transaction.exec();
 
     // Publish that the listings have been deleted
-    await this.eventEmitter.emitAsync('current-listings.deleted', ids);
+    await this.eventEmitter.emitAsync('current-listings.deleted', {
+      steamid,
+      ids,
+    } satisfies CurrentListingsDeletedEvent);
 
     return result;
   }
@@ -121,14 +140,16 @@ export class CurrentListingsService {
 
     this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
 
+    const steamid = new SteamID(token.steamid64);
+
     // Delete current listings in database
-    await this.redis.hdel(
-      this.getCurrentKey(new SteamID(token.steamid64)),
-      ...ids,
-    );
+    await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
 
     // Publish that the listings have been deleted
-    await this.eventEmitter.emitAsync('current-listings.deleted', ids);
+    await this.eventEmitter.emitAsync('current-listings.deleted', {
+      steamid,
+      ids,
+    } satisfies CurrentListingsDeletedEvent);
 
     return result;
   }
@@ -150,6 +171,10 @@ export class CurrentListingsService {
         '...',
     );
 
+    const limits = await this.listingLimitsService.getLimits(
+      new SteamID(token.steamid64),
+    );
+
     // Create listings on backpack.tf
     const result = await this._createListings(token, listings);
 
@@ -168,7 +193,11 @@ export class CurrentListingsService {
       {} as Record<string, BatchCreateListingResponse>,
     );
 
-    await this.handleCreatedListings(new SteamID(token.steamid64), mapped);
+    await this.handleCreatedListings(
+      new SteamID(token.steamid64),
+      mapped,
+      limits,
+    );
 
     return result;
   }
@@ -176,39 +205,99 @@ export class CurrentListingsService {
   private async handleCreatedListings(
     steamid: SteamID,
     responses: Record<string, BatchCreateListingResponse>,
+    limits: ListingLimits,
   ): Promise<void> {
     const created: Record<string, Listing> = {};
-    const updated: Record<string, Listing> = {};
-    const failed: Record<string, string | null> = {};
+    const failed: Record<string, ListingError> = {};
+
+    let cap: number | undefined = undefined;
 
     for (const hash in responses) {
       const response = responses[hash];
 
       if (response.result !== undefined) {
         const result = response.result;
-        if (result.listedAt > result.bumpedAt) {
-          updated[hash] = result;
-        } else {
-          created[hash] = result;
-        }
+        created[hash] = result;
       } else {
-        failed[hash] = response.error?.message ?? null;
+        const errorMessage = response.error?.message ?? null;
+
+        let error: ListingError = ListingError.Unknown;
+
+        const listingCapMatch = errorMessage?.match(
+          /\((\d+)\/(\d+)\slistings\)/,
+        );
+
+        if (listingCapMatch) {
+          error = ListingError.CapExceeded;
+
+          const [, , capStr] = listingCapMatch;
+          cap = parseInt(capStr);
+        } else if (
+          errorMessage === 'Item is invalid.' ||
+          errorMessage?.startsWith('Warning: ')
+        ) {
+          error = ListingError.InvalidItem;
+        } else if (errorMessage === '') {
+          error = ListingError.ItemDoesNotExist;
+        } else if (
+          errorMessage === 'Listing value cannot be zero.' ||
+          errorMessage === 'Cyclic currency value'
+        ) {
+          error = ListingError.InvalidCurrencies;
+        }
+
+        failed[hash] = error;
       }
     }
 
-    const changed = Object.assign({}, created, updated);
-    const changedHashes = Object.keys(changed);
+    const createdHashes = Object.keys(created);
+
+    const transaction = this.redis.multi();
 
     // Save current listings to database
-    if (changedHashes.length > 0) {
-      await this.redis.hmset(
+    if (createdHashes.length > 0) {
+      // Check for listings that already existed
+      const existing = await this.getListingsByIds(
+        steamid,
+        createdHashes.map((hash) => created[hash].id),
+      );
+
+      const existingListings = new Set();
+
+      Object.values(existing).forEach((l) => {
+        if (l.archived !== true) {
+          existingListings.add(l.id);
+        }
+      });
+
+      const newListings = createdHashes.length - existingListings.size;
+
+      if (newListings > 0) {
+        // Add new listings to old limit
+        this.listingLimitsService.chainableSaveLimits(transaction, steamid, {
+          used: Math.max(newListings + limits.used, 0),
+        });
+      }
+
+      await transaction.hmset(
         this.getCurrentKey(steamid),
-        ...changedHashes.flatMap((hash) => [
-          changed[hash].id,
-          JSON.stringify(changed[hash]),
+        ...createdHashes.flatMap((hash) => [
+          created[hash].id,
+          JSON.stringify(created[hash]),
         ]),
       );
     }
+
+    if (cap !== undefined) {
+      this.listingLimitsService.chainableSaveLimits(transaction, steamid, {
+        cap,
+      });
+
+      // Queue limits to be refreshed
+      await this.listingLimitsService.refreshLimits(steamid);
+    }
+
+    await transaction.exec();
 
     const promises: Promise<unknown>[] = [];
 
@@ -221,11 +310,11 @@ export class CurrentListingsService {
       );
     }
 
-    if (Object.keys(changed).length > 0) {
+    if (Object.keys(created).length > 0) {
       promises.push(
         this.eventEmitter.emitAsync('current-listings.created', {
           steamid,
-          results: changed,
+          results: created,
         } satisfies CurrentListingsCreatedEvent),
       );
     }
@@ -252,8 +341,15 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
+    const transaction = this.redis.multi();
+
     // Delete all listings in database
-    await this.redis.del(this.getCurrentKey(steamid));
+    transaction.del(this.getCurrentKey(steamid));
+
+    // Clear used listings
+    this.listingLimitsService.chainableClearUsed(transaction, steamid);
+
+    await transaction.exec();
 
     await this.eventEmitter.emitAsync('current-listings.deleted-all', steamid);
 

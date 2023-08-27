@@ -1,5 +1,5 @@
 import SteamID from 'steamid';
-import { DesiredListing } from './desired-listing.interface';
+import { DesiredListing, ListingError } from './desired-listing.interface';
 import { Listing } from '@tf2-automatic/bptf-manager-data';
 
 interface BaseDesiredListingsEvent {
@@ -18,5 +18,10 @@ export interface CurrentListingsCreatedEvent {
 
 export interface CurrentListingsCreateFailedEvent {
   steamid: SteamID;
-  results: Record<string, string | null>;
+  results: Record<string, ListingError>;
+}
+
+export interface CurrentListingsDeletedEvent {
+  steamid: SteamID;
+  ids: string[];
 }

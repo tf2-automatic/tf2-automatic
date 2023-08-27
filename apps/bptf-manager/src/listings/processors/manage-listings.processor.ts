@@ -30,7 +30,7 @@ export class ManageListingsProcessor
   private readonly batchGroup: Bottleneck.Group;
   private readonly deleteAllGroup: Bottleneck.Group;
 
-  private readonly createBatchSize = 50;
+  private readonly createBatchSize = 100;
   private readonly deleteBatchSize = 100;
   private readonly deleteArchivedBatchSize = 100;
 
@@ -326,18 +326,6 @@ export class ManageListingsProcessor
     const steamid = new SteamID(job.data.steamid64);
 
     this.logger.debug('Completed job ' + job.id);
-
-    if (job.name === 'create' && job.returnvalue.done === true) {
-      // We just created some listings and now might have to delete some
-
-      // TODO: Only create job if it is actually needed
-      this.manageListingsService
-        .createJob(steamid, JobType.Delete)
-        .catch((err) => {
-          this.logger.error('Failed to create job');
-          console.error(err);
-        });
-    }
 
     if (job.returnvalue.more === true) {
       this.manageListingsService.createJob(steamid, job.name).catch((err) => {
