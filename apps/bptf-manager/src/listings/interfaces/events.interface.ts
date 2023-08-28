@@ -24,4 +24,5 @@ export interface CurrentListingsCreateFailedEvent {
 export interface CurrentListingsDeletedEvent {
   steamid: SteamID;
   ids: string[];
+  isActive: boolean;
 }

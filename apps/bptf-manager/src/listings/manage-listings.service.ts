@@ -1,6 +1,7 @@
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   CurrentListingsCreateFailedEvent,
+  CurrentListingsDeletedEvent,
   DesiredListingsAddedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
@@ -153,6 +154,21 @@ export class ManageListingsService {
       // Clear archived delete queue
       .del(this.getArchivedDeleteKey(steamid))
       .exec();
+  }
+
+  @OnEvent('current-listings.deleted', {
+    suppressErrors: false,
+  })
+  private async deletedCurrentListings(event: CurrentListingsDeletedEvent) {
+    if (!event.isActive) {
+      return;
+    }
+
+    await this.listingLimitsService.getLimits(event.steamid).then((limits) => {
+      if (limits.cap > limits.used) {
+        return this.createJob(event.steamid, ManageJobType.Create);
+      }
+    });
   }
 
   @OnEvent('current-listings.failed')

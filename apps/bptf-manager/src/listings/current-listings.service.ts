@@ -121,6 +121,7 @@ export class CurrentListingsService {
     await this.eventEmitter.emitAsync('current-listings.deleted', {
       steamid,
       ids,
+      isActive: true,
     } satisfies CurrentListingsDeletedEvent);
 
     return result;
@@ -149,6 +150,7 @@ export class CurrentListingsService {
     await this.eventEmitter.emitAsync('current-listings.deleted', {
       steamid,
       ids,
+      isActive: false,
     } satisfies CurrentListingsDeletedEvent);
 
     return result;
