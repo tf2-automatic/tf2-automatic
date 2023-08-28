@@ -53,5 +53,5 @@ export class RefreshInventoryDto {
   @IsInt()
   @IsPositive()
   @IsOptional()
-  time!: number;
+  time?: number;
 }

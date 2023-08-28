@@ -10,36 +10,33 @@ import { ManageListingsService } from './manage-listings.service';
 import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
 import { ListingLimitsService } from './listing-limits.service';
+import { InventoriesModule } from '../inventories/inventories.module';
+import { DefaultJobOptions } from 'bullmq';
+
+const defaultJobOptions: DefaultJobOptions = {
+  attempts: Number.MAX_SAFE_INTEGER,
+  backoff: {
+    type: 'exponential',
+    delay: 500,
+  },
+  removeOnComplete: true,
+  removeOnFail: true,
+};
 
 @Module({
   imports: [
     HttpModule,
     BullModule.registerQueue({
       name: 'manage-listings',
-      defaultJobOptions: {
-        attempts: Number.MAX_SAFE_INTEGER,
-        backoff: {
-          type: 'exponential',
-          delay: 500,
-        },
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
+      defaultJobOptions,
     }),
     BullModule.registerQueue({
       name: 'listing-limits',
-      defaultJobOptions: {
-        attempts: Number.MAX_SAFE_INTEGER,
-        backoff: {
-          type: 'exponential',
-          delay: 500,
-        },
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
+      defaultJobOptions,
     }),
     TokensModule,
     AgentsModule,
+    InventoriesModule,
   ],
   providers: [
     DesiredListingsService,

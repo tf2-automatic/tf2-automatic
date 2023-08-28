@@ -39,5 +39,6 @@ const defaultJobOptions: DefaultJobOptions = {
     EnqueueInventoriesProcessor,
   ],
   controllers: [InventoriesController],
+  exports: [InventoriesService],
 })
 export class InventoriesModule {}

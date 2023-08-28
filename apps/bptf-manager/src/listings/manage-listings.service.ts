@@ -1,5 +1,6 @@
 import { OnEvent } from '@nestjs/event-emitter';
 import {
+  CurrentListingsCreateFailedEvent,
   DesiredListingsAddedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
@@ -16,11 +17,15 @@ import { AgentsService } from '../agents/agents.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
-import { DesiredListing } from './interfaces/desired-listing.interface';
+import {
+  DesiredListing,
+  ListingError,
+} from './interfaces/desired-listing.interface';
 import { CurrentListingsService } from './current-listings.service';
 import { Token } from '@tf2-automatic/bptf-manager-data';
 import { BatchCreateListingResponse } from './interfaces/bptf-response.interface';
 import { ListingLimitsService } from './listing-limits.service';
+import { InventoriesService } from '../inventories/inventories.service';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -31,6 +36,7 @@ export class ManageListingsService {
     private readonly desiredListingsService: DesiredListingsService,
     private readonly currentListingsService: CurrentListingsService,
     private readonly listingLimitsService: ListingLimitsService,
+    private readonly inventoriesService: InventoriesService,
     @InjectQueue('manage-listings')
     private readonly queue: Queue<
       ManageJobData,
@@ -147,6 +153,19 @@ export class ManageListingsService {
       // Clear archived delete queue
       .del(this.getArchivedDeleteKey(steamid))
       .exec();
+  }
+
+  @OnEvent('current-listings.failed')
+  private async failedCurrentListings(event: CurrentListingsCreateFailedEvent) {
+    const found =
+      Object.values(event.results).findIndex(
+        (error) => error === ListingError.ItemDoesNotExist,
+      ) !== -1;
+
+    if (found) {
+      // TODO: Schedule refresh for the time when the desired listing was created
+      await this.inventoriesService.scheduleRefresh(event.steamid);
+    }
   }
 
   async createJob(steamid: SteamID, type: ManageJobType): Promise<void> {

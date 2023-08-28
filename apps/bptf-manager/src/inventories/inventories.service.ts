@@ -46,11 +46,11 @@ export class InventoriesService {
 
   async scheduleRefresh(
     steamid: SteamID,
-    body: RefreshInventoryDto,
+    body?: RefreshInventoryDto,
   ): Promise<void> {
     const steamid64 = steamid.getSteamID64();
 
-    const time = body.time || Math.floor(Date.now() / 1000);
+    const time = body?.time ?? Math.floor(Date.now() / 1000);
 
     await this.redlock.using(
       [`bptf-manager:inventories:${steamid64}`],
