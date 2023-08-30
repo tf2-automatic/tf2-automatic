@@ -135,13 +135,11 @@ export class ManageListingsProcessor
         return this.handleDeleteArchivedAction(job);
       case JobType.DeleteAll:
         return this.handleDeleteAllAction(job);
+      case JobType.Plan:
+        return this.handlePlanAction(job);
       default:
         this.logger.warn('Unknown task type: ' + job.name);
-        return {
-          more: false,
-          amount: 0,
-          done: false,
-        };
+        return false;
     }
   }
 
@@ -151,11 +149,7 @@ export class ManageListingsProcessor
     const registering = await this.agentsService.isRegistering(steamid);
     if (!registering) {
       // Agent is not running, don't create listings
-      return {
-        more: false,
-        amount: 0,
-        done: false,
-      };
+      return false;
     }
 
     const hashes = await this.manageListingsService.getListingsToCreate(
@@ -164,11 +158,7 @@ export class ManageListingsProcessor
     );
 
     if (hashes.length === 0) {
-      return {
-        more: false,
-        amount: 0,
-        done: false,
-      };
+      return false;
     }
 
     const token = await this.tokensService.getToken(steamid);
@@ -179,7 +169,7 @@ export class ManageListingsProcessor
 
     return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
       // Create listings
-      const result = await this.manageListingsService
+      await this.manageListingsService
         .createListings(token, hashes)
         .catch((err) => {
           if (err instanceof AxiosError) {
@@ -200,18 +190,7 @@ export class ManageListingsProcessor
           throw err;
         });
 
-      let created = 0;
-      result.forEach((e) => {
-        if (e.result !== undefined) {
-          created++;
-        }
-      });
-
-      return {
-        more: hashes.length === this.createBatchSize,
-        amount: created,
-        done: true,
-      };
+      return hashes.length === this.createBatchSize;
     });
   }
 
@@ -224,22 +203,14 @@ export class ManageListingsProcessor
     );
 
     if (ids.length === 0) {
-      return {
-        more: false,
-        amount: 0,
-        done: false,
-      };
+      return false;
     }
 
     const token = await this.tokensService.getToken(steamid);
 
-    const result = await this.manageListingsService.deleteListings(token, ids);
+    await this.manageListingsService.deleteListings(token, ids);
 
-    return {
-      more: ids.length === this.deleteBatchSize,
-      amount: result.deleted,
-      done: true,
-    };
+    return ids.length === this.deleteBatchSize;
   }
 
   async handleDeleteArchivedAction(job: CustomJob): Promise<JobResult> {
@@ -251,11 +222,7 @@ export class ManageListingsProcessor
     );
 
     if (ids.length === 0) {
-      return {
-        more: false,
-        amount: 0,
-        done: false,
-      };
+      return false;
     }
 
     this.logger.debug(
@@ -265,16 +232,9 @@ export class ManageListingsProcessor
     const token = await this.tokensService.getToken(steamid);
 
     return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
-      const result = await this.manageListingsService.deleteArchivedListings(
-        token,
-        ids,
-      );
+      await this.manageListingsService.deleteArchivedListings(token, ids);
 
-      return {
-        more: ids.length === this.deleteArchivedBatchSize,
-        amount: result.deleted,
-        done: true,
-      };
+      return ids.length === this.deleteArchivedBatchSize;
     });
   }
 
@@ -290,15 +250,18 @@ export class ManageListingsProcessor
     return this.deleteAllGroup
       .key(steamid.getSteamID64())
       .schedule(async () => {
-        const deleted =
-          await this.manageListingsService.deleteAllListings(token);
+        await this.manageListingsService.deleteAllListings(token);
 
-        return {
-          more: false,
-          amount: deleted,
-          done: true,
-        };
+        return false;
       });
+  }
+
+  async handlePlanAction(job: CustomJob): Promise<JobResult> {
+    const steamid = new SteamID(job.data.steamid64);
+
+    await this.manageListingsService.planListings(steamid);
+
+    return false;
   }
 
   @OnWorkerEvent('error')
@@ -310,7 +273,7 @@ export class ManageListingsProcessor
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
     this.logger.warn(
-      `Failed to ${job.name} listings for ${job.data.steamid64}`,
+      `Failed to ${job.name} listings for ${job.data.steamid64}: ${err.message}`,
     );
 
     if (err instanceof AxiosError) {
@@ -327,7 +290,7 @@ export class ManageListingsProcessor
 
     this.logger.debug('Completed job ' + job.id);
 
-    if (job.returnvalue.more === true) {
+    if (job.returnvalue === true) {
       this.manageListingsService.createJob(steamid, job.name).catch((err) => {
         this.logger.error('Failed to create job');
         console.error(err);

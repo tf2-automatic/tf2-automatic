@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDefined,
   IsNumber,
   IsObject,
   IsOptional,
@@ -17,6 +18,10 @@ export class ListingDto {
   @IsString()
   @ValidateIf((o) => o.item === undefined)
   id?: string;
+
+  @IsDefined()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currencies?: any;
 }
 
 export class DesiredListingDto {

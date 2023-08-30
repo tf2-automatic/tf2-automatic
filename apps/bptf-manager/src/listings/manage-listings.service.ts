@@ -23,14 +23,17 @@ import {
   ListingError,
 } from './interfaces/desired-listing.interface';
 import { CurrentListingsService } from './current-listings.service';
-import { Token } from '@tf2-automatic/bptf-manager-data';
+import { Listing, Token } from '@tf2-automatic/bptf-manager-data';
 import { BatchCreateListingResponse } from './interfaces/bptf-response.interface';
 import { ListingLimitsService } from './listing-limits.service';
 import { InventoriesService } from '../inventories/inventories.service';
+import { Logger } from '@nestjs/common';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
 export class ManageListingsService {
+  private readonly logger = new Logger(ManageListingsService.name);
+
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly agentsService: AgentsService,
@@ -48,18 +51,7 @@ export class ManageListingsService {
 
   @OnEvent('agents.registering')
   private async agentsRegistering(steamid: SteamID): Promise<void> {
-    // TODO: Queue a job to compare current listings to desired listings and create/delete listings based on that
-
-    const desired =
-      await this.desiredListingsService.getAllDesiredInternal(steamid);
-
-    if (desired.length > 0) {
-      const transaction = this.redis.multi();
-      this.chainableQueueDesired(transaction, steamid, desired);
-      await transaction.exec();
-
-      await this.createJob(steamid, ManageJobType.Create);
-    }
+    await this.createJob(steamid, ManageJobType.Plan);
   }
 
   @OnEvent('agents.unregistering')
@@ -222,6 +214,11 @@ export class ManageListingsService {
     );
   }
 
+  @OnEvent('current-listings.refreshed')
+  private refreshedCurrentListings(steamid: SteamID) {
+    return this.createJob(steamid, ManageJobType.Plan);
+  }
+
   private chainableQueueDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
@@ -366,6 +363,105 @@ export class ManageListingsService {
     );
 
     return result;
+  }
+
+  async planListings(steamid: SteamID): Promise<void> {
+    const [current, desired] = await Promise.all([
+      this.currentListingsService.getAllCurrent(steamid),
+      this.desiredListingsService.getAllDesiredInternal(steamid),
+    ]);
+
+    const currentMap = new Map<string, Listing>();
+    current.forEach((l) => currentMap.set(l.id, l));
+
+    // Go through all desired and check if the listing is still active
+    desired.forEach((d) => {
+      if (d.id === undefined || !currentMap.has(d.id)) {
+        // Listing does not exist or it no longer exists, add it to the create queue
+        delete d.id;
+      }
+    });
+
+    const create: DesiredListing[] = [];
+
+    // Queue listings to be created if they don't have a listing id
+    desired.forEach((d) => {
+      if (d.id === undefined) {
+        if (d.error === ListingError.InvalidItem) {
+          return;
+        } else if (
+          d.error !== ListingError.Unknown &&
+          d.error &&
+          d.lastAttemptedAt &&
+          d.lastAttemptedAt + 10 * 60 * 1000 < Date.now()
+        ) {
+          // Listing has an error, it is not unknown, and it was attempted to be created less than 10 minutes ago
+          return;
+        }
+
+        create.push(d);
+      }
+    });
+
+    const desiredWithId = new Map<string, DesiredListing>();
+    desired.forEach((d) => {
+      if (d.id !== undefined) {
+        desiredWithId.set(d.id, d);
+      }
+    });
+
+    const remove: string[] = [];
+
+    // Queue listings to be deleted if they are not associated with a desired listing
+    current.forEach((c) => {
+      if (!desiredWithId.has(c.id)) {
+        // Listing is not desired, add it to the delete queue
+        remove.push(c.id);
+      }
+    });
+
+    const transaction = this.redis.multi();
+
+    if (create.length > 0) {
+      this.chainableQueueDesired(transaction, steamid, create);
+    }
+
+    if (remove.length > 0) {
+      transaction.sadd(this.getDeleteKey(steamid), ...remove);
+      transaction.sadd(this.getArchivedDeleteKey(steamid), ...remove);
+    }
+
+    this.desiredListingsService.chainableSaveDesired(
+      transaction,
+      steamid,
+      desired,
+    );
+
+    // TODO: Delete listing ids that don't exist anymore
+
+    await transaction.exec();
+
+    this.logger.debug(
+      'Queued ' +
+        create.length +
+        ' listings to be created and ' +
+        remove.length +
+        ' listings to be deleted',
+    );
+
+    const promises: Promise<unknown>[] = [];
+
+    if (create.length > 0) {
+      promises.push(this.createJob(steamid, ManageJobType.Create));
+    }
+
+    if (remove.length > 0) {
+      promises.push(this.createJob(steamid, ManageJobType.Delete));
+      promises.push(this.createJob(steamid, ManageJobType.DeleteArchived));
+    }
+
+    // Create jobs
+    await Promise.all(promises);
   }
 
   async deleteAllListings(token: Token) {

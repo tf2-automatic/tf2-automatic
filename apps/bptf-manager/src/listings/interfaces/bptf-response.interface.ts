@@ -38,3 +38,12 @@ export interface ListingLimitsResponse {
     bumpInterval: number;
   };
 }
+
+export interface GetListingsResponse {
+  results: Listing[];
+  cursor: {
+    skip: number;
+    limit: number;
+    total: number;
+  };
+}

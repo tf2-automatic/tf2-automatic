@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import { Job, Queue } from 'bullmq';
+import { Queue } from 'bullmq';
 import { Token } from '@tf2-automatic/bptf-manager-data';
 import { AgentResponse } from './interfaces/agent-response.interface';
 import { firstValueFrom } from 'rxjs';
@@ -14,18 +14,9 @@ import Redlock from 'redlock';
 import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { getJobs, getRepeatableJob } from '../common/utils';
 
 const KEY_PREFIX = 'bptf-manager:data:';
-
-interface RepeatableJob {
-  key: string;
-  name: string;
-  id: string;
-  endDate: number;
-  tz: string;
-  pattern: string;
-  next: number;
-}
 
 @Injectable()
 export class AgentsService {
@@ -161,65 +152,18 @@ export class AgentsService {
     });
   }
 
-  async getJobs(steamid: SteamID): Promise<Job<AgentJobData>[]> {
-    const match: Job[] = [];
-
-    let start = 0;
-    let moreJobs = true;
-
-    while (moreJobs) {
-      const end = start + 100;
-      const jobs = await this.registerAgentsQueue.getJobs(
-        undefined,
-        start,
-        end,
-        true,
-      );
-
-      if (jobs.length !== 1 + end - start) {
-        moreJobs = false;
-      }
-
-      jobs.forEach((job) => {
-        if (job.data.steamid64 === steamid.getSteamID64()) {
-          match.push(job);
-        }
-      });
-
-      start = end + 1;
-    }
-
-    return match;
+  private getRepeatableJob(steamid: SteamID) {
+    return getRepeatableJob(
+      this.registerAgentsQueue,
+      (job) => job.name === steamid.getSteamID64(),
+    );
   }
 
-  async getRepeatableJob(steamid: SteamID): Promise<RepeatableJob | null> {
-    let match: RepeatableJob | null = null;
-
-    let start = 0;
-    let moreJobs = true;
-
-    while (match === null && moreJobs) {
-      const end = start + 100;
-      const jobs = await this.registerAgentsQueue.getRepeatableJobs(
-        start,
-        end,
-        true,
-      );
-
-      if (jobs.length !== 1 + end - start) {
-        moreJobs = false;
-      }
-
-      jobs.forEach((job) => {
-        if (job.name === steamid.getSteamID64()) {
-          match = job;
-        }
-      });
-
-      start = end + 1;
-    }
-
-    return match;
+  private getJobs(steamid: SteamID) {
+    return getJobs(
+      this.registerAgentsQueue,
+      (job) => job.data.steamid64 === steamid.getSteamID64(),
+    );
   }
 
   registerAgent(

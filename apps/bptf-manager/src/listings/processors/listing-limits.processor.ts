@@ -58,7 +58,9 @@ export class ListingLimitsProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
-    this.logger.warn(`Failed get listing limits for job ${job.id}`);
+    this.logger.warn(
+      `Failed get listing limits for job ${job.id}: ${err.message}`,
+    );
 
     if (err instanceof AxiosError) {
       console.error('Status code ' + err.response?.status);

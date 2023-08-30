@@ -336,7 +336,7 @@ export class DesiredListingsService {
     }
   }
 
-  private async chainableSaveDesired(
+  async chainableSaveDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
     desired: DesiredListingInternal[],

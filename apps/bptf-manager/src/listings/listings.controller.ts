@@ -80,6 +80,16 @@ export class ListingsController {
   }
 
   @ApiOperation({
+    summary: 'Refresh current listings',
+    description: 'Requests current listings to be refreshed from backpack.tf',
+  })
+  @ApiParamSteamID()
+  @Post('/:steamid/current/refresh')
+  refreshCurrent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
+    return this.currentListingsService.refreshListings(steamid);
+  }
+
+  @ApiOperation({
     summary: 'Get listing limits',
     description: 'Get listing limits from the database',
   })

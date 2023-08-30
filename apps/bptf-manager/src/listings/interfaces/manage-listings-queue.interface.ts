@@ -2,11 +2,7 @@ export interface JobData {
   steamid64: string;
 }
 
-export interface JobResult {
-  more: boolean;
-  amount: number;
-  done: boolean;
-}
+export type JobResult = boolean;
 
 export type JobName = JobType;
 
@@ -15,4 +11,5 @@ export enum JobType {
   Delete = 'delete',
   DeleteArchived = 'delete-archived',
   DeleteAll = 'delete-all',
+  Plan = 'plan',
 }

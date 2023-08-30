@@ -12,6 +12,7 @@ import { CurrentListingsService } from './current-listings.service';
 import { ListingLimitsService } from './listing-limits.service';
 import { InventoriesModule } from '../inventories/inventories.module';
 import { DefaultJobOptions } from 'bullmq';
+import { GetListingsProcessor } from './processors/get-listings.processor';
 
 const defaultJobOptions: DefaultJobOptions = {
   attempts: Number.MAX_SAFE_INTEGER,
@@ -34,6 +35,10 @@ const defaultJobOptions: DefaultJobOptions = {
       name: 'listing-limits',
       defaultJobOptions,
     }),
+    BullModule.registerQueue({
+      name: 'get-listings',
+      defaultJobOptions,
+    }),
     TokensModule,
     AgentsModule,
     InventoriesModule,
@@ -45,6 +50,7 @@ const defaultJobOptions: DefaultJobOptions = {
     ListingLimitsService,
     ManageListingsProcessor,
     ListingLimitsProcessor,
+    GetListingsProcessor,
   ],
   controllers: [ListingsController],
 })

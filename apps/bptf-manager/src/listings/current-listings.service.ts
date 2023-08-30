@@ -6,10 +6,11 @@ import {
   BatchDeleteListingResponse,
   DeleteAllListingsResponse,
   DeleteListingsResponse,
+  GetListingsResponse,
 } from './interfaces/bptf-response.interface';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
 import {
   DesiredListing,
@@ -23,18 +24,77 @@ import {
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
 import { ListingLimits } from './interfaces/limits.interface';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import Redlock from 'redlock';
+import {
+  JobData,
+  JobName,
+  JobType,
+} from './interfaces/get-listings.queue.interface';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
+  private readonly redlock: Redlock;
+
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
     private readonly listingLimitsService: ListingLimitsService,
-  ) {}
+    @InjectQueue('get-listings')
+    private readonly getListingsQueue: Queue<JobData, unknown, JobName>,
+  ) {
+    this.redlock = new Redlock([redis]);
+  }
+
+  @OnEvent('agents.registered')
+  private async agentsRegistered(steamid: SteamID): Promise<void> {
+    return this.refreshListings(steamid);
+  }
+
+  async refreshListings(steamid: SteamID): Promise<void> {
+    const time = Date.now();
+    await Promise.all([
+      this.createJob(steamid, JobType.Active, time),
+      this.createJob(steamid, JobType.Archived, time),
+    ]);
+  }
+
+  async createJob(
+    steamid: SteamID,
+    type: JobType,
+    time: number = Date.now(),
+    skip?: number,
+    limit?: number,
+    delay?: number,
+  ): Promise<void> {
+    await this.getListingsQueue.add(
+      type,
+      {
+        steamid64: steamid.getSteamID64(),
+        start: time,
+        skip,
+        limit,
+      },
+      {
+        jobId:
+          steamid.getSteamID64() +
+          ':' +
+          type +
+          ':' +
+          time +
+          ':' +
+          skip +
+          ':' +
+          limit,
+        delay,
+      },
+    );
+  }
 
   async getAllCurrent(steamid: SteamID): Promise<Listing[]> {
     const values = await this.redis.hvals(this.getCurrentKey(steamid));
@@ -358,7 +418,147 @@ export class CurrentListingsService {
     return active.deleted + archived.deleted;
   }
 
-  _createListings(
+  async getListingsAndContinue(
+    token: Token,
+    type: JobType,
+    time: number,
+    skip?: number,
+    limit?: number,
+  ) {
+    let debugStr = 'Getting ' + type + ' listings for ' + token.steamid64;
+
+    if (skip && limit) {
+      debugStr += ' using skip ' + skip + ' and limit ' + limit;
+    } else if (skip) {
+      debugStr += ' using skip ' + skip;
+    } else if (limit) {
+      debugStr += ' using limit ' + limit;
+    }
+
+    debugStr += '...';
+
+    this.logger.debug(debugStr);
+
+    const response = await this._getListings(token, skip, limit);
+
+    this.logger.debug(
+      'Got response for ' +
+        token.steamid64 +
+        ': skip: ' +
+        response.cursor.skip +
+        ', limit: ' +
+        response.cursor.limit +
+        ', total: ' +
+        response.cursor.total +
+        ', results: ' +
+        response.results.length,
+    );
+
+    const steamid = new SteamID(token.steamid64);
+
+    if (type === JobType.Active) {
+      // Update used listings using total returned in the response
+      await this.listingLimitsService.saveLimits(steamid, {
+        used: response.cursor.total,
+      });
+    }
+
+    // Save listings to database
+
+    // If there are no more listings to fetch then overwrite all current listings using the fetched listings
+    // When overwriting current listings we also need to delete listing ids from desired ids
+
+    const resource = `bptf-manager:listings:refresh:${steamid.getSteamID64()}`;
+
+    this.redlock.using([resource], 5000, async (signal) => {
+      if (response.results.length > 0) {
+        const keys = await this.redis.keys(
+          this.getTempCurrentKey(steamid, '*'),
+        );
+
+        const transaction = this.redis.multi();
+
+        const tempKey = this.getTempCurrentKey(steamid, time);
+
+        const listings = response.results.flatMap((listing) => [
+          listing.id,
+          JSON.stringify(listing),
+        ]);
+
+        // Add listings to all temp keys for this steamid
+        keys.forEach((key) => {
+          if (key !== tempKey) {
+            transaction.hmset(key, ...listings);
+          }
+        });
+
+        // Add listings to current temp key
+        transaction
+          .hmset(tempKey, ...listings)
+          // Make sure it expires after 5 minutes
+          .expire(tempKey, 5 * 60);
+
+        await transaction.exec();
+      }
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      if (
+        response.cursor.skip + response.cursor.limit >=
+        response.cursor.total
+      ) {
+        // Save that we are done getting listings of type
+        await this.redis.set(
+          this.getTempCurrentKey(steamid, time) + ':' + type + ':done',
+          '1',
+          'EX',
+          5 * 60,
+        );
+
+        const done = await this.redis.keys(
+          this.redis.options.keyPrefix +
+            this.getTempCurrentKey(steamid, time) +
+            ':*:done',
+        );
+
+        if (done.length < 2) {
+          // Not yet done with getting all active and archived
+          return;
+        }
+
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        // Move listings from temp to current
+        await this.redis.copy(
+          this.getTempCurrentKey(steamid, time),
+          this.getCurrentKey(steamid),
+          'REPLACE',
+        );
+        // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
+        await this.eventEmitter.emitAsync(
+          'current-listings.refreshed',
+          steamid,
+        );
+      } else {
+        // Fetch more listings
+        await this.createJob(
+          steamid,
+          type,
+          time,
+          response.cursor.skip + response.cursor.limit,
+          response.cursor.limit,
+        );
+      }
+    });
+
+    return response;
+  }
+
+  private _createListings(
     token: Token,
     listings: ListingDto[],
   ): Promise<BatchCreateListingResponse[]> {
@@ -378,7 +578,7 @@ export class CurrentListingsService {
     });
   }
 
-  _deleteListings(
+  private _deleteListings(
     token: Token,
     ids: string[],
   ): Promise<DeleteListingsResponse> {
@@ -400,7 +600,7 @@ export class CurrentListingsService {
     });
   }
 
-  _deleteArchivedListings(
+  private _deleteArchivedListings(
     token: Token,
     ids: string[],
   ): Promise<BatchDeleteListingResponse> {
@@ -422,7 +622,9 @@ export class CurrentListingsService {
     });
   }
 
-  _deleteAllActiveListings(token: Token): Promise<DeleteAllListingsResponse> {
+  private _deleteAllActiveListings(
+    token: Token,
+  ): Promise<DeleteAllListingsResponse> {
     return firstValueFrom(
       this.httpService.delete<DeleteAllListingsResponse>(
         'https://backpack.tf/api/v2/classifieds/listings',
@@ -438,7 +640,9 @@ export class CurrentListingsService {
     });
   }
 
-  _deleteAllArchivedListings(token: Token): Promise<DeleteAllListingsResponse> {
+  private _deleteAllArchivedListings(
+    token: Token,
+  ): Promise<DeleteAllListingsResponse> {
     return firstValueFrom(
       this.httpService.delete<DeleteAllListingsResponse>(
         'https://backpack.tf/api/v2/classifieds/archive',
@@ -454,8 +658,36 @@ export class CurrentListingsService {
     });
   }
 
+  private _getListings(
+    token: Token,
+    skip?: number,
+    limit: number = 1000,
+  ): Promise<GetListingsResponse> {
+    return firstValueFrom(
+      this.httpService.get<GetListingsResponse>(
+        'https://backpack.tf/api/v2/classifieds/listings',
+        {
+          params: {
+            skip,
+            limit,
+          },
+          headers: {
+            'X-Auth-Token': token.value,
+          },
+          timeout: 60000,
+        },
+      ),
+    ).then((response) => {
+      return response.data;
+    });
+  }
+
   private getCurrentKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:current:${steamid.getSteamID64()}`;
+  }
+
+  private getTempCurrentKey(steamid: SteamID, time: number | '*'): string {
+    return this.getCurrentKey(steamid) + ':' + time;
   }
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
