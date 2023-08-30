@@ -24,6 +24,7 @@ import {
   InventoryResponse,
   INVENTORY_CHANGED_EVENT,
   InventoryChangedEvent,
+  InventoryChangedEventReason,
 } from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
@@ -366,12 +367,17 @@ export class InventoriesService {
     addItems(ourSteamID, theirSteamID, receivedItems);
     addItems(theirSteamID, ourSteamID, sentItems);
 
-    return this.updateInventories(lostItems, gainedItems);
+    return this.updateInventories(
+      lostItems,
+      gainedItems,
+      InventoryChangedEventReason.ExchangeDetails,
+    );
   }
 
   private async updateInventories(
     lostItems: Record<string, string[]>,
     gainedItems: Record<string, Item[]>,
+    reason: InventoryChangedEventReason,
   ) {
     const inventories = Object.keys(lostItems)
       .concat(Object.keys(gainedItems))
@@ -482,6 +488,7 @@ export class InventoriesService {
           contextid: parts.contextid,
           gained: change.gained,
           lost: change.lost,
+          reason,
         };
 
         transaction.lpush(
@@ -532,7 +539,11 @@ export class InventoriesService {
       ]);
     });
 
-    return this.updateInventories(lostItems, {});
+    return this.updateInventories(
+      lostItems,
+      {},
+      InventoryChangedEventReason.Trade,
+    );
   }
 
   private async handleItemLost(event: TF2LostEvent): Promise<void> {
@@ -546,7 +557,11 @@ export class InventoriesService {
       [event.data.id],
     );
 
-    return this.updateInventories(lostItems, {});
+    return this.updateInventories(
+      lostItems,
+      {},
+      InventoryChangedEventReason.TF2,
+    );
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
