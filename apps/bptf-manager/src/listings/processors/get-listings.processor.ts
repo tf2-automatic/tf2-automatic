@@ -7,7 +7,9 @@ import SteamID from 'steamid';
 import { AxiosError } from 'axios';
 import { JobData, JobType } from '../interfaces/get-listings.queue.interface';
 
-@Processor('get-listings')
+@Processor('get-listings', {
+  concurrency: 2,
+})
 export class GetListingsProcessor extends WorkerHost {
   private readonly logger = new Logger(GetListingsProcessor.name);
 
