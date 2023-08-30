@@ -439,6 +439,8 @@ export class ManageListingsService {
 
     // TODO: Delete listing ids that don't exist anymore
 
+    // TODO: If listing cap is reached then delete listings that are of low priority
+
     await transaction.exec();
 
     this.logger.debug(
