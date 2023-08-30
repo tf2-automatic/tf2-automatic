@@ -533,11 +533,20 @@ export class CurrentListingsService {
         }
 
         // Move listings from temp to current
-        await this.redis.copy(
-          this.getTempCurrentKey(steamid, time),
-          this.getCurrentKey(steamid),
-          'REPLACE',
-        );
+        await this.redis
+          .multi()
+          .copy(
+            this.getTempCurrentKey(steamid, time),
+            this.getCurrentKey(steamid),
+            'REPLACE',
+          )
+          .del(
+            done.map((key) =>
+              key.replace(this.redis.options.keyPrefix as string, ''),
+            ),
+          )
+          .exec();
+
         // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
         await this.eventEmitter.emitAsync(
           'current-listings.refreshed',

@@ -214,7 +214,9 @@ export class ManageListingsService {
     );
   }
 
-  @OnEvent('current-listings.refreshed')
+  @OnEvent('current-listings.refreshed', {
+    suppressErrors: false,
+  })
   private refreshedCurrentListings(steamid: SteamID) {
     return this.createJob(steamid, ManageJobType.Plan);
   }
