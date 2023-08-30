@@ -463,22 +463,17 @@ export class CurrentListingsService {
       });
     }
 
-    // Save listings to database
-
-    // If there are no more listings to fetch then overwrite all current listings using the fetched listings
-    // When overwriting current listings we also need to delete listing ids from desired ids
-
     const resource = `bptf-manager:listings:refresh:${steamid.getSteamID64()}`;
 
     this.redlock.using([resource], 5000, async (signal) => {
+      const transaction = this.redis.multi();
+
+      const tempKey = this.getTempCurrentKey(steamid, time);
+
       if (response.results.length > 0) {
         const keys = await this.redis.keys(
           this.getTempCurrentKey(steamid, '*'),
         );
-
-        const transaction = this.redis.multi();
-
-        const tempKey = this.getTempCurrentKey(steamid, time);
 
         const listings = response.results.flatMap((listing) => [
           listing.id,
@@ -532,20 +527,34 @@ export class CurrentListingsService {
           throw signal.error;
         }
 
-        // Move listings from temp to current
-        await this.redis
-          .multi()
-          .copy(
-            this.getTempCurrentKey(steamid, time),
-            this.getCurrentKey(steamid),
-            'REPLACE',
-          )
-          .del(
-            done.map((key) =>
-              key.replace(this.redis.options.keyPrefix as string, ''),
-            ),
-          )
-          .exec();
+        // Check if a temp key exists
+        const exists = await this.redis.exists(
+          this.getTempCurrentKey(steamid, time),
+        );
+
+        const transaction = this.redis.multi();
+
+        if (exists) {
+          // It exists, copy it to the current key and remove expiration
+          transaction
+            .copy(
+              this.getTempCurrentKey(steamid, time),
+              this.getCurrentKey(steamid),
+              'REPLACE',
+            )
+            .persist(this.getCurrentKey(steamid));
+        } else {
+          // It does not exist, delete current key
+          transaction.del(this.getCurrentKey(steamid));
+        }
+
+        transaction.del(
+          done.map((key) =>
+            key.replace(this.redis.options.keyPrefix as string, ''),
+          ),
+        );
+
+        await transaction.exec();
 
         // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
         await this.eventEmitter.emitAsync(

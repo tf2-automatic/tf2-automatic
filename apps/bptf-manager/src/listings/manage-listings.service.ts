@@ -388,21 +388,15 @@ export class ManageListingsService {
 
     // Queue listings to be created if they don't have a listing id
     desired.forEach((d) => {
-      if (d.id === undefined) {
-        if (d.error === ListingError.InvalidItem) {
-          return;
-        } else if (
-          d.error !== ListingError.Unknown &&
-          d.error &&
-          d.lastAttemptedAt &&
-          d.lastAttemptedAt + 10 * 60 * 1000 < Date.now()
-        ) {
-          // Listing has an error, it is not unknown, and it was attempted to be created less than 10 minutes ago
-          return;
-        }
-
-        create.push(d);
+      if (d.error === ListingError.InvalidItem) {
+        // Don't retry invalid item errors because they will never be fixed
+        return;
+      } else if (d.error === undefined && d.id !== undefined) {
+        // If there is no error and the listing already has an id then don't queue it to be created
+        return;
       }
+
+      create.push(d);
     });
 
     const desiredWithId = new Map<string, DesiredListing>();
