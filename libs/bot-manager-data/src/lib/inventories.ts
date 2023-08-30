@@ -62,6 +62,12 @@ export type InventoryFailedEvent = BaseEvent<
 export type InventoryChangedEventType = 'inventories.changed';
 export const INVENTORY_CHANGED_EVENT: InventoryChangedEventType = `${INVENTORY_EVENT_PREFIX}.changed`;
 
+export enum InventoryChangedEventReason {
+  Trade = 'TRADE',
+  ExchangeDetails = 'EXCHANGE_DETAILS',
+  TF2 = 'TF2',
+}
+
 export type InventoryChangedEvent = BaseEvent<
   InventoryChangedEventType,
   {
@@ -70,5 +76,6 @@ export type InventoryChangedEvent = BaseEvent<
     contextid: string;
     gained: Item[];
     lost: Item[];
+    reason: InventoryChangedEventReason;
   }
 >;
