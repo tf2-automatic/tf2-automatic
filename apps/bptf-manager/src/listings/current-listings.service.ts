@@ -153,6 +153,8 @@ export class CurrentListingsService {
 
     this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
 
+    await this.deleteTempListings(steamid, ids);
+
     // Filter out listings that should not be deleted (for example, when deleting active listing because newest was archived)
     const remove =
       exists.length === 0 ? ids : ids.filter((id, index) => !exists[index]);
@@ -233,9 +235,9 @@ export class CurrentListingsService {
         '...',
     );
 
-    const limits = await this.listingLimitsService.getLimits(
-      new SteamID(token.steamid64),
-    );
+    const steamid = new SteamID(token.steamid64);
+
+    const limits = await this.listingLimitsService.getLimits(steamid);
 
     // Create listings on backpack.tf
     const result = await this._createListings(token, listings);
@@ -244,6 +246,11 @@ export class CurrentListingsService {
 
     this.logger.log(
       'Created ' + createdCount + ' listing(s) for ' + token.steamid64,
+    );
+
+    await this.saveTempListings(
+      steamid,
+      result.filter((r) => r.result !== undefined).map((r) => r.result!),
     );
 
     const mapped = result.reduce(
@@ -468,34 +475,18 @@ export class CurrentListingsService {
     const resource = `bptf-manager:listings:refresh:${steamid.getSteamID64()}`;
 
     this.redlock.using([resource], 5000, async (signal) => {
-      const transaction = this.redis.multi();
-
       const tempKey = this.getTempCurrentKey(steamid, time);
 
       if (response.results.length > 0) {
-        const keys = await this.redis.keys(
-          this.getTempCurrentKey(steamid, '*'),
-        );
-
-        const listings = response.results.flatMap((listing) => [
-          listing.id,
-          JSON.stringify(listing),
-        ]);
-
-        // Add listings to all temp keys for this steamid
-        keys.forEach((key) => {
-          if (key !== tempKey) {
-            transaction.hmset(key, ...listings);
-          }
-        });
+        await this.saveTempListings(steamid, response.results);
 
         // Add listings to current temp key
-        transaction
-          .hmset(tempKey, ...listings)
+        await this.redis
+          .multi()
+          .hmset(tempKey, this.mapListings(response.results))
           // Make sure it expires after 5 minutes
-          .expire(tempKey, 5 * 60);
-
-        await transaction.exec();
+          .expire(tempKey, 5 * 60)
+          .exec();
       }
 
       if (signal.aborted) {
@@ -576,6 +567,48 @@ export class CurrentListingsService {
     });
 
     return response;
+  }
+
+  private async saveTempListings(
+    steamid: SteamID,
+    listings: Listing[],
+  ): Promise<void> {
+    const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
+
+    const transaction = this.redis.multi();
+
+    // Add listings to all temp keys for this steamid
+    keys.forEach((key) => {
+      transaction.hmset(key, this.mapListings(listings));
+    });
+
+    await transaction.exec();
+  }
+
+  private async deleteTempListings(
+    steamid: SteamID,
+    ids: string[],
+  ): Promise<void> {
+    const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
+
+    const transaction = this.redis.multi();
+
+    // Add listings to all temp keys for this steamid
+    keys.forEach((key) => {
+      transaction.hdel(key, ...ids);
+    });
+
+    await transaction.exec();
+  }
+
+  private mapListings(listings: Listing[]): Record<string, string> {
+    const mapped: Record<string, string> = {};
+
+    listings.forEach((listing) => {
+      mapped[listing.id] = JSON.stringify(listing);
+    });
+
+    return mapped;
   }
 
   private _createListings(
