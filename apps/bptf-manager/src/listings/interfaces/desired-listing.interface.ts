@@ -2,7 +2,7 @@ import { ListingDto } from '@tf2-automatic/bptf-manager-data';
 
 export enum ListingError {
   // Item does not exist in the agent's inventory on backpack.tf
-  ItemDoesNotExist = 'DOES_NOT_EXIST',
+  ItemDoesNotExist = 'ITEM_DOES_NOT_EXIST',
   // Item is not valid (missing properties, wrong values, etc.)
   InvalidItem = 'INVALID_ITEM',
   // Invalid currencies (missing price, negative price, etc.)

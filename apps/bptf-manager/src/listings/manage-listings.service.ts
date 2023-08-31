@@ -386,6 +386,8 @@ export class ManageListingsService {
 
     const create: DesiredListing[] = [];
 
+    const inventory = await this.inventoriesService.getInventory(steamid);
+
     // Queue listings to be created if they don't have a listing id
     desired.forEach((d) => {
       if (d.error === ListingError.InvalidItem) {
@@ -394,6 +396,18 @@ export class ManageListingsService {
       } else if (d.error === undefined && d.id !== undefined) {
         // If there is no error and the listing already has an id then don't queue it to be created
         return;
+      } else if (
+        d.error === ListingError.ItemDoesNotExist &&
+        inventory !== null
+      ) {
+        if (
+          d.lastAttemptedAt &&
+          (d.lastAttemptedAt > inventory.refresh ||
+            inventory.status.last_update < inventory.status.current_time)
+        ) {
+          // Item was last attempted to be created after we last refreshed the inventory, or the inventory has not been refreshed since the last attempt
+          return;
+        }
       }
 
       create.push(d);
