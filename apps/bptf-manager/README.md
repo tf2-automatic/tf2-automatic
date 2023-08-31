@@ -1,4 +1,4 @@
-# bot-manager
+# bptf-manager
 
 The backpack.tf manager is responsible for interacting with backpack.tf with the focus of managing listings.
 
