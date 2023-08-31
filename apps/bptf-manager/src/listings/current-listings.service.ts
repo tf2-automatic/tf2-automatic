@@ -429,6 +429,16 @@ export class CurrentListingsService {
     skip?: number,
     limit?: number,
   ) {
+    let promise: Promise<GetListingsResponse>;
+
+    if (type === JobType.Active) {
+      promise = this._getActiveListings(token, skip, limit);
+    } else if (type === JobType.Archived) {
+      promise = this._getArchivedListings(token, skip, limit);
+    } else {
+      return;
+    }
+
     let debugStr = 'Getting ' + type + ' listings for ' + token.steamid64;
 
     if (skip && limit) {
@@ -443,7 +453,7 @@ export class CurrentListingsService {
 
     this.logger.debug(debugStr);
 
-    const response = await this._getListings(token, skip, limit);
+    const response = await promise;
 
     this.logger.debug(
       'Got response for ' +
@@ -716,7 +726,7 @@ export class CurrentListingsService {
     });
   }
 
-  private _getListings(
+  private _getActiveListings(
     token: Token,
     skip?: number,
     limit: number = 1000,
@@ -724,6 +734,30 @@ export class CurrentListingsService {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(
         'https://backpack.tf/api/v2/classifieds/listings',
+        {
+          params: {
+            skip,
+            limit,
+          },
+          headers: {
+            'X-Auth-Token': token.value,
+          },
+          timeout: 60000,
+        },
+      ),
+    ).then((response) => {
+      return response.data;
+    });
+  }
+
+  private _getArchivedListings(
+    token: Token,
+    skip?: number,
+    limit: number = 1000,
+  ): Promise<GetListingsResponse> {
+    return firstValueFrom(
+      this.httpService.get<GetListingsResponse>(
+        'https://backpack.tf/api/v2/classifieds/archive',
         {
           params: {
             skip,
