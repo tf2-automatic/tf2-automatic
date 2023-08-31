@@ -400,10 +400,13 @@ export class ManageListingsService {
         d.error === ListingError.ItemDoesNotExist &&
         inventory !== null
       ) {
+        // Adding 1 second to the difference because the times might not be exact
+        const difference =
+          Math.abs(inventory.refresh - inventory.status.current_time) + 1;
+
         if (
           d.lastAttemptedAt &&
-          (d.lastAttemptedAt > inventory.refresh ||
-            inventory.status.last_update < inventory.status.current_time)
+          d.lastAttemptedAt > inventory.status.last_update + difference
         ) {
           // Item was last attempted to be created after we last refreshed the inventory, or the inventory has not been refreshed since the last attempt
           return;
