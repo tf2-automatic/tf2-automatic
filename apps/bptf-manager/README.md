@@ -1,6 +1,6 @@
 # bptf-manager
 
-The backpack.tf manager is responsible for interacting with backpack.tf with the focus of managing listings.
+The backpack.tf manager is responsible for interacting with backpack.tf with the focus of managing listings. It is a standalone application that can be used as a replacement for directly managing listings using the backpack.tf APIs.
 
 ## Features
 
@@ -9,6 +9,7 @@ The backpack.tf manager is responsible for interacting with backpack.tf with the
 - Ability to prioritize listings to be created before other listings
 - Prioritizes updating listings over creating new listings to ensure listings are up to date
 - Periodically gets listings from backpack.tf and ensures that they match the desired listings
+- Handles listing errors when creating listings and retries if possible
 - Repeatedly requests inventories to be refreshed until they are
 - Uses the newest backpack.tf APIs
 
