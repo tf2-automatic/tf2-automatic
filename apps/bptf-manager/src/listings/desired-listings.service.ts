@@ -336,6 +336,27 @@ export class DesiredListingsService {
     }
   }
 
+  @OnEvent('current-listings.refreshed', {
+    suppressErrors: false,
+  })
+  private async currentListingsRefreshed(steamid: SteamID): Promise<void> {
+    const desired = await this.getAllDesiredInternal(steamid);
+
+    const relations: Record<string, string> = {};
+
+    desired.forEach((d) => {
+      if (d.id) {
+        relations[d.id] = d.hash;
+      }
+    });
+
+    if (Object.keys(relations).length > 0) {
+      await this.redis.hmset(this.getHashFromListingKey(steamid), relations);
+    } else {
+      await this.redis.del(this.getHashFromListingKey(steamid));
+    }
+  }
+
   async chainableSaveDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
