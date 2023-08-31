@@ -8,10 +8,7 @@ import { ChainableCommander, Redis } from 'ioredis';
 import Redlock from 'redlock';
 import SteamID from 'steamid';
 import hash from 'object-hash';
-import {
-  DesiredListing as DesiredListingInternal,
-  ListingError,
-} from './interfaces/desired-listing.interface';
+import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   CurrentListingsCreateFailedEvent,
@@ -132,18 +129,9 @@ export class DesiredListingsService {
         if (desired.length > 0) {
           // It is okay to only remove the matched listings because unmatched listings don't exist anyway
           const hashes = desired.map((d) => d.hash);
-          const ids = desired.filter((d) => d.id).map((d) => d.id!);
 
           const transaction = this.redis.multi();
-
-          // Delete desired listings
           transaction.hdel(this.getDesiredKey(steamid), ...hashes);
-
-          if (ids.length > 0) {
-            // Delete listing id -> desired listing hash relationship
-            transaction.hdel(this.getHashFromListingKey(steamid), ...ids);
-          }
-
           await transaction.exec();
 
           await this.eventEmitter.emitAsync('desired-listings.removed', {
@@ -213,64 +201,25 @@ export class DesiredListingsService {
 
     const transaction = this.redis.multi();
 
-    // Save listing id -> desired listing hash relationship
-    transaction.hmset(
-      this.getHashFromListingKey(event.steamid),
-      ...createdHashes.flatMap((hash) => [event.results[hash].id, hash]),
-    );
-
-    // eslint-disable-next-line no-constant-condition
-    if (true) {
-      // Check for listings that were overwritten
-
-      const ids = Object.values(event.results).map((l) => l.id);
-
-      // Get listings by listing id
-      const hashes = (
-        await this.redis.hmget(
-          this.getHashFromListingKey(event.steamid),
-          ...ids,
-        )
-      ).filter((m): m is string => m !== null);
-
-      if (hashes.length > 0) {
-        const desiredMap = await this.getDesiredByHashes(event.steamid, hashes);
-
-        const desired = Object.values(desiredMap);
-        desired.forEach((desired) => {
-          desired.updatedAt = now;
-          desired.error = ListingError.Overwritten;
-          delete desired.id;
-        });
-
-        if (desired.length > 0) {
-          this.chainableSaveDesired(transaction, event.steamid, desired);
-        }
-      }
-    }
-
     let publishDesired: DesiredListingInternal[] = [];
 
-    // eslint-disable-next-line no-constant-condition
-    if (true) {
-      // Update desired listings that were changed
-      const hashes = Object.keys(event.results);
+    // Update desired listings that were changed
+    const hashes = Object.keys(event.results);
 
-      const desiredMap = await this.getDesiredByHashes(event.steamid, hashes);
+    const desiredMap = await this.getDesiredByHashes(event.steamid, hashes);
 
-      const desired = Object.values(desiredMap);
-      desired.forEach((desired) => {
-        desired.id = event.results[desired.hash].id;
-        desired.lastAttemptedAt = now;
-        desired.updatedAt = now;
-        delete desired.error;
-      });
+    const desired = Object.values(desiredMap);
+    desired.forEach((desired) => {
+      desired.id = event.results[desired.hash].id;
+      desired.lastAttemptedAt = now;
+      desired.updatedAt = now;
+      delete desired.error;
+    });
 
-      if (desired.length > 0) {
-        // Save listings with their new listings id
-        this.chainableSaveDesired(transaction, event.steamid, desired);
-        publishDesired = desired;
-      }
+    if (desired.length > 0) {
+      // Save listings with their new listings id
+      this.chainableSaveDesired(transaction, event.steamid, desired);
+      publishDesired = desired;
     }
 
     await transaction.exec();
@@ -321,39 +270,12 @@ export class DesiredListingsService {
       // Remove listing id from all desired listings
       desired.forEach((d) => {
         delete d.id;
-        if (d.error === ListingError.Overwritten) {
-          delete d.error;
-        }
         d.updatedAt = now;
       });
 
       const transaction = this.redis.multi();
-
       this.chainableSaveDesired(transaction, steamid, desired);
-      transaction.del(this.getHashFromListingKey(steamid));
-
       await transaction.exec();
-    }
-  }
-
-  @OnEvent('current-listings.refreshed', {
-    suppressErrors: false,
-  })
-  private async currentListingsRefreshed(steamid: SteamID): Promise<void> {
-    const desired = await this.getAllDesiredInternal(steamid);
-
-    const relations: Record<string, string> = {};
-
-    desired.forEach((d) => {
-      if (d.id) {
-        relations[d.id] = d.hash;
-      }
-    });
-
-    if (Object.keys(relations).length > 0) {
-      await this.redis.hmset(this.getHashFromListingKey(steamid), relations);
-    } else {
-      await this.redis.del(this.getHashFromListingKey(steamid));
     }
   }
 
@@ -389,9 +311,5 @@ export class DesiredListingsService {
 
   private getDesiredKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
-  }
-
-  private getHashFromListingKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:hash:${steamid.getSteamID64()}`;
   }
 }

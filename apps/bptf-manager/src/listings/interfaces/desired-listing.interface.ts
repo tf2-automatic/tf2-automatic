@@ -9,8 +9,6 @@ export enum ListingError {
   InvalidCurrencies = 'MISSING_PRICE',
   // The cap was exceeded and the listing was not made
   CapExceeded = 'CAP_EXCEEDED',
-  // A different listing was made for the same item which resulted in this listing being overwritten
-  Overwritten = 'OVERWRITTEN',
   // The listing was not made and the reason is unknown
   Unknown = 'UNKNOWN',
 }
