@@ -325,7 +325,7 @@ export class ManageListingsService {
 
     await this.redis.zrem(
       this.getCreateKey(new SteamID(token.steamid64)),
-      ...desired.map((d) => d.hash),
+      ...hashes,
     );
 
     return result;
