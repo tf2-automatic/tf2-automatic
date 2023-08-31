@@ -1,0 +1,65 @@
+{
+  "name": "bptf-manager-data",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/bptf-manager-data/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/bptf-manager-data",
+        "main": "libs/bptf-manager-data/src/index.ts",
+        "tsConfig": "libs/bptf-manager-data/tsconfig.lib.json",
+        "assets": ["libs/bptf-manager-data/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/bptf-manager-data/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/bptf-manager-data/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "npm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "if [ \"{args.version}\" = \"undefined\" ]; then exit 1; fi",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "jq '.version=\"{args.version}\"' package.json > package.json.tmp",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "mv package.json.tmp package.json",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "npm publish --tag {args.tag}",
+            "forwardAllArgs": false
+          }
+        ],
+        "cwd": "dist/libs/bptf-manager-data/",
+        "parallel": false
+      }
+    }
+  },
+  "tags": []
+}
