@@ -248,11 +248,6 @@ export class CurrentListingsService {
       'Created ' + createdCount + ' listing(s) for ' + token.steamid64,
     );
 
-    await this.saveTempListings(
-      steamid,
-      result.filter((r) => r.result !== undefined).map((r) => r.result!),
-    );
-
     const mapped = result.reduce(
       (acc, cur, index) => {
         const hash = hashes[index];
@@ -320,6 +315,8 @@ export class CurrentListingsService {
     }
 
     const createdHashes = Object.keys(created);
+
+    await this.saveTempListings(steamid, Object.values(created));
 
     const transaction = this.redis.multi();
 
@@ -573,6 +570,10 @@ export class CurrentListingsService {
     steamid: SteamID,
     listings: Listing[],
   ): Promise<void> {
+    if (listings.length === 0) {
+      return;
+    }
+
     const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
 
     const transaction = this.redis.multi();
@@ -589,6 +590,10 @@ export class CurrentListingsService {
     steamid: SteamID,
     ids: string[],
   ): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
     const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
 
     const transaction = this.redis.multi();
