@@ -443,6 +443,8 @@ export class CurrentListingsService {
 
     this.logger.debug(
       'Got response for ' +
+        type +
+        ' listings for ' +
         token.steamid64 +
         ': skip: ' +
         response.cursor.skip +
