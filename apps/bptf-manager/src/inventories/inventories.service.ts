@@ -179,7 +179,7 @@ export class InventoriesService {
   ): Promise<InventoryStatus> {
     const status = await firstValueFrom(
       this.httpService.get<InventoryStatus>(
-        `https://backpack.tf/api/inventory/${steamid.getSteamID64()}/status`,
+        `https://api.backpack.tf/api/inventory/${steamid.getSteamID64()}/status`,
         {
           headers: {
             'X-Auth-Token': token,
@@ -201,7 +201,7 @@ export class InventoriesService {
 
     const status = await firstValueFrom(
       this.httpService.post<InventoryStatus>(
-        `https://backpack.tf/api/inventory/${steamid.getSteamID64()}/refresh`,
+        `https://api.backpack.tf/api/inventory/${steamid.getSteamID64()}/refresh`,
         {},
         {
           headers: {

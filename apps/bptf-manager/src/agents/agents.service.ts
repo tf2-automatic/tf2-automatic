@@ -175,7 +175,7 @@ export class AgentsService {
     return this.redlock.using([resource], 5000, {}, async () => {
       return firstValueFrom(
         this.httpService.post<AgentResponse>(
-          'https://backpack.tf/api/agent/pulse',
+          'https://api.backpack.tf/api/agent/pulse',
           {},
           {
             headers: {
@@ -201,7 +201,7 @@ export class AgentsService {
     return this.redlock.using([resource], 5000, {}, async () => {
       return firstValueFrom(
         this.httpService.post<AgentResponse>(
-          'https://backpack.tf/api/agent/stop',
+          'https://api.backpack.tf/api/agent/stop',
           {},
           {
             headers: {

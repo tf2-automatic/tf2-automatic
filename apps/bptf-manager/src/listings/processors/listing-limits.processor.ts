@@ -40,7 +40,7 @@ export class ListingLimitsProcessor extends WorkerHost {
   private getLimits(token: Token): Promise<ListingLimitsResponse> {
     return axios
       .get<ListingLimitsResponse>(
-        'https://backpack.tf/api/classifieds/limits',
+        'https://api.backpack.tf/api/classifieds/limits',
         {
           headers: {
             'X-Auth-Token': token.value,
