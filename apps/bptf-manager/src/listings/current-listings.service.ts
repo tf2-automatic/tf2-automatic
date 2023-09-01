@@ -632,7 +632,7 @@ export class CurrentListingsService {
   ): Promise<BatchCreateListingResponse[]> {
     return firstValueFrom(
       this.httpService.post<BatchCreateListingResponse[]>(
-        'https://backpack.tf/api/v2/classifieds/listings/batch',
+        'https://api.backpack.tf/api/v2/classifieds/listings/batch',
         listings,
         {
           headers: {
@@ -652,7 +652,7 @@ export class CurrentListingsService {
   ): Promise<DeleteListingsResponse> {
     return firstValueFrom(
       this.httpService.delete<DeleteListingsResponse>(
-        'https://backpack.tf/api/classifieds/delete/v1',
+        'https://api.backpack.tf/api/classifieds/delete/v1',
         {
           data: {
             listing_ids: ids,
@@ -674,7 +674,7 @@ export class CurrentListingsService {
   ): Promise<BatchDeleteListingResponse> {
     return firstValueFrom(
       this.httpService.delete<BatchDeleteListingResponse>(
-        'https://backpack.tf/api/v2/classifieds/archive/batch',
+        'https://api.backpack.tf/api/v2/classifieds/archive/batch',
         {
           data: {
             ids,
@@ -695,7 +695,7 @@ export class CurrentListingsService {
   ): Promise<DeleteAllListingsResponse> {
     return firstValueFrom(
       this.httpService.delete<DeleteAllListingsResponse>(
-        'https://backpack.tf/api/v2/classifieds/listings',
+        'https://api.backpack.tf/api/v2/classifieds/listings',
         {
           headers: {
             'X-Auth-Token': token.value,
@@ -713,7 +713,7 @@ export class CurrentListingsService {
   ): Promise<DeleteAllListingsResponse> {
     return firstValueFrom(
       this.httpService.delete<DeleteAllListingsResponse>(
-        'https://backpack.tf/api/v2/classifieds/archive',
+        'https://api.backpack.tf/api/v2/classifieds/archive',
         {
           headers: {
             'X-Auth-Token': token.value,
@@ -733,7 +733,7 @@ export class CurrentListingsService {
   ): Promise<GetListingsResponse> {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(
-        'https://backpack.tf/api/v2/classifieds/listings',
+        'https://api.backpack.tf/api/v2/classifieds/listings',
         {
           params: {
             skip,
@@ -757,7 +757,7 @@ export class CurrentListingsService {
   ): Promise<GetListingsResponse> {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(
-        'https://backpack.tf/api/v2/classifieds/archive',
+        'https://api.backpack.tf/api/v2/classifieds/archive',
         {
           params: {
             skip,
