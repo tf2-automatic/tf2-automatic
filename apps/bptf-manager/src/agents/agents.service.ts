@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { Token } from '@tf2-automatic/bptf-manager-data';
+import { CreateAgentDto, Token } from '@tf2-automatic/bptf-manager-data';
 import { AgentResponse } from './interfaces/agent-response.interface';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
@@ -15,8 +15,9 @@ import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getJobs, getRepeatableJob } from '../common/utils';
+import { Agent } from '@tf2-automatic/bptf-manager-data';
 
-const KEY_PREFIX = 'bptf-manager:data:';
+const KEY = 'bptf-manager:data:agents';
 
 @Injectable()
 export class AgentsService {
@@ -36,40 +37,52 @@ export class AgentsService {
     this.redlock = new Redlock([redis]);
   }
 
-  private async setRegistering(
+  private async setAgent(
     steamid: SteamID,
-    registering: boolean,
-  ): Promise<void> {
-    const key = this.getRegisterKey(steamid.getSteamID64());
+    dto: CreateAgentDto,
+  ): Promise<Agent> {
+    const steamid64 = steamid.getSteamID64();
 
-    if (registering) {
-      await this.redis.set(key, 'true');
-    } else {
-      await this.redis.del(key);
+    const agent: Agent = {
+      steamid64,
+      userAgent: dto.userAgent ?? null,
+      updatedAt: Math.floor(Date.now() / 1000),
+    };
+
+    await this.redis.hset(KEY, steamid64, JSON.stringify(agent));
+
+    return agent;
+  }
+
+  private async deleteAgent(steamid: SteamID): Promise<void> {
+    await this.redis.hdel(KEY, steamid.getSteamID64());
+  }
+
+  async getAgent(steamid: SteamID): Promise<Agent | null> {
+    const steamid64 = steamid.getSteamID64();
+
+    const value = await this.redis.hget(KEY, steamid64);
+
+    if (value === null) {
+      return null;
     }
+
+    return JSON.parse(value);
   }
 
-  async isRegistering(steamid: SteamID): Promise<boolean> {
+  enqueueRegisterAgent(steamid: SteamID, dto: CreateAgentDto): Promise<Agent> {
     const steamid64 = steamid.getSteamID64();
 
-    const value = await this.redis.get(this.getRegisterKey(steamid64));
-
-    return value === 'true';
-  }
-
-  async enqueueRegisterAgent(steamid: SteamID): Promise<void> {
-    const steamid64 = steamid.getSteamID64();
-
-    await this.redlock.using(
+    return this.redlock.using(
       [`bptf-manager:agents:${steamid64}`],
       1000,
       async () => {
-        await this.setRegistering(steamid, true);
+        const agent = await this.setAgent(steamid, dto);
 
         const job = await this.getRepeatableJob(steamid);
         if (job) {
           // Job is already queued
-          return;
+          return agent;
         }
 
         // Notify all listeners that the agent is registering
@@ -80,7 +93,7 @@ export class AgentsService {
             'agents',
           ).registerInterval;
 
-        return this.registerAgentsQueue.add(
+        await this.registerAgentsQueue.add(
           steamid64,
           {
             steamid64,
@@ -93,6 +106,8 @@ export class AgentsService {
             },
           },
         );
+
+        return agent;
       },
     );
   }
@@ -104,16 +119,16 @@ export class AgentsService {
       [`bptf-manager:agents:${steamid64}`],
       1000,
       async (signal) => {
-        const registering = await this.isRegistering(steamid);
+        const agent = await this.getAgent(steamid);
 
         if (signal.aborted) {
           throw signal.error;
         }
 
         // Stop more attempts to refresh the agent
-        await this.setRegistering(steamid, false);
+        await this.deleteAgent(steamid);
 
-        if (!registering) {
+        if (!agent) {
           return;
         }
 
@@ -217,9 +232,5 @@ export class AgentsService {
         return response.data;
       });
     });
-  }
-
-  private getRegisterKey(steamid64: string) {
-    return KEY_PREFIX + 'agents:register:' + steamid64;
   }
 }

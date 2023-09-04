@@ -20,9 +20,9 @@ export class RegisterAgentsProcessor extends WorkerHost {
   async process(job: Job<AgentJobData>): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
-    const isRegistering = await this.agentsService.isRegistering(steamid);
+    const agent = await this.agentsService.getAgent(steamid);
 
-    if (!isRegistering) {
+    if (!agent) {
       this.logger.debug(
         `Skipping registering agent for ${job.data.steamid64} because it is no longer needed`,
       );
@@ -35,7 +35,7 @@ export class RegisterAgentsProcessor extends WorkerHost {
 
     const token = await this.tokensService.getToken(steamid);
 
-    await this.agentsService.registerAgent(token);
+    await this.agentsService.registerAgent(token, agent.userAgent ?? undefined);
   }
 
   @OnWorkerEvent('error')
@@ -57,9 +57,9 @@ export class RegisterAgentsProcessor extends WorkerHost {
 
     // Check if the agent still needs to run
     this.agentsService
-      .isRegistering(steamid)
-      .then((registering) => {
-        if (!registering) {
+      .getAgent(steamid)
+      .then((agent) => {
+        if (!agent) {
           // Remove the agent from the queue
           return this.agentsService.cleanupAndUnregisterAgent(steamid);
         }

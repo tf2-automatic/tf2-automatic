@@ -146,8 +146,8 @@ export class ManageListingsProcessor
   private async handleCreateAction(job: CustomJob): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
-    const registering = await this.agentsService.isRegistering(steamid);
-    if (!registering) {
+    const agent = await this.agentsService.getAgent(steamid);
+    if (!agent) {
       // Agent is not running, don't create listings
       return false;
     }
