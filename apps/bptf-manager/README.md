@@ -21,7 +21,7 @@ A desired listing contains the raw listing object that will be sent to backpack.
 
 The manager never deletes desired listings unless you tell it to using the API. This means that if you create a desired listing for an item you would like to sell, then you need to tell the manager to delete the desired listing when you sell the item.
 
-A desired listing is internally id'd using a hash of either the item object for buy listings or the item id for sell listings. The item object, or item id, is used as the id for a desired listing. This means that you don't need to keep track of new ids to manage the listings.
+A desired listing is internally id'd using a hash of either the item object for buy listings or the item id for sell listings. The item object, or item id, is used as the id for a desired listing. This means that you don't need to keep track of new ids to manage the listings. But as a side-effect it also means that you should be consistent in using the v1 or v2 item formats when creating buy orders.
 
 ## Prerequisites
 
