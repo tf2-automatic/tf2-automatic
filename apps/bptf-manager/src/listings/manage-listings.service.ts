@@ -178,8 +178,8 @@ export class ManageListingsService {
 
   async createJob(steamid: SteamID, type: ManageJobType): Promise<void> {
     if (type === 'create') {
-      const registering = await this.agentsService.isRegistering(steamid);
-      if (!registering) {
+      const agent = await this.agentsService.getAgent(steamid);
+      if (!agent) {
         // Agent is not running, don't create the job for creating listings
         return;
       }

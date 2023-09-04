@@ -1,13 +1,26 @@
-import { Controller, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AgentsService } from './agents.service';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
 import {
   AGENTS_BASE_URL,
+  AGENTS_PATH,
   AGENT_REGISTER_PATH,
   AGENT_UNREGISTER_PATH,
+  Agent,
+  CreateAgentDto,
+  AgentModel,
 } from '@tf2-automatic/bptf-manager-data';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Agents')
 @Controller(AGENTS_BASE_URL)
@@ -18,10 +31,20 @@ export class AgentsController {
     summary: 'Register an agent',
     description: 'Repeatedly registers an agent with backpack.tf',
   })
+  @ApiBody({
+    type: CreateAgentDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: AgentModel,
+  })
   @Post(AGENT_REGISTER_PATH)
   @HttpCode(HttpStatus.OK)
-  async registerAgent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    await this.agentsService.enqueueRegisterAgent(steamid);
+  async registerAgent(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Body(ValidationPipe) dto: CreateAgentDto,
+  ): Promise<Agent> {
+    return this.agentsService.enqueueRegisterAgent(steamid, dto);
   }
 
   @ApiOperation({

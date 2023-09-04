@@ -16,9 +16,9 @@ export class UnregisterAgentsProcessor extends WorkerHost {
   async process(job: Job<AgentJobData>): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
-    const isRegistering = await this.agentsService.isRegistering(steamid);
+    const agent = await this.agentsService.getAgent(steamid);
 
-    if (isRegistering) {
+    if (agent) {
       this.logger.debug(
         `Skipping unregistering agent for ${job.data.steamid64} because it is no longer needed`,
       );
