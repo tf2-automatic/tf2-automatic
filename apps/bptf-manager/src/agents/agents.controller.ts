@@ -28,6 +28,19 @@ export class AgentsController {
   constructor(private readonly agentsService: AgentsService) {}
 
   @ApiOperation({
+    summary: 'Get all agents',
+    description: 'Returns all agents that are currently registered',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    type: [AgentModel],
+  })
+  @Get(AGENTS_PATH)
+  getAgents(): Promise<Agent[]> {
+    return this.agentsService.getAgents();
+  }
+
+  @ApiOperation({
     summary: 'Register an agent',
     description: 'Repeatedly registers an agent with backpack.tf',
   })

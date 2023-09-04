@@ -37,6 +37,12 @@ export class AgentsService {
     this.redlock = new Redlock([redis]);
   }
 
+  async getAgents(): Promise<Agent[]> {
+    const agents = await this.redis.hvals(KEY);
+
+    return agents.map((key) => JSON.parse(key));
+  }
+
   private async setAgent(
     steamid: SteamID,
     dto: CreateAgentDto,
