@@ -230,11 +230,10 @@ export class TradesService {
     offer: SteamTradeOfferManager.TradeOffer,
   ): Promise<void> {
     if (
-      offer.confirmationMethod ==
-        SteamTradeOfferManager.EConfirmationMethod.None ||
-      offer.data('conf') === offer.data('accept')
+      offer.confirmationMethod ===
+      SteamTradeOfferManager.EConfirmationMethod.None
     ) {
-      // Offer is not waiting to be confirmed or confirmation was already published
+      // Offer is not waiting to be confirmed
       return Promise.resolve();
     } else if (
       offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
@@ -242,6 +241,15 @@ export class TradesService {
         SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
     ) {
       // Offer is not active or created needs confirmation
+      return Promise.resolve();
+    } else if (
+      !offer.isOurOffer &&
+      offer.data('conf') === offer.data('accept')
+    ) {
+      // Confirmation was already published
+      return Promise.resolve();
+    } else if (offer.isOurOffer && offer.data('conf') !== undefined) {
+      // Confirmation was already published
       return Promise.resolve();
     }
 
@@ -252,7 +260,7 @@ export class TradesService {
       })
       .then(() => {
         // Update offer data to prevent publishing confirmation multiple times
-        offer.data('conf', offer.data('accept'));
+        offer.data('conf', offer.data('accept') ?? Date.now());
       })
       .catch(() => {
         // Ignore error
