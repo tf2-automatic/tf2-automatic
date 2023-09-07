@@ -3,6 +3,7 @@ import {
   DesiredListing,
   DesiredListingDto,
   ListingDto,
+  RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import { ChainableCommander, Redis } from 'ioredis';
 import Redlock from 'redlock';
@@ -112,8 +113,13 @@ export class DesiredListingsService {
     );
   }
 
-  async removeDesired(steamid: SteamID, remove: ListingDto[]): Promise<void> {
-    const hashes = remove.map((listing) => this.createHash(listing));
+  async removeDesired(
+    steamid: SteamID,
+    remove: RemoveListingDto[],
+  ): Promise<void> {
+    const hashes = remove.map(
+      (listing) => listing.hash ?? this.createHash(listing),
+    );
 
     return this.redlock.using(
       ['desired:' + steamid.getSteamID64()],
