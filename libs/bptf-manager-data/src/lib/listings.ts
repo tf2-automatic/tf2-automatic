@@ -49,6 +49,7 @@ export class DesiredListingDto {
 }
 
 export interface DesiredListing {
+  hash: string;
   id: string | null;
   listing: ListingDto;
   priority?: number;
