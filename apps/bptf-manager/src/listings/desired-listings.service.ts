@@ -310,6 +310,7 @@ export class DesiredListingsService {
 
   private mapDesired(desired: DesiredListingInternal[]): DesiredListing[] {
     return desired.map((d) => ({
+      hash: d.hash,
       id: d.id ?? null,
       listing: d.listing,
       priority: d.priority,
