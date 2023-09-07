@@ -295,6 +295,10 @@ export class DesiredListingsService {
       return hash(listing.id);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const item: any = Object.assign({}, listing.item);
+    delete item.quantity;
+
     return hash(listing.item!);
   }
 
