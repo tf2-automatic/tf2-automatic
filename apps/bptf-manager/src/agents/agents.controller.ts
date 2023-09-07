@@ -21,6 +21,7 @@ import {
   AgentModel,
 } from '@tf2-automatic/bptf-manager-data';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiParamSteamID } from '@tf2-automatic/swagger';
 
 @ApiTags('Agents')
 @Controller(AGENTS_BASE_URL)
@@ -51,6 +52,7 @@ export class AgentsController {
     status: HttpStatus.OK,
     type: AgentModel,
   })
+  @ApiParamSteamID()
   @Post(AGENT_REGISTER_PATH)
   @HttpCode(HttpStatus.OK)
   async registerAgent(
@@ -65,6 +67,7 @@ export class AgentsController {
     description:
       'Stops repeatedly registering an agent and unregisters it with backpack.tf',
   })
+  @ApiParamSteamID()
   @Post(AGENT_UNREGISTER_PATH)
   @HttpCode(HttpStatus.OK)
   async unregisterAgent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
