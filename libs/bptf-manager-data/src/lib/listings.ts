@@ -19,6 +19,20 @@ export class ListingDto {
   id?: string;
 }
 
+export class RemoveListingDto extends ListingDto {
+  @IsObject()
+  @ValidateIf((o) => o.id === undefined && o.hash === undefined)
+  override item?: object;
+
+  @IsString()
+  @ValidateIf((o) => o.item === undefined && o.hash === undefined)
+  override id?: string;
+
+  @IsString()
+  @ValidateIf((o) => o.id === undefined && o.item === undefined)
+  hash?: string;
+}
+
 export class DesiredListingDto {
   @IsObject()
   @Type(() => ListingDto)

@@ -11,7 +11,7 @@ import { ListingLimitsService } from './listing-limits.service';
 import {
   DesiredListing,
   DesiredListingDto,
-  ListingDto,
+  RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
@@ -53,8 +53,8 @@ export class ListingsController {
   @Delete('/:steamid/desired')
   removeDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
-    @Body(new ParseArrayPipe({ items: ListingDto }))
-    remove: ListingDto[],
+    @Body(new ParseArrayPipe({ items: RemoveListingDto }))
+    remove: RemoveListingDto[],
   ) {
     return this.desiredListingsService.removeDesired(steamid, remove);
   }
