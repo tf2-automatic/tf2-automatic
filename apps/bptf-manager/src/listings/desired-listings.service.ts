@@ -305,7 +305,7 @@ export class DesiredListingsService {
     const item: any = Object.assign({}, listing.item);
     delete item.quantity;
 
-    return hash(listing.item!);
+    return hash(item);
   }
 
   private mapDesired(desired: DesiredListingInternal[]): DesiredListing[] {
