@@ -5,7 +5,7 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { OnEvent } from '@nestjs/event-emitter';
-import { ListingLimits } from './interfaces/limits.interface';
+import { ListingLimits } from '@tf2-automatic/bptf-manager-data';
 import { setTimeout } from 'timers/promises';
 
 const KEY_PREFIX = 'bptf-manager:data:';

@@ -23,7 +23,7 @@ import {
 } from './interfaces/events.interface';
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
-import { ListingLimits } from './interfaces/limits.interface';
+import { ListingLimits } from '@tf2-automatic/bptf-manager-data';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import Redlock from 'redlock';

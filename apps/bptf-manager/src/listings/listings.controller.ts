@@ -9,16 +9,17 @@ import {
 } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
 import {
-  DesiredListing,
   DesiredListingDto,
+  DesiredListingModel,
   RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiParamSteamID } from '@tf2-automatic/swagger';
 import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
+import { ListingLimitsModel } from '@tf2-automatic/bptf-manager-data';
 
 @ApiTags('Listings')
 @Controller('listings')
@@ -29,11 +30,15 @@ export class ListingsController {
     private readonly currentListingsService: CurrentListingsService,
   ) {}
 
-  // TODO: Add API responses and request bodies
-
   @ApiOperation({
     summary: 'Add desired listings',
     description: 'Add desired listings to the database',
+  })
+  @ApiBody({
+    type: [DesiredListingDto],
+  })
+  @ApiResponse({
+    type: [DesiredListingModel],
   })
   @ApiParamSteamID()
   @Post('/:steamid/desired')
@@ -41,7 +46,7 @@ export class ListingsController {
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Body(new ParseArrayPipe({ items: DesiredListingDto }))
     add: DesiredListingDto[],
-  ): Promise<DesiredListing[]> {
+  ): Promise<DesiredListingModel[]> {
     return this.desiredListingsService.addDesired(steamid, add);
   }
 
@@ -63,9 +68,14 @@ export class ListingsController {
     summary: 'Get desired listings',
     description: 'Get all desired listings from the database',
   })
+  @ApiResponse({
+    type: [DesiredListingModel],
+  })
   @ApiParamSteamID()
   @Get('/:steamid/desired')
-  getDesired(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
+  getDesired(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+  ): Promise<DesiredListingModel[]> {
     return this.desiredListingsService.getAllDesired(steamid);
   }
 
@@ -92,6 +102,9 @@ export class ListingsController {
   @ApiOperation({
     summary: 'Get listing limits',
     description: 'Get listing limits from the database',
+  })
+  @ApiResponse({
+    type: ListingLimitsModel,
   })
   @ApiParamSteamID()
   @Get('/:steamid/limits')
