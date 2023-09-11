@@ -10,27 +10,44 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": ["es2017", "dom"],
+    "lib": [
+      "es2017",
+      "dom"
+    ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "strictNullChecks": true,
     "esModuleInterop": true,
     "paths": {
-      "@tf2-automatic/bot-data": ["libs/bot-data/src/index.ts"],
-      "@tf2-automatic/bot-manager-data": ["libs/bot-manager-data/src/index.ts"],
-      "@tf2-automatic/dto": ["libs/dto/src/index.ts"],
+      "@tf2-automatic/bot-data": [
+        "libs/bot-data/src/index.ts"
+      ],
+      "@tf2-automatic/bot-manager-data": [
+        "libs/bot-manager-data/src/index.ts"
+      ],
+      "@tf2-automatic/bptf-manager-data": [
+        "libs/bptf-manager-data/src/index.ts"
+      ],
+      "@tf2-automatic/dto": [
+        "libs/dto/src/index.ts"
+      ],
       "@tf2-automatic/is-steamid-validator": [
         "libs/is-steamid-validator/src/index.ts"
       ],
       "@tf2-automatic/nestjs-steamid-pipe": [
         "libs/nestjs-steamid-pipe/src/index.ts"
       ],
-      "@tf2-automatic/swagger": ["libs/swagger/src/index.ts"],
+      "@tf2-automatic/swagger": [
+        "libs/swagger/src/index.ts"
+      ],
       "@tf2-automatic/transactional-outbox": [
         "libs/transactional-outbox/src/index.ts"
       ]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
 }
