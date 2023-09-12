@@ -1,10 +1,31 @@
 import { Listing } from '@tf2-automatic/bptf-manager-data';
 
+export interface UpdateListingBody {
+  id: string;
+  body: {
+    currencies?: {
+      keys?: number;
+      metal?: number;
+    };
+    details?: string;
+    quantity?: number;
+  };
+}
+
 export interface BatchCreateListingResponse {
   result?: Listing;
   error?: {
     message: string;
   };
+}
+
+export interface BatchUpdateListingResponse {
+  updated: Listing[];
+  errors: {
+    index: number;
+    id: string;
+    message: string;
+  }[];
 }
 
 export interface DeleteListingsResponse {

@@ -4,10 +4,12 @@ import { Redis } from 'ioredis';
 import {
   BatchCreateListingResponse,
   BatchDeleteListingResponse,
+  BatchUpdateListingResponse,
   DeleteAllListingsResponse,
   DeleteListingsResponse,
   GetListingsResponse,
-} from './interfaces/bptf-response.interface';
+  UpdateListingBody,
+} from './interfaces/bptf.interface';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -388,6 +390,75 @@ export class CurrentListingsService {
     await Promise.all(promises);
   }
 
+  async updateListings(
+    token: Token,
+    desired: DesiredListing[],
+  ): Promise<BatchUpdateListingResponse> {
+    const listings: UpdateListingBody[] = [];
+
+    desired.forEach((d) => {
+      if (d.id === undefined) {
+        return;
+      }
+
+      listings.push({
+        id: d.id,
+        body: {
+          currencies: d.listing.currencies,
+          details: d.listing.details,
+        },
+      });
+    });
+
+    this.logger.log(
+      'Updating ' +
+        listings.length +
+        ' listing(s) for ' +
+        token.steamid64 +
+        '...',
+    );
+
+    const result = await this._updateListings(token, listings);
+
+    this.logger.log(
+      'Updated ' + result.updated.length + ' listing(s) for ' + token.steamid64,
+    );
+
+    const updated = new Map<string, Listing>();
+    result.updated.forEach((listing) => {
+      updated.set(listing.id, listing);
+    });
+
+    if (updated.size !== 0) {
+      const steamid = new SteamID(token.steamid64);
+
+      // Update current listings in database
+      const current = await this.getListingsByIds(
+        steamid,
+        Array.from(updated.keys()),
+      );
+
+      // Loop through the current listings and overwrite properties with the updated listing
+      const overwritten: Listing[] = [];
+
+      for (const id in current) {
+        overwritten.push(Object.assign({}, current[id], updated.get(id)));
+      }
+
+      await this.saveTempListings(steamid, overwritten);
+
+      await this.redis.hmset(
+        this.getCurrentKey(steamid),
+        ...overwritten.flatMap((listing) => [
+          listing.id,
+          JSON.stringify(listing),
+        ]),
+      );
+    }
+
+    return result;
+  }
+
   async deleteAllListings(token: Token): Promise<number> {
     this.logger.log('Deleting all listings for ' + token.steamid64 + '...');
 
@@ -632,6 +703,26 @@ export class CurrentListingsService {
   ): Promise<BatchCreateListingResponse[]> {
     return firstValueFrom(
       this.httpService.post<BatchCreateListingResponse[]>(
+        'https://api.backpack.tf/api/v2/classifieds/listings/batch',
+        listings,
+        {
+          headers: {
+            'X-Auth-Token': token.value,
+          },
+          timeout: 60000,
+        },
+      ),
+    ).then((response) => {
+      return response.data;
+    });
+  }
+
+  private _updateListings(
+    token: Token,
+    listings: UpdateListingBody[],
+  ): Promise<BatchUpdateListingResponse> {
+    return firstValueFrom(
+      this.httpService.patch<BatchUpdateListingResponse>(
         'https://api.backpack.tf/api/v2/classifieds/listings/batch',
         listings,
         {

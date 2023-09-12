@@ -9,7 +9,10 @@ import { ChainableCommander, Redis } from 'ioredis';
 import Redlock from 'redlock';
 import SteamID from 'steamid';
 import hash from 'object-hash';
-import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
+import {
+  DesiredListing as DesiredListingInternal,
+  ExtendedDesiredListing as ExtendedDesiredListingInternal,
+} from './interfaces/desired-listing.interface';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   CurrentListingsCreateFailedEvent,
@@ -37,8 +40,8 @@ export class DesiredListingsService {
   ): Promise<DesiredListing[]> {
     const now = Math.floor(Date.now() / 1000);
 
-    const desired: DesiredListingInternal[] = add.map((create) => {
-      const obj: DesiredListingInternal = {
+    const desired: ExtendedDesiredListingInternal[] = add.map((create) => {
+      const obj: ExtendedDesiredListingInternal = {
         hash: this.createHash(create.listing),
         steamid64: steamid.getSteamID64(),
         listing: create.listing,
@@ -47,6 +50,10 @@ export class DesiredListingsService {
 
       if (create.priority !== undefined) {
         obj.priority = create.priority;
+      }
+
+      if (create.force === true) {
+        obj.force = true;
       }
 
       return obj;
@@ -59,15 +66,14 @@ export class DesiredListingsService {
         // Get current listings and check if they are different from the new listings
         const current = await this.getDesiredByHashes(
           steamid,
-          // Only get listings that are not forced
-          desired.filter((d, i) => add[i].force !== true).map((d) => d.hash),
+          desired.map((d) => d.hash),
         );
 
         if (signal.aborted) {
           throw signal.error;
         }
 
-        const changed: DesiredListingInternal[] = [];
+        const changed: ExtendedDesiredListingInternal[] = [];
 
         desired.forEach((d) => {
           // Update desired based on current listings
@@ -78,6 +84,11 @@ export class DesiredListingsService {
             d.id = c.id;
             d.error = c.error;
             d.lastAttemptedAt = c.lastAttemptedAt;
+
+            if (d.force === true) {
+              changed.push(d);
+              return;
+            }
 
             // Need to ignore types because new listings have DesiredListing type and current listings are a normal object
             const currentHash = hash(c.listing, {
@@ -288,11 +299,15 @@ export class DesiredListingsService {
   async chainableSaveDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
-    desired: DesiredListingInternal[],
+    desired: ExtendedDesiredListingInternal[],
   ) {
     chainable.hset(
       this.getDesiredKey(steamid),
-      ...desired.flatMap((d) => [d.hash, JSON.stringify(d)]),
+      ...desired.flatMap((d) => {
+        const copy = Object.assign({}, d);
+        delete copy.force;
+        return [copy.hash, JSON.stringify(copy)];
+      }),
     );
   }
 
