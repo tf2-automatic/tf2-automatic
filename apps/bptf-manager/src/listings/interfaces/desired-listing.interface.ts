@@ -1,4 +1,4 @@
-import { ListingDto } from '@tf2-automatic/bptf-manager-data';
+import { AddListingDto } from '@tf2-automatic/bptf-manager-data';
 
 export enum ListingError {
   // Item does not exist in the agent's inventory on backpack.tf
@@ -21,7 +21,7 @@ export interface DesiredListing {
   // The id of the backpack.tf listing
   id?: string;
   // The raw listing
-  listing: ListingDto;
+  listing: AddListingDto;
   // Priority of the listing
   priority?: number;
   // If this is set then something went wrong and this explains the error
@@ -30,4 +30,8 @@ export interface DesiredListing {
   lastAttemptedAt?: number;
   // Timestamp of when the desired listing was last updated
   updatedAt: number;
+}
+
+export interface ExtendedDesiredListing extends DesiredListing {
+  force?: boolean;
 }

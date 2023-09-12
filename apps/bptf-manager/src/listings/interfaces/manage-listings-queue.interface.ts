@@ -8,6 +8,7 @@ export type JobName = JobType;
 
 export enum JobType {
   Create = 'create',
+  Update = 'update',
   Delete = 'delete',
   DeleteArchived = 'delete-archived',
   DeleteAll = 'delete-all',

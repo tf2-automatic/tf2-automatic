@@ -21,6 +21,7 @@ type CustomJob = Job<JobData, JobResult, JobName>;
 @Processor('manage-listings', {
   // For some reason even though there are jobs in the queue it takes 5 seconds for them to be processed, this is a workaround
   drainDelay: 0,
+  concurrency: 4,
 })
 export class ManageListingsProcessor
   extends WorkerHost<Worker<JobData, JobResult, JobName>>
@@ -54,8 +55,8 @@ export class ManageListingsProcessor
         keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
       },
       id: 'listings:batch',
-      // Concurrency has to be one because we don't want to be able to create and delete listings at the same time.
-      maxConcurrent: 1,
+      // Max concurrency of 4 (create, update, delete, delete archived)
+      maxConcurrent: 4,
       minTime: 1000,
       reservoir: 10,
       reservoirRefreshAmount: 10,
@@ -129,6 +130,8 @@ export class ManageListingsProcessor
     switch (job.name) {
       case JobType.Create:
         return this.handleCreateAction(job);
+      case JobType.Update:
+        return this.handleUpdateAction(job);
       case JobType.Delete:
         return this.handleDeleteAction(job);
       case JobType.DeleteArchived:
@@ -167,7 +170,9 @@ export class ManageListingsProcessor
       'Scheduling create listings for ' + steamid.getSteamID64() + '...',
     );
 
-    return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
+    const key = steamid.getSteamID64() + ':create';
+
+    return this.batchGroup.key(key).schedule(async () => {
       // Create listings
       await this.manageListingsService
         .createListings(token, hashes)
@@ -176,7 +181,60 @@ export class ManageListingsProcessor
             if (err.response?.status === 429) {
               // We are rate limited, find the correct reservoir
               const limiters = this.batchGroup.limiters();
-              const match = limiters.find((l) => l.key === steamid.toString());
+              const match = limiters.find((l) => l.key === key);
+
+              if (match) {
+                // Drain the reservoir
+                return match.limiter.incrementReservoir(-10).then(() => {
+                  throw err;
+                });
+              }
+            }
+          }
+
+          throw err;
+        });
+
+      return hashes.length === this.createBatchSize;
+    });
+  }
+
+  async handleUpdateAction(job: CustomJob): Promise<JobResult> {
+    const steamid = new SteamID(job.data.steamid64);
+
+    const agent = await this.agentsService.getAgent(steamid);
+    if (!agent) {
+      // Agent is not running, don't create listings
+      return false;
+    }
+
+    const hashes = await this.manageListingsService.getListingsToUpdate(
+      steamid,
+      this.createBatchSize,
+    );
+
+    if (hashes.length === 0) {
+      return false;
+    }
+
+    const token = await this.tokensService.getToken(steamid);
+
+    this.logger.debug(
+      'Scheduling update listings for ' + steamid.getSteamID64() + '...',
+    );
+
+    const key = steamid.getSteamID64() + ':update';
+
+    return this.batchGroup.key(key).schedule(async () => {
+      // Create listings
+      await this.manageListingsService
+        .updateListings(token, hashes)
+        .catch((err) => {
+          if (err instanceof AxiosError) {
+            if (err.response?.status === 429) {
+              // We are rate limited, find the correct reservoir
+              const limiters = this.batchGroup.limiters();
+              const match = limiters.find((l) => l.key === key);
 
               if (match) {
                 // Drain the reservoir
@@ -226,16 +284,20 @@ export class ManageListingsProcessor
     }
 
     this.logger.debug(
-      'Scheduling create listings for ' + steamid.getSteamID64() + '...',
+      'Scheduling delete archived listings for ' +
+        steamid.getSteamID64() +
+        '...',
     );
 
     const token = await this.tokensService.getToken(steamid);
 
-    return this.batchGroup.key(steamid.getSteamID64()).schedule(async () => {
-      await this.manageListingsService.deleteArchivedListings(token, ids);
+    return this.batchGroup
+      .key(steamid.getSteamID64() + ':create')
+      .schedule(async () => {
+        await this.manageListingsService.deleteArchivedListings(token, ids);
 
-      return ids.length === this.deleteArchivedBatchSize;
-    });
+        return ids.length === this.deleteArchivedBatchSize;
+      });
   }
 
   async handleDeleteAllAction(job: CustomJob): Promise<JobResult> {

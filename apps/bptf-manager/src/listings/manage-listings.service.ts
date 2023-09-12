@@ -20,14 +20,19 @@ import { Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
 import {
   DesiredListing,
+  ExtendedDesiredListing,
   ListingError,
 } from './interfaces/desired-listing.interface';
 import { CurrentListingsService } from './current-listings.service';
 import { Listing, Token } from '@tf2-automatic/bptf-manager-data';
-import { BatchCreateListingResponse } from './interfaces/bptf-response.interface';
+import {
+  BatchCreateListingResponse,
+  BatchUpdateListingResponse,
+} from './interfaces/bptf.interface';
 import { ListingLimitsService } from './listing-limits.service';
 import { InventoriesService } from '../inventories/inventories.service';
 import { Logger } from '@nestjs/common';
+import hash from 'object-hash';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -74,7 +79,10 @@ export class ManageListingsService {
 
     await transaction.exec();
 
-    await this.createJob(event.steamid, ManageJobType.Create);
+    await Promise.all([
+      this.createJob(event.steamid, ManageJobType.Update),
+      this.createJob(event.steamid, ManageJobType.Create),
+    ]);
   }
 
   @OnEvent('desired-listings.removed')
@@ -177,7 +185,7 @@ export class ManageListingsService {
   }
 
   async createJob(steamid: SteamID, type: ManageJobType): Promise<void> {
-    if (type === 'create') {
+    if (type === ManageJobType.Create || type === ManageJobType.Update) {
       const agent = await this.agentsService.getAgent(steamid);
       if (!agent) {
         // Agent is not running, don't create the job for creating listings
@@ -195,6 +203,9 @@ export class ManageListingsService {
         priority = 2;
         break;
       case ManageJobType.Create:
+        priority = 5;
+        break;
+      case ManageJobType.Update:
         priority = 4;
         break;
       case ManageJobType.DeleteAll:
@@ -224,10 +235,36 @@ export class ManageListingsService {
   private chainableQueueDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
+    listings: ExtendedDesiredListing[],
+  ): void {
+    const create: DesiredListing[] = [];
+    const update: DesiredListing[] = [];
+
+    listings.forEach((d) => {
+      if (d.id === undefined || d.force === true) {
+        create.push(d);
+      } else {
+        update.push(d);
+      }
+    });
+
+    if (create.length > 0) {
+      this.chainableQueueDesiredSpecific(chainable, steamid, true, create);
+    }
+
+    if (update.length > 0) {
+      this.chainableQueueDesiredSpecific(chainable, steamid, false, update);
+    }
+  }
+
+  private chainableQueueDesiredSpecific(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    create: boolean,
     listings: DesiredListing[],
   ): void {
     chainable.zadd(
-      this.getCreateKey(steamid),
+      create ? this.getCreateKey(steamid) : this.getUpdateKey(steamid),
       ...listings.flatMap((d) => [
         d.priority ?? Number.MAX_SAFE_INTEGER,
         d.hash,
@@ -307,6 +344,15 @@ export class ManageListingsService {
     return Array.from(hashes.values());
   }
 
+  async getListingsToUpdate(
+    steamid: SteamID,
+    count: number,
+  ): Promise<string[]> {
+    await this.listingLimitsService.waitForRefresh(steamid);
+
+    return this.redis.zrange(this.getUpdateKey(steamid), 0, count - 1);
+  }
+
   async createListings(
     token: Token,
     hashes: string[],
@@ -327,6 +373,83 @@ export class ManageListingsService {
       this.getCreateKey(new SteamID(token.steamid64)),
       ...hashes,
     );
+
+    return result;
+  }
+
+  async updateListings(
+    token: Token,
+    hashes: string[],
+  ): Promise<BatchUpdateListingResponse> {
+    const desiredMap = await this.desiredListingsService.getDesiredByHashes(
+      new SteamID(token.steamid64),
+      hashes,
+    );
+
+    const desired = Object.values(desiredMap);
+
+    if (desired.length === 0) {
+      return {
+        updated: [],
+        errors: [],
+      };
+    }
+
+    const map = new Map<string, DesiredListing>();
+    desired.forEach((d) => {
+      // id should not be undefined but we check it anyway
+      if (d.id !== undefined) {
+        map.set(d.id, d);
+      }
+    });
+
+    const result = await this.currentListingsService.updateListings(
+      token,
+      desired,
+    );
+
+    // List of hashes of listings that were successfully updated
+    const updated: string[] = [];
+
+    // Go through all updated listings and get the hash of the desired listing
+    result.updated.forEach((_, i) => {
+      const match = map.get(result.updated[i].id);
+      if (match) {
+        updated.push(match.hash);
+      }
+    });
+
+    // Figure out what listings failed to be updated
+    const failed: DesiredListing[] = [];
+    desired.forEach((d) => {
+      if (!updated.includes(d.hash)) {
+        failed.push(d);
+      }
+    });
+
+    const transaction = this.redis.multi();
+
+    // Add failed listings to the create queue
+    if (failed.length > 0) {
+      this.chainableQueueDesiredSpecific(
+        transaction,
+        new SteamID(token.steamid64),
+        true,
+        failed,
+      );
+    }
+
+    // Remove everything from the update queue
+    transaction.zrem(
+      this.getUpdateKey(new SteamID(token.steamid64)),
+      ...hashes,
+    );
+
+    await transaction.exec();
+
+    if (failed.length > 0) {
+      await this.createJob(new SteamID(token.steamid64), ManageJobType.Create);
+    }
 
     return result;
   }
@@ -376,15 +499,56 @@ export class ManageListingsService {
     const currentMap = new Map<string, Listing>();
     current.forEach((l) => currentMap.set(l.id, l));
 
+    const update = new Map<string, DesiredListing>();
+    const create = new Map<string, DesiredListing>();
+
     // Go through all desired and check if the listing is still active
     desired.forEach((d) => {
-      if (d.id === undefined || !currentMap.has(d.id)) {
+      if (d.id === undefined) {
+        return;
+      }
+
+      const match = currentMap.get(d.id);
+      if (!match) {
         // Listing does not exist or it no longer exists, add it to the create queue
         delete d.id;
+      } else if (
+        (d.listing.item?.quantity ?? 1) !== (match.item.quantity ?? 1)
+      ) {
+        create.set(d.hash, d);
+      } else {
+        const desiredHash = hash(
+          {
+            currencies: {
+              keys: d.listing.currencies.keys ?? 0,
+              metal: d.listing.currencies.metal ?? 0,
+            },
+            details: d.listing.details ?? '',
+          },
+          {
+            respectType: false,
+          },
+        );
+
+        const currentHash = hash(
+          {
+            currencies: {
+              keys: match.currencies.keys ?? 0,
+              metal: match.currencies.metal ?? 0,
+            },
+            details: match.details ?? '',
+          },
+          {
+            respectType: false,
+          },
+        );
+
+        if (desiredHash !== currentHash) {
+          // Listing has changed, add it to the update queue
+          update.set(d.hash, d);
+        }
       }
     });
-
-    const create: DesiredListing[] = [];
 
     const inventory = await this.inventoriesService.getInventory(steamid);
 
@@ -413,7 +577,10 @@ export class ManageListingsService {
         }
       }
 
-      create.push(d);
+      if (update.has(d.hash)) {
+        update.delete(d.hash);
+      }
+      create.set(d.hash, d);
     });
 
     const desiredWithId = new Map<string, DesiredListing>();
@@ -435,8 +602,21 @@ export class ManageListingsService {
 
     const transaction = this.redis.multi();
 
-    if (create.length > 0) {
-      this.chainableQueueDesired(transaction, steamid, create);
+    if (create.size > 0) {
+      this.chainableQueueDesiredSpecific(
+        transaction,
+        steamid,
+        true,
+        Array.from(create.values()),
+      );
+    }
+    if (update.size > 0) {
+      this.chainableQueueDesiredSpecific(
+        transaction,
+        steamid,
+        false,
+        Array.from(update.values()),
+      );
     }
 
     if (remove.length > 0) {
@@ -458,16 +638,22 @@ export class ManageListingsService {
 
     this.logger.debug(
       'Queued ' +
-        create.length +
-        ' listings to be created and ' +
+        create.size +
+        ' listing(s) to be created,' +
+        update.size +
+        ' listing(s) to be updated and ' +
         remove.length +
-        ' listings to be deleted',
+        ' listing(s) to be deleted',
     );
 
     const promises: Promise<unknown>[] = [];
 
-    if (create.length > 0) {
+    if (create.size > 0) {
       promises.push(this.createJob(steamid, ManageJobType.Create));
+    }
+
+    if (update.size > 0) {
+      promises.push(this.createJob(steamid, ManageJobType.Update));
     }
 
     if (remove.length > 0) {
@@ -487,6 +673,10 @@ export class ManageListingsService {
 
   private getCreateKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:create:${steamid.getSteamID64()}`;
+  }
+
+  private getUpdateKey(steamid: SteamID): string {
+    return `${KEY_PREFIX}listings:update:${steamid.getSteamID64()}`;
   }
 
   private getDeleteKey(steamid: SteamID): string {

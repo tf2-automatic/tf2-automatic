@@ -5,7 +5,7 @@ import { TokensService } from '../../tokens/tokens.service';
 import { Job } from 'bullmq';
 import axios, { AxiosError } from 'axios';
 import { Token } from '@tf2-automatic/bptf-manager-data';
-import { ListingLimitsResponse } from '../interfaces/bptf-response.interface';
+import { ListingLimitsResponse } from '../interfaces/bptf.interface';
 import SteamID from 'steamid';
 
 @Processor('listing-limits')

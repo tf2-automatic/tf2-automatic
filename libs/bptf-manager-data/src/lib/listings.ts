@@ -1,4 +1,4 @@
-import { ApiExtraModels, ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -9,6 +9,24 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
+
+export class ListingCurrenciesDto {
+  @IsOptional()
+  @IsNumber()
+  @ValidateIf((o) => o.metal === undefined)
+  keys?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @ValidateIf((o) => o.keys === undefined)
+  metal?: number;
+}
+
+export class ListingItemDto {
+  @IsNumber()
+  @IsOptional()
+  quantity?: number;
+}
 
 export class ListingDto {
   @ApiProperty({
@@ -21,8 +39,10 @@ export class ListingDto {
     required: false,
   })
   @IsObject()
+  @Type(() => ListingItemDto)
+  @ValidateNested()
   @ValidateIf((o) => o.id === undefined)
-  item?: object;
+  item?: ListingItemDto;
 
   @ApiProperty({
     description: 'The assetid of the item you want to sell',
@@ -32,6 +52,17 @@ export class ListingDto {
   @IsString()
   @ValidateIf((o) => o.item === undefined)
   id?: string;
+}
+
+export class AddListingDto extends ListingDto {
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ListingCurrenciesDto)
+  currencies!: ListingCurrenciesDto;
+
+  @IsOptional()
+  @IsString()
+  details?: string;
 }
 
 export class RemoveListingDto extends ListingDto {
@@ -48,7 +79,6 @@ export class RemoveListingDto extends ListingDto {
   hash?: string;
 }
 
-@ApiExtraModels(ListingDto)
 export class DesiredListingDto {
   @ApiProperty({
     description: 'The raw listing object to send to backpack.tf',
@@ -62,12 +92,12 @@ export class DesiredListingDto {
         metal: 50.11,
       },
     },
-    type: ListingDto,
+    type: AddListingDto,
   })
   @IsObject()
-  @Type(() => ListingDto)
+  @Type(() => AddListingDto)
   @ValidateNested()
-  listing!: ListingDto;
+  listing!: AddListingDto;
 
   @ApiProperty({
     description:
@@ -152,9 +182,17 @@ export class DesiredListingModel implements DesiredListing {
 
 export interface Listing {
   id: string;
+  item: {
+    quantity?: number;
+  };
   archived: boolean;
   listedAt: number;
   bumpedAt: number;
+  currencies: {
+    keys?: number;
+    metal?: number;
+  };
+  details?: string;
 }
 
 export interface ListingLimits {
