@@ -283,7 +283,9 @@ export class ManageListingsProcessor
     }
 
     this.logger.debug(
-      'Scheduling create listings for ' + steamid.getSteamID64() + '...',
+      'Scheduling delete archived listings for ' +
+        steamid.getSteamID64() +
+        '...',
     );
 
     const token = await this.tokensService.getToken(steamid);
