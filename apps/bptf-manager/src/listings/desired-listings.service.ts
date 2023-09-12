@@ -99,6 +99,13 @@ export class DesiredListingsService {
             });
 
             if (currentHash !== newHash) {
+              if (
+                (d.listing.item?.quantity ?? 1) !==
+                (c.listing.item?.quantity ?? 1)
+              ) {
+                d.force = true;
+              }
+
               // Listings changed
               changed.push(d);
             }
