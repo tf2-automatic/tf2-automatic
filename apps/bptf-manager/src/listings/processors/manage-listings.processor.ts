@@ -21,6 +21,7 @@ type CustomJob = Job<JobData, JobResult, JobName>;
 @Processor('manage-listings', {
   // For some reason even though there are jobs in the queue it takes 5 seconds for them to be processed, this is a workaround
   drainDelay: 0,
+  concurrency: 4,
 })
 export class ManageListingsProcessor
   extends WorkerHost<Worker<JobData, JobResult, JobName>>
@@ -54,8 +55,8 @@ export class ManageListingsProcessor
         keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
       },
       id: 'listings:batch',
-      // Concurrency has to be one because we don't want to be able to create and delete listings at the same time.
-      maxConcurrent: 1,
+      // Max concurrency of 4 (create, update, delete, delete archived)
+      maxConcurrent: 4,
       minTime: 1000,
       reservoir: 10,
       reservoirRefreshAmount: 10,
