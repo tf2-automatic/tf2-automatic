@@ -20,6 +20,7 @@ import { Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
 import {
   DesiredListing,
+  DesiredListingWithId,
   ExtendedDesiredListing,
   ListingError,
 } from './interfaces/desired-listing.interface';
@@ -403,9 +404,13 @@ export class ManageListingsService {
       }
     });
 
+    const update = desired.filter(
+      (d): d is DesiredListingWithId => d.id !== undefined,
+    );
+
     const result = await this.currentListingsService.updateListings(
       token,
-      desired,
+      update,
     );
 
     // List of hashes of listings that were successfully updated

@@ -16,6 +16,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
 import {
   DesiredListing,
+  DesiredListingWithId,
   ListingError,
 } from './interfaces/desired-listing.interface';
 import {
@@ -392,15 +393,11 @@ export class CurrentListingsService {
 
   async updateListings(
     token: Token,
-    desired: DesiredListing[],
+    desired: DesiredListingWithId[],
   ): Promise<BatchUpdateListingResponse> {
     const listings: UpdateListingBody[] = [];
 
     desired.forEach((d) => {
-      if (d.id === undefined) {
-        return;
-      }
-
       listings.push({
         id: d.id,
         body: {

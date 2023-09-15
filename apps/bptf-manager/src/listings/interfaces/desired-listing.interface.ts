@@ -32,6 +32,10 @@ export interface DesiredListing {
   updatedAt: number;
 }
 
+export interface DesiredListingWithId extends DesiredListing {
+  id: string;
+}
+
 export interface ExtendedDesiredListing extends DesiredListing {
   force?: boolean;
 }
