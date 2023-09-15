@@ -27,7 +27,9 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
       load: [configuration],
       validationSchema: validation,
     }),
-    PrometheusModule.register(),
+    PrometheusModule.register({
+      global: true,
+    }),
     EventEmitterModule.forRoot(),
     BotModule,
     StorageModule,
