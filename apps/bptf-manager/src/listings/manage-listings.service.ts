@@ -639,7 +639,7 @@ export class ManageListingsService {
     this.logger.debug(
       'Queued ' +
         create.size +
-        ' listing(s) to be created,' +
+        ' listing(s) to be created, ' +
         update.size +
         ' listing(s) to be updated and ' +
         remove.length +
