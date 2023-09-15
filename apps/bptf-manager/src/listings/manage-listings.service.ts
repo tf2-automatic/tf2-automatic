@@ -603,6 +603,7 @@ export class ManageListingsService {
     const transaction = this.redis.multi();
 
     if (create.size > 0) {
+      // Add listings to create queue
       this.chainableQueueDesiredSpecific(
         transaction,
         steamid,
@@ -611,6 +612,7 @@ export class ManageListingsService {
       );
     }
     if (update.size > 0) {
+      // Add listings to update queue
       this.chainableQueueDesiredSpecific(
         transaction,
         steamid,
@@ -620,6 +622,7 @@ export class ManageListingsService {
     }
 
     if (remove.length > 0) {
+      // Add listings to delete queues
       transaction.sadd(this.getDeleteKey(steamid), ...remove);
       transaction.sadd(this.getArchivedDeleteKey(steamid), ...remove);
     }
