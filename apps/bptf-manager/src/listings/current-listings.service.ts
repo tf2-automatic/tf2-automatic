@@ -149,6 +149,8 @@ export class CurrentListingsService {
       ...ids,
     );
 
+    const limits = await this.listingLimitsService.getLimits(steamid);
+
     const resources = ids.map((id) =>
       this.getResourceForListingId(steamid, id),
     );
@@ -247,6 +249,8 @@ export class CurrentListingsService {
         token.steamid64 +
         '...',
     );
+
+    const limits = await this.listingLimitsService.getLimits(steamid);
 
     const resources = desired.map((d) => this.getResources(steamid, d)).flat();
     const result = await this.redlock.using(resources, 10000, () => {
