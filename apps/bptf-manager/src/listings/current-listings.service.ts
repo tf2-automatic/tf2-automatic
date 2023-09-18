@@ -454,15 +454,17 @@ export class CurrentListingsService {
         overwritten.push(Object.assign({}, current[id], updated.get(id)));
       }
 
-      await this.saveTempListings(steamid, overwritten);
+      if (overwritten.length > 0) {
+        await this.saveTempListings(steamid, overwritten);
 
-      await this.redis.hmset(
-        this.getCurrentKey(steamid),
-        ...overwritten.flatMap((listing) => [
-          listing.id,
-          JSON.stringify(listing),
-        ]),
-      );
+        await this.redis.hmset(
+          this.getCurrentKey(steamid),
+          ...overwritten.flatMap((listing) => [
+            listing.id,
+            JSON.stringify(listing),
+          ]),
+        );
+      }
     }
 
     return result;
