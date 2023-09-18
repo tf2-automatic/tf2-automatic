@@ -123,10 +123,12 @@ export class ManageListingsService {
 
     await transaction.exec();
 
-    await Promise.all([
-      this.createJob(event.steamid, ManageJobType.DeleteArchived),
-      this.createJob(event.steamid, ManageJobType.Delete),
-    ]);
+    if (ids.length > 0) {
+      await Promise.all([
+        this.createJob(event.steamid, ManageJobType.DeleteArchived),
+        this.createJob(event.steamid, ManageJobType.Delete),
+      ]);
+    }
   }
 
   @OnEvent('desired-listings.created', {
