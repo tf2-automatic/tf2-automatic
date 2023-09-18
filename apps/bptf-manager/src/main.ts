@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 import { Config } from './common/config/configuration';
 import { DocumentBuilder } from '@nestjs/swagger';
 import { SwaggerModule } from '@nestjs/swagger';
+import { json } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +21,8 @@ async function bootstrap() {
   const configService: ConfigService<Config> = app.get(ConfigService);
 
   app.enableShutdownHooks();
+
+  app.use(json({ limit: '50mb' }));
 
   const port = configService.getOrThrow<number>('port');
 
