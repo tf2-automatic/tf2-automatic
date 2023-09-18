@@ -110,14 +110,14 @@ export class CurrentListingsService {
   async getListingsByIds(
     steamid: SteamID,
     ids: string[],
-  ): Promise<Record<string, Listing>> {
+  ): Promise<Map<string, Listing>> {
+    const result = new Map<string, Listing>();
+
     if (ids.length === 0) {
-      return {};
+      return result;
     }
 
     const values = await this.redis.hmget(this.getCurrentKey(steamid), ...ids);
-
-    const result: Record<string, Listing> = {};
 
     values.forEach((raw) => {
       if (raw === null) {
@@ -126,7 +126,7 @@ export class CurrentListingsService {
 
       const listing = JSON.parse(raw) as Listing;
 
-      result[listing.id] = listing;
+      result.set(listing.id, listing);
     });
 
     return result;
@@ -342,7 +342,7 @@ export class CurrentListingsService {
 
       const existingListings = new Set();
 
-      Object.values(existing).forEach((l) => {
+      Array.from(existing.values()).forEach((l) => {
         if (l.archived !== true) {
           existingListings.add(l.id);
         }
@@ -450,7 +450,7 @@ export class CurrentListingsService {
       // Loop through the current listings and overwrite properties with the updated listing
       const overwritten: Listing[] = [];
 
-      for (const id in current) {
+      for (const id in current.keys()) {
         overwritten.push(Object.assign({}, current[id], updated.get(id)));
       }
 

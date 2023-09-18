@@ -123,7 +123,7 @@ export class ManageListingsService {
       event.listings.map((d) => d.id!),
     );
 
-    const archivedIds = Object.values(listings)
+    const archivedIds = Array.from(listings.values())
       .filter((l) => l.archived === true)
       .map((l) => l.id);
 
