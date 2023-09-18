@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsRefined } from '@tf2-automatic/is-refined-validator';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsInt,
   IsNumber,
   IsObject,
   IsOptional,
@@ -11,14 +13,19 @@ import {
 } from 'class-validator';
 
 export class ListingCurrenciesDto {
-  @IsOptional()
-  @IsNumber()
-  @ValidateIf((o) => o.metal === undefined)
+  @IsInt()
+  @ValidateIf(
+    (o) =>
+      o.keys !== undefined || (o.keys === undefined && o.metal === undefined),
+  )
   keys?: number;
 
-  @IsOptional()
   @IsNumber()
-  @ValidateIf((o) => o.keys === undefined)
+  @IsRefined()
+  @ValidateIf(
+    (o) =>
+      o.metal !== undefined || (o.keys === undefined && o.metal === undefined),
+  )
   metal?: number;
 }
 
