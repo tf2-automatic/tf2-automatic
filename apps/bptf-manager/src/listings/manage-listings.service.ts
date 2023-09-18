@@ -76,7 +76,24 @@ export class ManageListingsService {
     );
 
     // Add to create queue
-    this.chainableQueueDesired(transaction, event.steamid, event.listings);
+    const create: DesiredListing[] = [];
+    const update: DesiredListing[] = [];
+
+    event.listings.forEach((d) => {
+      if (d.id === undefined || d.force === true) {
+        create.push(d);
+      } else {
+        update.push(d);
+      }
+    });
+
+    if (create.length > 0) {
+      this.chainableQueueDesired(transaction, event.steamid, true, create);
+    }
+
+    if (update.length > 0) {
+      this.chainableQueueDesired(transaction, event.steamid, false, update);
+    }
 
     await transaction.exec();
 
@@ -101,9 +118,7 @@ export class ManageListingsService {
 
     if (ids.length > 0) {
       // Queue listings to be deleted
-      transaction
-        .sadd(this.getDeleteKey(event.steamid), ...ids)
-        .sadd(this.getArchivedDeleteKey(event.steamid), ...ids);
+      this.chainableQueueDelete(transaction, event.steamid, ids);
     }
 
     await transaction.exec();
@@ -236,31 +251,6 @@ export class ManageListingsService {
   private chainableQueueDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
-    listings: ExtendedDesiredListing[],
-  ): void {
-    const create: DesiredListing[] = [];
-    const update: DesiredListing[] = [];
-
-    listings.forEach((d) => {
-      if (d.id === undefined || d.force === true) {
-        create.push(d);
-      } else {
-        update.push(d);
-      }
-    });
-
-    if (create.length > 0) {
-      this.chainableQueueDesiredSpecific(chainable, steamid, true, create);
-    }
-
-    if (update.length > 0) {
-      this.chainableQueueDesiredSpecific(chainable, steamid, false, update);
-    }
-  }
-
-  private chainableQueueDesiredSpecific(
-    chainable: ChainableCommander,
-    steamid: SteamID,
     create: boolean,
     listings: DesiredListing[],
   ): void {
@@ -271,6 +261,15 @@ export class ManageListingsService {
         d.hash,
       ]),
     );
+  }
+
+  private chainableQueueDelete(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    hashes: string[],
+  ): void {
+    chainable.sadd(this.getDeleteKey(steamid), ...hashes);
+    chainable.sadd(this.getArchivedDeleteKey(steamid), ...hashes);
   }
 
   async getListingsToCreate(
@@ -436,7 +435,7 @@ export class ManageListingsService {
 
     // Add failed listings to the create queue
     if (failed.length > 0) {
-      this.chainableQueueDesiredSpecific(
+      this.chainableQueueDesired(
         transaction,
         new SteamID(token.steamid64),
         true,
@@ -609,7 +608,7 @@ export class ManageListingsService {
 
     if (create.size > 0) {
       // Add listings to create queue
-      this.chainableQueueDesiredSpecific(
+      this.chainableQueueDesired(
         transaction,
         steamid,
         true,
@@ -618,7 +617,7 @@ export class ManageListingsService {
     }
     if (update.size > 0) {
       // Add listings to update queue
-      this.chainableQueueDesiredSpecific(
+      this.chainableQueueDesired(
         transaction,
         steamid,
         false,
@@ -628,8 +627,7 @@ export class ManageListingsService {
 
     if (remove.length > 0) {
       // Add listings to delete queues
-      transaction.sadd(this.getDeleteKey(steamid), ...remove);
-      transaction.sadd(this.getArchivedDeleteKey(steamid), ...remove);
+      this.chainableQueueDelete(transaction, steamid, remove);
     }
 
     this.desiredListingsService.chainableSaveDesired(
