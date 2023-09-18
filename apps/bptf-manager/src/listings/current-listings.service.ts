@@ -133,15 +133,15 @@ export class CurrentListingsService {
   }
 
   async deleteListings(token: Token, ids: string[]) {
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Deleting ' +
         ids.length +
         ' active listing(s) for ' +
-        token.steamid64 +
+        steamid.getSteamID64() +
         '...',
     );
-
-    const steamid = new SteamID(token.steamid64);
 
     // Figure out what listings should be deleted from the database
     const exists = await this.redis.smismember(
@@ -149,10 +149,13 @@ export class CurrentListingsService {
       ...ids,
     );
 
-    const limits = await this.listingLimitsService.getLimits(steamid);
-
-    // Delete listings on backpack.tf
-    const result = await this._deleteListings(token, ids);
+    const resources = ids.map((id) =>
+      this.getResourceForListingId(steamid, id),
+    );
+    const result = await this.redlock.using(resources, 10000, () => {
+      // Delete listings on backpack.tf
+      return this._deleteListings(token, ids);
+    });
 
     this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
 
@@ -193,20 +196,25 @@ export class CurrentListingsService {
   }
 
   async deleteArchivedListings(token: Token, ids: string[]) {
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Deleting ' +
         ids.length +
         ' archived listing(s) for ' +
-        token.steamid64 +
+        steamid.getSteamID64() +
         '...',
     );
 
-    // Delete listings on backpack.tf
-    const result = await this._deleteArchivedListings(token, ids);
+    const resources = ids.map((id) =>
+      this.getResourceForListingId(steamid, id),
+    );
+    const result = await this.redlock.using(resources, 10000, () => {
+      // Delete listings on backpack.tf
+      return this._deleteArchivedListings(token, ids);
+    });
 
     this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
-
-    const steamid = new SteamID(token.steamid64);
 
     // Delete current listings in database
     await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
@@ -230,6 +238,8 @@ export class CurrentListingsService {
       hashes.push(d.hash);
     });
 
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Creating ' +
         listings.length +
@@ -238,12 +248,11 @@ export class CurrentListingsService {
         '...',
     );
 
-    const steamid = new SteamID(token.steamid64);
-
-    const limits = await this.listingLimitsService.getLimits(steamid);
-
-    // Create listings on backpack.tf
-    const result = await this._createListings(token, listings);
+    const resources = desired.map((d) => this.getResources(steamid, d)).flat();
+    const result = await this.redlock.using(resources, 10000, () => {
+      // Create listings on backpack.tf
+      return this._createListings(token, listings);
+    });
 
     const createdCount = result.filter((r) => r.result !== undefined).length;
 
@@ -260,11 +269,7 @@ export class CurrentListingsService {
       {} as Record<string, BatchCreateListingResponse>,
     );
 
-    await this.handleCreatedListings(
-      new SteamID(token.steamid64),
-      mapped,
-      limits,
-    );
+    await this.handleCreatedListings(steamid, mapped, limits);
 
     return result;
   }
@@ -407,15 +412,20 @@ export class CurrentListingsService {
       });
     });
 
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Updating ' +
         listings.length +
         ' listing(s) for ' +
-        token.steamid64 +
+        steamid.getSteamID64() +
         '...',
     );
 
-    const result = await this._updateListings(token, listings);
+    const resources = desired.map((d) => this.getResources(steamid, d)).flat();
+    const result = await this.redlock.using(resources, 10000, () => {
+      return this._updateListings(token, listings);
+    });
 
     this.logger.log(
       'Updated ' + result.updated.length + ' listing(s) for ' + token.steamid64,
@@ -427,8 +437,6 @@ export class CurrentListingsService {
     });
 
     if (updated.size !== 0) {
-      const steamid = new SteamID(token.steamid64);
-
       // Update current listings in database
       const current = await this.getListingsByIds(
         steamid,
@@ -872,5 +880,26 @@ export class CurrentListingsService {
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:current:keep:${steamid.getSteamID64()}`;
+  }
+
+  private getResources(steamid: SteamID, desired: DesiredListing): string[] {
+    const resources = [this.getResourceForDesired(steamid, desired)];
+
+    if (desired.id !== undefined) {
+      resources.push(this.getResourceForListingId(steamid, desired.id));
+    }
+
+    return resources;
+  }
+
+  private getResourceForListingId(steamid: SteamID, id: string): string {
+    return `bptf-manager:current:${steamid.getSteamID64()}:${id}`;
+  }
+
+  private getResourceForDesired(
+    steamid: SteamID,
+    desired: DesiredListing,
+  ): string {
+    return `bptf-manager:current:${steamid.getSteamID64()}:${desired.hash}`;
   }
 }
