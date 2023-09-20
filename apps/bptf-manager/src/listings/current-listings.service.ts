@@ -383,7 +383,7 @@ export class CurrentListingsService {
       promises.push(
         this.eventEmitter.emitAsync('current-listings.failed', {
           steamid,
-          results: failed,
+          errors: failed,
         } satisfies CurrentListingsCreateFailedEvent),
       );
     }
@@ -392,7 +392,7 @@ export class CurrentListingsService {
       promises.push(
         this.eventEmitter.emitAsync('current-listings.created', {
           steamid,
-          results: created,
+          listings: created,
         } satisfies CurrentListingsCreatedEvent),
       );
     }

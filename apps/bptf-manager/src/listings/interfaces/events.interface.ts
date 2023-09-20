@@ -7,21 +7,23 @@ import { Listing } from '@tf2-automatic/bptf-manager-data';
 
 interface BaseDesiredListingsEvent {
   steamid: SteamID;
-  listings: ExtendedDesiredListing[];
+  desired: ExtendedDesiredListing[];
 }
 
 export interface DesiredListingsAddedEvent extends BaseDesiredListingsEvent {}
 export interface DesiredListingsRemovedEvent extends BaseDesiredListingsEvent {}
-export interface DesiredListingsCreatedEvent extends BaseDesiredListingsEvent {}
+export interface DesiredListingsCreatedEvent extends BaseDesiredListingsEvent {
+  listings: Record<string, Listing>;
+}
 
 export interface CurrentListingsCreatedEvent {
   steamid: SteamID;
-  results: Record<string, Listing>;
+  listings: Record<string, Listing>;
 }
 
 export interface CurrentListingsCreateFailedEvent {
   steamid: SteamID;
-  results: Record<string, ListingError>;
+  errors: Record<string, ListingError>;
 }
 
 export interface CurrentListingsDeletedEvent {

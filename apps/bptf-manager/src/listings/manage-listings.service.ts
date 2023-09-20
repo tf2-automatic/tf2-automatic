@@ -72,14 +72,14 @@ export class ManageListingsService {
     // Remove from delete queue
     transaction.srem(
       this.getDeleteKey(event.steamid),
-      ...event.listings.map((d) => d.hash),
+      ...event.desired.map((d) => d.hash),
     );
 
     // Add to create queue
     const create: DesiredListing[] = [];
     const update: DesiredListing[] = [];
 
-    event.listings.forEach((d) => {
+    event.desired.forEach((d) => {
       if (d.id === undefined || d.force === true) {
         create.push(d);
       } else {
@@ -105,14 +105,14 @@ export class ManageListingsService {
 
   @OnEvent('desired-listings.removed')
   private async removedDesired(event: DesiredListingsRemovedEvent) {
-    const hashes = event.listings.map((d) => d.hash);
+    const hashes = event.desired.map((d) => d.hash);
 
     const transaction = this.redis.multi();
 
     // Remove hashes from create queue
     transaction.zrem(this.getCreateKey(event.steamid), ...hashes);
 
-    const ids = event.listings
+    const ids = event.desired
       .filter((d) => d.id !== undefined)
       .map((d) => d.id!);
 
@@ -137,7 +137,7 @@ export class ManageListingsService {
   private async createdDesired(event: DesiredListingsAddedEvent) {
     const listings = await this.currentListingsService.getListingsByIds(
       event.steamid,
-      event.listings.map((d) => d.id!),
+      event.desired.map((d) => d.id!),
     );
 
     const archivedIds = Array.from(listings.values())
@@ -192,7 +192,7 @@ export class ManageListingsService {
   @OnEvent('current-listings.failed')
   private async failedCurrentListings(event: CurrentListingsCreateFailedEvent) {
     const found =
-      Object.values(event.results).findIndex(
+      Object.values(event.errors).findIndex(
         (error) => error === ListingError.ItemDoesNotExist,
       ) !== -1;
 

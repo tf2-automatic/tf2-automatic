@@ -122,7 +122,7 @@ export class DesiredListingsService {
         if (changed.length > 0) {
           await this.eventEmitter.emitAsync('desired-listings.added', {
             steamid,
-            listings: changed,
+            desired: changed,
           } satisfies DesiredListingsAddedEvent);
         }
 
@@ -160,7 +160,7 @@ export class DesiredListingsService {
 
           await this.eventEmitter.emitAsync('desired-listings.removed', {
             steamid,
-            listings: desired,
+            desired: desired,
           } satisfies DesiredListingsRemovedEvent);
         }
       },
@@ -215,7 +215,7 @@ export class DesiredListingsService {
   private async currentListingsCreated(
     event: CurrentListingsCreatedEvent,
   ): Promise<void> {
-    const createdHashes = Object.keys(event.results);
+    const createdHashes = Object.keys(event.listings);
 
     if (createdHashes.length === 0) {
       return;
@@ -228,13 +228,13 @@ export class DesiredListingsService {
     let publishDesired: DesiredListingInternal[] = [];
 
     // Update desired listings that were changed
-    const hashes = Object.keys(event.results);
+    const hashes = Object.keys(event.listings);
 
     const desiredMap = await this.getDesiredByHashes(event.steamid, hashes);
 
     const desired = Object.values(desiredMap);
     desired.forEach((desired) => {
-      desired.id = event.results[desired.hash].id;
+      desired.id = event.listings[desired.hash].id;
       desired.lastAttemptedAt = now;
       desired.updatedAt = now;
       delete desired.error;
@@ -251,7 +251,8 @@ export class DesiredListingsService {
     if (publishDesired.length > 0) {
       await this.eventEmitter.emitAsync('desired-listings.created', {
         steamid: event.steamid,
-        listings: publishDesired,
+        desired: publishDesired,
+        listings: event.listings,
       } satisfies DesiredListingsCreatedEvent);
     }
   }
@@ -262,7 +263,7 @@ export class DesiredListingsService {
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
-    const failedHashes = Object.keys(event.results);
+    const failedHashes = Object.keys(event.errors);
 
     // Update the failed desired listings with the error message
     const desiredMap = await this.getDesiredByHashes(
@@ -274,7 +275,7 @@ export class DesiredListingsService {
     desired.forEach((desired) => {
       desired.updatedAt = now;
       desired.lastAttemptedAt = now;
-      desired.error = event.results[desired.hash];
+      desired.error = event.errors[desired.hash];
     });
 
     const transaction = this.redis.multi();
