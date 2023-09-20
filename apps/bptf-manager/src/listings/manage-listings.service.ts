@@ -35,6 +35,11 @@ import { InventoriesService } from '../inventories/inventories.service';
 import { Logger } from '@nestjs/common';
 import hash from 'object-hash';
 
+enum ListingAction {
+  Create,
+  Update,
+}
+
 const KEY_PREFIX = 'bptf-manager:data:';
 
 export class ManageListingsService {
@@ -515,42 +520,16 @@ export class ManageListingsService {
       }
 
       const match = currentMap.get(d.id);
+
       if (!match) {
-        // Listing does not exist or it no longer exists, add it to the create queue
+        // Listing no longer exists, remove the id
         delete d.id;
-      } else if (
-        (d.listing.item?.quantity ?? 1) !== (match.item.quantity ?? 1)
-      ) {
-        create.set(d.hash, d);
       } else {
-        const desiredHash = hash(
-          {
-            currencies: {
-              keys: d.listing.currencies.keys ?? 0,
-              metal: d.listing.currencies.metal ?? 0,
-            },
-            details: d.listing.details ?? '',
-          },
-          {
-            respectType: false,
-          },
-        );
+        const action = this.compareCurrentAndDesired(d, match);
 
-        const currentHash = hash(
-          {
-            currencies: {
-              keys: match.currencies.keys ?? 0,
-              metal: match.currencies.metal ?? 0,
-            },
-            details: match.details ?? '',
-          },
-          {
-            respectType: false,
-          },
-        );
-
-        if (desiredHash !== currentHash) {
-          // Listing has changed, add it to the update queue
+        if (action === ListingAction.Create) {
+          create.set(d.hash, d);
+        } else if (action === ListingAction.Update) {
           update.set(d.hash, d);
         }
       }
@@ -671,6 +650,50 @@ export class ManageListingsService {
 
     // Create jobs
     await Promise.all(promises);
+  }
+
+  private compareCurrentAndDesired(
+    desired: DesiredListing,
+    current: Listing,
+  ): ListingAction.Create | ListingAction.Update | null {
+    if (
+      (desired.listing.item?.quantity ?? 1) !== (current.item.quantity ?? 1)
+    ) {
+      return ListingAction.Create;
+    } else {
+      const desiredHash = hash(
+        {
+          currencies: {
+            keys: desired.listing.currencies.keys ?? 0,
+            metal: desired.listing.currencies.metal ?? 0,
+          },
+          details: desired.listing.details ?? '',
+        },
+        {
+          respectType: false,
+        },
+      );
+
+      const currentHash = hash(
+        {
+          currencies: {
+            keys: current.currencies.keys ?? 0,
+            metal: current.currencies.metal ?? 0,
+          },
+          details: current.details ?? '',
+        },
+        {
+          respectType: false,
+        },
+      );
+
+      if (desiredHash !== currentHash) {
+        // Listing has changed, add it to the update queue
+        return ListingAction.Update;
+      }
+    }
+
+    return null;
   }
 
   async deleteAllListings(token: Token) {
