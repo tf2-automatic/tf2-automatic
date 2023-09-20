@@ -16,6 +16,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
 import {
   DesiredListing,
+  DesiredListingWithId,
   ListingError,
 } from './interfaces/desired-listing.interface';
 import {
@@ -109,14 +110,14 @@ export class CurrentListingsService {
   async getListingsByIds(
     steamid: SteamID,
     ids: string[],
-  ): Promise<Record<string, Listing>> {
+  ): Promise<Map<string, Listing>> {
+    const result = new Map<string, Listing>();
+
     if (ids.length === 0) {
-      return {};
+      return result;
     }
 
     const values = await this.redis.hmget(this.getCurrentKey(steamid), ...ids);
-
-    const result: Record<string, Listing> = {};
 
     values.forEach((raw) => {
       if (raw === null) {
@@ -125,22 +126,22 @@ export class CurrentListingsService {
 
       const listing = JSON.parse(raw) as Listing;
 
-      result[listing.id] = listing;
+      result.set(listing.id, listing);
     });
 
     return result;
   }
 
   async deleteListings(token: Token, ids: string[]) {
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Deleting ' +
         ids.length +
         ' active listing(s) for ' +
-        token.steamid64 +
+        steamid.getSteamID64() +
         '...',
     );
-
-    const steamid = new SteamID(token.steamid64);
 
     // Figure out what listings should be deleted from the database
     const exists = await this.redis.smismember(
@@ -150,8 +151,13 @@ export class CurrentListingsService {
 
     const limits = await this.listingLimitsService.getLimits(steamid);
 
-    // Delete listings on backpack.tf
-    const result = await this._deleteListings(token, ids);
+    const resources = ids.map((id) =>
+      this.getResourceForListingId(steamid, id),
+    );
+    const result = await this.redlock.using(resources, 10000, () => {
+      // Delete listings on backpack.tf
+      return this._deleteListings(token, ids);
+    });
 
     this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
 
@@ -192,20 +198,25 @@ export class CurrentListingsService {
   }
 
   async deleteArchivedListings(token: Token, ids: string[]) {
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Deleting ' +
         ids.length +
         ' archived listing(s) for ' +
-        token.steamid64 +
+        steamid.getSteamID64() +
         '...',
     );
 
-    // Delete listings on backpack.tf
-    const result = await this._deleteArchivedListings(token, ids);
+    const resources = ids.map((id) =>
+      this.getResourceForListingId(steamid, id),
+    );
+    const result = await this.redlock.using(resources, 10000, () => {
+      // Delete listings on backpack.tf
+      return this._deleteArchivedListings(token, ids);
+    });
 
     this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
-
-    const steamid = new SteamID(token.steamid64);
 
     // Delete current listings in database
     await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
@@ -229,6 +240,8 @@ export class CurrentListingsService {
       hashes.push(d.hash);
     });
 
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Creating ' +
         listings.length +
@@ -237,12 +250,13 @@ export class CurrentListingsService {
         '...',
     );
 
-    const steamid = new SteamID(token.steamid64);
-
     const limits = await this.listingLimitsService.getLimits(steamid);
 
-    // Create listings on backpack.tf
-    const result = await this._createListings(token, listings);
+    const resources = desired.map((d) => this.getResources(steamid, d)).flat();
+    const result = await this.redlock.using(resources, 10000, () => {
+      // Create listings on backpack.tf
+      return this._createListings(token, listings);
+    });
 
     const createdCount = result.filter((r) => r.result !== undefined).length;
 
@@ -259,11 +273,7 @@ export class CurrentListingsService {
       {} as Record<string, BatchCreateListingResponse>,
     );
 
-    await this.handleCreatedListings(
-      new SteamID(token.steamid64),
-      mapped,
-      limits,
-    );
+    await this.handleCreatedListings(steamid, mapped, limits);
 
     return result;
   }
@@ -332,7 +342,7 @@ export class CurrentListingsService {
 
       const existingListings = new Set();
 
-      Object.values(existing).forEach((l) => {
+      Array.from(existing.values()).forEach((l) => {
         if (l.archived !== true) {
           existingListings.add(l.id);
         }
@@ -373,7 +383,7 @@ export class CurrentListingsService {
       promises.push(
         this.eventEmitter.emitAsync('current-listings.failed', {
           steamid,
-          results: failed,
+          errors: failed,
         } satisfies CurrentListingsCreateFailedEvent),
       );
     }
@@ -382,7 +392,7 @@ export class CurrentListingsService {
       promises.push(
         this.eventEmitter.emitAsync('current-listings.created', {
           steamid,
-          results: created,
+          listings: created,
         } satisfies CurrentListingsCreatedEvent),
       );
     }
@@ -392,15 +402,14 @@ export class CurrentListingsService {
 
   async updateListings(
     token: Token,
-    desired: DesiredListing[],
+    desired: DesiredListingWithId[],
   ): Promise<BatchUpdateListingResponse> {
     const listings: UpdateListingBody[] = [];
 
-    desired.forEach((d) => {
-      if (d.id === undefined) {
-        return;
-      }
+    const idToHash = new Map<string, string>();
 
+    desired.forEach((d) => {
+      idToHash.set(d.id, d.hash);
       listings.push({
         id: d.id,
         body: {
@@ -410,15 +419,20 @@ export class CurrentListingsService {
       });
     });
 
+    const steamid = new SteamID(token.steamid64);
+
     this.logger.log(
       'Updating ' +
         listings.length +
         ' listing(s) for ' +
-        token.steamid64 +
+        steamid.getSteamID64() +
         '...',
     );
 
-    const result = await this._updateListings(token, listings);
+    const resources = desired.map((d) => this.getResources(steamid, d)).flat();
+    const result = await this.redlock.using(resources, 10000, () => {
+      return this._updateListings(token, listings);
+    });
 
     this.logger.log(
       'Updated ' + result.updated.length + ' listing(s) for ' + token.steamid64,
@@ -430,8 +444,6 @@ export class CurrentListingsService {
     });
 
     if (updated.size !== 0) {
-      const steamid = new SteamID(token.steamid64);
-
       // Update current listings in database
       const current = await this.getListingsByIds(
         steamid,
@@ -441,20 +453,36 @@ export class CurrentListingsService {
       // Loop through the current listings and overwrite properties with the updated listing
       const overwritten: Listing[] = [];
 
-      for (const id in current) {
+      for (const id in current.keys()) {
         overwritten.push(Object.assign({}, current[id], updated.get(id)));
       }
 
-      await this.saveTempListings(steamid, overwritten);
+      if (overwritten.length > 0) {
+        await this.saveTempListings(steamid, overwritten);
 
-      await this.redis.hmset(
-        this.getCurrentKey(steamid),
-        ...overwritten.flatMap((listing) => [
-          listing.id,
-          JSON.stringify(listing),
-        ]),
-      );
+        await this.redis.hmset(
+          this.getCurrentKey(steamid),
+          ...overwritten.flatMap((listing) => [
+            listing.id,
+            JSON.stringify(listing),
+          ]),
+        );
+      }
     }
+
+    const mapped = result.updated.reduce(
+      (acc, cur) => {
+        const hash = idToHash.get(cur.id)!;
+        acc[hash] = cur;
+        return acc;
+      },
+      {} as Record<string, Listing>,
+    );
+
+    await this.eventEmitter.emitAsync('current-listings.updated', {
+      steamid,
+      listings: mapped,
+    } satisfies CurrentListingsCreatedEvent);
 
     return result;
   }
@@ -875,5 +903,26 @@ export class CurrentListingsService {
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:current:keep:${steamid.getSteamID64()}`;
+  }
+
+  private getResources(steamid: SteamID, desired: DesiredListing): string[] {
+    const resources = [this.getResourceForDesired(steamid, desired)];
+
+    if (desired.id !== undefined) {
+      resources.push(this.getResourceForListingId(steamid, desired.id));
+    }
+
+    return resources;
+  }
+
+  private getResourceForListingId(steamid: SteamID, id: string): string {
+    return `bptf-manager:current:${steamid.getSteamID64()}:${id}`;
+  }
+
+  private getResourceForDesired(
+    steamid: SteamID,
+    desired: DesiredListing,
+  ): string {
+    return `bptf-manager:current:${steamid.getSteamID64()}:${desired.hash}`;
   }
 }

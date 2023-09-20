@@ -113,6 +113,7 @@ export class InventoriesService {
     object['timestamp'] = now;
 
     const key = this.getInventoryKey(steamid, appid, contextid);
+    const tempKey = key + ':temp';
 
     const event = {
       steamid64: steamid.getSteamID64(),
@@ -133,9 +134,11 @@ export class InventoriesService {
       ],
       1000,
       async () => {
+        await this.redis.hset(tempKey, object);
+
         const pipeline = this.redis
           .multi()
-          .hset(key, object)
+          .rename(tempKey, key)
           .lpush(
             OUTBOX_KEY,
             JSON.stringify({

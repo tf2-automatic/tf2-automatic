@@ -3,6 +3,7 @@ import {
   CurrentListingsCreateFailedEvent,
   CurrentListingsDeletedEvent,
   DesiredListingsAddedEvent,
+  DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
 import { InjectRedis } from '@songkeys/nestjs-redis';
@@ -20,7 +21,7 @@ import { Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
 import {
   DesiredListing,
-  ExtendedDesiredListing,
+  DesiredListingWithId,
   ListingError,
 } from './interfaces/desired-listing.interface';
 import { CurrentListingsService } from './current-listings.service';
@@ -33,6 +34,11 @@ import { ListingLimitsService } from './listing-limits.service';
 import { InventoriesService } from '../inventories/inventories.service';
 import { Logger } from '@nestjs/common';
 import hash from 'object-hash';
+
+enum ListingAction {
+  Create,
+  Update,
+}
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -71,11 +77,28 @@ export class ManageListingsService {
     // Remove from delete queue
     transaction.srem(
       this.getDeleteKey(event.steamid),
-      ...event.listings.map((d) => d.hash),
+      ...event.desired.map((d) => d.hash),
     );
 
     // Add to create queue
-    this.chainableQueueDesired(transaction, event.steamid, event.listings);
+    const create: DesiredListing[] = [];
+    const update: DesiredListing[] = [];
+
+    event.desired.forEach((d) => {
+      if (d.id === undefined || d.force === true) {
+        create.push(d);
+      } else {
+        update.push(d);
+      }
+    });
+
+    if (create.length > 0) {
+      this.chainableQueueDesired(transaction, event.steamid, true, create);
+    }
+
+    if (update.length > 0) {
+      this.chainableQueueDesired(transaction, event.steamid, false, update);
+    }
 
     await transaction.exec();
 
@@ -87,30 +110,30 @@ export class ManageListingsService {
 
   @OnEvent('desired-listings.removed')
   private async removedDesired(event: DesiredListingsRemovedEvent) {
-    const hashes = event.listings.map((d) => d.hash);
+    const hashes = event.desired.map((d) => d.hash);
 
     const transaction = this.redis.multi();
 
     // Remove hashes from create queue
     transaction.zrem(this.getCreateKey(event.steamid), ...hashes);
 
-    const ids = event.listings
+    const ids = event.desired
       .filter((d) => d.id !== undefined)
       .map((d) => d.id!);
 
     if (ids.length > 0) {
       // Queue listings to be deleted
-      transaction
-        .sadd(this.getDeleteKey(event.steamid), ...ids)
-        .sadd(this.getArchivedDeleteKey(event.steamid), ...ids);
+      this.chainableQueueDelete(transaction, event.steamid, ids);
     }
 
     await transaction.exec();
 
-    await Promise.all([
-      this.createJob(event.steamid, ManageJobType.DeleteArchived),
-      this.createJob(event.steamid, ManageJobType.Delete),
-    ]);
+    if (ids.length > 0) {
+      await Promise.all([
+        this.createJob(event.steamid, ManageJobType.DeleteArchived),
+        this.createJob(event.steamid, ManageJobType.Delete),
+      ]);
+    }
   }
 
   @OnEvent('desired-listings.created', {
@@ -119,10 +142,10 @@ export class ManageListingsService {
   private async createdDesired(event: DesiredListingsAddedEvent) {
     const listings = await this.currentListingsService.getListingsByIds(
       event.steamid,
-      event.listings.map((d) => d.id!),
+      event.desired.map((d) => d.id!),
     );
 
-    const archivedIds = Object.values(listings)
+    const archivedIds = Array.from(listings.values())
       .filter((l) => l.archived === true)
       .map((l) => l.id);
 
@@ -174,7 +197,7 @@ export class ManageListingsService {
   @OnEvent('current-listings.failed')
   private async failedCurrentListings(event: CurrentListingsCreateFailedEvent) {
     const found =
-      Object.values(event.results).findIndex(
+      Object.values(event.errors).findIndex(
         (error) => error === ListingError.ItemDoesNotExist,
       ) !== -1;
 
@@ -235,31 +258,6 @@ export class ManageListingsService {
   private chainableQueueDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
-    listings: ExtendedDesiredListing[],
-  ): void {
-    const create: DesiredListing[] = [];
-    const update: DesiredListing[] = [];
-
-    listings.forEach((d) => {
-      if (d.id === undefined || d.force === true) {
-        create.push(d);
-      } else {
-        update.push(d);
-      }
-    });
-
-    if (create.length > 0) {
-      this.chainableQueueDesiredSpecific(chainable, steamid, true, create);
-    }
-
-    if (update.length > 0) {
-      this.chainableQueueDesiredSpecific(chainable, steamid, false, update);
-    }
-  }
-
-  private chainableQueueDesiredSpecific(
-    chainable: ChainableCommander,
-    steamid: SteamID,
     create: boolean,
     listings: DesiredListing[],
   ): void {
@@ -270,6 +268,15 @@ export class ManageListingsService {
         d.hash,
       ]),
     );
+  }
+
+  private chainableQueueDelete(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    hashes: string[],
+  ): void {
+    chainable.sadd(this.getDeleteKey(steamid), ...hashes);
+    chainable.sadd(this.getArchivedDeleteKey(steamid), ...hashes);
   }
 
   async getListingsToCreate(
@@ -357,8 +364,10 @@ export class ManageListingsService {
     token: Token,
     hashes: string[],
   ): Promise<BatchCreateListingResponse[]> {
+    const steamid = new SteamID(token.steamid64);
+
     const desiredMap = await this.desiredListingsService.getDesiredByHashes(
-      new SteamID(token.steamid64),
+      steamid,
       hashes,
     );
 
@@ -375,6 +384,94 @@ export class ManageListingsService {
     );
 
     return result;
+  }
+
+  @OnEvent('desired-listings.created', {
+    suppressErrors: false,
+  })
+  @OnEvent('current-listings.updated', {
+    suppressErrors: false,
+  })
+  async currentListingsUpdated(event: DesiredListingsCreatedEvent) {
+    const desired = await this.desiredListingsService.getDesiredByHashes(
+      event.steamid,
+      Object.keys(event.listings),
+    );
+
+    // Loop through all desired listings and compare to the current listing
+
+    const create: DesiredListing[] = [];
+    const update: DesiredListing[] = [];
+    const remove: string[] = [];
+
+    Object.keys(event.listings).forEach((hash) => {
+      const match = desired[hash];
+
+      if (!match) {
+        remove.push(event.listings[hash].id);
+      } else if (match.id === undefined) {
+        create.push(match);
+      } else {
+        const action = this.compareCurrentAndDesired(
+          match,
+          event.listings[hash],
+        );
+
+        if (action === ListingAction.Create) {
+          create.push(match);
+        } else if (action === ListingAction.Update) {
+          update.push(match);
+        }
+      }
+    });
+
+    const transaction = this.redis.multi();
+
+    if (create.length > 0) {
+      // Add listings to create queue
+      this.chainableQueueDesired(transaction, event.steamid, true, create);
+    }
+
+    if (update.length > 0) {
+      // Add listings to update queue
+      this.chainableQueueDesired(transaction, event.steamid, false, update);
+    }
+
+    if (remove.length > 0) {
+      // Add listings to delete queues
+      this.chainableQueueDelete(transaction, event.steamid, remove);
+    }
+
+    await transaction.exec();
+
+    this.logger.debug(
+      'Queued ' +
+        create.length +
+        ' listing(s) to be created, ' +
+        update.length +
+        ' listing(s) to be updated and ' +
+        remove.length +
+        ' listing(s) to be deleted',
+    );
+
+    const promises: Promise<unknown>[] = [];
+
+    if (create.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Create));
+    }
+
+    if (update.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Update));
+    }
+
+    if (remove.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Delete));
+      promises.push(
+        this.createJob(event.steamid, ManageJobType.DeleteArchived),
+      );
+    }
+
+    await Promise.all(promises);
   }
 
   async updateListings(
@@ -403,9 +500,13 @@ export class ManageListingsService {
       }
     });
 
+    const update = desired.filter(
+      (d): d is DesiredListingWithId => d.id !== undefined,
+    );
+
     const result = await this.currentListingsService.updateListings(
       token,
-      desired,
+      update,
     );
 
     // List of hashes of listings that were successfully updated
@@ -431,7 +532,7 @@ export class ManageListingsService {
 
     // Add failed listings to the create queue
     if (failed.length > 0) {
-      this.chainableQueueDesiredSpecific(
+      this.chainableQueueDesired(
         transaction,
         new SteamID(token.steamid64),
         true,
@@ -509,42 +610,16 @@ export class ManageListingsService {
       }
 
       const match = currentMap.get(d.id);
+
       if (!match) {
-        // Listing does not exist or it no longer exists, add it to the create queue
+        // Listing no longer exists, remove the id
         delete d.id;
-      } else if (
-        (d.listing.item?.quantity ?? 1) !== (match.item.quantity ?? 1)
-      ) {
-        create.set(d.hash, d);
       } else {
-        const desiredHash = hash(
-          {
-            currencies: {
-              keys: d.listing.currencies.keys ?? 0,
-              metal: d.listing.currencies.metal ?? 0,
-            },
-            details: d.listing.details ?? '',
-          },
-          {
-            respectType: false,
-          },
-        );
+        const action = this.compareCurrentAndDesired(d, match);
 
-        const currentHash = hash(
-          {
-            currencies: {
-              keys: match.currencies.keys ?? 0,
-              metal: match.currencies.metal ?? 0,
-            },
-            details: match.details ?? '',
-          },
-          {
-            respectType: false,
-          },
-        );
-
-        if (desiredHash !== currentHash) {
-          // Listing has changed, add it to the update queue
+        if (action === ListingAction.Create) {
+          create.set(d.hash, d);
+        } else if (action === ListingAction.Update) {
           update.set(d.hash, d);
         }
       }
@@ -603,7 +678,8 @@ export class ManageListingsService {
     const transaction = this.redis.multi();
 
     if (create.size > 0) {
-      this.chainableQueueDesiredSpecific(
+      // Add listings to create queue
+      this.chainableQueueDesired(
         transaction,
         steamid,
         true,
@@ -611,7 +687,8 @@ export class ManageListingsService {
       );
     }
     if (update.size > 0) {
-      this.chainableQueueDesiredSpecific(
+      // Add listings to update queue
+      this.chainableQueueDesired(
         transaction,
         steamid,
         false,
@@ -620,8 +697,8 @@ export class ManageListingsService {
     }
 
     if (remove.length > 0) {
-      transaction.sadd(this.getDeleteKey(steamid), ...remove);
-      transaction.sadd(this.getArchivedDeleteKey(steamid), ...remove);
+      // Add listings to delete queues
+      this.chainableQueueDelete(transaction, steamid, remove);
     }
 
     this.desiredListingsService.chainableSaveDesired(
@@ -630,16 +707,12 @@ export class ManageListingsService {
       desired,
     );
 
-    // TODO: Delete listing ids that don't exist anymore
-
-    // TODO: If listing cap is reached then delete listings that are of low priority
-
     await transaction.exec();
 
     this.logger.debug(
       'Queued ' +
         create.size +
-        ' listing(s) to be created,' +
+        ' listing(s) to be created, ' +
         update.size +
         ' listing(s) to be updated and ' +
         remove.length +
@@ -663,6 +736,50 @@ export class ManageListingsService {
 
     // Create jobs
     await Promise.all(promises);
+  }
+
+  private compareCurrentAndDesired(
+    desired: DesiredListing,
+    current: Listing,
+  ): ListingAction.Create | ListingAction.Update | null {
+    if (
+      (desired.listing.item?.quantity ?? 1) !== (current.item.quantity ?? 1)
+    ) {
+      return ListingAction.Create;
+    } else {
+      const desiredHash = hash(
+        {
+          currencies: {
+            keys: desired.listing.currencies.keys ?? 0,
+            metal: desired.listing.currencies.metal ?? 0,
+          },
+          details: desired.listing.details ?? '',
+        },
+        {
+          respectType: false,
+        },
+      );
+
+      const currentHash = hash(
+        {
+          currencies: {
+            keys: current.currencies.keys ?? 0,
+            metal: current.currencies.metal ?? 0,
+          },
+          details: current.details ?? '',
+        },
+        {
+          respectType: false,
+        },
+      );
+
+      if (desiredHash !== currentHash) {
+        // Listing has changed, add it to the update queue
+        return ListingAction.Update;
+      }
+    }
+
+    return null;
   }
 
   async deleteAllListings(token: Token) {
