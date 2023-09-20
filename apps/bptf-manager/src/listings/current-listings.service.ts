@@ -406,7 +406,10 @@ export class CurrentListingsService {
   ): Promise<BatchUpdateListingResponse> {
     const listings: UpdateListingBody[] = [];
 
+    const idToHash = new Map<string, string>();
+
     desired.forEach((d) => {
+      idToHash.set(d.id, d.hash);
       listings.push({
         id: d.id,
         body: {
@@ -466,6 +469,20 @@ export class CurrentListingsService {
         );
       }
     }
+
+    const mapped = result.updated.reduce(
+      (acc, cur) => {
+        const hash = idToHash.get(cur.id)!;
+        acc[hash] = cur;
+        return acc;
+      },
+      {} as Record<string, Listing>,
+    );
+
+    await this.eventEmitter.emitAsync('current-listings.updated', {
+      steamid,
+      listings: mapped,
+    } satisfies CurrentListingsCreatedEvent);
 
     return result;
   }

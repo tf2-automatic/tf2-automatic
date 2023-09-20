@@ -3,6 +3,7 @@ import {
   CurrentListingsCreateFailedEvent,
   CurrentListingsDeletedEvent,
   DesiredListingsAddedEvent,
+  DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
 import { InjectRedis } from '@songkeys/nestjs-redis';
@@ -21,7 +22,6 @@ import { DesiredListingsService } from './desired-listings.service';
 import {
   DesiredListing,
   DesiredListingWithId,
-  ExtendedDesiredListing,
   ListingError,
 } from './interfaces/desired-listing.interface';
 import { CurrentListingsService } from './current-listings.service';
@@ -364,8 +364,10 @@ export class ManageListingsService {
     token: Token,
     hashes: string[],
   ): Promise<BatchCreateListingResponse[]> {
+    const steamid = new SteamID(token.steamid64);
+
     const desiredMap = await this.desiredListingsService.getDesiredByHashes(
-      new SteamID(token.steamid64),
+      steamid,
       hashes,
     );
 
@@ -382,6 +384,94 @@ export class ManageListingsService {
     );
 
     return result;
+  }
+
+  @OnEvent('desired-listings.created', {
+    suppressErrors: false,
+  })
+  @OnEvent('current-listings.updated', {
+    suppressErrors: false,
+  })
+  async currentListingsUpdated(event: DesiredListingsCreatedEvent) {
+    const desired = await this.desiredListingsService.getDesiredByHashes(
+      event.steamid,
+      Object.keys(event.listings),
+    );
+
+    // Loop through all desired listings and compare to the current listing
+
+    const create: DesiredListing[] = [];
+    const update: DesiredListing[] = [];
+    const remove: string[] = [];
+
+    Object.keys(event.listings).forEach((hash) => {
+      const match = desired[hash];
+
+      if (!match) {
+        remove.push(event.listings[hash].id);
+      } else if (match.id === undefined) {
+        create.push(match);
+      } else {
+        const action = this.compareCurrentAndDesired(
+          match,
+          event.listings[hash],
+        );
+
+        if (action === ListingAction.Create) {
+          create.push(match);
+        } else if (action === ListingAction.Update) {
+          update.push(match);
+        }
+      }
+    });
+
+    const transaction = this.redis.multi();
+
+    if (create.length > 0) {
+      // Add listings to create queue
+      this.chainableQueueDesired(transaction, event.steamid, true, create);
+    }
+
+    if (update.length > 0) {
+      // Add listings to update queue
+      this.chainableQueueDesired(transaction, event.steamid, false, update);
+    }
+
+    if (remove.length > 0) {
+      // Add listings to delete queues
+      this.chainableQueueDelete(transaction, event.steamid, remove);
+    }
+
+    await transaction.exec();
+
+    this.logger.debug(
+      'Queued ' +
+        create.length +
+        ' listing(s) to be created, ' +
+        update.length +
+        ' listing(s) to be updated and ' +
+        remove.length +
+        ' listing(s) to be deleted',
+    );
+
+    const promises: Promise<unknown>[] = [];
+
+    if (create.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Create));
+    }
+
+    if (update.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Update));
+    }
+
+    if (remove.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Delete));
+      promises.push(
+        this.createJob(event.steamid, ManageJobType.DeleteArchived),
+      );
+    }
+
+    await Promise.all(promises);
   }
 
   async updateListings(
@@ -616,10 +706,6 @@ export class ManageListingsService {
       steamid,
       desired,
     );
-
-    // TODO: Delete listing ids that don't exist anymore
-
-    // TODO: If listing cap is reached then delete listings that are of low priority
 
     await transaction.exec();
 
