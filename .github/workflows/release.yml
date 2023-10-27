@@ -19,20 +19,29 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
         with:
-          path: '~/.npm'
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          version: 8
+          run_install: false
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
-        run: npm ci --no-audit
+        run: pnpm install
       - name: Get affected
         id: affected
         run: |
-          echo "DOCKER=$(npx nx print-affected --target=docker --select=projects | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
-          echo "NPM=$(npx nx print-affected --target=npm --select=projects | sed 's/ //g' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker | sed -z 's/\n/,/g;s/,$/\n/' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm | sed -z 's/\n/,/g;s/,$/\n/' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
     outputs:
       docker: ${{ steps.affected.outputs.DOCKER }}
       npm: ${{ steps.affected.outputs.NPM }}
@@ -47,15 +56,24 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
         with:
-          path: '~/.npm'
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          version: 8
+          run_install: false
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
-        run: npm ci --no-audit
+        run: pnpm install
       - name: Release
         uses: cycjimmy/semantic-release-action@v3
         id: semantic
@@ -106,17 +124,26 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18.x
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
         with:
-          path: '~/.npm'
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          version: 8
+          run_install: false
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
-        run: npm ci --no-audit
+        run: pnpm install
       - name: Build and push
-        run: npx nx run ${{ matrix.projectName }}:docker
+        run: pnpm exec nx run ${{ matrix.projectName }}:docker
         env:
           INPUT_TAGS: ${{ steps.meta.outputs.tags }}
           INPUT_LABELS: ${{ steps.meta.outputs.labels }}
@@ -136,17 +163,26 @@ jobs:
         with:
           node-version: 18.x
           registry-url: 'https://npm.pkg.github.com'
-      - name: Cache npm dependencies
-        uses: actions/cache@v3
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
         with:
-          path: '~/.npm'
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          version: 8
+          run_install: false
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-pnpm-store-
       - name: Install dependencies
-        run: npm ci --no-audit
+        run: pnpm install
       - name: Build and publish
-        run: npx nx run ${{ matrix.projectName }}:npm --args="--version=${{ needs.release.outputs.new_release_version }} --tag=${{ needs.release.outputs.new_release_channel }}"
+        run: pnpm exec nx run ${{ matrix.projectName }}:npm --args="--version=${{ needs.release.outputs.new_release_version }} --tag=${{ needs.release.outputs.new_release_channel }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Delete old versions
