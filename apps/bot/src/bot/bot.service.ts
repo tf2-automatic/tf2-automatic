@@ -12,7 +12,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service';
 import SteamID from 'steamid';
-import FileManager from 'file-manager';
 import { EventsService } from '../events/events.service';
 import { MetadataService } from '../metadata/metadata.service';
 import {
@@ -56,8 +55,6 @@ export class BotService implements OnModuleDestroy {
       this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
   });
   private community: SteamCommunity = new SteamCommunity({
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     request: request.defaults({
       proxy:
         this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
@@ -126,13 +123,11 @@ export class BotService implements OnModuleDestroy {
       cancelTime: tradeConfig.cancelTime,
     });
 
-    // Add type to manager storage
-    const managerStorage = this.manager.storage as FileManager;
-    managerStorage.on('read', (filename, callback) => {
+    this.manager.storage.on('read', (filename, callback) => {
       this.handleReadEvent(filename, callback);
     });
 
-    managerStorage.on('save', (filename, contents, callback) => {
+    this.manager.storage.on('save', (filename, contents, callback) => {
       this.handleWriteEvent(filename, contents, callback);
     });
 
@@ -614,7 +609,6 @@ export class BotService implements OnModuleDestroy {
 
       // Disable polling
       this.manager.pollInterval = -1;
-      clearTimeout(this.manager._pollTimer);
 
       const promise = new Promise<void>((resolve) => {
         // Wait a second before reconnecting to avoid retrying too quickly

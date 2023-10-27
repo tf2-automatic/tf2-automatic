@@ -1,0 +1,32 @@
+diff --git a/index.d.ts b/index.d.ts
+index 327be71eacdb3e80d9ffe12d1688f76ad2cb3cfe..7b2d37a87c45d116c090cf1c367d0c279c7fafa4 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -619,23 +619,23 @@ declare namespace SteamCommunity {
+     type CallbackError = Error & { [key: string]: any } | null;
+ 
+     /** Unique and can change after a trade. */
+-    type assetid = number | string;
++    type assetid = string;
+ 
+     type userid = SteamID | string;
+ 
+     type appid = number;
+ 
+     /** 2 for csgo... */
+-    type contextid = number;
++    type contextid = string;
+ 
+     /**
+      * In a nutshell, a classid "owns" an instanceid. The classid is all you need to get a general overview of an item.
+      * For example, items with the same classid will pretty much always have the same name and image.
+      */
+-    type classid = number;
++    type classid = string;
+ 
+     /** An ID that describes an item instance that inherits properties from a class with the class id being noted in the instance (totally not unique). */
+-    type instanceid = number;
++    type instanceid = string;
+ 
+     type packageid = number | string;
+ 

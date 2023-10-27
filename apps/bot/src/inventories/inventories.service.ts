@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
-import SteamTradeOfferManager from 'steam-tradeoffer-manager';
+import { InventoryCallback } from 'steam-tradeoffer-manager';
 import SteamID from 'steamid';
 import { Inventory } from '@tf2-automatic/bot-data';
 
@@ -8,8 +8,7 @@ import { Inventory } from '@tf2-automatic/bot-data';
 export class InventoriesService {
   private readonly logger = new Logger(InventoriesService.name);
 
-  private readonly manager: SteamTradeOfferManager =
-    this.botService.getManager();
+  private readonly manager = this.botService.getManager();
 
   constructor(private readonly botService: BotService) {}
 
@@ -24,7 +23,9 @@ export class InventoriesService {
         `Getting inventory ${steamid}/${appid}/${contextid}?tradableOnly=${tradableOnly}...`,
       );
 
-      const callback = (err: Error, inventory: Inventory) => {
+      const callback: InventoryCallback = (err, items) => {
+        const inventory = items as unknown as Inventory;
+
         if (err) {
           this.logger.warn(`Error getting inventory: ${err.message}`);
           reject(err);

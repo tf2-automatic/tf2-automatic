@@ -9,6 +9,7 @@ COPY $SOURCE_DIR ./
 FROM base AS installer
 WORKDIR /app
 COPY --from=source /app/package.json /app/pnpm-lock.yaml ./
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
 FROM node:18-alpine as runner
