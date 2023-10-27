@@ -1,22 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
-import SteamTradeOfferManager from 'steam-tradeoffer-manager';
 import SteamID from 'steamid';
 import { FriendsService } from '../friends/friends.service';
-
-interface UserDetails {
-  me: {
-    escrowDays: number;
-  };
-  them: {
-    escrowDays: number;
-  };
-}
+import TradeOffer from 'steam-tradeoffer-manager/lib/classes/TradeOffer';
 
 @Injectable()
 export class EscrowService {
-  private readonly manager: SteamTradeOfferManager =
-    this.botService.getManager();
+  private readonly manager = this.botService.getManager();
 
   constructor(
     private readonly botService: BotService,
@@ -40,9 +30,10 @@ export class EscrowService {
     return Math.max(details.me.escrowDays, details.them.escrowDays);
   }
 
-  private getUserDetails(
-    offer: SteamTradeOfferManager.TradeOffer,
-  ): Promise<UserDetails> {
+  private getUserDetails(offer: TradeOffer): Promise<{
+    me: TradeOffer.UserDetails;
+    them: TradeOffer.UserDetails;
+  }> {
     return new Promise((resolve, reject) => {
       offer.getUserDetails((err, me, them) => {
         if (err) {

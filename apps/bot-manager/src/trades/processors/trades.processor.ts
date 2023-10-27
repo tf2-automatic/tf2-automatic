@@ -188,7 +188,7 @@ export class TradesProcessor extends WorkerHost {
 
       if (offer) {
         // Offer was already created
-        return offer.id;
+        return offer.id!;
       }
 
       this.logger.debug(`Did not find a matching offer`);
@@ -200,7 +200,7 @@ export class TradesProcessor extends WorkerHost {
       this.logger.debug(`Creating trade...`);
 
       const offer = await this.tradesService.createTrade(bot, job.data.raw);
-      return offer.id;
+      return offer.id!;
     } catch (err) {
       await this.handleSendTradeError(job, err, now);
       throw err;
@@ -231,7 +231,7 @@ export class TradesProcessor extends WorkerHost {
           itemsToReceive: job.data.raw.itemsToReceive,
         },
       );
-      return offer.id;
+      return offer.id!;
     } catch (err) {
       await this.handleSendTradeError(job, err, now);
       throw err;

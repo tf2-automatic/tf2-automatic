@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
+import ActualTradeOffer from 'steam-tradeoffer-manager/lib/classes/TradeOffer';
 import {
   CreateTradeResponse,
   GetTradesResponse,
@@ -15,6 +16,7 @@ import {
   TRADE_RECEIVED_EVENT,
   TRADE_SENT_EVENT,
   TRADE_CONFIRMATION_NEEDED_EVENT,
+  ExchangeDetailsItem,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
@@ -23,7 +25,7 @@ import { Logger } from '@nestjs/common/services';
 import { EventsService } from '../events/events.service';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
-import SteamUser from 'steam-user';
+import SteamUser, { EResult } from 'steam-user';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
 import sizeof from 'object-sizeof';
@@ -50,7 +52,7 @@ export class TradesService {
   private readonly ensurePolldataPublishedQueue: queueAsPromised<string> =
     fastq.promise(this.ensurePolldataPublished.bind(this), 1);
 
-  private readonly ensureOfferPublishedQueue: queueAsPromised<SteamTradeOfferManager.TradeOffer> =
+  private readonly ensureOfferPublishedQueue: queueAsPromised<ActualTradeOffer> =
     fastq.promise(this.ensureOfferPublished.bind(this), 1);
 
   private ensurePollDataTimeout: NodeJS.Timeout;
@@ -114,10 +116,7 @@ export class TradesService {
     };
   }
 
-  private handleOffers(
-    sent: SteamTradeOfferManager.TradeOffer[],
-    received: SteamTradeOfferManager.TradeOffer[],
-  ) {
+  private handleOffers(sent: ActualTradeOffer[], received: ActualTradeOffer[]) {
     sent.concat(received).forEach((offer) =>
       this.ensureOfferPublishedQueue.push(offer).catch(() => {
         // Ignore error
@@ -131,7 +130,6 @@ export class TradesService {
     this.ensurePollDataTimeout = setTimeout(() => {
       // Set polldata size inside timeout to minimize amount of times it is calculated
       this.pollDataSize.set(sizeof(this.manager.pollData));
-      this.assetCacheSize.set(sizeof(this.manager._assetCache._entries));
 
       const { sent, received } = this.getActiveOfferCounts();
 
@@ -211,9 +209,7 @@ export class TradesService {
     });
   }
 
-  private ensureOfferStatePublished(
-    offer: SteamTradeOfferManager.TradeOffer,
-  ): Promise<void> {
+  private ensureOfferStatePublished(offer: ActualTradeOffer): Promise<void> {
     const publishedState = offer.data('published') as
       | TradeOfferData['published']
       | null;
@@ -226,9 +222,7 @@ export class TradesService {
     return this.publishOffer(offer, publishedState);
   }
 
-  private ensureConfirmationPublished(
-    offer: SteamTradeOfferManager.TradeOffer,
-  ): Promise<void> {
+  private ensureConfirmationPublished(offer: ActualTradeOffer): Promise<void> {
     if (
       offer.confirmationMethod ===
       SteamTradeOfferManager.EConfirmationMethod.None
@@ -267,7 +261,7 @@ export class TradesService {
       });
   }
 
-  private handleNewOffer(offer: SteamTradeOfferManager.TradeOffer) {
+  private handleNewOffer(offer: ActualTradeOffer) {
     this.logger.log(
       `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`,
     );
@@ -275,7 +269,7 @@ export class TradesService {
   }
 
   private handleOfferChanged(
-    offer: SteamTradeOfferManager.TradeOffer,
+    offer: ActualTradeOffer,
     oldState: SteamUser.ETradeOfferState,
   ): void {
     this.logger.log(
@@ -286,7 +280,7 @@ export class TradesService {
   }
 
   private publishOffer(
-    offer: SteamTradeOfferManager.TradeOffer,
+    offer: ActualTradeOffer,
     oldState: SteamUser.ETradeOfferState | null = null,
   ): Promise<void> {
     const publish = (): Promise<void> => {
@@ -355,27 +349,20 @@ export class TradesService {
 
   getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
     return new Promise<GetTradesResponse>((resolve, reject) => {
-      this.manager.getOffers(
-        dto.filter,
-        (
-          err: Error,
-          sent: SteamTradeOfferManager.TradeOffer[],
-          received: SteamTradeOfferManager.TradeOffer[],
-        ) => {
-          if (err) {
-            return reject(err);
-          }
+      this.manager.getOffers(dto.filter, (err, sent, received) => {
+        if (err) {
+          return reject(err);
+        }
 
-          const sentMapped = sent.map((offer) => {
-            return this.mapOffer(offer);
-          });
-          const receivedMapped = received.map((offer) => {
-            return this.mapOffer(offer);
-          });
+        const sentMapped = sent.map((offer) => {
+          return this.mapOffer(offer);
+        });
+        const receivedMapped = received.map((offer) => {
+          return this.mapOffer(offer);
+        });
 
-          return resolve({ sent: sentMapped, received: receivedMapped });
-        },
-      );
+        return resolve({ sent: sentMapped, received: receivedMapped });
+      });
     }).catch((err) => {
       this.logger.error(
         `Error getting trades: ${err.message}${
@@ -386,8 +373,8 @@ export class TradesService {
     });
   }
 
-  private _getTrade(id: string): Promise<SteamTradeOfferManager.TradeOffer> {
-    return new Promise<TradeOffer>((resolve, reject) => {
+  private _getTrade(id: string): Promise<ActualTradeOffer> {
+    return new Promise((resolve, reject) => {
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
           if (err.message === 'NoMatch') {
@@ -440,18 +427,18 @@ export class TradesService {
       counter.setMessage(dto.message);
     }
 
-    counter.itemsToGive = [];
-    counter.itemsToReceive = [];
+    // Remove all items from the offer
+    counter.removeMyItems(counter.itemsToGive);
+    counter.removeTheirItems(counter.itemsToReceive);
 
+    // Add the new items to the offer
     counter.addMyItems(dto.itemsToGive);
     counter.addTheirItems(dto.itemsToReceive);
 
     return this.sendOffer(counter);
   }
 
-  private sendOffer(
-    offer: SteamTradeOfferManager.TradeOffer,
-  ): Promise<CreateTradeResponse> {
+  private sendOffer(offer: ActualTradeOffer): Promise<CreateTradeResponse> {
     this.logger.log(`Sending offer to ${offer.partner}...`);
 
     this.logger.debug(
@@ -483,7 +470,7 @@ export class TradesService {
     });
   }
 
-  private _sendOffer(offer: SteamTradeOfferManager.TradeOffer): Promise<void> {
+  private _sendOffer(offer: ActualTradeOffer): Promise<void> {
     return new Promise((resolve, reject) => {
       offer.send((err) => {
         if (err) {
@@ -501,6 +488,9 @@ export class TradesService {
 
           if (err.eresult !== undefined || err.cause !== undefined) {
             return reject(
+              // FIXME: Wait for https://github.com/DefinitelyTyped/DefinitelyTyped/pull/67155 to merge
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore-error
               new SteamException(err.message, err.eresult, err.cause),
             );
           }
@@ -541,9 +531,7 @@ export class TradesService {
     return this.mapOffer(offer);
   }
 
-  private _acceptTrade(
-    offer: SteamTradeOfferManager.TradeOffer,
-  ): Promise<string> {
+  private _acceptTrade(offer: ActualTradeOffer): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       offer.accept(false, (err, state) => {
         if (err) {
@@ -555,6 +543,9 @@ export class TradesService {
 
           if (err.eresult !== undefined || err.cause !== undefined) {
             return reject(
+              // FIXME: Wait for https://github.com/DefinitelyTyped/DefinitelyTyped/pull/67155 to merge
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore-error
               new SteamException(err.message, err.eresult, err.cause),
             );
           }
@@ -636,8 +627,13 @@ export class TradesService {
               `Offer #${offer.id} is not active, so it may not be cancelled or declined`
             ) {
               return reject(new BadRequestException('Offer is not active'));
-            } else if (err.eresult !== undefined || err.cause !== undefined) {
-              return reject(new SteamException(err.message, err.eresult));
+            } else if (err.eresult !== undefined) {
+              return reject(
+                new SteamException(
+                  err.message,
+                  err.eresult as unknown as EResult,
+                ),
+              );
             }
 
             return reject(err);
@@ -666,8 +662,8 @@ export class TradesService {
           return resolve({
             status,
             tradeInitTime: Math.floor(tradeInitTime.getTime() / 1000),
-            receivedItems,
-            sentItems,
+            receivedItems: receivedItems as unknown as ExchangeDetailsItem[],
+            sentItems: sentItems as unknown as ExchangeDetailsItem[],
           });
         },
       );
@@ -687,25 +683,25 @@ export class TradesService {
           return reject(err);
         }
 
-        return resolve(items);
+        return resolve(items as unknown as Item[]);
       });
     });
   }
 
-  private mapOffer(offer: SteamTradeOfferManager.TradeOffer): TradeOffer {
+  private mapOffer(offer: ActualTradeOffer): TradeOffer {
     return {
       partner: offer.partner.getSteamID64(),
-      id: offer.id,
+      id: offer.id!,
       message: offer.message,
       state: offer.state,
-      itemsToGive: offer.itemsToGive,
-      itemsToReceive: offer.itemsToReceive,
+      itemsToGive: offer.itemsToGive as unknown as Item[],
+      itemsToReceive: offer.itemsToReceive as unknown as Item[],
       isGlitched: offer.isGlitched(),
       isOurOffer: offer.isOurOffer,
       createdAt: Math.floor(offer.created.getTime() / 1000),
       updatedAt: Math.floor(offer.updated.getTime() / 1000),
       expiresAt: Math.floor(offer.expires.getTime() / 1000),
-      tradeID: offer.tradeID,
+      tradeID: offer.tradeID ?? null,
       fromRealTimeTrade: offer.fromRealTimeTrade,
       confirmationMethod: offer.confirmationMethod,
       escrowEndsAt:
