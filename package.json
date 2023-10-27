@@ -51,12 +51,11 @@
     "@types/write-file-atomic": "^4.0.1",
     "@typescript-eslint/eslint-plugin": "^6.7.5",
     "@typescript-eslint/parser": "^6.7.5",
+    "commitizen": "^4.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "~8.51.0",
     "eslint-config-prettier": "9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
-    "husky": "^8.0.3",
-    "is-ci": "^3.0.1",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
     "jest-environment-node": "^29.7.0",
@@ -97,7 +96,7 @@
     "path": "^0.12.7",
     "prom-client": "^15.0.0",
     "promise-retry": "^2.0.1",
-    "redlock": "^5.0.0-beta.2",
+    "redlock": "5.0.0-beta.2",
     "reflect-metadata": "^0.1.13",
     "request": "^2.88.2",
     "rxjs": "^7.8.1",
@@ -113,6 +112,10 @@
     "tslib": "^2.6.2",
     "uuid": "^9.0.1",
     "write-file-atomic": "^5.0.1"
+  },
+  "optionalDependencies": {
+    "husky": "^8.0.3",
+    "is-ci": "^3.0.1"
   },
   "config": {
     "commitizen": {
