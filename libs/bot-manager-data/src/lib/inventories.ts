@@ -1,12 +1,20 @@
-import { BaseEvent, HttpError, Inventory, Item } from '@tf2-automatic/bot-data';
+import { BaseEvent, HttpError, Item } from '@tf2-automatic/bot-data';
 import { RetryOptions } from './misc';
 
 export const INVENTORIES_BASE_URL = '/inventories';
 export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
 
+export type InventoryItem =
+  | Item
+  | {
+      appid: number;
+      contextid: string;
+      assetid: string;
+    };
+
 export interface InventoryResponse {
   timestamp: number;
-  inventory: Inventory;
+  inventory: InventoryItem[];
 }
 
 export interface EnqueueInventory {
@@ -74,8 +82,8 @@ export type InventoryChangedEvent = BaseEvent<
     steamid64: string;
     appid: number;
     contextid: string;
-    gained: Item[];
-    lost: Item[];
+    gained: InventoryItem[];
+    lost: InventoryItem[];
     reason: InventoryChangedEventReason;
   }
 >;
