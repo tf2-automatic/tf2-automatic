@@ -8,6 +8,7 @@ export interface BotHeartbeat {
   ip: string;
   port: number;
   interval: number;
+  version?: string;
 }
 
 export const BOT_EVENT_PREFIX = 'bots';

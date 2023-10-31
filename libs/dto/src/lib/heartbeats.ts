@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { BotHeartbeat } from '@tf2-automatic/bot-manager-data';
-import { IsInt, IsIP, Max, Min } from 'class-validator';
+import { IsInt, IsIP, IsOptional, IsSemVer, Max, Min } from 'class-validator';
 
 export class BotHeartbeatDto implements BotHeartbeat {
   @ApiProperty({
@@ -26,4 +26,12 @@ export class BotHeartbeatDto implements BotHeartbeat {
   @Max(60000)
   @Min(1000)
   interval: number;
+
+  @ApiProperty({
+    example: '1.0.0',
+    description: 'The version of the bot',
+  })
+  @IsSemVer()
+  @IsOptional()
+  version?: string;
 }
