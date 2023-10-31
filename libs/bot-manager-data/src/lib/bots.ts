@@ -7,5 +7,6 @@ export interface Bot {
   ip: string;
   port: number;
   interval: number;
+  version: string | null;
   lastSeen: number;
 }

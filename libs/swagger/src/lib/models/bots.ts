@@ -28,6 +28,13 @@ export class BotModel implements Bot {
   interval: number;
 
   @ApiProperty({
+    example: '1.0.0',
+    description: 'The version of the bot',
+    nullable: true,
+  })
+  version: string | null;
+
+  @ApiProperty({
     example: Math.floor(Date.now() / 1000),
     description: 'The last time the bot sent a heartbeat',
   })

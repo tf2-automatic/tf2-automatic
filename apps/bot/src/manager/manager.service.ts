@@ -11,6 +11,7 @@ import {
   HEARTBEAT_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { MetadataService } from '../metadata/metadata.service';
+import fs from 'fs';
 
 @Injectable()
 export class ManagerService implements OnModuleDestroy {
@@ -23,6 +24,7 @@ export class ManagerService implements OnModuleDestroy {
   private attempts = 0;
 
   private readonly ip: string;
+  private readonly version: string | undefined;
 
   private ready = false;
   private beating = false;
@@ -42,6 +44,12 @@ export class ManagerService implements OnModuleDestroy {
         'ipv4',
       );
     }
+
+    if (process.env.NODE_ENV === 'production') {
+      this.version = JSON.parse(
+        fs.readFileSync('package.json', 'utf8'),
+      ).version;
+    }
   }
 
   private async sendHeartbeat(): Promise<void> {
@@ -52,6 +60,7 @@ export class ManagerService implements OnModuleDestroy {
       // FIXME: Port is apparently a string in the config
       port: parseInt(this.configService.getOrThrow('port'), 10),
       interval: this.managerConfig.heartbeatInterval as number,
+      version: this.version,
     };
 
     await firstValueFrom(
