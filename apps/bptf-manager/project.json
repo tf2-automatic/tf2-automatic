@@ -13,7 +13,6 @@
         "outputPath": "dist/apps/bptf-manager",
         "main": "apps/bptf-manager/src/main.ts",
         "tsConfig": "apps/bptf-manager/tsconfig.app.json",
-        "isolatedConfig": true,
         "webpackConfig": "apps/bptf-manager/webpack.config.js",
         "generatePackageJson": true
       },

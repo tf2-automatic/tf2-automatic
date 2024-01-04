@@ -35,6 +35,7 @@ import {
   GetTradesDto,
 } from '@tf2-automatic/dto';
 import Bottleneck from 'bottleneck';
+import CEconItem from 'steamcommunity/classes/CEconItem';
 
 interface TradeOfferData {
   published?: SteamUser.ETradeOfferState;
@@ -413,8 +414,8 @@ export class TradesService {
       offer.setMessage(dto.message);
     }
 
-    offer.addMyItems(dto.itemsToGive);
-    offer.addTheirItems(dto.itemsToReceive);
+    offer.addMyItems(dto.itemsToGive as CEconItem[]);
+    offer.addTheirItems(dto.itemsToReceive as CEconItem[]);
 
     return this.sendOffer(offer);
   }
@@ -432,8 +433,8 @@ export class TradesService {
     counter.removeTheirItems(counter.itemsToReceive);
 
     // Add the new items to the offer
-    counter.addMyItems(dto.itemsToGive);
-    counter.addTheirItems(dto.itemsToReceive);
+    counter.addMyItems(dto.itemsToGive as CEconItem[]);
+    counter.addTheirItems(dto.itemsToReceive as CEconItem[]);
 
     return this.sendOffer(counter);
   }
