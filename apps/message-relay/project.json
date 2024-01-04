@@ -13,7 +13,6 @@
         "outputPath": "dist/apps/message-relay",
         "main": "apps/message-relay/src/main.ts",
         "tsConfig": "apps/message-relay/tsconfig.app.json",
-        "isolatedConfig": true,
         "webpackConfig": "apps/message-relay/webpack.config.js",
         "generatePackageJson": true
       },
