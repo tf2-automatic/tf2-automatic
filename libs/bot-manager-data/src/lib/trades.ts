@@ -61,8 +61,8 @@ export interface QueueTradeResponse {
 
 export const TRADES_EVENT_PREFIX = 'trades';
 
-export type ExchangeDetailsEventType = 'trades.exchange-details';
-export const EXCHANGE_DETAILS_EVENT: ExchangeDetailsEventType = `${TRADES_EVENT_PREFIX}.exchange-details`;
+export type ExchangeDetailsEventType = 'trades.exchange_details';
+export const EXCHANGE_DETAILS_EVENT: ExchangeDetailsEventType = `${TRADES_EVENT_PREFIX}.exchange_details`;
 
 export type ExchangeDetailsEvent = BaseEvent<
   ExchangeDetailsEventType,

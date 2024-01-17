@@ -228,7 +228,7 @@ export class TradesService {
   @RabbitSubscribe({
     allowNonJsonMessages: false,
     exchange: BOT_EXCHANGE_NAME,
-    queue: 'bot-manager.exchange-details',
+    queue: 'bot-manager.exchange_details',
     routingKey: TRADE_CHANGED_EVENT,
     errorHandler: requeueErrorHandler,
   })
