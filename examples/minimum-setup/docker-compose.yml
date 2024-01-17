@@ -21,7 +21,6 @@ services:
       - rabbitmq
     ports:
       - '3000:3000'
-    user: root
     environment:
       DEBUG: true
       # Input your bot's credentials here
