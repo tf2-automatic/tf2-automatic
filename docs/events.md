@@ -212,6 +212,32 @@ Event made when a trade offer changes state.
 - `data`
   - `offer` - The trade offer
   - `oldState` - The old state of the trade offer
+ 
+### trades.confirmation_needed (bot)
+
+Event made when a trade offer changes state.
+
+`TRADE_CONFIRMATION_NEEDED_EVENT`
+
+- `type` - `trades.confirmation_needed`
+- `data`
+  - `offer` - The trade offer
+ 
+### trades.exchange_details (bot-manager)
+
+Event made when the exchange details of a trade are received  
+The bot manager keeps track of it's own inventory, but should you want to do anything with the data you can
+
+`EXCHANGE_DETAILS_EVENT`
+
+- `type` - `trades.exchange_details`
+- `data`
+  - `offer` - The trade offer
+  - `details`
+    - `status`
+    - `tradeInitTime`
+    - `receivedItems`
+    - `sentItems`
 
 ### trades.failed (bot-manager)
 
@@ -236,3 +262,22 @@ Event made when a trade offer job fails and won't be retried.
   - `job` - The job that failed
   - `error` - Error message
   - `response` - Response body associated with the error
+
+## TF2
+
+The TF2 events are used to react to items being added to or removed from the inventory  
+The bot manager keeps track of this on its own, but should you want to do anything with the events you can
+
+### tf2.gained (bot)
+
+`TF2_GAINED_EVENT`
+
+- `type` - `tf2.gained`
+- `data` - a `TF2Item` object, refer to the type
+
+### tf2.lost (bot)
+
+`TF2_LOST_EVENT`
+
+- `type` - `tf2.lost`
+- `data` - a `TF2Item` object, refer to the type
