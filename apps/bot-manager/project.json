@@ -13,7 +13,6 @@
         "outputPath": "dist/apps/bot-manager",
         "main": "apps/bot-manager/src/main.ts",
         "tsConfig": "apps/bot-manager/tsconfig.app.json",
-        "isolatedConfig": true,
         "webpackConfig": "apps/bot-manager/webpack.config.js",
         "generatePackageJson": true
       },
