@@ -1,14 +1,4 @@
-import { Job, Queue } from 'bullmq';
-
-interface RepeatableJob {
-  key: string;
-  name: string;
-  id: string;
-  endDate: number;
-  tz: string;
-  pattern: string;
-  next: number;
-}
+import { Job, Queue, RepeatableJob } from 'bullmq';
 
 export async function getRepeatableJob(
   queue: Queue,
