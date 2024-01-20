@@ -580,7 +580,7 @@ export class CurrentListingsService {
 
     const resource = `bptf-manager:listings:refresh:${steamid.getSteamID64()}`;
 
-    this.redlock.using([resource], 5000, async (signal) => {
+    await this.redlock.using([resource], 5000, async (signal) => {
       const tempKey = this.getTempCurrentKey(steamid, time);
 
       if (response.results.length > 0) {
