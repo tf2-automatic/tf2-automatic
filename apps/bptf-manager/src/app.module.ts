@@ -13,6 +13,7 @@ import { TokensModule } from './tokens/tokens.module';
 import { BullModule } from '@nestjs/bullmq';
 import { AgentsModule } from './agents/agents.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     InventoriesModule,
     TokensModule,
     AgentsModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [],
