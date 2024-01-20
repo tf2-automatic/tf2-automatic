@@ -357,7 +357,7 @@ export class CurrentListingsService {
         });
       }
 
-      await transaction.hmset(
+      transaction.hmset(
         this.getCurrentKey(steamid),
         ...createdHashes.flatMap((hash) => [
           created[hash].id,
