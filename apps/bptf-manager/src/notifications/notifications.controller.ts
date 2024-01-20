@@ -1,10 +1,10 @@
 import { Controller, Get, Param, Post } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiParamSteamID } from '@tf2-automatic/swagger';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
-import { Notification } from '@tf2-automatic/bptf-manager-data';
+import { NotificationModel } from '@tf2-automatic/bptf-manager-data';
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -15,11 +15,14 @@ export class NotificationsController {
     summary: 'Get notifications',
     description: 'Get all notifications from the database',
   })
+  @ApiResponse({
+    type: [NotificationModel],
+  })
   @ApiParamSteamID()
   @Get('/:steamid')
   getNotifications(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
-  ): Promise<Notification[]> {
+  ): Promise<NotificationModel[]> {
     return this.notificationsService.getNotifications(steamid);
   }
 
