@@ -73,47 +73,10 @@ export class DesiredListingsService {
           throw signal.error;
         }
 
-        const changed: ExtendedDesiredListingInternal[] = [];
-
-        desired.forEach((d) => {
-          // Update desired based on current listings
-          const c = current[d.hash];
-
-          if (c) {
-            // Listings are for the same items so keep some properties
-            d.id = c.id;
-            d.error = c.error;
-            d.lastAttemptedAt = c.lastAttemptedAt;
-
-            if (d.force === true) {
-              changed.push(d);
-              return;
-            }
-
-            // Need to ignore types because new listings have DesiredListing type and current listings are a normal object
-            const currentHash = hash(c.listing, {
-              respectType: false,
-            });
-            const newHash = hash(d.listing, {
-              respectType: false,
-            });
-
-            if (currentHash !== newHash) {
-              if (
-                (d.listing.item?.quantity ?? 1) !==
-                (c.listing.item?.quantity ?? 1)
-              ) {
-                d.force = true;
-              }
-
-              // Listings changed
-              changed.push(d);
-            }
-          } else {
-            // No matching listing found so it is new
-            changed.push(d);
-          }
-        });
+        const changed = DesiredListingsService.compareAndUpdateDesired(
+          desired,
+          current,
+        );
 
         const transaction = this.redis.multi();
         this.chainableSaveDesired(transaction, steamid, desired);
@@ -129,6 +92,66 @@ export class DesiredListingsService {
         return this.mapDesired(desired);
       },
     );
+  }
+
+  static compareAndUpdateDesired(
+    desired: ExtendedDesiredListingInternal[],
+    current: Record<string, DesiredListingInternal>,
+  ) {
+    const changed: ExtendedDesiredListingInternal[] = [];
+
+    desired.forEach((d) => {
+      // Update desired based on current listings
+      const c = current[d.hash] ?? null;
+
+      this.updateDesiredBasedOnCurrent(d, c);
+
+      if (c && this.isDesiredDifferent(d, c)) {
+        changed.push(d);
+      }
+    });
+
+    return changed;
+  }
+
+  static isDesiredDifferent(
+    desired: ExtendedDesiredListingInternal,
+    current: DesiredListingInternal | null,
+  ): boolean {
+    if (current === null) {
+      return true;
+    }
+
+    if (desired.force) {
+      return true;
+    }
+
+    return (
+      hash(desired.listing, { respectType: false }) !==
+      hash(current.listing, { respectType: false })
+    );
+  }
+
+  static updateDesiredBasedOnCurrent(
+    desired: ExtendedDesiredListingInternal,
+    current: DesiredListingInternal,
+  ): void {
+    desired.id = current.id;
+    desired.error = current.error;
+    desired.lastAttemptedAt = current.lastAttemptedAt;
+
+    if (desired.force) {
+      return;
+    }
+
+    if (
+      (desired.listing.item?.quantity ?? 1) !==
+      (current.listing.item?.quantity ?? 1)
+    ) {
+      // Quantity changed, the listing needs to be recreated in order to
+      // reflect the new quantity
+      desired.force = true;
+    }
   }
 
   async removeDesired(
