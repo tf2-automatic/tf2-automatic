@@ -2,10 +2,6 @@ name: CI
 
 on:
   pull_request:
-    branches:
-      - main
-      - beta
-      - dev
     types:
       - opened
       - synchronize
