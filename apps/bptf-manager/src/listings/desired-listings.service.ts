@@ -2,13 +2,11 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import {
   DesiredListing,
   DesiredListingDto,
-  ListingDto,
   RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import { ChainableCommander, Redis } from 'ioredis';
 import Redlock from 'redlock';
 import SteamID from 'steamid';
-import hash from 'object-hash';
 import {
   DesiredListing as DesiredListingInternal,
   ExtendedDesiredListing as ExtendedDesiredListingInternal,
@@ -21,6 +19,10 @@ import {
   DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
+import { DesiredListing as DesiredListingClass } from './classes/desired-listing.class';
+import { AddDesiredListing } from './classes/add-desired-listing.class';
+import { ListingFactory } from './classes/listing.factory';
+import hashListing from './utils/desired-listing-hash';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -40,33 +42,18 @@ export class DesiredListingsService {
   ): Promise<DesiredListing[]> {
     const now = Math.floor(Date.now() / 1000);
 
-    const desired: ExtendedDesiredListingInternal[] = add.map((create) => {
-      const obj: ExtendedDesiredListingInternal = {
-        hash: DesiredListingsService.createHash(create.listing),
-        steamid64: steamid.getSteamID64(),
-        listing: create.listing,
-        updatedAt: now,
-      };
-
-      if (create.priority !== undefined) {
-        obj.priority = create.priority;
-      }
-
-      if (create.force === true) {
-        obj.force = true;
-      }
-
-      return obj;
-    });
+    const desired = add.map((create) =>
+      ListingFactory.CreateDesiredListingFromDto(steamid, create, now),
+    );
 
     return this.redlock.using(
       ['desired:' + steamid.getSteamID64()],
       1000,
       async (signal) => {
         // Get current listings and check if they are different from the new listings
-        const current = await this.getDesiredByHashes(
+        const current = await this.getDesiredByHashesNew(
           steamid,
-          desired.map((d) => d.hash),
+          desired.map((d) => d.getHash()),
         );
 
         if (signal.aborted) {
@@ -79,34 +66,40 @@ export class DesiredListingsService {
         );
 
         const transaction = this.redis.multi();
-        this.chainableSaveDesired(transaction, steamid, desired);
+        this.chainableSaveDesired(
+          transaction,
+          steamid,
+          desired.map((d) => d.toJSON()),
+        );
         await transaction.exec();
 
         if (changed.length > 0) {
           await this.eventEmitter.emitAsync('desired-listings.added', {
             steamid,
-            desired: changed,
+            desired: changed.map((d) => d.toJSON()),
           } satisfies DesiredListingsAddedEvent);
         }
 
-        return this.mapDesired(desired);
+        return this.mapDesired(desired.map((d) => d.toJSON()));
       },
     );
   }
 
   static compareAndUpdateDesired(
-    desired: ExtendedDesiredListingInternal[],
-    current: Record<string, DesiredListingInternal>,
+    desired: AddDesiredListing[],
+    current: Map<string, DesiredListingClass>,
   ) {
-    const changed: ExtendedDesiredListingInternal[] = [];
+    const changed: DesiredListingClass[] = [];
 
     desired.forEach((d) => {
       // Update desired based on current listings
-      const c = current[d.hash] ?? null;
+      const c = current.get(d.getHash()) ?? null;
 
-      this.updateDesiredBasedOnCurrent(d, c);
+      if (c) {
+        d.inherit(c);
+      }
 
-      if (c && this.isDesiredDifferent(d, c)) {
+      if (!c || d.isDifferent(c)) {
         changed.push(d);
       }
     });
@@ -114,52 +107,12 @@ export class DesiredListingsService {
     return changed;
   }
 
-  static isDesiredDifferent(
-    desired: ExtendedDesiredListingInternal,
-    current: DesiredListingInternal | null,
-  ): boolean {
-    if (current === null) {
-      return true;
-    }
-
-    if (desired.force) {
-      return true;
-    }
-
-    return (
-      hash(desired.listing, { respectType: false }) !==
-      hash(current.listing, { respectType: false })
-    );
-  }
-
-  static updateDesiredBasedOnCurrent(
-    desired: ExtendedDesiredListingInternal,
-    current: DesiredListingInternal,
-  ): void {
-    desired.id = current.id;
-    desired.error = current.error;
-    desired.lastAttemptedAt = current.lastAttemptedAt;
-
-    if (desired.force) {
-      return;
-    }
-
-    if (
-      (desired.listing.item?.quantity ?? 1) !==
-      (current.listing.item?.quantity ?? 1)
-    ) {
-      // Quantity changed, the listing needs to be recreated in order to
-      // reflect the new quantity
-      desired.force = true;
-    }
-  }
-
   async removeDesired(
     steamid: SteamID,
     remove: RemoveListingDto[],
   ): Promise<void> {
     const hashes = remove.map(
-      (listing) => listing.hash ?? DesiredListingsService.createHash(listing),
+      (listing) => listing.hash ?? hashListing(listing),
     );
 
     return this.redlock.using(
@@ -202,6 +155,36 @@ export class DesiredListingsService {
 
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
     return this.getAllDesiredInternal(steamid).then(this.mapDesired);
+  }
+
+  async getDesiredByHashesNew(
+    steamid: SteamID,
+    hashes: string[],
+  ): Promise<Map<string, DesiredListingClass>> {
+    const result: Map<string, DesiredListingClass> = new Map();
+
+    if (hashes.length === 0) {
+      return result;
+    }
+
+    const values = await this.redis.hmget(
+      this.getDesiredKey(steamid),
+      ...hashes,
+    );
+
+    values.forEach((raw) => {
+      if (raw === null) {
+        return;
+      }
+
+      const desired = ListingFactory.CreateDesiredListing(
+        JSON.parse(raw) as DesiredListingInternal,
+      );
+
+      result.set(desired.getHash(), desired);
+    });
+
+    return result;
   }
 
   async getDesiredByHashes(
@@ -340,18 +323,6 @@ export class DesiredListingsService {
         return [copy.hash, JSON.stringify(copy)];
       }),
     );
-  }
-
-  static createHash(listing: ListingDto): string {
-    if (listing.id) {
-      return hash(listing.id);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const item: any = Object.assign({}, listing.item);
-    delete item.quantity;
-
-    return hash(item);
   }
 
   private mapDesired(desired: DesiredListingInternal[]): DesiredListing[] {
