@@ -42,7 +42,7 @@ export class DesiredListingsService {
 
     const desired: ExtendedDesiredListingInternal[] = add.map((create) => {
       const obj: ExtendedDesiredListingInternal = {
-        hash: this.createHash(create.listing),
+        hash: DesiredListingsService.createHash(create.listing),
         steamid64: steamid.getSteamID64(),
         listing: create.listing,
         updatedAt: now,
@@ -159,7 +159,7 @@ export class DesiredListingsService {
     remove: RemoveListingDto[],
   ): Promise<void> {
     const hashes = remove.map(
-      (listing) => listing.hash ?? this.createHash(listing),
+      (listing) => listing.hash ?? DesiredListingsService.createHash(listing),
     );
 
     return this.redlock.using(
@@ -342,7 +342,7 @@ export class DesiredListingsService {
     );
   }
 
-  private createHash(listing: ListingDto): string {
+  static createHash(listing: ListingDto): string {
     if (listing.id) {
       return hash(listing.id);
     }
