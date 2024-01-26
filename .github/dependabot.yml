@@ -10,7 +10,7 @@ updates:
       prefix: chore
       include: scope
   - package-ecosystem: github-actions
-    target-branch: dev
+    target-branch: main
     directory: /
     schedule:
       interval: weekly
