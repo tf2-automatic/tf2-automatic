@@ -1,5 +1,9 @@
 import type SteamCommunity from 'steamcommunity';
 
+export interface UpdateCustomGame {
+  name: string;
+}
+
 export interface UpdateProfileAvatar {
   url: string;
 }
@@ -41,3 +45,4 @@ export const PROFILE_PATH = '/';
 export const PROFILE_SETTINGS_PATH = '/settings';
 export const PROFILE_NAME_PATH = '/name';
 export const PROFILE_TRADEOFFERURL_PATH = '/tradeofferurl';
+export const PROFILE_CUSTOM_GAME_PATH = '/game';

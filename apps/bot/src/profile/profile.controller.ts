@@ -18,6 +18,7 @@ import {
 import {
   PROFILE_AVATAR_PATH,
   PROFILE_BASE_URL,
+  PROFILE_CUSTOM_GAME_PATH,
   PROFILE_NAME_PATH,
   PROFILE_PATH,
   PROFILE_SETTINGS_PATH,
@@ -25,6 +26,7 @@ import {
   TradeOfferUrlResponse,
 } from '@tf2-automatic/bot-data';
 import {
+  UpdateCustomGameDto,
   UpdateProfileAvatarDto,
   UpdateProfileDto,
   UpdateProfileSettingsDto,
@@ -122,5 +124,26 @@ export class ProfileController {
     return this.profileService.changeTradeOfferUrl().then((url) => {
       return { url };
     });
+  }
+
+  @Put(PROFILE_CUSTOM_GAME_PATH)
+  @ApiOperation({
+    summary: 'Set a custom game',
+    description: 'Set a custom game for the bot, it will always be in TF2',
+  })
+  @ApiBody({
+    type: UpdateCustomGameDto,
+  })
+  setCustomGame(@Body(new ValidationPipe()) dto: UpdateCustomGameDto) {
+    return this.profileService.setCustomGame(dto);
+  }
+
+  @Delete(PROFILE_CUSTOM_GAME_PATH)
+  @ApiOperation({
+    summary: 'Clear the custom game',
+    description: 'Clear the bots custom game and return to TF2 only',
+  })
+  clearCustomGame() {
+    return this.profileService.clearCustomGame();
   }
 }

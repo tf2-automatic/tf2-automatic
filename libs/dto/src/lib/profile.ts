@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  UpdateCustomGame,
   UpdateProfile,
   UpdateProfileAvatar,
   UpdateProfileSettings,
@@ -25,6 +26,15 @@ export class UpdateProfileAvatarDto implements UpdateProfileAvatar {
     protocols: ['http', 'https'],
   })
   url: string;
+}
+
+export class UpdateCustomGameDto implements UpdateCustomGame {
+  @ApiProperty({
+    description: 'The custom game name',
+    example: 'A super cool game!',
+  })
+  @IsString()
+  name: string;
 }
 
 export class UpdateProfileSettingsDto implements UpdateProfileSettings {

@@ -1,20 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import {
+  UpdateCustomGameDto,
   UpdateProfileAvatarDto,
   UpdateProfileDto,
   UpdateProfileSettingsDto,
 } from '@tf2-automatic/dto';
-import SteamCommunity, {
-  EditProfileSettings,
-  ProfileSetting,
-} from 'steamcommunity';
+import { EditProfileSettings, ProfileSetting } from 'steamcommunity';
 import { BotService } from '../bot/bot.service';
+import { ConfigService } from '@nestjs/config';
+import { Config, SteamAccountConfig } from '../common/config/configuration';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class ProfileService {
-  private readonly community: SteamCommunity = this.botService.getCommunity();
+  private readonly community = this.botService.getCommunity();
+  private readonly client = this.botService.getClient();
 
-  constructor(private readonly botService: BotService) {}
+  constructor(
+    private readonly botService: BotService,
+    private readonly configService: ConfigService<Config>,
+    private readonly storageService: StorageService,
+  ) {}
 
   setAvatar(dto: UpdateProfileAvatarDto): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -86,5 +92,44 @@ export class ProfileService {
         }
       });
     });
+  }
+
+  async setCustomGame(dto: UpdateCustomGameDto) {
+    // Check the custom game file and play that if it exists, otherwise play only TF2
+    const customGamePath = `customgame.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    const customGame = await this.storageService
+      .write(customGamePath, dto.name)
+      .catch(() => {
+        return null;
+      });
+
+    if (!customGame) {
+      // Error writing the custom game file, reject
+      return Promise.reject();
+    }
+
+    return this.client.gamesPlayed([dto.name, 440]);
+  }
+
+  async clearCustomGame() {
+    const customGamePath = `customgame.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    const customGame = await this.storageService
+      .write(customGamePath, '')
+      .catch(() => {
+        return null;
+      });
+
+    if (!customGame) {
+      // Error writing the custom game file, reject
+      return Promise.reject();
+    }
+
+    return this.client.gamesPlayed([440]);
   }
 }
