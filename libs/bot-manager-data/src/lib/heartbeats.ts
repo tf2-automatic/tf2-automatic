@@ -3,6 +3,8 @@ import { Bot } from './bots';
 
 export const HEARTBEAT_BASE_URL = '/heartbeats';
 export const HEARTBEAT_PATH = '/:steamid';
+// Full path for use when making HTTP requests
+export const HEARTBEAT_FULL_PATH = `${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`;
 
 export interface BotHeartbeat {
   ip: string;

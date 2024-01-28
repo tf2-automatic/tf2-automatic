@@ -11,6 +11,9 @@ import { Job, RetryOptions } from './misc';
 export const TRADES_BASE_URL = '/trades';
 export const TRADE_JOBS_PATH = `/`;
 export const TRADE_JOB_PATH = `/:id`;
+// Full paths for use when making HTTP requests
+export const TRADES_FULL_PATH = `${TRADES_BASE_URL}`;
+export const TRADE_FULL_PATH = `${TRADES_BASE_URL}${TRADE_JOB_PATH}`;
 
 export interface ManagerCounterTrade extends CounterTrade {
   id: string;
