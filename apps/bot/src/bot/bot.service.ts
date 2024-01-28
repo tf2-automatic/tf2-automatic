@@ -220,16 +220,18 @@ export class BotService implements OnModuleDestroy {
     return this.community;
   }
 
+  leaveGames(): void {
+    this.client.gamesPlayed([]);
+  }
+
   setGamePlayed(appid: number | null) {
     const gamesPlayed: (string | number)[] = [];
 
-    // When we leave TF2 we also want to leave the custom game.
-    // This is because Steam shows whichever game was played last
-    // and we want to show the custom game instead of TF2.
+    if (this.customGamePlayed) {
+      gamesPlayed.push(this.customGamePlayed);
+    }
+
     if (appid) {
-      if (this.customGamePlayed) {
-        gamesPlayed.push(this.customGamePlayed);
-      }
       gamesPlayed.push(appid);
     }
 
@@ -246,10 +248,6 @@ export class BotService implements OnModuleDestroy {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error _playingAppIds is private
     const gamesPlayed: number[] = this.client._playingAppIds;
-
-    if (this.customGamePlayed !== null) {
-      this.client.gamesPlayed([]);
-    }
 
     this.setGamePlayed(gamesPlayed.length > 0 ? gamesPlayed[0] : null);
   }
