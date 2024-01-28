@@ -237,6 +237,10 @@ export class BotService implements OnModuleDestroy {
   }
 
   setCustomGame(gameName: string | null) {
+    if (gameName === this.customGamePlayed) {
+      return;
+    }
+
     this.customGamePlayed = gameName;
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
