@@ -111,7 +111,7 @@ export class ProfileService {
       return Promise.reject();
     }
 
-    return this.client.gamesPlayed([dto.name, 440]);
+    this.botService.setCustomGame(dto.name === '' ? null : dto.name);
   }
 
   async clearCustomGame() {
@@ -130,6 +130,6 @@ export class ProfileService {
       return Promise.reject();
     }
 
-    return this.client.gamesPlayed([440]);
+    this.botService.setCustomGame(null);
   }
 }
