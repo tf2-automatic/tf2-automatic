@@ -95,6 +95,14 @@ export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
 export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
 export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
 export const TRADE_COUNTER_PATH = `${TRADE_PATH}/counter`;
+// Full paths for use when making HTTP requests
+export const TRADES_FULL_PATH = `${TRADES_BASE_URL}`;
+export const TRADE_FULL_PATH = `${TRADES_BASE_URL}${TRADE_PATH}`;
+export const TRADE_COUNTER_FULL_PATH = `${TRADES_BASE_URL}${TRADE_COUNTER_PATH}`;
+export const TRADE_ACCEPT_FULL_PATH = `${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`;
+export const TRADE_CONFIRM_FULL_PATH = `${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`;
+export const TRADE_EXCHANGE_DETAILS_FULL_PATH = `${TRADES_BASE_URL}${TRADE_EXCHANGE_DETAILS_PATH}`;
+export const TRADE_RECEIVED_ITEMS_FULL_PATH = `${TRADES_BASE_URL}${TRADE_RECEIVED_ITEMS_PATH}`;
 
 export type TradeSentEventType = 'trades.sent';
 export type TradeReceivedEventType = 'trades.received';

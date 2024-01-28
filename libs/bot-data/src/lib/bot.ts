@@ -2,6 +2,8 @@ import { BaseEvent } from './events';
 
 export const BOT_BASE_URL = '/bot';
 export const BOT_PATH = `/`;
+// Full path for use when making HTTP requests
+export const BOT_FULL_PATH = `${BOT_BASE_URL}`;
 
 export type BotReadyEventType = 'bot.ready';
 
