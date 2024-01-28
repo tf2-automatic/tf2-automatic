@@ -8,7 +8,7 @@ This project is a monorepo and uses the [Nx](https://nx.dev/) monorepo tool to d
 
 ## Setting up project
 
-Use [Visual Studio Code](https://code.visualstudio.com/) and the [recommended extentions](../.vscode/extensions.json).
+Use [Visual Studio Code](https://code.visualstudio.com/) and the [recommended extentions](./.vscode/extensions.json).
 
 Install all dependencies using `npm install`.
 
@@ -32,9 +32,9 @@ Use the following steps should be used to create changes to the project:
 
 1. **Fork** the repository
 2. **Clone** the fork to your computer
-3. Create a **Branch** from the `dev` branch
+3. Create a **Branch** from the `main` branch
 4. **Commit** changes to your branch (using `npm run commit`)
 5. **Push** your work back to your fork
-6. Submit a **Pull request** to the `dev` branch
+6. Submit a **Pull request** to the `main` branch
 
 Note: Be sure to keep your own fork up to date with the upstream repository.
