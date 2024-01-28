@@ -243,6 +243,10 @@ export class BotService implements OnModuleDestroy {
     // @ts-expect-error _playingAppIds is private
     const gamesPlayed: number[] = this.client._playingAppIds;
 
+    if (this.customGamePlayed !== null) {
+      this.client.gamesPlayed([]);
+    }
+
     this.setGamePlayed(gamesPlayed.length > 0 ? gamesPlayed[0] : null);
   }
 
