@@ -85,11 +85,6 @@ export class TF2Service implements OnApplicationShutdown {
     private readonly botService: BotService,
     private readonly eventsService: EventsService,
   ) {
-    this.client.on('loggedOn', () => {
-      // Bot is logged in, connect to TF2 GC
-      this.client.gamesPlayed([440]);
-    });
-
     this.tf2.on('connectedToGC', () => {
       this.logger.debug('Connected to GC');
     });
@@ -104,7 +99,7 @@ export class TF2Service implements OnApplicationShutdown {
 
         // Add timeout to give Steam some time before we open the app again
         setTimeout(() => {
-          this.client.gamesPlayed([440]);
+          this.botService.setGamePlayed(440);
         }, 1000);
       }
     });
@@ -148,7 +143,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.reconnectTimeout = setTimeout(() => {
       this.logger.debug('Reconnecting to GC to refresh inventory');
       this.manuallyDisconnectedFromGC = true;
-      this.client.gamesPlayed([]);
+      this.botService.setGamePlayed(null);
       this.reconnectTimeout = null;
     }, 10000);
   }
@@ -302,7 +297,6 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   onApplicationShutdown(): void {
-    this.client.gamesPlayed([]);
     this.tf2.removeAllListeners();
   }
 
@@ -316,7 +310,7 @@ export class TF2Service implements OnApplicationShutdown {
   async connectToGC(): Promise<void> {
     if (!this.isPlayingTF2()) {
       // Not playing TF2
-      this.client.gamesPlayed([440]);
+      this.botService.setGamePlayed(440);
     }
 
     if (this.tf2.haveGCSession) {

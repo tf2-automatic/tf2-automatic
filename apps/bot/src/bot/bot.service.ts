@@ -63,6 +63,7 @@ export class BotService implements OnModuleDestroy {
   });
   private manager: SteamTradeOfferManager;
   private session: LoginSession | null = null;
+  private customGamePlayed: string | null = null;
 
   private _startPromise: Promise<void> | null = null;
   private _reconnectPromise: Promise<void> | null = null;
@@ -142,6 +143,8 @@ export class BotService implements OnModuleDestroy {
     this.client.on('loggedOn', () => {
       this.logger.log('Logged in to Steam!');
 
+      this.setGamePlayed(440);
+
       if (this.running) {
         this.client.setPersona(SteamUser.EPersonaState.Online);
       }
@@ -217,6 +220,40 @@ export class BotService implements OnModuleDestroy {
     return this.community;
   }
 
+  setGamePlayed(appid: number | null) {
+    const gamesPlayed: (string | number)[] = [];
+
+    // When we leave TF2 we also want to leave the custom game.
+    // This is because Steam shows whichever game was played last
+    // and we want to show the custom game instead of TF2.
+    if (appid) {
+      if (this.customGamePlayed) {
+        gamesPlayed.push(this.customGamePlayed);
+      }
+      gamesPlayed.push(appid);
+    }
+
+    this.client.gamesPlayed(gamesPlayed);
+  }
+
+  setCustomGame(gameName: string | null) {
+    if (gameName === this.customGamePlayed) {
+      return;
+    }
+
+    this.customGamePlayed = gameName;
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error _playingAppIds is private
+    const gamesPlayed: number[] = this.client._playingAppIds;
+
+    if (this.customGamePlayed !== null) {
+      this.client.gamesPlayed([]);
+    }
+
+    this.setGamePlayed(gamesPlayed.length > 0 ? gamesPlayed[0] : null);
+  }
+
   private handleReadEvent(
     filename: string,
     callback: (err: Error | null, contents?: Buffer | null) => void,
@@ -256,6 +293,26 @@ export class BotService implements OnModuleDestroy {
     return this._startPromise;
   }
 
+  private async getCustomGame(): Promise<string | null> {
+    if (this.customGamePlayed) {
+      return this.customGamePlayed;
+    }
+
+    const customGamePath = `customgame.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    const customGame = await this.storageService
+      .read(customGamePath)
+      .catch(null);
+
+    if (customGame) {
+      this.customGamePlayed = customGame;
+    }
+
+    return this.customGamePlayed;
+  }
+
   private async _start(): Promise<void> {
     this.community.on('sessionExpired', () => {
       this.logger.debug('Web session expired');
@@ -276,6 +333,8 @@ export class BotService implements OnModuleDestroy {
     this.manager.on('debug', (message: string) => {
       this.logger.debug(message);
     });
+
+    await this.getCustomGame();
 
     await this.reconnect();
 
