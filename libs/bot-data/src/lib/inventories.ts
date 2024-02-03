@@ -60,5 +60,5 @@ export type Inventory = Item[];
 
 export const INVENTORIES_BASE_URL = '/inventories';
 export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
-// Full path for use when making HTTP requests
+
 export const INVENTORY_FULL_PATH = `${INVENTORIES_BASE_URL}${INVENTORY_PATH}`;

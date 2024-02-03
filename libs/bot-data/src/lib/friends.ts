@@ -32,13 +32,12 @@ export const FRIEND_PATH = '/:steamid';
 export const FRIEND_MESSAGE_PATH = `${FRIEND_PATH}/message`;
 export const FRIEND_TYPING_PATH = `${FRIEND_PATH}/typing`;
 export const FRIEND_BLOCK_PATH = `${FRIEND_PATH}/block`;
-// Full paths for use when making HTTP requests
+
 export const FRIENDS_FULL_PATH = `${FRIENDS_BASE_URL}`;
 export const FRIEND_FULL_PATH = `${FRIENDS_BASE_URL}${FRIEND_PATH}`;
 export const FRIEND_MESSAGE_FULL_PATH = `${FRIENDS_BASE_URL}${FRIEND_MESSAGE_PATH}`;
 export const FRIEND_TYPING_FULL_PATH = `${FRIENDS_BASE_URL}${FRIEND_TYPING_PATH}`;
 export const FRIEND_BLOCK_FULL_PATH = `${FRIENDS_BASE_URL}${FRIEND_BLOCK_PATH}`;
-export const FRIEND_UNBLOCK_FULL_PATH = `${FRIENDS_BASE_URL}${FRIEND_BLOCK_PATH}`;
 
 export type FriendRelationshipEventType = 'friends.relationship';
 export type FriendMessageEventType = 'friends.message';

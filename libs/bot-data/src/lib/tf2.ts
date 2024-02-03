@@ -93,13 +93,13 @@ export const TF2_BACKPACK_PATH = '/backpack';
 export const TF2_ITEM_PATH = '/items/:id';
 export const TF2_USE_ITEM_PATH = `${TF2_ITEM_PATH}/use`;
 export const TF2_SORT_PATH = '/sort';
-// Full paths for use when making HTTP requests
+
 export const TF2_ACCOUNT_FULL_PATH = `${TF2_BASE_URL}${TF2_ACCOUNT_PATH}`;
 export const TF2_CRAFT_FULL_PATH = `${TF2_BASE_URL}${TF2_CRAFT_PATH}`;
-export const TF2_USE_ITEM_FULL_PATH = `${TF2_BASE_URL}${TF2_USE_ITEM_PATH}`;
-export const TF2_ITEM_FULL_PATH = `${TF2_BASE_URL}${TF2_ITEM_PATH}`;
-export const TF2_SORT_FULL_PATH = `${TF2_BASE_URL}${TF2_SORT_PATH}`;
 export const TF2_BACKPACK_FULL_PATH = `${TF2_BASE_URL}${TF2_BACKPACK_PATH}`;
+export const TF2_ITEM_FULL_PATH = `${TF2_BASE_URL}${TF2_ITEM_PATH}`;
+export const TF2_USE_ITEM_FULL_PATH = `${TF2_BASE_URL}${TF2_USE_ITEM_PATH}`;
+export const TF2_SORT_FULL_PATH = `${TF2_BASE_URL}${TF2_SORT_PATH}`;
 
 export type TF2GainedEventType = 'tf2.gained';
 export type TF2LostEventType = 'tf2.lost';

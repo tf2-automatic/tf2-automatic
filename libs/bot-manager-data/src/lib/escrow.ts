@@ -6,5 +6,5 @@ export interface EscrowResponse {
 
 export const ESCROW_BASE_URL = '/escrow';
 export const ESCROW_PATH = '/:steamid';
-// Full path for use when making HTTP requests
+
 export const ESCROW_FULL_PATH = `${ESCROW_BASE_URL}${ESCROW_PATH}`;
