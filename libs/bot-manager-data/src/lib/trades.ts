@@ -12,6 +12,9 @@ export const TRADES_BASE_URL = '/trades';
 export const TRADE_JOBS_PATH = `/`;
 export const TRADE_JOB_PATH = `/:id`;
 
+export const TRADE_JOBS_FULL_PATH = `${TRADES_BASE_URL}`;
+export const TRADE_JOB_FULL_PATH = `${TRADES_BASE_URL}${TRADE_JOB_PATH}`;
+
 export interface ManagerCounterTrade extends CounterTrade {
   id: string;
 }

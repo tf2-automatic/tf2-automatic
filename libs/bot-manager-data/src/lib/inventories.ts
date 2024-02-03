@@ -4,6 +4,8 @@ import { RetryOptions } from './misc';
 export const INVENTORIES_BASE_URL = '/inventories';
 export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
 
+export const INVENTORY_FULL_PATH = `${INVENTORIES_BASE_URL}${INVENTORY_PATH}`;
+
 export type InventoryItem =
   | Item
   | {
