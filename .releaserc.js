@@ -7,7 +7,15 @@ module.exports = {
         releaseRules: [{ type: 'refactor', release: 'patch' }],
       },
     ],
-    '@semantic-release/release-notes-generator',
+    [
+      '@semantic-release/release-notes-generator',
+      {
+        preset: 'angular',
+        presetConfig: {
+          types: [{ type: 'refactor', section: 'Refactoring' }],
+        },
+      },
+    ],
     '@semantic-release/github',
   ],
   branches: [
