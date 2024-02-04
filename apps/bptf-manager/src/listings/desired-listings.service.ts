@@ -119,16 +119,16 @@ export class DesiredListingsService {
       ['desired:' + steamid.getSteamID64()],
       1000,
       async (signal) => {
-        const desiredMap = await this.getDesiredByHashes(steamid, hashes);
+        const map = await this.getDesiredByHashesNew(steamid, hashes);
 
         if (signal.aborted) {
           throw signal.error;
         }
 
-        const desired = Object.values(desiredMap);
-        if (desired.length > 0) {
+        if (map.size > 0) {
           // It is okay to only remove the matched listings because unmatched listings don't exist anyway
-          const hashes = desired.map((d) => d.hash);
+          const desired = Array.from(map.values());
+          const hashes = desired.map((d) => d.getHash());
 
           const transaction = this.redis.multi();
           transaction.hdel(this.getDesiredKey(steamid), ...hashes);
@@ -136,7 +136,7 @@ export class DesiredListingsService {
 
           await this.eventEmitter.emitAsync('desired-listings.removed', {
             steamid,
-            desired: desired,
+            desired: desired.map((d) => d.toJSON()),
           } satisfies DesiredListingsRemovedEvent);
         }
       },
