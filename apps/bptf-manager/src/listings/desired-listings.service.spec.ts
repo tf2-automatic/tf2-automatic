@@ -3,6 +3,7 @@ import { DesiredListingsService } from './desired-listings.service';
 import {
   AddListingDto,
   DesiredListingDto,
+  RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { getRedisToken } from '@songkeys/nestjs-redis';
@@ -50,6 +51,7 @@ describe('DesiredListingsService', () => {
     mockRedis = {
       multi: jest.fn().mockReturnThis(),
       hset: jest.fn(),
+      hdel: jest.fn(),
       exec: jest.fn(),
     };
 
@@ -174,12 +176,7 @@ describe('DesiredListingsService', () => {
 
       const result = await service.addDesired(steamid, desired);
 
-      expect(mockUsing).toHaveBeenCalledTimes(1);
-      expect(mockUsing).toHaveBeenCalledWith(
-        ['desired:' + steamid.getSteamID64()],
-        1000,
-        expect.any(Function),
-      );
+      expectMockUsing(steamid);
 
       // Reusing it because it is the exact same because no changes were made
       const saved: DesiredListingInternal = existingDesired.toJSON();
@@ -247,12 +244,7 @@ describe('DesiredListingsService', () => {
 
       const result = await service.addDesired(steamid, desired);
 
-      expect(mockUsing).toHaveBeenCalledTimes(1);
-      expect(mockUsing).toHaveBeenCalledWith(
-        ['desired:' + steamid.getSteamID64()],
-        1000,
-        expect.any(Function),
-      );
+      expectMockUsing(steamid);
 
       const saved: DesiredListingInternal = {
         hash: hashListing(desired[0].listing),
@@ -294,4 +286,135 @@ describe('DesiredListingsService', () => {
       );
     });
   });
+
+  describe('Removing desired', () => {
+    it('should not delete anything if no match', async () => {
+      const remove: RemoveListingDto[] = [
+        {
+          id: '1234',
+        },
+      ];
+
+      const steamid = new SteamID('76561198120070906');
+
+      jest
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .mockResolvedValue(new Map());
+
+      await service.removeDesired(steamid, remove);
+
+      expectMockUsing(steamid);
+
+      expect(mockRedis.exec).toHaveBeenCalledTimes(0);
+
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(0);
+    });
+
+    it('should delete desired listing using listing', async () => {
+      const remove: RemoveListingDto = {
+        id: '1234',
+      };
+
+      const steamid = new SteamID('76561198120070906');
+
+      const existingDesired: DesiredListing = new DesiredListing(
+        hashListing(remove),
+        steamid,
+        {
+          id: remove.id,
+          currencies: {
+            keys: 1,
+          },
+        },
+        0,
+      );
+
+      jest
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .mockResolvedValue(
+          new Map([[existingDesired.getHash(), existingDesired]]),
+        );
+
+      await service.removeDesired(steamid, [remove]);
+
+      expectMockUsing(steamid);
+
+      expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
+      expect(mockRedis.hdel).toHaveBeenCalledWith(
+        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        existingDesired.getHash(),
+      );
+      expect(mockRedis.exec).toHaveBeenCalledTimes(1);
+
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+        'desired-listings.removed',
+        {
+          steamid,
+          desired: [existingDesired.toJSON()],
+        },
+      );
+    });
+
+    it('should delete desired listing using hash', async () => {
+      const listing: AddListingDto = {
+        id: '1234',
+        currencies: {
+          keys: 1,
+        },
+      };
+
+      const remove: RemoveListingDto = {
+        hash: hashListing(listing),
+      };
+
+      const steamid = new SteamID('76561198120070906');
+
+      const existingDesired: DesiredListing = new DesiredListing(
+        hashListing(remove),
+        steamid,
+        listing,
+        0,
+      );
+
+      jest
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .mockResolvedValue(
+          new Map([[existingDesired.getHash(), existingDesired]]),
+        );
+
+      await service.removeDesired(steamid, [remove]);
+
+      expectMockUsing(steamid);
+
+      expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
+      expect(mockRedis.hdel).toHaveBeenCalledWith(
+        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        existingDesired.getHash(),
+      );
+      expect(mockRedis.exec).toHaveBeenCalledTimes(1);
+
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+        'desired-listings.removed',
+        {
+          steamid,
+          desired: [existingDesired.toJSON()],
+        },
+      );
+    });
+  });
 });
+
+/**
+ * Test if desired listings were locked
+ * @param {SteamID} steamid
+ **/
+function expectMockUsing(steamid: SteamID) {
+  expect(mockUsing).toHaveBeenCalledTimes(1);
+  expect(mockUsing).toHaveBeenCalledWith(
+    ['desired:' + steamid.getSteamID64()],
+    1000,
+    expect.any(Function),
+  );
+}
