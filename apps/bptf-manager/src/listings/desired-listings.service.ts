@@ -153,8 +153,24 @@ export class DesiredListingsService {
       );
   }
 
+  async getAllDesiredInternalNew(
+    steamid: SteamID,
+  ): Promise<DesiredListingClass[]> {
+    const values = await this.redis.hvals(this.getDesiredKey(steamid));
+
+    const desired = values.map((raw) =>
+      ListingFactory.CreateDesiredListing(
+        JSON.parse(raw) as DesiredListingInternal,
+      ),
+    );
+
+    return desired;
+  }
+
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
-    return this.getAllDesiredInternal(steamid).then(this.mapDesired);
+    const desired = await this.getAllDesiredInternalNew(steamid);
+
+    return this.mapDesired(desired.map((d) => d.toJSON()));
   }
 
   async getDesiredByHashesNew(
