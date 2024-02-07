@@ -11,12 +11,9 @@ import {
   DesiredListing as DesiredListingInternal,
   ExtendedDesiredListing as ExtendedDesiredListingInternal,
 } from './interfaces/desired-listing.interface';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  CurrentListingsCreateFailedEvent,
-  CurrentListingsCreatedEvent,
   DesiredListingsAddedEvent,
-  DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
 import { DesiredListing as DesiredListingClass } from './classes/desired-listing.class';
@@ -231,101 +228,6 @@ export class DesiredListingsService {
     return result;
   }
 
-  @OnEvent('current-listings.created', {
-    suppressErrors: false,
-  })
-  private async currentListingsCreated(
-    event: CurrentListingsCreatedEvent,
-  ): Promise<void> {
-    const createdHashes = Object.keys(event.listings);
-
-    if (createdHashes.length === 0) {
-      return;
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-
-    const transaction = this.redis.multi();
-
-    let publishDesired: DesiredListingInternal[] = [];
-
-    // Update desired listings that were changed
-    const hashes = Object.keys(event.listings);
-
-    const desiredMap = await this.getDesiredByHashes(event.steamid, hashes);
-
-    const desired = Object.values(desiredMap);
-    desired.forEach((desired) => {
-      desired.id = event.listings[desired.hash].id;
-      desired.lastAttemptedAt = now;
-      desired.updatedAt = now;
-      delete desired.error;
-    });
-
-    if (desired.length > 0) {
-      // Save listings with their new listings id
-      this.chainableSaveDesired(transaction, event.steamid, desired);
-      publishDesired = desired;
-    }
-
-    await transaction.exec();
-
-    if (publishDesired.length > 0) {
-      await this.eventEmitter.emitAsync('desired-listings.created', {
-        steamid: event.steamid,
-        desired: publishDesired,
-        listings: event.listings,
-      } satisfies DesiredListingsCreatedEvent);
-    }
-  }
-
-  @OnEvent('current-listings.failed', { suppressErrors: false })
-  private async currentListingsFailed(
-    event: CurrentListingsCreateFailedEvent,
-  ): Promise<void> {
-    const now = Math.floor(Date.now() / 1000);
-
-    const failedHashes = Object.keys(event.errors);
-
-    // Update the failed desired listings with the error message
-    const desiredMap = await this.getDesiredByHashes(
-      event.steamid,
-      failedHashes,
-    );
-
-    const desired = Object.values(desiredMap);
-    desired.forEach((desired) => {
-      desired.updatedAt = now;
-      desired.lastAttemptedAt = now;
-      desired.error = event.errors[desired.hash];
-    });
-
-    const transaction = this.redis.multi();
-    this.chainableSaveDesired(transaction, event.steamid, desired);
-    await transaction.exec();
-  }
-
-  @OnEvent('current-listings.deleted-all', {
-    suppressErrors: false,
-  })
-  private async currentListingsDeletedAll(steamid: SteamID): Promise<void> {
-    const now = Math.floor(Date.now() / 1000);
-
-    const desired = await this.getAllDesiredInternal(steamid);
-
-    if (desired.length > 0) {
-      // Remove listing id from all desired listings
-      desired.forEach((d) => {
-        delete d.id;
-        d.updatedAt = now;
-      });
-
-      const transaction = this.redis.multi();
-      this.chainableSaveDesired(transaction, steamid, desired);
-      await transaction.exec();
-    }
-  }
-
   async chainableSaveDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
@@ -338,6 +240,17 @@ export class DesiredListingsService {
         delete copy.force;
         return [copy.hash, JSON.stringify(copy)];
       }),
+    );
+  }
+
+  static chainableSaveDesired(
+    chainable: ChainableCommander,
+    steamid: SteamID,
+    desired: DesiredListingClass[],
+  ) {
+    chainable.hset(
+      this.getDesiredKey(steamid),
+      ...desired.flatMap((d) => [d.getHash(), JSON.stringify(d.toJSON())]),
     );
   }
 
@@ -354,6 +267,10 @@ export class DesiredListingsService {
   }
 
   private getDesiredKey(steamid: SteamID): string {
+    return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
+  }
+
+  private static getDesiredKey(steamid: SteamID): string {
     return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
   }
 }
