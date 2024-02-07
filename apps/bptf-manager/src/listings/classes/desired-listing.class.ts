@@ -39,7 +39,7 @@ export class DesiredListing {
     return this.id;
   }
 
-  setID(id: string): void {
+  setID(id: string | undefined): void {
     this.id = id;
   }
 
@@ -59,7 +59,7 @@ export class DesiredListing {
     return this.error;
   }
 
-  setError(error: ListingError): void {
+  setError(error: ListingError | undefined): void {
     this.error = error;
   }
 

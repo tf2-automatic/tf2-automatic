@@ -13,6 +13,7 @@ import { ListingLimitsService } from './listing-limits.service';
 import { InventoriesModule } from '../inventories/inventories.module';
 import { DefaultJobOptions } from 'bullmq';
 import { GetListingsProcessor } from './processors/get-listings.processor';
+import { DesiredListingsListener } from './listeners/desired-listings.listener';
 
 const defaultJobOptions: DefaultJobOptions = {
   attempts: Number.MAX_SAFE_INTEGER,
@@ -51,6 +52,7 @@ const defaultJobOptions: DefaultJobOptions = {
     ManageListingsProcessor,
     ListingLimitsProcessor,
     GetListingsProcessor,
+    DesiredListingsListener,
   ],
   controllers: [ListingsController],
 })
