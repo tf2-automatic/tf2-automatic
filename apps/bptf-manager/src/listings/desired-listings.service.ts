@@ -63,10 +63,10 @@ export class DesiredListingsService {
         );
 
         const transaction = this.redis.multi();
-        this.chainableSaveDesired(
+        DesiredListingsService.chainableSaveDesired(
           transaction,
           steamid,
-          desired.map((d) => d.toJSON()),
+          desired,
         );
         await transaction.exec();
 

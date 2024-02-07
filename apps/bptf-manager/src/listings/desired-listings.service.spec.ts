@@ -8,52 +8,24 @@ import {
 import SteamID from 'steamid';
 import { getRedisToken } from '@songkeys/nestjs-redis';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
-import Redis from 'ioredis';
+import { ChainableCommander } from 'ioredis';
 import { DesiredListing } from './classes/desired-listing.class';
 import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
 import hashListing from './utils/desired-listing-hash';
-import { RedlockAbortSignal } from 'redlock';
+import { mock } from '@tf2-automatic/testing';
 
 jest.mock('eventemitter2');
-
-const mockUsing = jest
-  .fn()
-  .mockImplementation(
-    (
-      _: unknown,
-      __: unknown,
-      callback: (signal: Partial<RedlockAbortSignal>) => Promise<unknown>,
-    ) => {
-      return Promise.resolve().then(() => {
-        return callback({ aborted: false });
-      });
-    },
-  );
-
-jest.mock('redlock', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      using: mockUsing,
-    };
-  });
-});
+jest.mock('redlock', () => jest.fn().mockImplementation(() => mock.redlock));
 
 describe('DesiredListingsService', () => {
   let service: DesiredListingsService;
   let mockEventEmitter: EventEmitter2;
-  let mockRedis: Partial<Redis>;
+  const mockRedis = mock.redis;
 
   jest.spyOn(Date, 'now').mockReturnValue(0);
 
   beforeEach(async () => {
     jest.clearAllMocks();
-
-    mockRedis = {
-      multi: jest.fn().mockReturnThis(),
-      hset: jest.fn(),
-      hdel: jest.fn(),
-      exec: jest.fn(),
-    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -95,12 +67,7 @@ describe('DesiredListingsService', () => {
 
       const result = await service.addDesired(steamid, desired);
 
-      expect(mockUsing).toHaveBeenCalledTimes(1);
-      expect(mockUsing).toHaveBeenCalledWith(
-        ['desired:' + steamid.getSteamID64()],
-        1000,
-        expect.any(Function),
-      );
+      expectMockUsing(steamid);
 
       const hash = hashListing(desired[0].listing);
 
@@ -404,6 +371,50 @@ describe('DesiredListingsService', () => {
       );
     });
   });
+
+  describe('Static methods', () => {
+    it('should save desired listings', () => {
+      const steamid = new SteamID('76561198120070906');
+
+      const chainable = mockRedis as unknown as ChainableCommander;
+
+      const listing: AddListingDto = {
+        id: '1234',
+        currencies: {
+          keys: 1,
+        },
+      };
+
+      const desired = new DesiredListing(
+        hashListing(listing),
+        steamid,
+        listing,
+        0,
+      );
+
+      DesiredListingsService.chainableSaveDesired(chainable, steamid, [
+        desired,
+      ]);
+
+      const saved: DesiredListingInternal = {
+        hash: desired.getHash(),
+        id: desired.getID(),
+        steamid64: desired.getSteamID().getSteamID64(),
+        listing: desired.getListing(),
+        updatedAt: desired.getUpdatedAt(),
+        error: desired.getError(),
+        priority: desired.getPriority(),
+        lastAttemptedAt: desired.getLastAttemptedAt(),
+      };
+
+      expect(mockRedis.hset).toHaveBeenCalledTimes(1);
+      expect(mockRedis.hset).toHaveBeenCalledWith(
+        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        desired.getHash(),
+        JSON.stringify(saved),
+      );
+    });
+  });
 });
 
 /**
@@ -411,8 +422,8 @@ describe('DesiredListingsService', () => {
  * @param {SteamID} steamid
  **/
 function expectMockUsing(steamid: SteamID) {
-  expect(mockUsing).toHaveBeenCalledTimes(1);
-  expect(mockUsing).toHaveBeenCalledWith(
+  expect(mock.redlock.using).toHaveBeenCalledTimes(1);
+  expect(mock.redlock.using).toHaveBeenCalledWith(
     ['desired:' + steamid.getSteamID64()],
     1000,
     expect.any(Function),
