@@ -10,7 +10,7 @@ import { getRedisToken } from '@songkeys/nestjs-redis';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { ChainableCommander } from 'ioredis';
 import { DesiredListing } from './classes/desired-listing.class';
-import { DesiredListing as DesiredListingInternal } from './interfaces/desired-listing.interface';
+import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import hashListing from './utils/desired-listing-hash';
 import { mock } from '@tf2-automatic/testing';
 
@@ -71,8 +71,9 @@ describe('DesiredListingsService', () => {
 
       const hash = hashListing(desired[0].listing);
 
-      const saved: DesiredListingInternal = {
+      const saved: DesiredListingInterface = {
         hash,
+        id: null,
         steamid64: steamid.getSteamID64(),
         listing: desired[0].listing,
         updatedAt: 0,
@@ -92,6 +93,7 @@ describe('DesiredListingsService', () => {
         {
           id: saved.id ?? null,
           hash: saved.hash,
+          steamid64: saved.steamid64,
           listing: saved.listing,
           updatedAt: saved.updatedAt,
           error: saved.error,
@@ -146,7 +148,7 @@ describe('DesiredListingsService', () => {
       expectMockUsing(steamid);
 
       // Reusing it because it is the exact same because no changes were made
-      const saved: DesiredListingInternal = existingDesired.toJSON();
+      const saved: DesiredListingInterface = existingDesired.toJSON();
 
       expect(saved.steamid64).toEqual(steamid.getSteamID64());
 
@@ -162,6 +164,7 @@ describe('DesiredListingsService', () => {
         {
           id: saved.id,
           hash: saved.hash,
+          steamid64: saved.steamid64,
           listing: saved.listing,
           updatedAt: saved.updatedAt,
           error: saved.error,
@@ -213,7 +216,7 @@ describe('DesiredListingsService', () => {
 
       expectMockUsing(steamid);
 
-      const saved: DesiredListingInternal = {
+      const saved: DesiredListingInterface = {
         hash: hashListing(desired[0].listing),
         id: existingDesired.getID(),
         steamid64: existingDesired.getSteamID().getSteamID64(),
@@ -235,6 +238,7 @@ describe('DesiredListingsService', () => {
         {
           id: saved.id,
           hash: saved.hash,
+          steamid64: saved.steamid64,
           listing: saved.listing,
           updatedAt: saved.updatedAt,
           error: saved.error,
@@ -396,7 +400,7 @@ describe('DesiredListingsService', () => {
         desired,
       ]);
 
-      const saved: DesiredListingInternal = {
+      const saved: DesiredListingInterface = {
         hash: desired.getHash(),
         id: desired.getID(),
         steamid64: desired.getSteamID().getSteamID64(),

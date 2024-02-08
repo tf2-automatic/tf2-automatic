@@ -1,5 +1,11 @@
 import { InjectRedis } from '@songkeys/nestjs-redis';
-import { Listing, ListingDto, Token } from '@tf2-automatic/bptf-manager-data';
+import {
+  DesiredListing,
+  Listing,
+  ListingDto,
+  ListingError,
+  Token,
+} from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
 import {
   BatchCreateListingResponse,
@@ -14,11 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
-import {
-  DesiredListing,
-  DesiredListingWithId,
-  ListingError,
-} from './interfaces/desired-listing.interface';
+import { DesiredListingWithId } from './interfaces/desired-listing.interface';
 import {
   CurrentListingsCreateFailedEvent,
   CurrentListingsCreatedEvent,
@@ -908,7 +910,7 @@ export class CurrentListingsService {
   private getResources(steamid: SteamID, desired: DesiredListing): string[] {
     const resources = [this.getResourceForDesired(steamid, desired)];
 
-    if (desired.id !== undefined) {
+    if (desired.id) {
       resources.push(this.getResourceForListingId(steamid, desired.id));
     }
 

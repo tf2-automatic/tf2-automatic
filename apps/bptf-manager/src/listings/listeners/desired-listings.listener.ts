@@ -67,7 +67,7 @@ export class DesiredListingsListener {
 
     // Remove listing id from all desired listings
     desired.forEach((d) => {
-      d.setID(undefined);
+      d.setID(null);
       d.setUpdatedAt(now);
     });
 

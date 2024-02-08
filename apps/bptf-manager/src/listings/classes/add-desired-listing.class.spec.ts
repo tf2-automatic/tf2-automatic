@@ -1,7 +1,7 @@
 import { DesiredListing } from './desired-listing.class';
 import SteamID from 'steamid';
 import { AddDesiredListing } from './add-desired-listing.class';
-import { ListingError } from '../interfaces/desired-listing.interface';
+import { ListingError } from '@tf2-automatic/bptf-manager-data';
 
 function createDesired(): DesiredListing {
   return new DesiredListing(
