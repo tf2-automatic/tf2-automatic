@@ -8,21 +8,21 @@ This project is a monorepo and uses the [Nx](https://nx.dev/) monorepo tool to d
 
 ## Setting up project
 
-Use [Visual Studio Code](https://code.visualstudio.com/) and the [recommended extentions](./.vscode/extensions.json).
+It is recommended to use [Visual Studio Code](https://code.visualstudio.com/) and the [recommended extentions](./.vscode/extensions.json).
 
-Install all dependencies using `npm install`.
+The project uses [pnpm](https://pnpm.io/) instead of npm. Install the dependencies using `pnpm install`.
 
-Test if project is properly set up by attempting to build everything in the project using the following command: `npx nx run-many --target=build --all`. A graph of all applications and libraries, and their relations, can be seen using `npx nx graph`.
+Test if project is properly set up by attempting to build everything in the project using the following command: `pnpm exec nx run-many --target=build --all`. A graph of all applications and libraries, and their relations, can be seen using `pnpm exec nx graph`.
 
 ## Running applications locally
 
-Use the command `npx nx serve bot` to run the bot application, and use `npx nx run-many --target=serve --projects=bot,bot-manager` to run both the bot and bot manager.
+Use the command `pnpm exec nx serve bot` to run the bot application, and use `pnpm exec nx run-many --target=serve --projects=bot,bot-manager` to run both the bot and bot manager.
 
 Nx automatically loads environment variables from [different files](https://nx.dev/recipes/environment-variables/define-environment-variables). To configure an application, create a file called `.env.local` inside the application directory. Environment variable files are ignored using the .gitignore file, but please make sure you don't commit any secret values.
 
 ## Building docker images
 
-If you want to build a docker image of an application, then you first need to compile the application. For example, if you want to build an image for the bot, then use `npx nx build bot`. To build a docker image, then use `docker build -f ./apps/bot/Dockerfile -t bot .` when in the root of the repository, or `docker build -f Dockerfile -t bot ../../` if you are inside the bot folder.
+If you want to build a docker image of an application, then you first need to build the application. For example, if you want to build an image for the bot, then use `pnpm exec nx build bot`. To build a docker image, then use `docker build -f ./apps/bot/Dockerfile -t bot .` when in the root of the repository, or `docker build -f Dockerfile -t bot ../../` if you are inside the bot directory.
 
 ## Contributing
 
@@ -33,7 +33,7 @@ Use the following steps should be used to create changes to the project:
 1. **Fork** the repository
 2. **Clone** the fork to your computer
 3. Create a **Branch** from the `main` branch
-4. **Commit** changes to your branch (using `npm run commit`)
+4. **Commit** changes to your branch (using `pnpm run commit`)
 5. **Push** your work back to your fork
 6. Submit a **Pull request** to the `main` branch
 
