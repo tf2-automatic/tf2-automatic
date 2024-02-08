@@ -12,6 +12,8 @@ See [Events](./events.md) for a list of events. You can then create an applicati
 
 You can search for `.publish(` in the code base to find events being published.
 
+An example for how to connect to a RabbitMQ server and listen to messages can be found [here](../exampleS/rabbitmq/).
+
 ## Types
 
 If you are using TypeScript to create your applications, you can use the provided types and constants from the `bot-data` and `bot-manager-data` libraries.
