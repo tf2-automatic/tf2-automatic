@@ -91,8 +91,8 @@ export class InventoriesService {
   async enqueueRefresh(
     steamid: SteamID,
     status: InventoryStatus,
-    attempts: number = 0,
-    attemptsSinceLastRefresh: number = 0,
+    attempts = 0,
+    attemptsSinceLastRefresh = 0,
   ): Promise<void> {
     const steamid64 = steamid.getSteamID64();
 

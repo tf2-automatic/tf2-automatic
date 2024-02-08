@@ -5,7 +5,6 @@ import { ListingError } from '@tf2-automatic/bptf-manager-data';
 
 function createDesired(): DesiredListing {
   return new DesiredListing(
-    '',
     new SteamID('76561198120070906'),
     {
       currencies: {
@@ -19,7 +18,6 @@ function createDesired(): DesiredListing {
 
 function createAddDesired(): AddDesiredListing {
   return new AddDesiredListing(
-    '',
     new SteamID('76561198120070906'),
     {
       currencies: {

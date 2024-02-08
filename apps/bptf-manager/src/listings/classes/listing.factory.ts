@@ -2,15 +2,13 @@ import { DesiredListingDto } from '@tf2-automatic/bptf-manager-data';
 import { DesiredListing } from './desired-listing.class';
 import { AddDesiredListing } from './add-desired-listing.class';
 import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
-import hash from '../utils/desired-listing-hash';
 import SteamID from 'steamid';
 
 export class ListingFactory {
   static CreateDesiredListing(
-    desired: DesiredListingInterface,
+    desired: Omit<DesiredListingInterface, 'hash'>,
   ): DesiredListing {
     const object = new DesiredListing(
-      desired.hash,
       new SteamID(desired.steamid64),
       desired.listing,
       desired.updatedAt,
@@ -40,12 +38,7 @@ export class ListingFactory {
     dto: DesiredListingDto,
     time: number,
   ): AddDesiredListing {
-    const object = new AddDesiredListing(
-      hash(dto.listing),
-      steamid,
-      dto.listing,
-      time,
-    );
+    const object = new AddDesiredListing(steamid, dto.listing, time);
 
     if (dto.priority) {
       object.setPriority(dto.priority);

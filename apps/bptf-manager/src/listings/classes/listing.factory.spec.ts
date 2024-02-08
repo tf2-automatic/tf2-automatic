@@ -4,7 +4,6 @@ import { ListingFactory } from './listing.factory';
 describe('ListingFactory', () => {
   it('should create a DesiredListing', () => {
     const listing = ListingFactory.CreateDesiredListing({
-      hash: '',
       id: null,
       steamid64: '76561198120070906',
       listing: {
@@ -18,7 +17,7 @@ describe('ListingFactory', () => {
 
     expect(listing).toBeDefined();
 
-    expect(listing.getHash()).toBe('');
+    expect(listing.getHash()).toBe('323217f643c3e3f1fe7532e72ac01bb0748c97be');
     expect(listing.getSteamID().getSteamID64()).toBe('76561198120070906');
     expect(listing.getUpdatedAt()).toBe(0);
     expect(listing.getListing().currencies.keys).toBe(0);

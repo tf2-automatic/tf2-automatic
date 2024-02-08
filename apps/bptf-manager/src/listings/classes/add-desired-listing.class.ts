@@ -6,13 +6,8 @@ import hash from 'object-hash';
 export class AddDesiredListing extends DesiredListing {
   private force: boolean | undefined;
 
-  constructor(
-    hash: string,
-    steamid: SteamID,
-    listing: AddListingDto,
-    updatedAt: number,
-  ) {
-    super(hash, steamid, listing, updatedAt);
+  constructor(steamid: SteamID, listing: AddListingDto, updatedAt: number) {
+    super(steamid, listing, updatedAt);
   }
 
   getForce(): boolean | undefined {

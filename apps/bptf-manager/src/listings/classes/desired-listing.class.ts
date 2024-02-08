@@ -1,6 +1,7 @@
 import { AddListingDto, ListingError } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
+import hashListing from '../utils/desired-listing-hash';
 
 export class DesiredListing {
   private hash: string;
@@ -12,13 +13,8 @@ export class DesiredListing {
   private lastAttemptedAt: number | undefined;
   private updatedAt: number;
 
-  constructor(
-    hash: string,
-    steamid: SteamID,
-    listing: AddListingDto,
-    updatedAt: number,
-  ) {
-    this.hash = hash;
+  constructor(steamid: SteamID, listing: AddListingDto, updatedAt: number) {
+    this.hash = hashListing(listing);
     this.steamid = steamid;
     this.listing = listing;
     this.updatedAt = updatedAt;
@@ -36,8 +32,10 @@ export class DesiredListing {
     return this.id;
   }
 
-  setID(id: string | null): void {
+  setID(id: string | null): DesiredListing {
     this.id = id;
+
+    return this;
   }
 
   getListing(): AddListingDto {
@@ -48,32 +46,40 @@ export class DesiredListing {
     return this.priority;
   }
 
-  setPriority(priority: number): void {
+  setPriority(priority: number): DesiredListing {
     this.priority = priority;
+
+    return this;
   }
 
   getError(): ListingError | undefined {
     return this.error;
   }
 
-  setError(error: ListingError | undefined): void {
+  setError(error: ListingError | undefined): DesiredListing {
     this.error = error;
+
+    return this;
   }
 
   getLastAttemptedAt(): number | undefined {
     return this.lastAttemptedAt;
   }
 
-  setLastAttemptedAt(lastAttemptedAt: number): void {
+  setLastAttemptedAt(lastAttemptedAt: number): DesiredListing {
     this.lastAttemptedAt = lastAttemptedAt;
+
+    return this;
   }
 
   getUpdatedAt(): number {
     return this.updatedAt;
   }
 
-  setUpdatedAt(updatedAt: number): void {
+  setUpdatedAt(updatedAt: number): DesiredListing {
     this.updatedAt = updatedAt;
+
+    return this;
   }
 
   toJSON(): DesiredListingInterface {

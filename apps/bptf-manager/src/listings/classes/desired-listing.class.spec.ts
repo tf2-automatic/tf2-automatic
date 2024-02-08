@@ -4,7 +4,6 @@ import SteamID from 'steamid';
 
 function createDesired(): DesiredListing {
   return new DesiredListing(
-    '',
     new SteamID('76561198120070906'),
     {
       currencies: {
@@ -45,7 +44,7 @@ describe('DesiredListing', () => {
 
     expect(desired.toJSON()).toEqual({
       id: null,
-      hash: '',
+      hash: '323217f643c3e3f1fe7532e72ac01bb0748c97be',
       steamid64: '76561198120070906',
       listing: {
         currencies: {

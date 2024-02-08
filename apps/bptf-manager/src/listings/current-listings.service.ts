@@ -1,6 +1,5 @@
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import {
-  DesiredListing,
   Listing,
   ListingDto,
   ListingError,
@@ -20,7 +19,6 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import SteamID from 'steamid';
-import { DesiredListingWithId } from './interfaces/desired-listing.interface';
 import {
   CurrentListingsCreateFailedEvent,
   CurrentListingsCreatedEvent,
@@ -37,6 +35,7 @@ import {
   JobName,
   JobType,
 } from './interfaces/get-listings.queue.interface';
+import { DesiredListing } from './classes/desired-listing.class';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -238,8 +237,8 @@ export class CurrentListingsService {
     const hashes: string[] = [];
 
     desired.forEach((d) => {
-      listings.push(d.listing);
-      hashes.push(d.hash);
+      listings.push(d.getListing());
+      hashes.push(d.getHash());
     });
 
     const steamid = new SteamID(token.steamid64);
@@ -404,19 +403,26 @@ export class CurrentListingsService {
 
   async updateListings(
     token: Token,
-    desired: DesiredListingWithId[],
+    desired: DesiredListing[],
   ): Promise<BatchUpdateListingResponse> {
     const listings: UpdateListingBody[] = [];
 
     const idToHash = new Map<string, string>();
 
     desired.forEach((d) => {
-      idToHash.set(d.id, d.hash);
+      const id = d.getID();
+      if (!id) {
+        return;
+      }
+
+      const listing = d.getListing();
+
+      idToHash.set(id, d.getHash());
       listings.push({
-        id: d.id,
+        id,
         body: {
-          currencies: d.listing.currencies,
-          details: d.listing.details,
+          currencies: listing.currencies,
+          details: listing.details,
         },
       });
     });
@@ -474,8 +480,10 @@ export class CurrentListingsService {
 
     const mapped = result.updated.reduce(
       (acc, cur) => {
-        const hash = idToHash.get(cur.id)!;
-        acc[hash] = cur;
+        const hash = idToHash.get(cur.id);
+        if (hash) {
+          acc[hash] = cur;
+        }
         return acc;
       },
       {} as Record<string, Listing>,
@@ -850,7 +858,7 @@ export class CurrentListingsService {
   private _getActiveListings(
     token: Token,
     skip?: number,
-    limit: number = 1000,
+    limit = 1000,
   ): Promise<GetListingsResponse> {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(
@@ -874,7 +882,7 @@ export class CurrentListingsService {
   private _getArchivedListings(
     token: Token,
     skip?: number,
-    limit: number = 1000,
+    limit = 1000,
   ): Promise<GetListingsResponse> {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(
@@ -910,8 +918,9 @@ export class CurrentListingsService {
   private getResources(steamid: SteamID, desired: DesiredListing): string[] {
     const resources = [this.getResourceForDesired(steamid, desired)];
 
-    if (desired.id) {
-      resources.push(this.getResourceForListingId(steamid, desired.id));
+    const id = desired.getID();
+    if (id) {
+      resources.push(this.getResourceForListingId(steamid, id));
     }
 
     return resources;
@@ -925,6 +934,6 @@ export class CurrentListingsService {
     steamid: SteamID,
     desired: DesiredListing,
   ): string {
-    return `bptf-manager:current:${steamid.getSteamID64()}:${desired.hash}`;
+    return `bptf-manager:current:${steamid.getSteamID64()}:${desired.getHash()}`;
   }
 }
