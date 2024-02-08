@@ -3,7 +3,7 @@
 actor "custom application" as client
 collections "bot" as bot
 agent "bot-manager" as bot_manager
-folder "block storage" as bot_storage
+folder "object storage" as bot_storage
 database "redis" as redis
 queue "rabbitmq" as rabbitmq
 
