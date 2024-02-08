@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@tf2-automatic/bot-data": "latest",
+    "@tf2-automatic/bot-manager-data": "latest",
+    "amqp-connection-manager": "^4.1.14",
+    "amqplib": "^0.10.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.4"
+  }
+}
