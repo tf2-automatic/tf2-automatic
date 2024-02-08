@@ -410,7 +410,11 @@ export class CurrentListingsService {
     const idToHash = new Map<string, string>();
 
     desired.forEach((d) => {
-      const id = d.getID()!;
+      const id = d.getID();
+      if (!id) {
+        return;
+      }
+
       const listing = d.getListing();
 
       idToHash.set(id, d.getHash());
@@ -476,8 +480,10 @@ export class CurrentListingsService {
 
     const mapped = result.updated.reduce(
       (acc, cur) => {
-        const hash = idToHash.get(cur.id)!;
-        acc[hash] = cur;
+        const hash = idToHash.get(cur.id);
+        if (hash) {
+          acc[hash] = cur;
+        }
         return acc;
       },
       {} as Record<string, Listing>,
@@ -852,7 +858,7 @@ export class CurrentListingsService {
   private _getActiveListings(
     token: Token,
     skip?: number,
-    limit: number = 1000,
+    limit = 1000,
   ): Promise<GetListingsResponse> {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(
@@ -876,7 +882,7 @@ export class CurrentListingsService {
   private _getArchivedListings(
     token: Token,
     skip?: number,
-    limit: number = 1000,
+    limit = 1000,
   ): Promise<GetListingsResponse> {
     return firstValueFrom(
       this.httpService.get<GetListingsResponse>(

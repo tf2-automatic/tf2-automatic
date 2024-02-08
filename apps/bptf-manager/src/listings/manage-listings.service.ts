@@ -126,7 +126,9 @@ export class ManageListingsService {
       ...hashes,
     );
 
-    const ids = event.desired.filter((d) => d.getID()).map((d) => d.getID()!);
+    const ids = event.desired
+      .map((d) => d.getID())
+      .filter((id): id is string => !!id);
 
     if (ids.length > 0) {
       // Queue listings to be deleted
@@ -153,7 +155,7 @@ export class ManageListingsService {
   private async createdDesired(event: DesiredListingsAddedEvent) {
     const listings = await this.currentListingsService.getListingsByIds(
       event.steamid,
-      event.desired.map((d) => d.getID()!),
+      event.desired.map((d) => d.getID()).filter((id): id is string => !!id),
     );
 
     const archivedIds = Array.from(listings.values())

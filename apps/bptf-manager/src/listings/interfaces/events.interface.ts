@@ -11,7 +11,7 @@ interface BaseDesiredListingsEvent {
 export interface DesiredListingsAddedEvent extends BaseDesiredListingsEvent {
   desired: AddDesiredListing[];
 }
-export interface DesiredListingsRemovedEvent extends BaseDesiredListingsEvent {}
+export type DesiredListingsRemovedEvent = BaseDesiredListingsEvent;
 export interface DesiredListingsCreatedEvent extends BaseDesiredListingsEvent {
   listings: Record<string, Listing>;
 }

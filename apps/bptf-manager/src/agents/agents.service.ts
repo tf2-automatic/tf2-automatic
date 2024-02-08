@@ -189,7 +189,7 @@ export class AgentsService {
 
   registerAgent(
     token: Token,
-    userAgent: string = 'github.com/tf2-automatic/tf2-automatic',
+    userAgent = 'github.com/tf2-automatic/tf2-automatic',
   ): Promise<AgentResponse> {
     const resource = `bptf-manager:agents:register:${token.steamid64}`;
 
