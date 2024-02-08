@@ -1,6 +1,7 @@
 import { AddListingDto, ListingError } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
+import hashListing from '../utils/desired-listing-hash';
 
 export class DesiredListing {
   private hash: string;
@@ -12,13 +13,8 @@ export class DesiredListing {
   private lastAttemptedAt: number | undefined;
   private updatedAt: number;
 
-  constructor(
-    hash: string,
-    steamid: SteamID,
-    listing: AddListingDto,
-    updatedAt: number,
-  ) {
-    this.hash = hash;
+  constructor(steamid: SteamID, listing: AddListingDto, updatedAt: number) {
+    this.hash = hashListing(listing);
     this.steamid = steamid;
     this.listing = listing;
     this.updatedAt = updatedAt;

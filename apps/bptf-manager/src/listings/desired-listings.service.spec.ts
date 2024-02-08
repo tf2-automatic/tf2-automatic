@@ -91,7 +91,6 @@ describe('DesiredListingsService', () => {
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
       const expectedDesired = new AddDesiredListing(
-        hash,
         steamid,
         desired[0].listing,
         0,
@@ -125,12 +124,7 @@ describe('DesiredListingsService', () => {
 
       const steamid = new SteamID('76561198120070906');
 
-      const existingDesired = new DesiredListing(
-        hashListing(listing),
-        steamid,
-        listing,
-        0,
-      );
+      const existingDesired = new DesiredListing(steamid, listing, 0);
 
       existingDesired.setID('1234');
 
@@ -157,12 +151,9 @@ describe('DesiredListingsService', () => {
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
-      const expectedDesired = new AddDesiredListing(
-        saved.hash,
-        steamid,
-        listing,
-        0,
-      ).setID(existingDesired.getID());
+      const expectedDesired = new AddDesiredListing(steamid, listing, 0).setID(
+        existingDesired.getID(),
+      );
 
       expect(result).toEqual([expectedDesired]);
 
@@ -190,12 +181,7 @@ describe('DesiredListingsService', () => {
         },
       };
 
-      const existingDesired = new DesiredListing(
-        hashListing(existingListing),
-        steamid,
-        existingListing,
-        0,
-      );
+      const existingDesired = new DesiredListing(steamid, existingListing, 0);
 
       existingDesired.setID('1234');
 
@@ -228,7 +214,6 @@ describe('DesiredListingsService', () => {
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
       const expectedDesired = new AddDesiredListing(
-        saved.hash,
         steamid,
         desired[0].listing,
         0,
@@ -278,7 +263,6 @@ describe('DesiredListingsService', () => {
       const steamid = new SteamID('76561198120070906');
 
       const existingDesired: DesiredListing = new DesiredListing(
-        hashListing(remove),
         steamid,
         {
           id: remove.id,
@@ -331,7 +315,6 @@ describe('DesiredListingsService', () => {
       const steamid = new SteamID('76561198120070906');
 
       const existingDesired: DesiredListing = new DesiredListing(
-        hashListing(remove),
         steamid,
         listing,
         0,
@@ -378,12 +361,7 @@ describe('DesiredListingsService', () => {
         },
       };
 
-      const desired = new DesiredListing(
-        hashListing(listing),
-        steamid,
-        listing,
-        0,
-      );
+      const desired = new DesiredListing(steamid, listing, 0);
 
       DesiredListingsService.chainableSaveDesired(chainable, steamid, [
         desired,
