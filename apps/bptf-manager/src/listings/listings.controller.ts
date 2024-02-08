@@ -42,12 +42,14 @@ export class ListingsController {
   })
   @ApiParamSteamID()
   @Post('/:steamid/desired')
-  addDesired(
+  async addDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Body(new ParseArrayPipe({ items: DesiredListingDto }))
     add: DesiredListingDto[],
   ): Promise<DesiredListingModel[]> {
-    return this.desiredListingsService.addDesired(steamid, add);
+    const desired = await this.desiredListingsService.addDesired(steamid, add);
+
+    return desired.map((d) => d.toJSON());
   }
 
   @ApiOperation({
@@ -73,10 +75,12 @@ export class ListingsController {
   })
   @ApiParamSteamID()
   @Get('/:steamid/desired')
-  getDesired(
+  async getDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
   ): Promise<DesiredListingModel[]> {
-    return this.desiredListingsService.getAllDesired(steamid);
+    const desired = await this.desiredListingsService.getAllDesired(steamid);
+
+    return desired.map((d) => d.toJSON());
   }
 
   @ApiOperation({

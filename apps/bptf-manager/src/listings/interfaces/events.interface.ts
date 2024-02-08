@@ -1,13 +1,16 @@
 import SteamID from 'steamid';
-import { ExtendedDesiredListing } from './desired-listing.interface';
 import { Listing, ListingError } from '@tf2-automatic/bptf-manager-data';
+import { AddDesiredListing } from '../classes/add-desired-listing.class';
+import { DesiredListing } from '../classes/desired-listing.class';
 
 interface BaseDesiredListingsEvent {
   steamid: SteamID;
-  desired: ExtendedDesiredListing[];
+  desired: DesiredListing[];
 }
 
-export interface DesiredListingsAddedEvent extends BaseDesiredListingsEvent {}
+export interface DesiredListingsAddedEvent extends BaseDesiredListingsEvent {
+  desired: AddDesiredListing[];
+}
 export interface DesiredListingsRemovedEvent extends BaseDesiredListingsEvent {}
 export interface DesiredListingsCreatedEvent extends BaseDesiredListingsEvent {
   listings: Record<string, Listing>;

@@ -27,7 +27,7 @@ export class DesiredListingsListener {
     const failedHashes = Object.keys(event.errors);
 
     // Update the failed desired listings with the error message
-    const map = await this.desiredListingsService.getDesiredByHashesNew(
+    const map = await this.desiredListingsService.getDesiredByHashes(
       event.steamid,
       failedHashes,
     );
@@ -58,8 +58,7 @@ export class DesiredListingsListener {
   async currentListingsDeletedAll(steamid: SteamID): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
-    const desired =
-      await this.desiredListingsService.getAllDesiredInternalNew(steamid);
+    const desired = await this.desiredListingsService.getAllDesired(steamid);
 
     if (desired.length === 0) {
       return;
@@ -93,7 +92,7 @@ export class DesiredListingsListener {
     // Update desired listings that were changed
     const hashes = Object.keys(event.listings);
 
-    const map = await this.desiredListingsService.getDesiredByHashesNew(
+    const map = await this.desiredListingsService.getDesiredByHashes(
       event.steamid,
       hashes,
     );
@@ -123,7 +122,7 @@ export class DesiredListingsListener {
 
     await this.eventEmitter.emitAsync('desired-listings.created', {
       steamid: event.steamid,
-      desired: desired.map((d) => d.toJSON()),
+      desired,
       listings: event.listings,
     } satisfies DesiredListingsCreatedEvent);
   }

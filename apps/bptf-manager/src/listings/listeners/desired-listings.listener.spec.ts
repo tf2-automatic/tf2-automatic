@@ -58,7 +58,7 @@ describe('DesiredListingsListener', () => {
     const desired = new DesiredListingClass(hash, steamid, listing, 0);
 
     jest
-      .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+      .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
       .mockResolvedValue(new Map([[desired.getHash(), desired]]));
 
     await service.currentListingsFailed({
@@ -103,7 +103,7 @@ describe('DesiredListingsListener', () => {
     desired.setID('1234');
 
     jest
-      .spyOn(DesiredListingsService.prototype, 'getAllDesiredInternalNew')
+      .spyOn(DesiredListingsService.prototype, 'getAllDesired')
       .mockResolvedValue([desired]);
 
     await service.currentListingsDeletedAll(steamid);
@@ -146,7 +146,7 @@ describe('DesiredListingsListener', () => {
 
     // Mock that the desired listing exists in the database
     jest
-      .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+      .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
       .mockResolvedValue(new Map([[desired.getHash(), desired]]));
 
     // Current listings
@@ -195,7 +195,11 @@ describe('DesiredListingsListener', () => {
       'desired-listings.created',
       {
         steamid: steamid,
-        desired: [saved],
+        desired: [
+          new DesiredListingClass(hash, steamid, listing, 0)
+            .setID('abc123')
+            .setLastAttemptedAt(0),
+        ],
         listings,
       },
     );

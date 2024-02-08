@@ -1,23 +1,20 @@
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import {
-  DesiredListing,
   DesiredListingDto,
   RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import { ChainableCommander, Redis } from 'ioredis';
 import Redlock from 'redlock';
 import SteamID from 'steamid';
-import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   DesiredListingsAddedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
-import { DesiredListing as DesiredListingClass } from './classes/desired-listing.class';
+import { DesiredListing } from './classes/desired-listing.class';
 import { AddDesiredListing } from './classes/add-desired-listing.class';
 import { ListingFactory } from './classes/listing.factory';
 import hashListing from './utils/desired-listing-hash';
-import { ExtendedDesiredListing } from './interfaces/desired-listing.interface';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -46,7 +43,7 @@ export class DesiredListingsService {
       1000,
       async (signal) => {
         // Get current listings and check if they are different from the new listings
-        const current = await this.getDesiredByHashesNew(
+        const current = await this.getDesiredByHashes(
           steamid,
           desired.map((d) => d.getHash()),
         );
@@ -71,20 +68,20 @@ export class DesiredListingsService {
         if (changed.length > 0) {
           await this.eventEmitter.emitAsync('desired-listings.added', {
             steamid,
-            desired: changed.map((d) => d.toJSON()),
+            desired: changed,
           } satisfies DesiredListingsAddedEvent);
         }
 
-        return this.mapDesired(desired.map((d) => d.toJSON()));
+        return desired;
       },
     );
   }
 
   static compareAndUpdateDesired(
     desired: AddDesiredListing[],
-    current: Map<string, DesiredListingClass>,
+    current: Map<string, DesiredListing>,
   ) {
-    const changed: DesiredListingClass[] = [];
+    const changed: AddDesiredListing[] = [];
 
     desired.forEach((d) => {
       // Update desired based on current listings
@@ -114,7 +111,7 @@ export class DesiredListingsService {
       ['desired:' + steamid.getSteamID64()],
       1000,
       async (signal) => {
-        const map = await this.getDesiredByHashesNew(steamid, hashes);
+        const map = await this.getDesiredByHashes(steamid, hashes);
 
         if (signal.aborted) {
           throw signal.error;
@@ -126,60 +123,45 @@ export class DesiredListingsService {
           const hashes = desired.map((d) => d.getHash());
 
           const transaction = this.redis.multi();
-          transaction.hdel(this.getDesiredKey(steamid), ...hashes);
+          transaction.hdel(
+            DesiredListingsService.getDesiredKey(steamid),
+            ...hashes,
+          );
           await transaction.exec();
 
           await this.eventEmitter.emitAsync('desired-listings.removed', {
             steamid,
-            desired: desired.map((d) => d.toJSON()),
+            desired,
           } satisfies DesiredListingsRemovedEvent);
         }
       },
     );
   }
 
-  async getAllDesiredInternal(
-    steamid: SteamID,
-  ): Promise<DesiredListingInterface[]> {
-    return this.redis
-      .hvals(this.getDesiredKey(steamid))
-      .then((values) =>
-        values.map((raw) => JSON.parse(raw) as DesiredListingInterface),
-      );
-  }
-
-  async getAllDesiredInternalNew(
-    steamid: SteamID,
-  ): Promise<DesiredListingClass[]> {
-    const values = await this.redis.hvals(this.getDesiredKey(steamid));
+  async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
+    const values = await this.redis.hvals(
+      DesiredListingsService.getDesiredKey(steamid),
+    );
 
     const desired = values.map((raw) =>
-      ListingFactory.CreateDesiredListing(
-        JSON.parse(raw) as DesiredListingInterface,
-      ),
+      ListingFactory.CreateDesiredListing(JSON.parse(raw)),
     );
 
     return desired;
   }
 
-  async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
-    const desired = await this.getAllDesiredInternalNew(steamid);
-
-    return this.mapDesired(desired.map((d) => d.toJSON()));
-  }
-
-  async getDesiredByHashesNew(
+  async getDesiredByHashes(
     steamid: SteamID,
     hashes: string[],
-  ): Promise<Map<string, DesiredListingClass>> {
-    const result: Map<string, DesiredListingClass> = new Map();
+  ): Promise<Map<string, DesiredListing>> {
+    const result: Map<string, DesiredListing> = new Map();
 
     if (hashes.length === 0) {
       return result;
     }
 
     const values = await this.redis.hmget(
-      this.getDesiredKey(steamid),
+      DesiredListingsService.getDesiredKey(steamid),
       ...hashes,
     );
 
@@ -188,9 +170,7 @@ export class DesiredListingsService {
         return;
       }
 
-      const desired = ListingFactory.CreateDesiredListing(
-        JSON.parse(raw) as DesiredListingInterface,
-      );
+      const desired = ListingFactory.CreateDesiredListing(JSON.parse(raw));
 
       result.set(desired.getHash(), desired);
     });
@@ -198,75 +178,15 @@ export class DesiredListingsService {
     return result;
   }
 
-  async getDesiredByHashes(
-    steamid: SteamID,
-    hashes: string[],
-  ): Promise<Record<string, DesiredListingInterface>> {
-    if (hashes.length === 0) {
-      return {};
-    }
-
-    const values = await this.redis.hmget(
-      this.getDesiredKey(steamid),
-      ...hashes,
-    );
-
-    const result: Record<string, DesiredListingInterface> = {};
-
-    values.forEach((raw) => {
-      if (raw === null) {
-        return;
-      }
-
-      const desired = JSON.parse(raw) as DesiredListingInterface;
-
-      result[desired.hash] = desired;
-    });
-
-    return result;
-  }
-
-  async chainableSaveDesired(
-    chainable: ChainableCommander,
-    steamid: SteamID,
-    desired: ExtendedDesiredListing[],
-  ) {
-    chainable.hset(
-      this.getDesiredKey(steamid),
-      ...desired.flatMap((d) => {
-        const copy = Object.assign({}, d);
-        delete copy.force;
-        return [copy.hash, JSON.stringify(copy)];
-      }),
-    );
-  }
-
   static chainableSaveDesired(
     chainable: ChainableCommander,
     steamid: SteamID,
-    desired: DesiredListingClass[],
+    desired: DesiredListing[],
   ) {
     chainable.hset(
       this.getDesiredKey(steamid),
       ...desired.flatMap((d) => [d.getHash(), JSON.stringify(d.toJSON())]),
     );
-  }
-
-  private mapDesired(desired: DesiredListingInterface[]): DesiredListing[] {
-    return desired.map((d) => ({
-      hash: d.hash,
-      id: d.id ?? null,
-      steamid64: d.steamid64,
-      listing: d.listing,
-      priority: d.priority,
-      error: d.error,
-      lastAttemptedAt: d.lastAttemptedAt,
-      updatedAt: d.updatedAt,
-    }));
-  }
-
-  private getDesiredKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
   }
 
   private static getDesiredKey(steamid: SteamID): string {

@@ -13,6 +13,7 @@ import { DesiredListing } from './classes/desired-listing.class';
 import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import hashListing from './utils/desired-listing-hash';
 import { mock } from '@tf2-automatic/testing';
+import { AddDesiredListing } from './classes/add-desired-listing.class';
 
 jest.mock('eventemitter2');
 jest.mock('redlock', () => jest.fn().mockImplementation(() => mock.redlock));
@@ -62,7 +63,7 @@ describe('DesiredListingsService', () => {
       const steamid = new SteamID('76561198120070906');
 
       jest
-        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
         .mockResolvedValue(new Map());
 
       const result = await service.addDesired(steamid, desired);
@@ -89,25 +90,21 @@ describe('DesiredListingsService', () => {
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
-      expect(result).toEqual([
-        {
-          id: saved.id ?? null,
-          hash: saved.hash,
-          steamid64: saved.steamid64,
-          listing: saved.listing,
-          updatedAt: saved.updatedAt,
-          error: saved.error,
-          priority: saved.priority,
-          lastAttemptedAt: saved.lastAttemptedAt,
-        },
-      ]);
+      const expectedDesired = new AddDesiredListing(
+        hash,
+        steamid,
+        desired[0].listing,
+        0,
+      );
+
+      expect(result).toEqual([expectedDesired]);
 
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
         'desired-listings.added',
         {
           steamid,
-          desired: [saved],
+          desired: [expectedDesired],
         },
       );
     });
@@ -138,7 +135,7 @@ describe('DesiredListingsService', () => {
       existingDesired.setID('1234');
 
       jest
-        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
         .mockResolvedValue(
           new Map([[existingDesired.getHash(), existingDesired]]),
         );
@@ -160,18 +157,14 @@ describe('DesiredListingsService', () => {
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
-      expect(result).toEqual([
-        {
-          id: saved.id,
-          hash: saved.hash,
-          steamid64: saved.steamid64,
-          listing: saved.listing,
-          updatedAt: saved.updatedAt,
-          error: saved.error,
-          priority: saved.priority,
-          lastAttemptedAt: saved.lastAttemptedAt,
-        },
-      ]);
+      const expectedDesired = new AddDesiredListing(
+        saved.hash,
+        steamid,
+        listing,
+        0,
+      ).setID(existingDesired.getID());
+
+      expect(result).toEqual([expectedDesired]);
 
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(0);
     });
@@ -207,7 +200,7 @@ describe('DesiredListingsService', () => {
       existingDesired.setID('1234');
 
       jest
-        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
         .mockResolvedValue(
           new Map([[existingDesired.getHash(), existingDesired]]),
         );
@@ -234,25 +227,21 @@ describe('DesiredListingsService', () => {
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
-      expect(result).toEqual([
-        {
-          id: saved.id,
-          hash: saved.hash,
-          steamid64: saved.steamid64,
-          listing: saved.listing,
-          updatedAt: saved.updatedAt,
-          error: saved.error,
-          priority: saved.priority,
-          lastAttemptedAt: saved.lastAttemptedAt,
-        },
-      ]);
+      const expectedDesired = new AddDesiredListing(
+        saved.hash,
+        steamid,
+        desired[0].listing,
+        0,
+      ).setID(existingDesired.getID());
+
+      expect(result).toEqual([expectedDesired]);
 
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
         'desired-listings.added',
         {
           steamid,
-          desired: [saved],
+          desired: [expectedDesired],
         },
       );
     });
@@ -269,7 +258,7 @@ describe('DesiredListingsService', () => {
       const steamid = new SteamID('76561198120070906');
 
       jest
-        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
         .mockResolvedValue(new Map());
 
       await service.removeDesired(steamid, remove);
@@ -301,7 +290,7 @@ describe('DesiredListingsService', () => {
       );
 
       jest
-        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
         .mockResolvedValue(
           new Map([[existingDesired.getHash(), existingDesired]]),
         );
@@ -322,7 +311,7 @@ describe('DesiredListingsService', () => {
         'desired-listings.removed',
         {
           steamid,
-          desired: [existingDesired.toJSON()],
+          desired: [existingDesired],
         },
       );
     });
@@ -349,7 +338,7 @@ describe('DesiredListingsService', () => {
       );
 
       jest
-        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashesNew')
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
         .mockResolvedValue(
           new Map([[existingDesired.getHash(), existingDesired]]),
         );
@@ -370,7 +359,7 @@ describe('DesiredListingsService', () => {
         'desired-listings.removed',
         {
           steamid,
-          desired: [existingDesired.toJSON()],
+          desired: [existingDesired],
         },
       );
     });
