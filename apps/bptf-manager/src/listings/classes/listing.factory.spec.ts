@@ -5,6 +5,7 @@ describe('ListingFactory', () => {
   it('should create a DesiredListing', () => {
     const listing = ListingFactory.CreateDesiredListing({
       hash: '',
+      id: null,
       steamid64: '76561198120070906',
       listing: {
         currencies: {

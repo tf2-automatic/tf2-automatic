@@ -1,14 +1,11 @@
-import { AddListingDto } from '@tf2-automatic/bptf-manager-data';
-import {
-  DesiredListing as DesiredListingInternal,
-  ListingError,
-} from '../interfaces/desired-listing.interface';
+import { AddListingDto, ListingError } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
+import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 
 export class DesiredListing {
   private hash: string;
   private steamid: SteamID;
-  private id: string | undefined;
+  private id: string | null = null;
   private listing: AddListingDto;
   private priority: number | undefined;
   private error: ListingError | undefined;
@@ -35,11 +32,11 @@ export class DesiredListing {
     return this.steamid;
   }
 
-  getID(): string | undefined {
+  getID(): string | null {
     return this.id;
   }
 
-  setID(id: string | undefined): void {
+  setID(id: string | null): void {
     this.id = id;
   }
 
@@ -79,10 +76,10 @@ export class DesiredListing {
     this.updatedAt = updatedAt;
   }
 
-  toJSON(): DesiredListingInternal {
+  toJSON(): DesiredListingInterface {
     return {
       hash: this.hash,
-      id: this.id,
+      id: this.id ?? null,
       steamid64: this.steamid.getSteamID64(),
       listing: this.listing,
       priority: this.priority,

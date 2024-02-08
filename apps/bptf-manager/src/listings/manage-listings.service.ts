@@ -19,13 +19,14 @@ import { AgentsService } from '../agents/agents.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
+import { DesiredListingWithId } from './interfaces/desired-listing.interface';
+import { CurrentListingsService } from './current-listings.service';
 import {
   DesiredListing,
-  DesiredListingWithId,
+  Listing,
   ListingError,
-} from './interfaces/desired-listing.interface';
-import { CurrentListingsService } from './current-listings.service';
-import { Listing, Token } from '@tf2-automatic/bptf-manager-data';
+  Token,
+} from '@tf2-automatic/bptf-manager-data';
 import {
   BatchCreateListingResponse,
   BatchUpdateListingResponse,
@@ -85,7 +86,7 @@ export class ManageListingsService {
     const update: DesiredListing[] = [];
 
     event.desired.forEach((d) => {
-      if (d.id === undefined || d.force === true) {
+      if (!d.id || d.force === true) {
         create.push(d);
       } else {
         update.push(d);
@@ -117,9 +118,7 @@ export class ManageListingsService {
     // Remove hashes from create queue
     transaction.zrem(this.getCreateKey(event.steamid), ...hashes);
 
-    const ids = event.desired
-      .filter((d) => d.id !== undefined)
-      .map((d) => d.id!);
+    const ids = event.desired.filter((d) => d.id).map((d) => d.id!);
 
     if (ids.length > 0) {
       // Queue listings to be deleted
@@ -293,9 +292,7 @@ export class ManageListingsService {
       await this.desiredListingsService.getAllDesiredInternal(steamid);
 
     // Get hashes of desired listings that have an id
-    const desiredHashes = desired
-      .filter((d) => d.id !== undefined)
-      .map((d) => d.hash);
+    const desiredHashes = desired.filter((d) => d.id).map((d) => d.hash);
 
     const hashes = new Set<string>();
 
@@ -495,14 +492,12 @@ export class ManageListingsService {
     const map = new Map<string, DesiredListing>();
     desired.forEach((d) => {
       // id should not be undefined but we check it anyway
-      if (d.id !== undefined) {
+      if (d.id) {
         map.set(d.id, d);
       }
     });
 
-    const update = desired.filter(
-      (d): d is DesiredListingWithId => d.id !== undefined,
-    );
+    const update = desired.filter((d): d is DesiredListingWithId => !!d.id);
 
     const result = await this.currentListingsService.updateListings(
       token,
@@ -605,7 +600,7 @@ export class ManageListingsService {
 
     // Go through all desired and check if the listing is still active
     desired.forEach((d) => {
-      if (d.id === undefined) {
+      if (!d.id) {
         return;
       }
 
@@ -613,7 +608,7 @@ export class ManageListingsService {
 
       if (!match) {
         // Listing no longer exists, remove the id
-        delete d.id;
+        d.id = null;
       } else {
         const action = this.compareCurrentAndDesired(d, match);
 
@@ -632,7 +627,7 @@ export class ManageListingsService {
       if (d.error === ListingError.InvalidItem) {
         // Don't retry invalid item errors because they will never be fixed
         return;
-      } else if (d.error === undefined && d.id !== undefined) {
+      } else if (d.error === undefined && d.id) {
         // If there is no error and the listing already has an id then don't queue it to be created
         return;
       } else if (
@@ -660,7 +655,7 @@ export class ManageListingsService {
 
     const desiredWithId = new Map<string, DesiredListing>();
     desired.forEach((d) => {
-      if (d.id !== undefined) {
+      if (d.id) {
         desiredWithId.set(d.id, d);
       }
     });

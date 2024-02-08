@@ -1,12 +1,14 @@
 import { DesiredListingDto } from '@tf2-automatic/bptf-manager-data';
 import { DesiredListing } from './desired-listing.class';
 import { AddDesiredListing } from './add-desired-listing.class';
-import { DesiredListing as DesiredListingInternal } from '../interfaces/desired-listing.interface';
+import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import hash from '../utils/desired-listing-hash';
 import SteamID from 'steamid';
 
 export class ListingFactory {
-  static CreateDesiredListing(desired: DesiredListingInternal): DesiredListing {
+  static CreateDesiredListing(
+    desired: DesiredListingInterface,
+  ): DesiredListing {
     const object = new DesiredListing(
       desired.hash,
       new SteamID(desired.steamid64),

@@ -1,9 +1,6 @@
 import SteamID from 'steamid';
-import {
-  ExtendedDesiredListing,
-  ListingError,
-} from './desired-listing.interface';
-import { Listing } from '@tf2-automatic/bptf-manager-data';
+import { ExtendedDesiredListing } from './desired-listing.interface';
+import { Listing, ListingError } from '@tf2-automatic/bptf-manager-data';
 
 interface BaseDesiredListingsEvent {
   steamid: SteamID;

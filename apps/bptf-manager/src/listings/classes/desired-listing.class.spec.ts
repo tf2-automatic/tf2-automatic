@@ -1,6 +1,6 @@
+import { ListingError } from '@tf2-automatic/bptf-manager-data';
 import { DesiredListing } from './desired-listing.class';
 import SteamID from 'steamid';
-import { ListingError } from '../interfaces/desired-listing.interface';
 
 function createDesired(): DesiredListing {
   return new DesiredListing(
@@ -34,7 +34,7 @@ describe('DesiredListing', () => {
   it('should return undefined for unset values', () => {
     const desired = createDesired();
 
-    expect(desired.getID()).toBeUndefined();
+    expect(desired.getID()).toBeNull();
     expect(desired.getPriority()).toBeUndefined();
     expect(desired.getError()).toBeUndefined();
     expect(desired.getLastAttemptedAt()).toBeUndefined();
@@ -44,7 +44,7 @@ describe('DesiredListing', () => {
     const desired = createDesired();
 
     expect(desired.toJSON()).toEqual({
-      id: undefined,
+      id: null,
       hash: '',
       steamid64: '76561198120070906',
       listing: {

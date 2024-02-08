@@ -30,6 +30,11 @@ export class ListingCurrenciesDto {
 }
 
 export class ListingItemDto {
+  @ApiProperty({
+    description: 'The quantity of the item you want to buy',
+    example: 10,
+    required: false,
+  })
   @IsNumber()
   @IsOptional()
   quantity?: number;
@@ -128,12 +133,26 @@ export class DesiredListingDto {
   force?: boolean;
 }
 
+export enum ListingError {
+  // Item does not exist in the agent's inventory on backpack.tf
+  ItemDoesNotExist = 'ITEM_DOES_NOT_EXIST',
+  // Item is not valid (missing properties, wrong values, etc.)
+  InvalidItem = 'INVALID_ITEM',
+  // Invalid currencies (missing price, negative price, etc.)
+  InvalidCurrencies = 'MISSING_PRICE',
+  // The cap was exceeded and the listing was not made
+  CapExceeded = 'CAP_EXCEEDED',
+  // The listing was not made and the reason is unknown
+  Unknown = 'UNKNOWN',
+}
+
 export interface DesiredListing {
   hash: string;
   id: string | null;
-  listing: ListingDto;
+  steamid64: string;
+  listing: AddListingDto;
   priority?: number;
-  error?: string;
+  error?: ListingError;
   lastAttemptedAt?: number;
   updatedAt: number;
 }
@@ -152,10 +171,16 @@ export class DesiredListingModel implements DesiredListing {
   id!: string | null;
 
   @ApiProperty({
-    description: 'The raw listing object to send to backpack.tf',
-    type: ListingDto,
+    description: 'The steamid64 of the agent that owns the desired listing',
+    example: '76561198120070906',
   })
-  listing!: ListingDto;
+  steamid64!: string;
+
+  @ApiProperty({
+    description: 'The raw listing object to send to backpack.tf',
+    type: AddListingDto,
+  })
+  listing!: AddListingDto;
 
   @ApiProperty({
     description:
@@ -171,8 +196,9 @@ export class DesiredListingModel implements DesiredListing {
     description:
       'An error message indicating the error that occurred when the listing last failed to be created',
     required: false,
+    enum: ListingError,
   })
-  error?: string;
+  error?: ListingError;
 
   @ApiProperty({
     description:

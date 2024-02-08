@@ -4,10 +4,10 @@ import { DesiredListingsListener } from './desired-listings.listener';
 import { getRedisToken } from '@songkeys/nestjs-redis';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DesiredListingsService } from '../desired-listings.service';
-import { ListingError } from '../interfaces/desired-listing.interface';
+import { ListingError } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { DesiredListing as DesiredListingClass } from '../classes/desired-listing.class';
-import { DesiredListing } from '../interfaces/desired-listing.interface';
+import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import hashListing from '../utils/desired-listing-hash';
 import { AddListingDto, Listing } from '@tf2-automatic/bptf-manager-data';
 
@@ -68,9 +68,9 @@ describe('DesiredListingsListener', () => {
       },
     });
 
-    const saved: DesiredListing = {
-      id: undefined,
+    const saved: DesiredListingInterface = {
       hash,
+      id: null,
       steamid64: steamid.getSteamID64(),
       listing,
       error: ListingError.ItemDoesNotExist,
@@ -110,9 +110,9 @@ describe('DesiredListingsListener', () => {
 
     // Can't compare it to desired.toJSON() because it is the same object
     // and it is modified by the listener
-    const saved: DesiredListing = {
-      id: undefined,
+    const saved: DesiredListingInterface = {
       hash,
+      id: null,
       steamid64: steamid.getSteamID64(),
       listing,
       updatedAt: 0,
@@ -170,7 +170,7 @@ describe('DesiredListingsListener', () => {
     });
 
     // The listing that is going to be saved to the database
-    const saved: DesiredListing = {
+    const saved: DesiredListingInterface = {
       hash,
       id: 'abc123',
       steamid64: steamid.getSteamID64(),
