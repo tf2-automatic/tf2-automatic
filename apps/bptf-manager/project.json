@@ -31,6 +31,10 @@
       "configurations": {
         "production": {
           "buildTarget": "bptf-manager:build:production"
+        },
+        "e2e": {
+          "watch": false,
+          "inspect": false
         }
       }
     },

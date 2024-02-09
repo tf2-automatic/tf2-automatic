@@ -290,6 +290,9 @@ devDependencies:
   cz-conventional-changelog:
     specifier: ^3.3.0
     version: 3.3.0(@types/node@20.11.16)(typescript@5.3.3)
+  docker-compose:
+    specifier: ^0.24.3
+    version: 0.24.3
   eslint:
     specifier: ~8.56.0
     version: 8.56.0
@@ -6378,6 +6381,13 @@ packages:
     engines: {node: '>=6'}
     dependencies:
       '@leichtgewicht/ip-codec': 2.0.4
+    dev: true
+
+  /docker-compose@0.24.3:
+    resolution: {integrity: sha512-x3/QN3AIOMe7j2c8f/jcycizMft7dl8MluoB9OGPAYCyKHHiPUFqI9GjCcsU0kYy24vYKMCcfR6+5ZaEyQlrxg==}
+    engines: {node: '>= 6.0.0'}
+    dependencies:
+      yaml: 2.3.4
     dev: true
 
   /doctrine@3.0.0:
