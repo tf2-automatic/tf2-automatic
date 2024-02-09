@@ -56,14 +56,22 @@ export class ListingsController {
     summary: 'Remove desired listings',
     description: 'Remove desired listings from the database',
   })
+  @ApiResponse({
+    type: [DesiredListingModel],
+  })
   @ApiParamSteamID()
   @Delete('/:steamid/desired')
-  removeDesired(
+  async removeDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Body(new ParseArrayPipe({ items: RemoveListingDto }))
     remove: RemoveListingDto[],
   ) {
-    return this.desiredListingsService.removeDesired(steamid, remove);
+    const desired = await this.desiredListingsService.removeDesired(
+      steamid,
+      remove,
+    );
+
+    return desired.map((d) => d.toJSON());
   }
 
   @ApiOperation({
