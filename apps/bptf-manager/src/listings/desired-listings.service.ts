@@ -102,7 +102,7 @@ export class DesiredListingsService {
   async removeDesired(
     steamid: SteamID,
     remove: RemoveListingDto[],
-  ): Promise<void> {
+  ): Promise<DesiredListing[]> {
     const hashes = remove.map(
       (listing) => listing.hash ?? hashListing(listing),
     );
@@ -117,23 +117,26 @@ export class DesiredListingsService {
           throw signal.error;
         }
 
-        if (map.size > 0) {
-          // It is okay to only remove the matched listings because unmatched listings don't exist anyway
-          const desired = Array.from(map.values());
-          const hashes = desired.map((d) => d.getHash());
-
-          const transaction = this.redis.multi();
-          transaction.hdel(
-            DesiredListingsService.getDesiredKey(steamid),
-            ...hashes,
-          );
-          await transaction.exec();
-
-          await this.eventEmitter.emitAsync('desired-listings.removed', {
-            steamid,
-            desired,
-          } satisfies DesiredListingsRemovedEvent);
+        if (map.size === 0) {
+          return [];
         }
+
+        // It is okay to only remove the matched listings because unmatched listings don't exist anyway
+        const desired = Array.from(map.values());
+
+        const transaction = this.redis.multi();
+        transaction.hdel(
+          DesiredListingsService.getDesiredKey(steamid),
+          ...desired.map((d) => d.getHash()),
+        );
+        await transaction.exec();
+
+        await this.eventEmitter.emitAsync('desired-listings.removed', {
+          steamid,
+          desired,
+        } satisfies DesiredListingsRemovedEvent);
+
+        return desired;
       },
     );
   }

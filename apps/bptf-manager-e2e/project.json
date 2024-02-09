@@ -1,0 +1,16 @@
+{
+  "name": "bptf-manager-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "implicitDependencies": ["bptf-manager"],
+  "projectType": "application",
+  "targets": {
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
+      "options": {
+        "jestConfig": "apps/bptf-manager-e2e/jest.config.ts",
+        "passWithNoTests": true
+      }
+    }
+  }
+}

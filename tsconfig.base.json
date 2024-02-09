@@ -33,10 +33,10 @@
         "libs/nestjs-steamid-pipe/src/index.ts"
       ],
       "@tf2-automatic/swagger": ["libs/swagger/src/index.ts"],
+      "@tf2-automatic/testing": ["libs/testing/src/index.ts"],
       "@tf2-automatic/transactional-outbox": [
         "libs/transactional-outbox/src/index.ts"
-      ],
-      "@tf2-automatic/testing": ["libs/testing/src/index.ts"]
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]
