@@ -780,7 +780,7 @@ export class ManageListingsService {
   ): ListingAction.Create | ListingAction.Update | null {
     const listing = desired.getListing();
 
-    if ((listing.item?.quantity ?? 1) !== (current.item.quantity ?? 1)) {
+    if ((listing.item?.quantity ?? 1) !== (current.item?.quantity ?? 1)) {
       return ListingAction.Create;
     } else {
       const desiredHash = hash(
