@@ -52,8 +52,8 @@ jobs:
       - name: Get affected
         id: affected
         run: |
-          echo "UNIT_TEST=$(pnpm exec nx show projects --affected --withTarget=test | sed -z 's/\n/,/g;s/,$/\n/' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
-          echo "BUILD=$(pnpm exec nx show projects --affected --withTarget=build | sed -z 's/\n/,/g;s/,$/\n/' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+          echo "UNIT_TEST=$(pnpm exec nx show projects --affected --withTarget=test | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
+          echo "BUILD=$(pnpm exec nx show projects --affected --withTarget=build | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
     outputs:
       unit-test: ${{ steps.affected.outputs.UNIT_TEST }}
       build: ${{ steps.affected.outputs.BUILD }}
