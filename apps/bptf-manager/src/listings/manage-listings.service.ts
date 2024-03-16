@@ -741,7 +741,13 @@ export class ManageListingsService {
       ManageListingsService.chainableQueueDelete(transaction, steamid, remove);
     }
 
-    DesiredListingsService.chainableSaveDesired(transaction, steamid, desired);
+    if (desired.length > 0) {
+      DesiredListingsService.chainableSaveDesired(
+        transaction,
+        steamid,
+        desired,
+      );
+    }
 
     await transaction.exec();
 
