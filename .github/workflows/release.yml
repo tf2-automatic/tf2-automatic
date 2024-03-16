@@ -40,8 +40,8 @@ jobs:
       - name: Get affected
         id: affected
         run: |
-          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker | sed -z 's/\n/,/g;s/,$/\n/' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
-          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm | sed -z 's/\n/,/g;s/,$/\n/' | sed 's|$|"|' | sed -e 's/^/"/' | jq -c 'split(",")')" >> $GITHUB_OUTPUT
+          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
+          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
     outputs:
       docker: ${{ steps.affected.outputs.DOCKER }}
       npm: ${{ steps.affected.outputs.NPM }}
@@ -147,7 +147,7 @@ jobs:
         env:
           INPUT_TAGS: ${{ steps.meta.outputs.tags }}
           INPUT_LABELS: ${{ steps.meta.outputs.labels }}
-          INPUT_BUILD_ARGS: | 
+          INPUT_BUILD_ARGS: |
             VERSION=${{ needs.release.outputs.new_release_version }}
             SOURCE_DIR=dist/apps/${{ matrix.projectName }}
   publish_to_npm:
