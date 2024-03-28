@@ -363,6 +363,31 @@ export class BotService implements OnModuleDestroy {
     }
   }
 
+  private async getLastRatelimited(): Promise<Date | null> {
+    const path = `ratelimited.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    const ratelimited = await this.storageService.read(path);
+    if (ratelimited === null) {
+      return null;
+    }
+
+    try {
+      return new Date(ratelimited);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  private async setRatelimited(time: Date): Promise<void> {
+    const path = `ratelimited.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    await this.storageService.write(path, time.toISOString());
+  }
+
   private async _start(): Promise<void> {
     const disabled = await this.getDisabled();
     if (disabled !== false) {
@@ -421,6 +446,12 @@ export class BotService implements OnModuleDestroy {
         .catch(() => {
           // Ignore error
         });
+
+      if (err.eresult === SteamUser.EResult.RateLimitExceeded) {
+        this.setRatelimited(new Date()).catch(() => {
+          // Ignore error
+        });
+      }
 
       this.reconnect().catch((err) => {
         this.logger.warn('Failed to reconnect: ' + err.message);
@@ -623,8 +654,28 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async retryLogin() {
-    let attempts = 0;
     let attemptsRatelimited = 0;
+
+    const lastRateLimited = await this.getLastRatelimited();
+    if (lastRateLimited) {
+      const timeSinceRateLimited =
+        new Date().getTime() - lastRateLimited.getTime();
+
+      const delay = 5 * 60 * 1000 - timeSinceRateLimited;
+      if (delay > 0) {
+        // Increment ratelimited attempts to ensure next attempt if still rate limited will be longer
+        attemptsRatelimited++;
+
+        this.logger.warn(
+          'Waiting ' +
+            delay +
+            ' ms before retrying login due to rate limiting...',
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    let attempts = 0;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -646,8 +697,6 @@ export class BotService implements OnModuleDestroy {
         } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
           await this.setDisabled('Wrong username and/or password');
           throw err;
-        } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
-          throw err;
         } else if (err.eresult === SteamUser.EResult.AccessDenied) {
           // Refresh token is invalid
           await this.deleteRefreshToken().catch(() => {
@@ -656,6 +705,9 @@ export class BotService implements OnModuleDestroy {
         }
 
         if (err.eresult === SteamUser.EResult.RateLimitExceeded) {
+          await this.setRatelimited(new Date()).catch(() => {
+            // Ignore error
+          });
           attemptsRatelimited++;
         } else {
           attemptsRatelimited = 0;
