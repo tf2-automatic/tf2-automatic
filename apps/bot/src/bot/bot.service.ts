@@ -29,6 +29,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Summary, register } from 'prom-client';
 import jwt from 'jsonwebtoken';
+import objectHash from 'object-hash';
 
 type HistogramEndCallback = (labels?: unknown) => void;
 
@@ -183,7 +184,7 @@ export class BotService implements OnModuleDestroy {
 
       this.storageService.write(tokenPath, token).catch((err) => {
         this.logger.warn('Failed to save refresh token: ' + err.message);
-        });
+      });
     });
   }
 
@@ -318,27 +319,48 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async getDisabled(): Promise<string | false> {
+    const steamDetails =
+      this.configService.getOrThrow<SteamAccountConfig>('steam');
+
     // Check for file to prevent logging in on fatal error
-    const path = `disabled.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
+    const path = `disabled.${steamDetails.username}.txt`;
 
     const result = await this.storageService.read(path);
     if (result === null) {
       return false;
     }
 
-    return result || 'No reason provided';
+    try {
+      const data = JSON.parse(result) as { reason: string; hash: string };
+      if (data.hash === objectHash(steamDetails)) {
+        return data.reason;
+      }
+    } catch {
+      return false;
+    }
+
+    return false;
   }
 
-  private async setDisabled(reason: string): Promise<void> {
+  private async setDisabled(reason: string | null): Promise<void> {
     this.logger.warn('Disabling bot, reason: ' + reason);
 
-    const path = `disabled.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
+    const steamDetails =
+      this.configService.getOrThrow<SteamAccountConfig>('steam');
 
-    await this.storageService.write(path, reason);
+    const path = `disabled.${steamDetails.username}.txt`;
+
+    if (reason === null) {
+      // TODO: Delete file
+      await this.storageService.write(path, '');
+    } else {
+      const data = {
+        reason,
+        hash: objectHash(steamDetails),
+      };
+
+      await this.storageService.write(path, JSON.stringify(data));
+    }
   }
 
   private async _start(): Promise<void> {
