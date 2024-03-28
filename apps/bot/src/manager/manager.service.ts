@@ -106,6 +106,11 @@ export class ManagerService implements OnModuleDestroy {
   }
 
   private async deleteBot() {
+    const steamid = this.metadataService.getSteamID();
+    if (!steamid) {
+      return;
+    }
+
     this.logger.debug('Removing bot...');
 
     await firstValueFrom(
