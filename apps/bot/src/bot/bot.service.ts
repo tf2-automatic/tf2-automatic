@@ -183,7 +183,7 @@ export class BotService implements OnModuleDestroy {
 
       this.storageService.write(tokenPath, token).catch((err) => {
         this.logger.warn('Failed to save refresh token: ' + err.message);
-        });
+      });
     });
   }
 
@@ -623,6 +623,8 @@ export class BotService implements OnModuleDestroy {
           throw err;
         } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
           await this.setDisabled('Wrong username and/or password');
+          throw err;
+        } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
           throw err;
         } else if (err.eresult === SteamUser.EResult.AccessDenied) {
           // Refresh token is invalid
