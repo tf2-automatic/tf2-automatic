@@ -24,22 +24,11 @@ import {
   Bot,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
-import promiseRetry from 'promise-retry';
 import { ShutdownService } from '../shutdown/shutdown.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Summary, register } from 'prom-client';
-import {
-  LoginSession,
-  EAuthTokenPlatformType,
-  EAuthSessionGuardType,
-} from 'steam-session';
 import jwt from 'jsonwebtoken';
-
-interface SteamTokens {
-  refreshToken: string;
-  accessToken: string;
-}
 
 type HistogramEndCallback = (labels?: unknown) => void;
 
@@ -62,7 +51,7 @@ export class BotService implements OnModuleDestroy {
     timeout: 10000,
   });
   private manager: SteamTradeOfferManager;
-  private session: LoginSession | null = null;
+  private pollInterval: number;
   private customGamePlayed: string | null = null;
 
   private _startPromise: Promise<void> | null = null;
@@ -124,6 +113,8 @@ export class BotService implements OnModuleDestroy {
       cancelTime: tradeConfig.cancelTime,
     });
 
+    this.pollInterval = this.manager.pollInterval;
+
     this.manager.storage.on('read', (filename, callback) => {
       this.handleReadEvent(filename, callback);
     });
@@ -168,6 +159,9 @@ export class BotService implements OnModuleDestroy {
         `Disconnected from Steam, eresult: ${SteamUser.EResult[eresult]} (${eresult})`,
       );
 
+      // Disable polling
+      this.manager.pollInterval = -1;
+
       this.eventEmitter.emit('bot.disconnected');
 
       this.eventsService
@@ -177,6 +171,18 @@ export class BotService implements OnModuleDestroy {
         } satisfies SteamDisconnectedEvent['data'])
         .catch(() => {
           // Ignore error
+        });
+    });
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.client.on('refreshToken', (token: string) => {
+      const tokenPath = `token.${
+        this.configService.getOrThrow<SteamAccountConfig>('steam').username
+      }.txt`;
+
+      this.storageService.write(tokenPath, token).catch((err) => {
+        this.logger.warn('Failed to save refresh token: ' + err.message);
         });
     });
   }
@@ -388,138 +394,6 @@ export class BotService implements OnModuleDestroy {
       });
   }
 
-  private async startSession(): Promise<string> {
-    this.session = new LoginSession(EAuthTokenPlatformType.SteamClient, {
-      httpProxy:
-        this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
-    });
-
-    this.session.on('debug', (message) => {
-      this.logger.debug('Session debug: ' + message);
-    });
-
-    const tokensPath = `tokens.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.json`;
-
-    const oldTokens = await this.storageService
-      .read(tokensPath)
-      .catch((err) => {
-        this.logger.warn('Failed to read tokens: ' + err.message);
-        return null;
-      });
-
-    if (oldTokens !== null) {
-      this.logger.debug('Found old tokens');
-
-      // Figure out if the refresh token expired
-      const { refreshToken, accessToken } = JSON.parse(
-        oldTokens,
-      ) satisfies SteamTokens;
-
-      this.session.refreshToken = refreshToken;
-      this.session.accessToken = accessToken;
-
-      const decoded = jwt.decode(refreshToken, {
-        complete: true,
-      });
-
-      if (decoded) {
-        const { exp } = decoded.payload as { exp: number };
-
-        if (exp < Date.now() / 1000) {
-          // Refresh token expired, log in again
-          this.logger.debug('Refresh token expired, logging in again');
-        } else {
-          // Refresh token is still valid, use it
-          return refreshToken;
-        }
-      }
-    }
-
-    const accountConfig =
-      this.configService.getOrThrow<SteamAccountConfig>('steam');
-
-    const result = await this.session.startWithCredentials({
-      accountName: accountConfig.username,
-      password: accountConfig.password,
-    });
-
-    if (result.actionRequired) {
-      const actions = result.validActions ?? [];
-
-      if (actions.length !== 1) {
-        throw new Error(
-          'Unexpected number of valid actions: ' + actions.length,
-        );
-      }
-
-      const action = actions[0];
-
-      if (action.type !== EAuthSessionGuardType.DeviceCode) {
-        throw new Error('Unexpected action type: ' + action.type);
-      }
-
-      await this.session.submitSteamGuardCode(
-        SteamTotp.generateAuthCode(accountConfig.sharedSecret),
-      );
-    }
-
-    this.session.on('error', (err) => {
-      this.logger.warn('Error in session: ' + err.message);
-    });
-
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    return new Promise<void>((resolve, reject) => {
-      const handleAuth = () => {
-        this.logger.debug('Session authenticated');
-        removeListeners();
-        resolve();
-      };
-
-      const handleTimeout = () => {
-        removeListeners();
-        reject(new Error('Login session timed out'));
-      };
-
-      const handleError = (err: Error) => {
-        removeListeners();
-        reject(err);
-      };
-
-      const removeListeners = () => {
-        this.session!.removeListener('authenticated', handleAuth);
-        this.session!.removeListener('timeout', handleTimeout);
-        this.session!.removeListener('error', handleError);
-      };
-
-      this.session!.once('authenticated', handleAuth);
-      this.session!.once('error', handleError);
-    }).then(() => {
-      this.metadataService.setSteamID(this.session!.steamID);
-
-      const refreshToken = this.session!.refreshToken;
-
-      this.storageService
-        .write(
-          tokensPath,
-          JSON.stringify({
-            refreshToken,
-            accessToken: this.session!.accessToken,
-          } satisfies SteamTokens),
-        )
-        .catch((err) => {
-          this.logger.warn('Failed to save refresh token: ' + err.message);
-        });
-
-      this.session!.removeAllListeners();
-      this.session = null;
-
-      return refreshToken;
-    });
-    /* eslint-enable @typescript-eslint/no-non-null-assertion */
-  }
-
   private webLogOn(): void {
     this.logger.debug('webLogOn()');
 
@@ -595,10 +469,8 @@ export class BotService implements OnModuleDestroy {
     });
   }
 
-  private async login(): Promise<void> {
+  private async login(refreshToken?: string): Promise<void> {
     this.logger.log('Logging in to Steam...');
-
-    const refreshToken = await this.startSession();
 
     return new Promise<void>((resolve, reject) => {
       if (this.client.steamID !== null) {
@@ -611,7 +483,16 @@ export class BotService implements OnModuleDestroy {
       const accountConfig =
         this.configService.getOrThrow<SteamAccountConfig>('steam');
 
+      let steamGuardAttempts = 0;
+
       this.client.on('steamGuard', (domain, callback) => {
+        steamGuardAttempts++;
+
+        if (steamGuardAttempts > 2) {
+          removeListeners();
+          return reject(new Error('Too many Steam Guard attempts'));
+        }
+
         this.logger.debug(
           'Steam guard code requested (domain: ' + domain + ')',
         );
@@ -637,22 +518,32 @@ export class BotService implements OnModuleDestroy {
 
       const timeout = setTimeout(() => {
         removeListeners();
+        this.client.logOff();
         reject(new Error('Timed out waiting for logon'));
       }, 10000);
 
       const login = () => {
-        this.logger.debug('Attempting to login to Steam...');
-
-        const loginDetails = {
-          refreshToken,
-        };
+        let loginDetails:
+          | { refreshToken: string }
+          | { accountName: string; password: string };
 
         // Add listeners
         this.client.once('loggedOn', loggedOnListener);
         this.client.once('error', errorListener);
 
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
+        if (refreshToken) {
+          this.logger.debug(
+            'Attempting to login to Steam with refresh token...',
+          );
+          loginDetails = { refreshToken };
+        } else {
+          this.logger.debug('Attempting to login to Steam...');
+          loginDetails = {
+            accountName: accountConfig.username,
+            password: accountConfig.password,
+          };
+        }
+
         this.client.logOn(loginDetails);
       };
 
@@ -660,42 +551,15 @@ export class BotService implements OnModuleDestroy {
     });
   }
 
-  private reconnect() {
+  private async reconnect() {
     if (!this._reconnectPromise) {
-      const pollInterval = this.manager.pollInterval;
-
       // Disable polling
       this.manager.pollInterval = -1;
 
-      const promise = new Promise<void>((resolve) => {
-        // Wait a second before reconnecting to avoid retrying too quickly
-        setTimeout(() => {
-          resolve();
-        }, 1000);
-      }).then(() => {
-        return promiseRetry(
-          (retry, attempt) => {
-            this.logger.debug(
-              'Attempting to connect to Steam (attempt ' + attempt + ')...',
-            );
-            return this.login().catch((err) => {
-              this.logger.warn('Failed to connect: ' + err.message);
-              retry(err);
-            });
-          },
-          {
-            forever: true,
-            maxTimeout: 1000 * 60 * 60 * 2,
-            minTimeout: 10000,
-            randomize: true,
-          },
-        );
-      });
-
-      this._reconnectPromise = promise
+      this._reconnectPromise = this.retryLogin()
         .then(() => {
           // Re-enable polling
-          this.manager.pollInterval = pollInterval;
+          this.manager.pollInterval = this.pollInterval;
           this.manager.doPoll();
         })
         .finally(() => {
@@ -705,6 +569,105 @@ export class BotService implements OnModuleDestroy {
     }
 
     return this._reconnectPromise;
+  }
+
+  private async retryLogin() {
+    let attempts = 0;
+    let attemptsRatelimited = 0;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      attempts++;
+
+      this.logger.debug(
+        'Attempting to connect to Steam (attempt ' + attempts + ')...',
+      );
+
+      const refreshToken = await this.getRefreshToken();
+
+      try {
+        await this.login(refreshToken || undefined);
+        break;
+      } catch (err) {
+        if (err.message === 'Too many Steam Guard attempts') {
+          throw err;
+        } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
+          throw err;
+        } else if (err.eresult === SteamUser.EResult.AccessDenied) {
+          // Refresh token is invalid
+          await this.deleteRefreshToken().catch(() => {
+            // Ignore error
+          });
+        }
+
+        if (err.eresult === SteamUser.EResult.RateLimitExceeded) {
+          attemptsRatelimited++;
+        } else {
+          attemptsRatelimited = 0;
+        }
+
+        const delay =
+          attemptsRatelimited > 0
+            ? this.calculateBackoff(5 * 60 * 1000, attemptsRatelimited)
+            : this.calculateBackoff(10000, attempts);
+
+        this.logger.warn(
+          'Failed to connect: ' +
+            err.message +
+            ' (retrying in ' +
+            delay +
+            'ms)',
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  private calculateBackoff(delay: number, attempts: number): number {
+    return delay * Math.pow(2, attempts - 1) + Math.floor(Math.random() * 1000);
+  }
+
+  private async getRefreshToken(): Promise<string | null> {
+    const tokenPath = `token.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    const refreshToken = await this.storageService
+      .read(tokenPath)
+      .catch(() => null);
+
+    if (!refreshToken) {
+      return null;
+    }
+
+    const decoded = jwt.decode(refreshToken, {
+      complete: true,
+    });
+
+    if (!decoded) {
+      // Invalid token
+      return null;
+    }
+
+    const { exp } = decoded.payload as { exp: number };
+
+    if (exp < Date.now() / 1000) {
+      // Refresh token expired
+      return null;
+    }
+
+    return refreshToken;
+  }
+
+  private async deleteRefreshToken(): Promise<void> {
+    const tokenPath = `token.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    await this.storageService.write(tokenPath, '').catch(() => {
+      // Ignore error
+    });
   }
 
   async onModuleDestroy() {
@@ -720,10 +683,6 @@ export class BotService implements OnModuleDestroy {
     this.client.removeAllListeners();
     this.community.removeAllListeners();
     this.manager.removeAllListeners();
-    if (this.session) {
-      this.session.removeAllListeners();
-      this.session.cancelLoginAttempt();
-    }
 
     this.running = false;
 
