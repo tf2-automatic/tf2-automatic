@@ -317,7 +317,36 @@ export class BotService implements OnModuleDestroy {
     return this.customGamePlayed;
   }
 
+  private async getDisabled(): Promise<string | false> {
+    // Check for file to prevent logging in on fatal error
+    const path = `disabled.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    const result = await this.storageService.read(path);
+    if (result === null) {
+      return false;
+    }
+
+    return result || 'No reason provided';
+  }
+
+  private async setDisabled(reason: string): Promise<void> {
+    this.logger.warn('Disabling bot, reason: ' + reason);
+
+    const path = `disabled.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+
+    await this.storageService.write(path, reason);
+  }
+
   private async _start(): Promise<void> {
+    const disabled = await this.getDisabled();
+    if (disabled !== false) {
+      throw new Error('Bot is disabled, reason: ' + disabled);
+    }
+
     this.community.on('sessionExpired', () => {
       this.logger.debug('Web session expired');
       this.webLogOn();
@@ -590,8 +619,10 @@ export class BotService implements OnModuleDestroy {
         break;
       } catch (err) {
         if (err.message === 'Too many Steam Guard attempts') {
+          await this.setDisabled('Wrong shared secret');
           throw err;
         } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
+          await this.setDisabled('Wrong username and/or password');
           throw err;
         } else if (err.eresult === SteamUser.EResult.AccessDenied) {
           // Refresh token is invalid
