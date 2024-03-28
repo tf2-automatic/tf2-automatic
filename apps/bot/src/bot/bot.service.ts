@@ -29,6 +29,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Summary, register } from 'prom-client';
 import jwt from 'jsonwebtoken';
+import objectHash from 'object-hash';
 
 type HistogramEndCallback = (labels?: unknown) => void;
 
@@ -317,7 +318,57 @@ export class BotService implements OnModuleDestroy {
     return this.customGamePlayed;
   }
 
+  private async getDisabled(): Promise<string | false> {
+    const steamDetails =
+      this.configService.getOrThrow<SteamAccountConfig>('steam');
+
+    // Check for file to prevent logging in on fatal error
+    const path = `disabled.${steamDetails.username}.txt`;
+
+    const result = await this.storageService.read(path);
+    if (result === null) {
+      return false;
+    }
+
+    try {
+      const data = JSON.parse(result) as { reason: string; hash: string };
+      if (data.hash === objectHash(steamDetails)) {
+        return data.reason;
+      }
+    } catch {
+      return false;
+    }
+
+    return false;
+  }
+
+  private async setDisabled(reason: string | null): Promise<void> {
+    this.logger.warn('Disabling bot, reason: ' + reason);
+
+    const steamDetails =
+      this.configService.getOrThrow<SteamAccountConfig>('steam');
+
+    const path = `disabled.${steamDetails.username}.txt`;
+
+    if (reason === null) {
+      // TODO: Delete file
+      await this.storageService.write(path, '');
+    } else {
+      const data = {
+        reason,
+        hash: objectHash(steamDetails),
+      };
+
+      await this.storageService.write(path, JSON.stringify(data));
+    }
+  }
+
   private async _start(): Promise<void> {
+    const disabled = await this.getDisabled();
+    if (disabled !== false) {
+      throw new Error('Bot is disabled, reason: ' + disabled);
+    }
+
     this.community.on('sessionExpired', () => {
       this.logger.debug('Web session expired');
       this.webLogOn();
@@ -551,7 +602,7 @@ export class BotService implements OnModuleDestroy {
     });
   }
 
-  private reconnect() {
+  private async reconnect() {
     if (!this._reconnectPromise) {
       // Disable polling
       this.manager.pollInterval = -1;
@@ -590,6 +641,10 @@ export class BotService implements OnModuleDestroy {
         break;
       } catch (err) {
         if (err.message === 'Too many Steam Guard attempts') {
+          await this.setDisabled('Wrong shared secret');
+          throw err;
+        } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
+          await this.setDisabled('Wrong username and/or password');
           throw err;
         } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
           throw err;
