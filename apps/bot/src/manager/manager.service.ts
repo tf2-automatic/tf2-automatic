@@ -12,6 +12,7 @@ import {
 } from '@tf2-automatic/bot-manager-data';
 import { MetadataService } from '../metadata/metadata.service';
 import fs from 'fs';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class ManagerService implements OnModuleDestroy {
@@ -120,7 +121,13 @@ export class ManagerService implements OnModuleDestroy {
           this.metadataService.getOrThrowSteamID().getSteamID64(),
         ),
       ),
-    );
+    ).catch((err) => {
+      if (err instanceof AxiosError && err.response?.status === 404) {
+        return;
+      }
+
+      throw err;
+    });
   }
 
   @OnEvent('bot.ready')
