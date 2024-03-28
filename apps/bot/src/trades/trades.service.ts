@@ -196,6 +196,8 @@ export class TradesService {
       }
     }
 
+    this.logger.debug('Getting offer #' + id + ' to ensure it is published');
+
     // Get the actual offer
     const offer = await this.ensureOfferPublishedLimiter.schedule(() =>
       this._getTrade(id),
