@@ -183,7 +183,7 @@ export class BotService implements OnModuleDestroy {
 
       this.storageService.write(tokenPath, token).catch((err) => {
         this.logger.warn('Failed to save refresh token: ' + err.message);
-        });
+      });
     });
   }
 
@@ -551,7 +551,7 @@ export class BotService implements OnModuleDestroy {
     });
   }
 
-  private async reconnect() {
+  private reconnect() {
     if (!this._reconnectPromise) {
       // Disable polling
       this.manager.pollInterval = -1;
