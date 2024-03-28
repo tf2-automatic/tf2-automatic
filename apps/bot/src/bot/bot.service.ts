@@ -646,6 +646,8 @@ export class BotService implements OnModuleDestroy {
         } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
           await this.setDisabled('Wrong username and/or password');
           throw err;
+        } else if (err.eresult === SteamUser.EResult.InvalidPassword) {
+          throw err;
         } else if (err.eresult === SteamUser.EResult.AccessDenied) {
           // Refresh token is invalid
           await this.deleteRefreshToken().catch(() => {
