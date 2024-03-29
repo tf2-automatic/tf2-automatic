@@ -20,6 +20,7 @@ export interface SteamTradeConfig {
   cancelTime?: number;
   pendingCancelTime?: number;
   pollInterval?: number;
+  pollFullUpdateInterval?: number;
 }
 
 export interface RabbitMQConfig {
@@ -82,6 +83,10 @@ export default (): Config => {
         process.env.TRADE_POLL_INTERVAL === undefined
           ? undefined
           : parseInt(process.env.TRADE_POLL_INTERVAL as string, 10),
+      pollFullUpdateInterval:
+        process.env.TRADE_POLL_FULL_UPDATE_INTERVAL === undefined
+          ? undefined
+          : parseInt(process.env.TRADE_POLL_FULL_UPDATE_INTERVAL as string, 10),
     },
     rabbitmq: {
       host: process.env.RABBITMQ_HOST as string,

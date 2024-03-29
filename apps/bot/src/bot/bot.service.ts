@@ -110,6 +110,9 @@ export class BotService implements OnModuleDestroy {
       dataDirectory: '',
       savePollData: true,
       pollInterval: tradeConfig.pollInterval,
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      pollFullUpdateInterval: tradeConfig.pollFullUpdateInterval,
       pendingCancelTime: tradeConfig.pendingCancelTime,
       cancelTime: tradeConfig.cancelTime,
     });
