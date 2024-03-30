@@ -41,6 +41,7 @@ services:
       - redis:/data
   bot-manager:
     image: ghcr.io/tf2-automatic/bot-manager:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - rabbitmq
@@ -60,6 +61,7 @@ services:
       RABBITMQ_VHOST: ''
   message-relay:
     image: ghcr.io/tf2-automatic/message-relay:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - rabbitmq
@@ -77,6 +79,7 @@ services:
       RABBITMQ_VHOST: ''
   bot1:
     image: ghcr.io/tf2-automatic/bot:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - rabbitmq
