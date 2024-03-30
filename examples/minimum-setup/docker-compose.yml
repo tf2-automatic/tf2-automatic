@@ -23,7 +23,8 @@ services:
     pull_policy: always
     restart: unless-stopped
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
