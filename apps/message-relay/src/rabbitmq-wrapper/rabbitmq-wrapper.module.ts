@@ -16,12 +16,12 @@ import { Config, RabbitMQConfig } from '../common/config/configuration';
         return {
           exchanges: [
             {
-              createExchangeIfNotExists: false,
               name: BOT_EXCHANGE_NAME,
+              type: 'topic',
             },
             {
-              createExchangeIfNotExists: false,
               name: BOT_MANAGER_EXCHANGE_NAME,
+              topic: 'topic',
             },
           ],
           uri: `amqp://${rabbitmqConfig.username}:${rabbitmqConfig.password}@${rabbitmqConfig.host}:${rabbitmqConfig.port}/${rabbitmqConfig.vhost}`,
