@@ -16,8 +16,8 @@ import { Config, RabbitMQConfig } from '../common/config/configuration';
         return {
           exchanges: [
             {
-              createExchangeIfNotExists: false,
               name: BOT_EXCHANGE_NAME,
+              type: 'topic',
             },
             {
               name: BOT_MANAGER_EXCHANGE_NAME,
