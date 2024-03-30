@@ -5,7 +5,7 @@ volumes:
   redis:
 services:
   rabbitmq:
-    image: rabbitmq:3.9.28-management-alpine
+    image: rabbitmq:3.13.0-management-alpine
     expose:
       - '5672'
     ports:
@@ -16,7 +16,7 @@ services:
     volumes:
       - 'rabbitmq:/var/lib/rabbitmq'
   minio:
-    image: minio/minio:RELEASE.2023-02-17T17-52-43Z
+    image: minio/minio:RELEASE.2024-03-26T22-10-45Z
     command: server /data --console-address ":9001"
     expose:
       - '9000'
@@ -33,7 +33,7 @@ services:
     volumes:
       - 'minio:/data'
   redis:
-    image: redis:alpine
+    image: redis:7.2.4-alpine
     command: redis-server --requirepass test --appendonly yes --maxmemory-policy noeviction
     ports:
       - '6379:6379'
