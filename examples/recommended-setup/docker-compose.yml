@@ -53,8 +53,10 @@ services:
     pull_policy: always
     restart: unless-stopped
     depends_on:
-      - rabbitmq
-      - redis
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     expose:
       - '3000'
     ports:
@@ -78,10 +80,10 @@ services:
     pull_policy: always
     restart: unless-stopped
     depends_on:
-      - rabbitmq
-      - redis
-      - bot-manager
-      - bot1
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       REDIS_HOST: 'redis'
       REDIS_PORT: 6379
@@ -101,9 +103,12 @@ services:
     pull_policy: always
     restart: unless-stopped
     depends_on:
-      - rabbitmq
-      - minio
-      - bot-manager
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      bot-manager:
+        condition: service_healthy
     expose:
       - '3000'
     ports:
