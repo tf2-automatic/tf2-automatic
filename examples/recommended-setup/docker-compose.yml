@@ -14,6 +14,11 @@ services:
       RABBITMQ_DEFAULT_PASS: 'test'
     volumes:
       - 'rabbitmq:/var/lib/rabbitmq'
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 5s
+      timeout: 1s
+      retries: 3
   minio:
     image: minio/minio:RELEASE.2024-03-26T22-10-45Z
     command: server /data --console-address ":9001"
@@ -26,8 +31,8 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
-      interval: 30s
-      timeout: 20s
+      interval: 5s
+      timeout: 1s
       retries: 3
     volumes:
       - 'minio:/data'
@@ -38,6 +43,11 @@ services:
       - '6379'
     volumes:
       - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 1s
+      retries: 3
   bot-manager:
     image: ghcr.io/tf2-automatic/bot-manager:latest
     pull_policy: always
@@ -58,6 +68,11 @@ services:
       RABBITMQ_USERNAME: 'test'
       RABBITMQ_PASSWORD: 'test'
       RABBITMQ_VHOST: ''
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-S', 'http://localhost:3000/health']
+      interval: 5s
+      timeout: 1s
+      retries: 3
   message-relay:
     image: ghcr.io/tf2-automatic/message-relay:latest
     pull_policy: always
@@ -76,6 +91,11 @@ services:
       RABBITMQ_USERNAME: 'test'
       RABBITMQ_PASSWORD: 'test'
       RABBITMQ_VHOST: ''
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-S', 'http://localhost:3000/health']
+      interval: 5s
+      timeout: 1s
+      retries: 3
   bot1:
     image: ghcr.io/tf2-automatic/bot:latest
     pull_policy: always
@@ -113,3 +133,8 @@ services:
       # Bot manager settings
       BOT_MANAGER_ENABLED: true
       BOT_MANAGER_URL: 'http://bot-manager:3000'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-S', 'http://localhost:3000/health']
+      interval: 5s
+      timeout: 1s
+      retries: 3

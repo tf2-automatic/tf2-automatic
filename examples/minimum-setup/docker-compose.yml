@@ -13,6 +13,11 @@ services:
       RABBITMQ_DEFAULT_PASS: 'test'
     volumes:
       - 'rabbitmq:/var/lib/rabbitmq'
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 5s
+      timeout: 1s
+      retries: 3
   bot:
     image: ghcr.io/tf2-automatic/bot:latest
     pull_policy: always
