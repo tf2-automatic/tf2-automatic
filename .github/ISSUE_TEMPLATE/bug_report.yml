@@ -53,6 +53,8 @@ body:
         - label: '@tf2-automatic/bot-manager'
         - label: '@tf2-automatic/bot-data'
         - label: '@tf2-automatic/bot-manager-data'
+        - label: '@tf2-automatic/bptf-manager'
+        - label: '@tf2-automatic/bptf-manager-data'
         - label: 'Other (see below)'
   - type: input
     attributes:
