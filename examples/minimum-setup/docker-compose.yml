@@ -16,6 +16,7 @@ services:
       - 'rabbitmq:/var/lib/rabbitmq'
   bot:
     image: ghcr.io/tf2-automatic/bot:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - rabbitmq
