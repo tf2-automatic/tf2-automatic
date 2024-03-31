@@ -19,8 +19,6 @@ import { ManageListingsService } from '../manage-listings.service';
 type CustomJob = Job<JobData, JobResult, JobName>;
 
 @Processor('manage-listings', {
-  // For some reason even though there are jobs in the queue it takes 5 seconds for them to be processed, this is a workaround
-  drainDelay: 0,
   concurrency: 4,
 })
 export class ManageListingsProcessor
