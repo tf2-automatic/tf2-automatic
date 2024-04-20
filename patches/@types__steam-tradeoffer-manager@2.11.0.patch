@@ -1,8 +1,8 @@
 diff --git a/index.d.ts b/index.d.ts
-index 123a403f58fd83c91d8d3637f8d74150053a2744..1f4166b3e39fc4e19f153bda758d64284364bd4a 100644
+index 9434e88a17a7a9315fa030330ba959eb5743f126..8eb48e10bc6aae6d07d87779fe89893e00ad0eba 100644
 --- a/index.d.ts
 +++ b/index.d.ts
-@@ -686,6 +686,8 @@ declare namespace TradeOfferManager {
+@@ -689,6 +689,8 @@ declare namespace TradeOfferManager {
           * @param received An array of TradeOffer objects for offers we received
           */
          offerList: (filter: number, sent: TradeOffer[], received: TradeOffer[]) => void;
