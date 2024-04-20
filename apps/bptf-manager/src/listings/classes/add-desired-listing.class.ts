@@ -1,14 +1,8 @@
 import { DesiredListing } from './desired-listing.class';
-import { AddListingDto } from '@tf2-automatic/bptf-manager-data';
-import SteamID from 'steamid';
 import hash from 'object-hash';
 
 export class AddDesiredListing extends DesiredListing {
   private force: boolean | undefined;
-
-  constructor(steamid: SteamID, listing: AddListingDto, updatedAt: number) {
-    super(steamid, listing, updatedAt);
-  }
 
   getForce(): boolean | undefined {
     return this.force;

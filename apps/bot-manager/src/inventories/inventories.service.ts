@@ -248,11 +248,11 @@ export class InventoriesService {
   ): Promise<void> {
     switch (event.type) {
       case TRADE_CHANGED_EVENT:
-        return this.handleOfferChanged(event as TradeChangedEvent);
+        return this.handleOfferChanged(event);
       case TF2_LOST_EVENT:
-        return this.handleItemLost(event as TF2LostEvent);
+        return this.handleItemLost(event);
       case TF2_GAINED_EVENT:
-        return this.handleItemGained(event as TF2GainedEvent);
+        return this.handleItemGained(event);
       default:
         // @ts-expect-error Gives compile-time error if all cases are not handled.
         throw new Error('Unknown type: ' + event.type);

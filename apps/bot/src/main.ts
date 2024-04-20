@@ -5,8 +5,7 @@ import { AppModule } from './app.module';
 import { Config } from './common/config/configuration';
 import { BotService } from './bot/bot.service';
 import { ShutdownService } from './shutdown/shutdown.service';
-import { DocumentBuilder } from '@nestjs/swagger';
-import { SwaggerModule } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {

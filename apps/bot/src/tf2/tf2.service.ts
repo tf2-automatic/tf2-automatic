@@ -2,11 +2,11 @@ import {
   BadRequestException,
   Injectable,
   OnApplicationShutdown,
+  Logger,
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
 import TF2Language from 'tf2/language';
-import { Logger } from '@nestjs/common';
 import {
   CraftResult,
   SortBackpackTypes,

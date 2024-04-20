@@ -12,7 +12,7 @@ export default function hashListing(
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const item: any = Object.assign({}, listing.item);
+  const item: any = { ...listing.item };
   delete item.quantity;
 
   return hash(item);

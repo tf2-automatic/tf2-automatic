@@ -1,6 +1,9 @@
-import { AddListingDto, ListingError } from '@tf2-automatic/bptf-manager-data';
+import {
+  AddListingDto,
+  ListingError,
+  DesiredListing as DesiredListingInterface,
+} from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
-import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import hashListing from '../utils/desired-listing-hash';
 
 export class DesiredListing {
@@ -32,7 +35,7 @@ export class DesiredListing {
     return this.id;
   }
 
-  setID(id: string | null): DesiredListing {
+  setID(id: string | null): this {
     this.id = id;
 
     return this;
@@ -46,7 +49,7 @@ export class DesiredListing {
     return this.priority;
   }
 
-  setPriority(priority: number): DesiredListing {
+  setPriority(priority: number): this {
     this.priority = priority;
 
     return this;
@@ -56,7 +59,7 @@ export class DesiredListing {
     return this.error;
   }
 
-  setError(error: ListingError | undefined): DesiredListing {
+  setError(error: ListingError | undefined): this {
     this.error = error;
 
     return this;
@@ -66,7 +69,7 @@ export class DesiredListing {
     return this.lastAttemptedAt;
   }
 
-  setLastAttemptedAt(lastAttemptedAt: number): DesiredListing {
+  setLastAttemptedAt(lastAttemptedAt: number): this {
     this.lastAttemptedAt = lastAttemptedAt;
 
     return this;
@@ -76,7 +79,7 @@ export class DesiredListing {
     return this.updatedAt;
   }
 
-  setUpdatedAt(updatedAt: number): DesiredListing {
+  setUpdatedAt(updatedAt: number): this {
     this.updatedAt = updatedAt;
 
     return this;

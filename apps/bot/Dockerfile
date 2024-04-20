@@ -13,7 +13,7 @@ COPY --from=source /app/package.json /app/pnpm-lock.yaml ./
 COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
-FROM node:18-alpine as runner
+FROM node:18-alpine AS runner
 ENV NODE_ENV production
 WORKDIR /app
 COPY --from=source --chown=nestjs:nodejs /app ./

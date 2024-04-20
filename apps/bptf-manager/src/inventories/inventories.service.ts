@@ -12,8 +12,8 @@ import {
   EnqueueJobResult,
   InventoriesJobData,
   InventoriesJobResult,
+  EnqueueJobData,
 } from './interfaces/queue.interface';
-import { EnqueueJobData } from './interfaces/queue.interface';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';

@@ -4,6 +4,7 @@ import {
   ListingDto,
   ListingError,
   Token,
+  ListingLimits,
 } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
 import {
@@ -26,7 +27,6 @@ import {
 } from './interfaces/events.interface';
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
-import { ListingLimits } from '@tf2-automatic/bptf-manager-data';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import Redlock from 'redlock';
@@ -462,7 +462,7 @@ export class CurrentListingsService {
       const overwritten: Listing[] = [];
 
       for (const id in current.keys()) {
-        overwritten.push(Object.assign({}, current[id], updated.get(id)));
+        overwritten.push({ ...current[id], ...updated.get(id) });
       }
 
       if (overwritten.length > 0) {
