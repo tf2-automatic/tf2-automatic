@@ -1,7 +1,9 @@
-import { DesiredListingDto } from '@tf2-automatic/bptf-manager-data';
+import {
+  DesiredListingDto,
+  DesiredListing as DesiredListingInterface,
+} from '@tf2-automatic/bptf-manager-data';
 import { DesiredListing } from './desired-listing.class';
 import { AddDesiredListing } from './add-desired-listing.class';
-import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 
 export class ListingFactory {

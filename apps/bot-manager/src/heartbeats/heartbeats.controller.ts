@@ -1,10 +1,12 @@
-import { Controller, ValidationPipe } from '@nestjs/common';
-
-import { Post } from '@nestjs/common';
-import { Param } from '@nestjs/common';
-import { HttpCode } from '@nestjs/common';
-import { Delete } from '@nestjs/common';
-import { Body } from '@nestjs/common';
+import {
+  Controller,
+  ValidationPipe,
+  Post,
+  Param,
+  HttpCode,
+  Delete,
+  Body,
+} from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   HEARTBEAT_BASE_URL,

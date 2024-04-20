@@ -188,7 +188,7 @@ export class TradesProcessor extends WorkerHost {
 
       if (offer) {
         // Offer was already created
-        return offer.id!;
+        return offer.id;
       }
 
       this.logger.debug(`Did not find a matching offer`);
@@ -200,7 +200,7 @@ export class TradesProcessor extends WorkerHost {
       this.logger.debug(`Creating trade...`);
 
       const offer = await this.tradesService.createTrade(bot, job.data.raw);
-      return offer.id!;
+      return offer.id;
     } catch (err) {
       await this.handleSendTradeError(job, err, now);
       throw err;
@@ -231,7 +231,7 @@ export class TradesProcessor extends WorkerHost {
           itemsToReceive: job.data.raw.itemsToReceive,
         },
       );
-      return offer.id!;
+      return offer.id;
     } catch (err) {
       await this.handleSendTradeError(job, err, now);
       throw err;
@@ -274,14 +274,13 @@ export class TradesProcessor extends WorkerHost {
     const itemsInTrade = trade.itemsToGive.concat(trade.itemsToReceive);
 
     const filtered = trades.filter((activeTrade) => {
-      if (activeTrade.createdAt < time) {
-        // Trade was created before specified time
-        return false;
-      } else if (trade.partner !== activeTrade.partner) {
-        // Trade partner is different
-        return false;
-      } else if (trade.message !== activeTrade.message) {
-        // Trade message is different
+      if (
+        activeTrade.createdAt < time ||
+        trade.partner !== activeTrade.partner ||
+        trade.message !== activeTrade.message
+      ) {
+        // Trade was created before specified time, trade partner is different,
+        // or trade message is different
         return false;
       }
 

@@ -242,7 +242,7 @@ export class TradesService {
     const steamid = new SteamID(event.metadata.steamid64!);
 
     await this.exchangeDetailsQueue.add(
-      event.data.offer.id!,
+      event.data.offer.id,
       {
         offer: event.data.offer,
         bot: steamid.getSteamID64(),

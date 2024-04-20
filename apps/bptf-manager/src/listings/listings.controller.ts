@@ -12,6 +12,7 @@ import {
   DesiredListingDto,
   DesiredListingModel,
   RemoveListingDto,
+  ListingLimitsModel,
 } from '@tf2-automatic/bptf-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
@@ -19,7 +20,6 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiParamSteamID } from '@tf2-automatic/swagger';
 import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
-import { ListingLimitsModel } from '@tf2-automatic/bptf-manager-data';
 
 @ApiTags('Listings')
 @Controller('listings')

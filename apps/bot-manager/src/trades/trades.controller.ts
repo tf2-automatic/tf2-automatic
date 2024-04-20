@@ -5,8 +5,8 @@ import {
   Get,
   Param,
   ValidationPipe,
+  Post,
 } from '@nestjs/common';
-import { Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   QueueTradeResponse,

@@ -691,7 +691,7 @@ export class BotService implements OnModuleDestroy {
       const refreshToken = await this.getRefreshToken();
 
       try {
-        await this.login(refreshToken || undefined);
+        await this.login(refreshToken ?? undefined);
         break;
       } catch (err) {
         if (err.message === 'Too many Steam Guard attempts') {

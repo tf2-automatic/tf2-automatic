@@ -1,6 +1,4 @@
-import { Controller } from '@nestjs/common';
-import { Param } from '@nestjs/common';
-import { Get } from '@nestjs/common';
+import { Controller, Param, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   BOTS_PATH,

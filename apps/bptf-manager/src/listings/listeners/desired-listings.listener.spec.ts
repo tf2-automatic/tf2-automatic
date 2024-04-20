@@ -4,10 +4,13 @@ import { DesiredListingsListener } from './desired-listings.listener';
 import { getRedisToken } from '@songkeys/nestjs-redis';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DesiredListingsService } from '../desired-listings.service';
-import { Listing, ListingError } from '@tf2-automatic/bptf-manager-data';
+import {
+  Listing,
+  ListingError,
+  DesiredListing as DesiredListingInterface,
+} from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { DesiredListing as DesiredListingClass } from '../classes/desired-listing.class';
-import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-manager-data';
 
 jest.mock('eventemitter2');
 jest.mock('redlock', () => jest.fn().mockImplementation(() => mock.redlock));

@@ -100,16 +100,7 @@ export class ProfileService {
       this.configService.getOrThrow<SteamAccountConfig>('steam').username
     }.txt`;
 
-    const customGame = await this.storageService
-      .write(customGamePath, dto.name)
-      .catch(() => {
-        return null;
-      });
-
-    if (!customGame) {
-      // Error writing the custom game file, reject
-      return Promise.reject();
-    }
+    await this.storageService.write(customGamePath, dto.name);
 
     this.botService.setCustomGame(dto.name === '' ? null : dto.name);
   }
@@ -119,16 +110,7 @@ export class ProfileService {
       this.configService.getOrThrow<SteamAccountConfig>('steam').username
     }.txt`;
 
-    const customGame = await this.storageService
-      .write(customGamePath, '')
-      .catch(() => {
-        return null;
-      });
-
-    if (!customGame) {
-      // Error writing the custom game file, reject
-      return Promise.reject();
-    }
+    await this.storageService.write(customGamePath, '');
 
     this.botService.setCustomGame(null);
   }

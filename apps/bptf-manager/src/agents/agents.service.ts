@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { CreateAgentDto, Token } from '@tf2-automatic/bptf-manager-data';
+import { CreateAgentDto, Token, Agent } from '@tf2-automatic/bptf-manager-data';
 import { AgentResponse } from './interfaces/agent-response.interface';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
@@ -15,7 +15,6 @@ import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getJobs, getRepeatableJob } from '../common/utils';
-import { Agent } from '@tf2-automatic/bptf-manager-data';
 
 const KEY = 'bptf-manager:data:agents';
 
