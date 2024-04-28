@@ -81,11 +81,11 @@ export default (): Config => {
           : parseInt(process.env.TRADE_PENDING_CANCEL_TIME as string, 10),
       pollInterval:
         process.env.TRADE_POLL_INTERVAL === undefined
-          ? undefined
+          ? 30 * 1000 // 30 seconds
           : parseInt(process.env.TRADE_POLL_INTERVAL as string, 10),
       pollFullUpdateInterval:
         process.env.TRADE_POLL_FULL_UPDATE_INTERVAL === undefined
-          ? undefined
+          ? 2 * 60 * 1000 // 2 hours
           : parseInt(process.env.TRADE_POLL_FULL_UPDATE_INTERVAL as string, 10),
     },
     rabbitmq: {
