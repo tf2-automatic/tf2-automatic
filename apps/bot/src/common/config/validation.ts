@@ -36,6 +36,7 @@ const validation = Joi.object({
   TRADE_CANCEL_TIME: Joi.number().positive().optional(),
   TRADE_PENDING_CANCEL_TIME: Joi.number().positive().optional(),
   TRADE_POLL_INTERVAL: Joi.number().positive().optional(),
+  TRADE_POLL_FULL_UPDATE_INTERVAL: Joi.number().positive().optional(),
   RABBITMQ_HOST: Joi.string().required(),
   RABBITMQ_PORT: Joi.number().required(),
   RABBITMQ_USERNAME: Joi.string().required(),
