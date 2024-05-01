@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@types/steam-tradeoffer-manager@2.11.0':
-    hash: xzhsqspsxqkr37eyoc3qmsvrpa
+    hash: t76aeppfyg5heuh4g7izv2bfji
     path: patches/@types__steam-tradeoffer-manager@2.11.0.patch
   '@types/steamcommunity@3.43.7':
     hash: bqxwdkcogngdiksr7xhiy2trvi
@@ -239,7 +239,7 @@ importers:
         version: 2.1.2
       '@types/steam-tradeoffer-manager':
         specifier: 2.11.0
-        version: 2.11.0(patch_hash=xzhsqspsxqkr37eyoc3qmsvrpa)
+        version: 2.11.0(patch_hash=t76aeppfyg5heuh4g7izv2bfji)
       '@types/steam-user':
         specifier: ^5.0.0
         version: 5.0.0
@@ -9580,7 +9580,7 @@ snapshots:
     dependencies:
       '@types/node': 20.12.7
 
-  '@types/steam-tradeoffer-manager@2.11.0(patch_hash=xzhsqspsxqkr37eyoc3qmsvrpa)':
+  '@types/steam-tradeoffer-manager@2.11.0(patch_hash=t76aeppfyg5heuh4g7izv2bfji)':
     dependencies:
       '@types/file-manager': 2.0.3
       '@types/steam': 0.0.32

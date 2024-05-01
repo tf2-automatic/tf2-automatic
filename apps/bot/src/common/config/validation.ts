@@ -28,6 +28,7 @@ const validation = Joi.object({
   STEAM_PASSWORD: Joi.string().required(),
   STEAM_SHARED_SECRET: Joi.string().required(),
   STEAM_IDENTITY_SECRET: Joi.string().required(),
+  STEAM_API_KEY: Joi.string().optional(),
   STEAM_PROXY_URL: Joi.string()
     .uri({
       scheme: ['http'],

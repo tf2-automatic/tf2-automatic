@@ -468,6 +468,8 @@ export class BotService implements OnModuleDestroy {
 
     this.client.setPersona(SteamUser.EPersonaState.Online);
 
+    this.manager.doPoll();
+
     register.setDefaultLabels({
       steamid64: this.getSteamID64(),
     });
@@ -500,7 +502,23 @@ export class BotService implements OnModuleDestroy {
     }
 
     const cookies = await this.waitForWebSession();
+
+    const apiKey =
+      this.configService.getOrThrow<SteamAccountConfig>('steam').apiKey;
+    if (apiKey) {
+      // We assume the API key is valid
+      this.manager.apiKey = apiKey;
+    }
+
     await this.setCookies(cookies);
+
+    if (this.manager.apiKey === '00000000000000000000000000000000') {
+      // API key is invalid
+      await this.setDisabled(
+        'Attempted to get API key from Steam but it is invalid. Please set it manually.',
+      );
+      throw new Error('API key is invalid');
+    }
   }
 
   private setCookies(cookies: string[]): Promise<void> {

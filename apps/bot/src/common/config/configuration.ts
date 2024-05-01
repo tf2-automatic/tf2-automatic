@@ -14,13 +14,14 @@ export interface SteamAccountConfig {
   sharedSecret: string;
   identitySecret: string;
   proxyUrl?: string;
+  apiKey?: string;
 }
 
 export interface SteamTradeConfig {
   cancelTime?: number;
   pendingCancelTime?: number;
-  pollInterval?: number;
-  pollFullUpdateInterval?: number;
+  pollInterval: number;
+  pollFullUpdateInterval: number;
 }
 
 export interface RabbitMQConfig {
@@ -69,6 +70,7 @@ export default (): Config => {
       sharedSecret: process.env.STEAM_SHARED_SECRET as string,
       identitySecret: process.env.STEAM_IDENTITY_SECRET as string,
       proxyUrl: process.env.STEAM_PROXY_URL as string | undefined,
+      apiKey: process.env.STEAM_API_KEY as string | undefined,
     },
     trade: {
       cancelTime:

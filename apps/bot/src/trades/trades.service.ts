@@ -115,6 +115,16 @@ export class TradesService {
         }
       });
     };
+
+    const origDoPoll = this.manager.doPoll.bind(this.manager);
+    this.manager.doPoll = (...args) => {
+      if (this.botService.isRunning() === false) {
+        // Bot is not running, don't poll
+        return;
+      }
+
+      return origDoPoll(...args);
+    };
   }
 
   private handleOffers(sent: ActualTradeOffer[], received: ActualTradeOffer[]) {
