@@ -13,6 +13,7 @@ The bot is configured using environment variables. Below is a list of the enviro
 | STEAM_PASSWORD | Password of the Steam account | Yes |  |
 | STEAM_SHARED_SECRET | Shared secret of the Steam account | Yes |  |
 | STEAM_IDENTITY_SECRET | Identity secret of the Steam account | Yes |  |
+| STEAM_API_KEY | Manually set the Steam API key of the account. See issue [#346](https://github.com/tf2-automatic/tf2-automatic/issues/345) | No |  |
 | STEAM_PROXY_URL | Proxy used for all communications with Steam | No |  |
 | TRADE_CANCEL_TIME | Milliseconds a sent offer may be active for before it is canceled. Disabled if no value | No |  |
 | TRADE_PENDING_CANCEL_TIME | Milliseconds a sent offer may be pending for before it is canceled. Disabled if no value | No |  |
