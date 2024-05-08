@@ -198,10 +198,14 @@ export class BotService implements OnModuleDestroy {
     };
   }
 
-  isReady(): Promise<boolean> {
+  isReady(): Promise<boolean | string> {
     return new Promise((resolve, reject) => {
-      if (!this.running || this.client.steamID === null) {
-        return false;
+      if (!this.running) {
+        return resolve('Bot is not running');
+      }
+
+      if (this.client.steamID === null) {
+        return resolve('Bot is not connected to Steam');
       }
 
       this.community.loggedIn((err, loggedIn) => {
@@ -209,7 +213,11 @@ export class BotService implements OnModuleDestroy {
           return reject(err);
         }
 
-        resolve(loggedIn);
+        if (!loggedIn) {
+          return resolve('Bot is not logged in to steamcommunity.com');
+        }
+
+        resolve(true);
       });
     });
   }
