@@ -13,15 +13,14 @@ export class BotHealthIndicator extends HealthIndicator {
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const isReady = await this.botService.isReady();
-
-    if (isReady) {
-      return Promise.resolve(this.getStatus(key, true));
-    } else {
-      throw new HealthCheckError(
-        'Bot check failed',
-        this.getStatus(key, false, { message: 'Not ready' }),
-      );
+    const readyOrReason = await this.botService.isReady();
+    if (readyOrReason === true) {
+      return this.getStatus(key, true);
     }
+
+    throw new HealthCheckError(
+      'Bot check failed',
+      this.getStatus(key, false, { message: readyOrReason }),
+    );
   }
 }
