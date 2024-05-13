@@ -221,6 +221,8 @@ export class BotService implements OnModuleDestroy {
         }
 
         if (!loggedIn) {
+          // Web session expired, relog
+          this.webLogOn();
           return resolve('Bot is not logged in to steamcommunity.com');
         }
 
