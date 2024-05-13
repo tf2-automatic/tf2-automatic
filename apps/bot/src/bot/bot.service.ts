@@ -189,6 +189,13 @@ export class BotService implements OnModuleDestroy {
         this.logger.warn('Failed to save refresh token: ' + err.message);
       });
     });
+
+    setInterval(
+      () => {
+        this.debugCookies();
+      },
+      10 * 60 * 1000,
+    ).unref();
   }
 
   getBot(): Bot {
@@ -214,6 +221,8 @@ export class BotService implements OnModuleDestroy {
         }
 
         if (!loggedIn) {
+          // Web session expired, relog
+          this.webLogOn();
           return resolve('Bot is not logged in to steamcommunity.com');
         }
 
@@ -541,7 +550,58 @@ export class BotService implements OnModuleDestroy {
 
         resolve();
       });
+      this.debugCookies();
     });
+  }
+
+  private getCookies(): string[] {
+    // @ts-expect-error _jar is private
+    const cookies: string[] = this.community._jar
+      .getCookieString('https://steamcommunity.com')
+      .split(';');
+
+    return cookies.map((cookie) => cookie.trim());
+  }
+
+  private getSteamLoginToken(): string | null {
+    const cookies = this.getCookies();
+    const steamLoginSecure = cookies.find((cookie) =>
+      cookie.startsWith('steamLoginSecure'),
+    );
+
+    if (!steamLoginSecure) {
+      return null;
+    }
+
+    const value = decodeURIComponent(steamLoginSecure.split('=')[1]);
+    const parts = value.split('||');
+    return parts[1];
+  }
+
+  private getDecodedSteamLogin(): jwt.JwtPayload | null {
+    const token = this.getSteamLoginToken();
+    if (!token) {
+      return null;
+    }
+
+    const decoded = jwt.decode(token);
+    if (typeof decoded === 'string' || decoded === null) {
+      return null;
+    }
+
+    return decoded;
+  }
+
+  private debugCookies(): void {
+    const decoded = this.getDecodedSteamLogin();
+    if (!decoded) {
+      this.logger.debug('steamLoginSecure token not found / invalid');
+      return;
+    }
+
+    this.logger.debug(
+      'steamLoginSecure token: #' + decoded.jti + ' expires at ' + decoded.exp,
+    );
   }
 
   private getSteamID(): SteamID {
