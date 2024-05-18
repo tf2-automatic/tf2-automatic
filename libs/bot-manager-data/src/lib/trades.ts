@@ -25,6 +25,7 @@ export const QueueTradeTypes = [
   'DELETE',
   'ACCEPT',
   'CONFIRM',
+  'REFRESH',
 ] as const;
 export type QueueTradeType = (typeof QueueTradeTypes)[number];
 
@@ -33,7 +34,8 @@ export type QueueTradeJob =
   | QueueTradeCounter
   | QueueTradeDelete
   | QueueTradeAccept
-  | QueueTradeConfirm;
+  | QueueTradeConfirm
+  | QueueTradeRefresh;
 
 export type QueueTradeJobData = (QueueTradeCreate &
   QueueTradeCounter &
@@ -46,6 +48,7 @@ export type QueueTradeCounter = QueueTrade<'COUNTER', ManagerCounterTrade>;
 export type QueueTradeDelete = QueueTrade<'DELETE', string>;
 export type QueueTradeAccept = QueueTrade<'ACCEPT', string>;
 export type QueueTradeConfirm = QueueTrade<'CONFIRM', string>;
+export type QueueTradeRefresh = QueueTrade<'REFRESH', string>;
 
 export interface QueueTrade<
   Type extends QueueTradeType = QueueTradeType,

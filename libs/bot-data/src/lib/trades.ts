@@ -58,6 +58,7 @@ export interface GetTradesResponse {
 }
 
 export type GetTradeResponse = TradeOffer;
+export type RefreshTradeResponse = TradeOffer;
 
 export interface Asset {
   assetid: string;
@@ -95,6 +96,7 @@ export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
 export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
 export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
 export const TRADE_COUNTER_PATH = `${TRADE_PATH}/counter`;
+export const TRADE_REFRESH_PATH = `${TRADE_PATH}/refresh`;
 
 export const TRADES_FULL_PATH = `${TRADES_BASE_URL}`;
 export const TRADE_FULL_PATH = `${TRADES_BASE_URL}${TRADE_PATH}`;

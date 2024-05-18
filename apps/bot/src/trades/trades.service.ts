@@ -402,8 +402,8 @@ export class TradesService {
     });
   }
 
-  async getTrade(id: string): Promise<TradeOffer> {
-    const offer = await this._getTrade(id).catch((err) => {
+  private getTradeAndLogError(id: string): Promise<ActualTradeOffer> {
+    return this._getTrade(id).catch((err) => {
       this.logger.error(
         `Error getting trade offer: ${err.message}${
           err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
@@ -411,6 +411,21 @@ export class TradesService {
       );
       throw err;
     });
+  }
+
+  async getTrade(id: string): Promise<TradeOffer> {
+    const offer = await this.getTradeAndLogError(id);
+    return this.mapOffer(offer);
+  }
+
+  /**
+   * Gets a trade offer and publishes it even if it was already published
+   */
+  async refreshTrade(id: string): Promise<TradeOffer> {
+    const offer = await this.getTradeAndLogError(id);
+
+    // Publish the offer and say the old state was the last published state
+    await this.publishOffer(offer, offer.data('published'));
 
     return this.mapOffer(offer);
   }

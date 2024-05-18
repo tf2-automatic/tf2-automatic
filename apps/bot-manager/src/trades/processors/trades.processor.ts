@@ -160,10 +160,22 @@ export class TradesProcessor extends WorkerHost {
         return this.tradesService.acceptTrade(bot, job.data.raw);
       case 'CONFIRM':
         return this.tradesService.confirmTrade(bot, job.data.raw);
+      case 'REFRESH':
+        return this.refreshTrade(bot, job.data.raw);
       default:
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         throw new UnrecoverableError(`Unknown job type ${job.data.type}`);
+    }
+  }
+
+  private async refreshTrade(bot: Bot, id: string): Promise<void> {
+    const offer = await this.tradesService.refreshTrade(bot, id);
+
+    // Throws error if trade is glitched. This will be caught by the error handler
+    // and the processor will then retry the job
+    if (offer.isGlitched) {
+      throw new Error('Trade offer is glitched');
     }
   }
 

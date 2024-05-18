@@ -176,6 +176,7 @@ export class TradeQueueDataValidator implements ValidatorConstraintInterface {
       case 'DELETE':
       case 'ACCEPT':
       case 'CONFIRM':
+      case 'REFRESH':
         return typeof object === 'string';
       default:
         return false;
@@ -197,6 +198,7 @@ export class TradeQueueDataValidator implements ValidatorConstraintInterface {
       case 'DELETE':
       case 'ACCEPT':
       case 'CONFIRM':
+      case 'REFRESH':
         return 'data must be a string';
       default:
         return 'data is invalid';

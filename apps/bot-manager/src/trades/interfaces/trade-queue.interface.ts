@@ -10,7 +10,8 @@ export type TradeQueue =
   | CounterTradeJob
   | DeleteTradeJob
   | AcceptTradeJob
-  | ConfirmTradeJob;
+  | ConfirmTradeJob
+  | RefreshTradeJob;
 
 export type CreateTradeJob = BaseTradeQueue<
   'CREATE',
@@ -27,6 +28,8 @@ export type DeleteTradeJob = BaseTradeQueue<'DELETE', string>;
 export type AcceptTradeJob = BaseTradeQueue<'ACCEPT', string>;
 
 export type ConfirmTradeJob = BaseTradeQueue<'CONFIRM', string>;
+
+export type RefreshTradeJob = BaseTradeQueue<'REFRESH', string>;
 
 interface BaseTradeQueue<
   Event extends QueueTradeType,
