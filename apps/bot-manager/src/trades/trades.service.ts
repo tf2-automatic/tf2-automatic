@@ -23,6 +23,8 @@ import {
   GetTradeResponse,
   TRADE_COUNTER_PATH,
   CounterTrade,
+  TRADE_REFRESH_PATH,
+  TradeOffer,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -90,6 +92,7 @@ export class TradesService {
       case 'ACCEPT':
       case 'CONFIRM':
       case 'DELETE':
+      case 'REFRESH':
         offerId = dto.data;
         break;
       case 'COUNTER':
@@ -160,6 +163,20 @@ export class TradesService {
       );
 
     await firstValueFrom(this.httpService.post(url));
+  }
+
+  async refreshTrade(bot: Bot, tradeId: string): Promise<TradeOffer> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_REFRESH_PATH}`.replace(
+        ':id',
+        tradeId,
+      );
+
+    const response = await firstValueFrom(
+      this.httpService.post<GetTradeResponse>(url),
+    );
+
+    return response.data;
   }
 
   async createTrade(
