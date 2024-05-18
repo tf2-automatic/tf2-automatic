@@ -33,6 +33,8 @@ import {
   TRADE_PATH,
   TRADE_RECEIVED_ITEMS_PATH,
   TRADE_COUNTER_PATH,
+  TRADE_REFRESH_PATH,
+  RefreshTradeResponse,
 } from '@tf2-automatic/bot-data';
 import {
   ItemModel,
@@ -86,6 +88,23 @@ export class TradesController {
   })
   getTrade(@Param('id') id: string): Promise<GetTradeResponse> {
     return this.tradesService.getTrade(id);
+  }
+
+  @Post(TRADE_REFRESH_PATH)
+  @ApiOperation({
+    summary: 'Refresh trade',
+    description:
+      'Gets a trade by id and publishes it, even if the state is the same',
+  })
+  @ApiParamOfferID()
+  @ApiOkResponse({
+    type: TradeModel,
+  })
+  @ApiNotFoundResponse({
+    description: 'Trade offer not found',
+  })
+  refreshTrade(@Param('id') id: string): Promise<RefreshTradeResponse> {
+    return this.tradesService.refreshTrade(id);
   }
 
   @Post(TRADES_PATH)
