@@ -7,15 +7,15 @@ import {
   IsNumber,
   IsObject,
   IsOptional,
-  IsPositive,
   IsString,
+  Min,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
 export class ListingCurrenciesDto {
   @IsInt()
-  @IsPositive()
+  @Min(0)
   @ValidateIf(
     (o) =>
       o.keys !== undefined || (o.keys === undefined && o.metal === undefined),
@@ -23,7 +23,7 @@ export class ListingCurrenciesDto {
   keys?: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @IsRefined()
   @ValidateIf(
     (o) =>
