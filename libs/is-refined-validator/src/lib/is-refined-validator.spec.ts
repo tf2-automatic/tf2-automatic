@@ -31,9 +31,18 @@ describe('IsRefinedValidator', () => {
     expect(validationErrors).toHaveLength(0);
   });
 
-  it('should fail with 10.5', async () => {
+  it('should work with 10.5', async () => {
     const testClass = new TestClass();
     testClass.metal = 10.5;
+
+    const validationErrors = await validator.validate(testClass);
+
+    expect(validationErrors).toHaveLength(0);
+  });
+
+  it('should fail with 10.49', async () => {
+    const testClass = new TestClass();
+    testClass.metal = 10.49;
 
     const validationErrors = await validator.validate(testClass);
 

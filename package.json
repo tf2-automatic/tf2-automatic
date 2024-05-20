@@ -103,7 +103,7 @@
     "steamcommunity": "^3.48.3",
     "steamid": "^2.0.0",
     "tf2": "^4.0.0",
-    "tf2-currency": "^1.1.2",
+    "tf2-currencies": "^1.2.4",
     "ts-safe-redis-leader": "^0.0.5",
     "tslib": "^2.6.2",
     "uuid": "^9.0.1",
@@ -121,7 +121,8 @@
   "pnpm": {
     "patchedDependencies": {
       "@types/steam-tradeoffer-manager@2.11.0": "patches/@types__steam-tradeoffer-manager@2.11.0.patch",
-      "@types/steamcommunity@3.43.7": "patches/@types__steamcommunity@3.43.7.patch"
+      "@types/steamcommunity@3.43.7": "patches/@types__steamcommunity@3.43.7.patch",
+      "tf2-currencies@1.2.4": "patches/tf2-currencies@1.2.4.patch"
     }
   }
 }
