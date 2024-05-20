@@ -1,5 +1,5 @@
 import { buildMessage, ValidateBy, ValidationOptions } from 'class-validator';
-import { toRefined, toScrap } from 'tf2-currency';
+import { toRefined, toScrap } from 'tf2-currencies';
 
 export function isRefined(value: unknown) {
   if (typeof value !== 'number') {

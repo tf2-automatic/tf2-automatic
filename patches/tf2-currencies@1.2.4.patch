@@ -1,0 +1,22 @@
+diff --git a/index.d.ts b/index.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..663bd5fd2b9c77141315bcff8994cb8e683cf1ad
+--- /dev/null
++++ b/index.d.ts
+@@ -0,0 +1,4 @@
++declare module 'tf2-currencies' {
++    export function toRefined(scrap: number): number;
++    export function toScrap(refined: number): number;
++}
+diff --git a/package.json b/package.json
+index fc19873bdfb14380b6278103bc24f9c552a974bc..e816440ea48360295d880a28cce434905cf84c43 100644
+--- a/package.json
++++ b/package.json
+@@ -3,6 +3,7 @@
+     "version": "1.2.4",
+     "description": "Tool for handling Team Fortress 2 currencies",
+     "main": "index.js",
++    "types": "index.d.ts",
+     "engines": {
+         "node": ">=6.0.0"
+     },

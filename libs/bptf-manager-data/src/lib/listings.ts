@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsObject,
   IsOptional,
+  IsPositive,
   IsString,
   ValidateIf,
   ValidateNested,
@@ -14,6 +15,7 @@ import {
 
 export class ListingCurrenciesDto {
   @IsInt()
+  @IsPositive()
   @ValidateIf(
     (o) =>
       o.keys !== undefined || (o.keys === undefined && o.metal === undefined),
@@ -21,6 +23,7 @@ export class ListingCurrenciesDto {
   keys?: number;
 
   @IsNumber()
+  @IsPositive()
   @IsRefined()
   @ValidateIf(
     (o) =>
