@@ -24,6 +24,7 @@ import {
   Bot,
   SteamLimitationsEvent,
   STEAM_LIMITATIONS_EVENT,
+  BotWebSession,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
 import { ShutdownService } from '../shutdown/shutdown.service';
@@ -588,6 +589,12 @@ export class BotService implements OnModuleDestroy {
       .split(';');
 
     return cookies.map((cookie) => cookie.trim());
+  }
+
+  getWebSession(): BotWebSession {
+    return {
+      cookies: this.getCookies(),
+    };
   }
 
   private getSteamLoginToken(): string | null {

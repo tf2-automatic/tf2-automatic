@@ -1,6 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Bot, BOT_BASE_URL, BOT_PATH } from '@tf2-automatic/bot-data';
+import {
+  Bot,
+  BOT_BASE_URL,
+  BOT_WEBSESSION_PATH,
+  BOT_PATH,
+} from '@tf2-automatic/bot-data';
 import { BotService } from './bot.service';
 
 @ApiTags('Bot')
@@ -15,5 +20,14 @@ export class BotController {
   })
   async getBot(): Promise<Bot> {
     return this.botService.getBot();
+  }
+
+  @Get(BOT_WEBSESSION_PATH)
+  @ApiOperation({
+    summary: 'Get bot web session',
+    description: "Get the bot's web session which contains the cookies.",
+  })
+  async getWebSession(): Promise<any> {
+    return this.botService.getWebSession();
   }
 }
