@@ -22,6 +22,8 @@ import {
   STEAM_CONNECTED_EVENT,
   STEAM_DISCONNECTED_EVENT,
   Bot,
+  SteamLimitationsEvent,
+  STEAM_LIMITATIONS_EVENT,
   BotWebSession,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
@@ -60,6 +62,7 @@ export class BotService implements OnModuleDestroy {
   private _reconnectPromise: Promise<void> | null = null;
   private lastWebLogin: Date | null = null;
   private running = false;
+  private loggedAccountLimitations = false;
 
   private histogramEnds: Map<string, HistogramEndCallback> = new Map();
 
@@ -197,6 +200,30 @@ export class BotService implements OnModuleDestroy {
       },
       10 * 60 * 1000,
     ).unref();
+
+    this.client.on(
+      'accountLimitations',
+      (limited, communityBanned, locked, canInviteFriends) => {
+        if (this.loggedAccountLimitations) {
+          this.logger.warn(
+            `Account limitations changed: limited=${limited}, communityBanned=${communityBanned}, locked=${locked}, canInviteFriends=${canInviteFriends}`,
+          );
+        }
+
+        this.loggedAccountLimitations = true;
+
+        this.eventsService
+          .publish(STEAM_LIMITATIONS_EVENT, {
+            limited,
+            communityBanned,
+            locked,
+            canInviteFriends,
+          } satisfies SteamLimitationsEvent['data'])
+          .catch(() => {
+            // Ignore error
+          });
+      },
+    );
   }
 
   getBot(): Bot {
