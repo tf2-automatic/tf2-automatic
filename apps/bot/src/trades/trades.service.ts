@@ -456,8 +456,8 @@ export class TradesService {
     }
 
     // Remove all items from the offer
-    counter.removeMyItems(counter.itemsToGive);
-    counter.removeTheirItems(counter.itemsToReceive);
+    counter.itemsToGive = [];
+    counter.itemsToReceive = [];
 
     // Add the new items to the offer
     counter.addMyItems(dto.itemsToGive as CEconItem[]);
