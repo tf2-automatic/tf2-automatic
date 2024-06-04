@@ -6,6 +6,9 @@ export const TOKENS_BASE_URL = '/tokens';
 export const TOKENS_PATH = '/';
 export const TOKEN_PATH = '/:steamid';
 
+export const TOKENS_FULL_PATH = TOKENS_BASE_URL + TOKENS_PATH;
+export const TOKEN_FULL_PATH = TOKENS_BASE_URL + TOKEN_PATH;
+
 export interface Token {
   steamid64: string;
   value: string;
