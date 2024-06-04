@@ -1,4 +1,10 @@
 {
   "name": "@tf2-automatic/bot-data",
-  "version": "latest"
+  "version": "latest",
+  "dependencies": {
+    "steam-user": "5.0.9",
+    "steamcommunity": "3.48.3",
+    "steam-tradeoffer-manager": "2.11.4",
+    "tslib": "2.6.3"
+  }
 }

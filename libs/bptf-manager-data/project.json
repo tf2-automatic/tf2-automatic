@@ -18,7 +18,10 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["libs/bptf-manager-data/**/*.ts"]
+        "lintFilePatterns": [
+          "libs/bptf-manager-data/**/*.ts",
+          "libs/bptf-manager-data/package.json"
+        ]
       }
     },
     "test": {
