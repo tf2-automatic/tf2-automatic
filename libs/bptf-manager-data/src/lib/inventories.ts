@@ -6,6 +6,12 @@ const INVENTORY_PATH = '/:steamid';
 export const INVENTORY_STATUS_PATH = `${INVENTORY_PATH}/status`;
 export const INVENTORY_REFRESH_PATH = `${INVENTORY_PATH}/refresh`;
 
+export const INVENTORY_FULL_PATH = INVENTORIES_BASE_URL + INVENTORY_PATH;
+export const INVENTORY_STATUS_FULL_PATH =
+  INVENTORIES_BASE_URL + INVENTORY_STATUS_PATH;
+export const INVENTORY_REFRESH_FULL_PATH =
+  INVENTORIES_BASE_URL + INVENTORY_REFRESH_PATH;
+
 export class InventoryStatus {
   @ApiProperty({
     example: Math.floor(Date.now() / 1000),

@@ -7,6 +7,12 @@ export const AGENT_PATH = '/:steamid';
 export const AGENT_REGISTER_PATH = `${AGENT_PATH}/register`;
 export const AGENT_UNREGISTER_PATH = `${AGENT_PATH}/unregister`;
 
+export const AGENTS_FULL_PATH = AGENTS_BASE_URL + AGENTS_PATH;
+export const AGENT_FULL_PATH = AGENTS_BASE_URL + AGENT_PATH;
+export const AGENT_REGISTER_FULL_PATH = AGENTS_BASE_URL + AGENT_REGISTER_PATH;
+export const AGENT_UNREGISTER_FULL_PATH =
+  AGENTS_BASE_URL + AGENT_UNREGISTER_PATH;
+
 const now = Math.floor(Date.now() / 1000);
 
 export class CreateAgentDto {

@@ -4,10 +4,15 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiParamSteamID } from '@tf2-automatic/swagger';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
-import { NotificationModel } from '@tf2-automatic/bptf-manager-data';
+import {
+  NOTIFICATIONS_BASE_URL,
+  NOTIFICATIONS_PATH,
+  NOTIFICATIONS_REFRESH_PATH,
+  NotificationModel,
+} from '@tf2-automatic/bptf-manager-data';
 
 @ApiTags('Notifications')
-@Controller('notifications')
+@Controller(NOTIFICATIONS_BASE_URL)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -19,7 +24,7 @@ export class NotificationsController {
     type: [NotificationModel],
   })
   @ApiParamSteamID()
-  @Get('/:steamid')
+  @Get(NOTIFICATIONS_PATH)
   getNotifications(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
   ): Promise<NotificationModel[]> {
@@ -31,7 +36,7 @@ export class NotificationsController {
     description: 'Requests notifications to be refreshed from backpack.tf',
   })
   @ApiParamSteamID()
-  @Post('/:steamid/refresh')
+  @Post(NOTIFICATIONS_REFRESH_PATH)
   refreshNotifications(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
   ): Promise<void> {

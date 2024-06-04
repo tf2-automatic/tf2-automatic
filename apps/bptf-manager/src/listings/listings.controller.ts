@@ -13,6 +13,12 @@ import {
   DesiredListingModel,
   RemoveListingDto,
   ListingLimitsModel,
+  LISTINGS_BASE_URL,
+  DESIRED_LISTINGS_PATH,
+  CURRENT_LISTINGS_PATH,
+  CURRENT_LISTINGS_REFRESH_PATH,
+  LISTING_LIMITS_PATH,
+  LISTING_LIMITS_REFRESH_PATH,
 } from '@tf2-automatic/bptf-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
@@ -22,7 +28,7 @@ import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
 
 @ApiTags('Listings')
-@Controller('listings')
+@Controller(LISTINGS_BASE_URL)
 export class ListingsController {
   constructor(
     private readonly listingLimitsService: ListingLimitsService,
@@ -41,7 +47,7 @@ export class ListingsController {
     type: [DesiredListingModel],
   })
   @ApiParamSteamID()
-  @Post('/:steamid/desired')
+  @Post(DESIRED_LISTINGS_PATH)
   async addDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Body(new ParseArrayPipe({ items: DesiredListingDto }))
@@ -60,7 +66,7 @@ export class ListingsController {
     type: [DesiredListingModel],
   })
   @ApiParamSteamID()
-  @Delete('/:steamid/desired')
+  @Delete(DESIRED_LISTINGS_PATH)
   async removeDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Body(new ParseArrayPipe({ items: RemoveListingDto }))
@@ -82,7 +88,7 @@ export class ListingsController {
     type: [DesiredListingModel],
   })
   @ApiParamSteamID()
-  @Get('/:steamid/desired')
+  @Get(DESIRED_LISTINGS_PATH)
   async getDesired(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
   ): Promise<DesiredListingModel[]> {
@@ -96,7 +102,7 @@ export class ListingsController {
     description: 'Get all current listings from the database',
   })
   @ApiParamSteamID()
-  @Get('/:steamid/current')
+  @Get(CURRENT_LISTINGS_PATH)
   getCurrent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.currentListingsService.getAllCurrent(steamid);
   }
@@ -106,7 +112,7 @@ export class ListingsController {
     description: 'Requests current listings to be refreshed from backpack.tf',
   })
   @ApiParamSteamID()
-  @Post('/:steamid/current/refresh')
+  @Post(CURRENT_LISTINGS_REFRESH_PATH)
   refreshCurrent(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.currentListingsService.refreshListings(steamid);
   }
@@ -119,7 +125,7 @@ export class ListingsController {
     type: ListingLimitsModel,
   })
   @ApiParamSteamID()
-  @Get('/:steamid/limits')
+  @Get(LISTING_LIMITS_PATH)
   getLimits(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.listingLimitsService.getLimits(steamid);
   }
@@ -129,7 +135,7 @@ export class ListingsController {
     description: 'Requests listing limits to be refreshed',
   })
   @ApiParamSteamID()
-  @Post('/:steamid/limits/refresh')
+  @Post(LISTING_LIMITS_REFRESH_PATH)
   refreshLimits(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.listingLimitsService.refreshLimits(steamid);
   }

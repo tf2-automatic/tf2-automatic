@@ -13,6 +13,23 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export const LISTINGS_BASE_URL = '/listings';
+export const DESIRED_LISTINGS_PATH = '/:steamid/desired';
+export const CURRENT_LISTINGS_PATH = '/:steamid/current';
+export const CURRENT_LISTINGS_REFRESH_PATH = `${CURRENT_LISTINGS_PATH}/refresh`;
+export const LISTING_LIMITS_PATH = '/:steamid/limits';
+export const LISTING_LIMITS_REFRESH_PATH = `${LISTING_LIMITS_PATH}/refresh`;
+
+export const DESIRED_LISTINGS_FULL_PATH =
+  LISTINGS_BASE_URL + DESIRED_LISTINGS_PATH;
+export const CURRENT_LISTINGS_FULL_PATH =
+  LISTINGS_BASE_URL + CURRENT_LISTINGS_PATH;
+export const CURRENT_LISTINGS_REFRESH_FULL_PATH =
+  LISTINGS_BASE_URL + CURRENT_LISTINGS_REFRESH_PATH;
+export const LISTING_LIMITS_FULL_PATH = LISTINGS_BASE_URL + LISTING_LIMITS_PATH;
+export const LISTING_LIMITS_REFRESH_FULL_PATH =
+  LISTINGS_BASE_URL + LISTING_LIMITS_REFRESH_PATH;
+
 export class ListingCurrenciesDto {
   @IsInt()
   @Min(0)
