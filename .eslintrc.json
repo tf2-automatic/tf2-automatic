@@ -41,6 +41,25 @@
         "jest": true
       },
       "rules": {}
+    },
+    {
+      "files": ["*.json"],
+      "parser": "jsonc-eslint-parser",
+      "rules": {
+        "@nx/dependency-checks": "error"
+      }
     }
-  ]
+  ],
+  "rules": {
+    "@nx/dependency-checks": [
+      "error",
+      {
+        "ignoredDependencies": [
+          "@tf2-automatic/is-refined-validator",
+          "@tf2-automatic/is-steamid-validator"
+        ], 
+        "includeTransitiveDependencies": true
+      }
+    ]
+  }
 }

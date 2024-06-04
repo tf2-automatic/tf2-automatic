@@ -8,7 +8,10 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["libs/bot-data/**/*.ts"]
+        "lintFilePatterns": [
+          "libs/bot-data/**/*.ts",
+          "libs/bot-data/package.json"
+        ]
       }
     },
     "test": {
