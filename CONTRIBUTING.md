@@ -22,7 +22,7 @@ Nx automatically loads environment variables from [different files](https://nx.d
 
 ## Building docker images
 
-If you want to build a docker image of an application, then you first need to build the application. For example, if you want to build an image for the bot, then use `pnpm exec nx build bot`. To build a docker image, then use `docker build -f ./apps/bot/Dockerfile -t bot .` when in the root of the repository, or `docker build -f Dockerfile -t bot ../../` if you are inside the bot directory.
+If you want to build a docker image of an application, then you first need to build the application. For example, if you want to build an image for the bot, then first use `pnpm exec nx build bot` to build it. To build a docker image, then use `docker build -f ./apps/bot/Dockerfile -t bot --build-arg SOURCE_DIR="./dist/apps/bot" --build-arg VERSION="0.0.1" .` when in the root of the repository, or `docker build -f Dockerfile -t bot --build-arg SOURCE_DIR="../../dist/apps/bot" --build-arg VERSION="0.0.1" ../../` if you are inside the bot directory. The `SOURCE_DIR` build arg is used to define where the built source code is located, and the `VERSION` build arg is used to set the version field in the package.json file.
 
 ## Contributing
 
