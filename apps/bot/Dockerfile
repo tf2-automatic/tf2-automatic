@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 RUN npm i -g pnpm
 
 FROM alpine:3.18.4 AS source
@@ -13,7 +13,7 @@ COPY --from=source /app/package.json /app/pnpm-lock.yaml ./
 COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 ENV NODE_ENV production
 WORKDIR /app
 COPY --from=source --chown=nestjs:nodejs /app ./
