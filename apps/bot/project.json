@@ -38,7 +38,10 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["apps/bot/**/*.ts"]
+        "lintFilePatterns": [
+          "apps/bot/**/*.ts",
+          "apps/bot/package.json"
+        ]
       }
     },
     "test": {

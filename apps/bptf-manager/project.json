@@ -42,7 +42,10 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["apps/bptf-manager/**/*.ts"]
+        "lintFilePatterns": [
+          "apps/bptf-manager/**/*.ts",
+          "apps/bptf-manager/package.json"
+        ]
       }
     },
     "test": {
