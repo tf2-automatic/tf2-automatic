@@ -1,27 +1,19 @@
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Config } from '../common/config/configuration';
-import type { ConfirmChannel } from 'amqplib';
+import { Inject, Injectable } from '@nestjs/common';
 import { MetadataService } from '../metadata/metadata.service';
-import { BaseEvent, BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
+import { BaseEvent } from '@tf2-automatic/bot-data';
+import { CustomEventsService } from './custom/custom.interface';
 
 @Injectable()
-export class EventsService implements OnModuleDestroy {
+export class EventsService {
   constructor(
-    private readonly configService: ConfigService<Config>,
-    private readonly amqpConnection: AmqpConnection,
     private readonly metadataService: MetadataService,
+    @Inject('EVENTS_ENGINE') private readonly engine: CustomEventsService,
   ) {}
-
-  async onModuleDestroy(): Promise<void> {
-    return (this.amqpConnection.channel as ConfirmChannel).waitForConfirms();
-  }
 
   async publish(event: string, data: object = {}): Promise<void> {
     const steamid64 = this.metadataService.getSteamID()?.getSteamID64() ?? null;
 
-    await this.amqpConnection.publish(BOT_EXCHANGE_NAME, event, {
+    await this.engine.publish(event, {
       type: event,
       data,
       metadata: {
