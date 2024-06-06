@@ -63,7 +63,7 @@ jobs:
     if: ${{ fromJson(needs.affected.outputs.unit-test)[0] }}
     strategy:
       matrix:
-        node: ['18.x']
+        node: ['20.x']
         projectName: ${{fromJson(needs.affected.outputs.unit-test)}}
     env:
       NODE: ${{ matrix.node }}
@@ -100,7 +100,7 @@ jobs:
     if: ${{ fromJson(needs.affected.outputs.build)[0] }}
     strategy:
       matrix:
-        node: ['18.x']
+        node: ['20.x']
         projectName: ${{fromJson(needs.affected.outputs.build)}}
     env:
       NODE: ${{ matrix.node }}
