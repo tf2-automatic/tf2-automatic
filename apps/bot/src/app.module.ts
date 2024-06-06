@@ -39,7 +39,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
     TF2Module,
     TradesModule,
     ProfileModule,
-    EventsModule,
+    EventsModule.forRoot(),
     MetadataModule,
     EscrowModule,
     ShutdownModule,
