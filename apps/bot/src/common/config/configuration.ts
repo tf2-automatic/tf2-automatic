@@ -3,8 +3,8 @@ export interface Config {
   ip?: string;
   steam: SteamAccountConfig;
   trade: SteamTradeConfig;
-  rabbitmq: RabbitMQConfig;
-  storage: S3StorageConfig | LocalStorageConfig;
+  events: EventsConfig;
+  storage: StorageConfig;
   manager: ManagerConfig;
 }
 
@@ -24,7 +24,8 @@ export interface SteamTradeConfig {
   pollFullUpdateInterval: number;
 }
 
-export interface RabbitMQConfig {
+export interface RabbitMQEventsConfig extends BaseChoiceConfig {
+  type: 'rabbitmq';
   host: string;
   port: number;
   username: string;
@@ -32,9 +33,21 @@ export interface RabbitMQConfig {
   vhost: string;
 }
 
+export interface RedisEventsConfig extends BaseChoiceConfig {
+  type: 'redis';
+  host: string;
+  port: number;
+  password: string;
+  db?: number;
+  keyPrefix?: string;
+  persist: boolean;
+}
+
+export type EventsConfig = RabbitMQEventsConfig | RedisEventsConfig;
+
 export type StorageConfig = S3StorageConfig | LocalStorageConfig;
 
-export interface S3StorageConfig extends BaseStorageConfig {
+export interface S3StorageConfig extends BaseChoiceConfig {
   type: 's3';
   endpoint: string;
   port: number;
@@ -45,12 +58,12 @@ export interface S3StorageConfig extends BaseStorageConfig {
   secretAccessKey: string;
 }
 
-export interface LocalStorageConfig extends BaseStorageConfig {
+export interface LocalStorageConfig extends BaseChoiceConfig {
   type: 'local';
   directory: string;
 }
 
-interface BaseStorageConfig {
+interface BaseChoiceConfig {
   type: unknown;
 }
 
@@ -90,13 +103,7 @@ export default (): Config => {
           ? 2 * 60 * 1000 // 2 hours
           : parseInt(process.env.TRADE_POLL_FULL_UPDATE_INTERVAL as string, 10),
     },
-    rabbitmq: {
-      host: process.env.RABBITMQ_HOST as string,
-      port: parseInt(process.env.RABBITMQ_PORT as string, 10),
-      username: process.env.RABBITMQ_USERNAME as string,
-      password: process.env.RABBITMQ_PASSWORD as string,
-      vhost: process.env.RABBITMQ_VHOST as string,
-    },
+    events: getEventsConfig(),
     storage: getStorageConfig(),
     manager: {
       enabled: process.env.BOT_MANAGER_ENABLED === 'true',
@@ -108,6 +115,39 @@ export default (): Config => {
     },
   };
 };
+
+function getEventsConfig(): EventsConfig {
+  const eventsType = process.env.EVENTS_TYPE as 'rabbitmq';
+
+  if (eventsType === 'rabbitmq') {
+    return {
+      type: eventsType,
+      host: process.env.EVENTS_RABBITMQ_HOST as string,
+      port: parseInt(process.env.EVENTS_RABBITMQ_PORT as string, 10),
+      username: process.env.EVENTS_RABBITMQ_USERNAME as string,
+      password: process.env.EVENTS_RABBITMQ_PASSWORD as string,
+      vhost: process.env.EVENTS_RABBITMQ_VHOST as string,
+    };
+  } else if (eventsType === 'redis') {
+    return {
+      type: eventsType,
+      host: process.env.EVENTS_REDIS_HOST as string,
+      port: parseInt(process.env.EVENTS_REDIS_PORT as string, 10),
+      password: process.env.EVENTS_REDIS_PASSWORD as string,
+      db:
+        process.env.EVENTS_REDIS_DB === undefined
+          ? undefined
+          : parseInt(process.env.EVENTS_REDIS_DB as string, 10),
+      keyPrefix:
+        process.env.EVENTS_REDIS_KEY_PREFIX === undefined
+          ? undefined
+          : (process.env.EVENTS_REDIS_KEY_PREFIX as string),
+      persist: process.env.EVENTS_REDIS_PERSIST === 'true',
+    };
+  } else {
+    throw new Error('Unknown events type: ' + eventsType);
+  }
+}
 
 function getStorageConfig(): StorageConfig {
   const storageType = process.env.STORAGE_TYPE as 's3' | 'local';
@@ -129,6 +169,6 @@ function getStorageConfig(): StorageConfig {
       secretAccessKey: process.env.STORAGE_S3_SECRET_ACCESS_KEY as string,
     } satisfies S3StorageConfig;
   } else {
-    throw new Error('Unknown task type: ' + storageType);
+    throw new Error('Unknown storage type: ' + storageType);
   }
 }

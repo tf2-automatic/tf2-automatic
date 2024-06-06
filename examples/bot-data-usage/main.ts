@@ -1,14 +1,13 @@
 import {
-  INVENTORIES_BASE_URL,
+  INVENTORY_FULL_PATH,
   Inventory,
-  INVENTORY_PATH,
 } from '@tf2-automatic/bot-data';
 import axios from 'axios';
 
 const baseUrl = 'http://localhost:3000';
 
 // Construct url from bot-data constants
-const url = `${baseUrl}${INVENTORIES_BASE_URL}${INVENTORY_PATH}`
+const url = `${baseUrl}${INVENTORY_FULL_PATH}`
   // Replace placeholders with actual values
   .replace(':steamid', '76561198120070906')
   .replace(':appid', '440')
