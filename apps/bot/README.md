@@ -26,17 +26,17 @@ The bot is configured using environment variables. Below is a list of the enviro
 | TRADE_POLL_INTERVAL | Milliseconds between getting the current state of recent trades. Use `-1` to disable | No | `30000` |
 | TRADE_POLL_FULL_UPDATE_INTERVAL | Milliseconds between getting the current state of all trades. Disabled if no value | No | `120000` |
 | EVENTS_TYPE | How events should be published, either using "rabbitmq" or "redis" | Yes |  |
-| EVENTS_RABBITMQ_HOST | Address of the RabbitMQ server | If "rabbitmq" events type |  |
-| EVENTS_RABBITMQ_PORT | Port of the RabbitMQ server | If "rabbitmq" events type |  |
-| EVENTS_RABBITMQ_USERNAME | Username to authenticate with the RabbitMQ server | If "rabbitmq" events type |  |
-| EVENTS_RABBITMQ_PASSWORD | Password to authenticate with the RabbitMQ server | If "rabbitmq" events type |  |
-| EVENTS_RABBITMQ_VHOST | Virtual host to use with the Rabbitmq server | If "rabbitmq" events type |  |
-| EVENTS_REDIS_HOST | Address of the Redis server | If "redis" events type |  |
-| EVENTS_REDIS_PORT | Port of the Redis server | If "redis" events type |  |
-| EVENTS_REDIS_PASSWORD | Password to authenticate with the Redis server | If "redis" events type |  |
-| EVENTS_REDIS_DB | Database to use with the Redis server | No |  |
-| EVENTS_REDIS_KEY_PREFIX | A prefix for all keys saved in Redis | No |  |
-| EVENTS_REDIS_PERSIST | If events should be persisted to a list or not | If "redis" events type |  |
+| EVENTS_PERSIST | If events should be persisted to a list or not (only used for "redis" events type) | No | `false` |
+| RABBITMQ_HOST | Address of the RabbitMQ server | If "rabbitmq" events type |  |
+| RABBITMQ_PORT | Port of the RabbitMQ server | If "rabbitmq" events type |  |
+| RABBITMQ_USERNAME | Username to authenticate with the RabbitMQ server | If "rabbitmq" events type |  |
+| RABBITMQ_PASSWORD | Password to authenticate with the RabbitMQ server | If "rabbitmq" events type |  |
+| RABBITMQ_VHOST | Virtual host to use with the Rabbitmq server | If "rabbitmq" events type |  |
+| REDIS_HOST | Address of the Redis server | If "redis" events type |  |
+| REDIS_PORT | Port of the Redis server | If "redis" events type |  |
+| REDIS_PASSWORD | Password to authenticate with the Redis server | If "redis" events type |  |
+| REDIS_DB | Database to use with the Redis server | No |  |
+| REDIS_KEY_PREFIX | A prefix for all keys saved in Redis | No |  |
 | STORAGE_TYPE | Type of storage the bot will use (local or s3) | Yes |  |
 | STORAGE_LOCAL_PATH | Path to storage directory | If "local" storage type |  |
 | STORAGE_S3_ENDPOINT | Endpoint of the S3 service | If "s3" storage type |  |

@@ -1,3 +1,5 @@
+import { EventsConfig, getEventsConfig } from '@tf2-automatic/config';
+
 export interface Config {
   port: number;
   ip?: string;
@@ -23,27 +25,6 @@ export interface SteamTradeConfig {
   pollInterval: number;
   pollFullUpdateInterval: number;
 }
-
-export interface RabbitMQEventsConfig extends BaseChoiceConfig {
-  type: 'rabbitmq';
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  vhost: string;
-}
-
-export interface RedisEventsConfig extends BaseChoiceConfig {
-  type: 'redis';
-  host: string;
-  port: number;
-  password: string;
-  db?: number;
-  keyPrefix?: string;
-  persist: boolean;
-}
-
-export type EventsConfig = RabbitMQEventsConfig | RedisEventsConfig;
 
 export type StorageConfig = S3StorageConfig | LocalStorageConfig;
 
@@ -115,39 +96,6 @@ export default (): Config => {
     },
   };
 };
-
-function getEventsConfig(): EventsConfig {
-  const eventsType = process.env.EVENTS_TYPE as 'rabbitmq';
-
-  if (eventsType === 'rabbitmq') {
-    return {
-      type: eventsType,
-      host: process.env.EVENTS_RABBITMQ_HOST as string,
-      port: parseInt(process.env.EVENTS_RABBITMQ_PORT as string, 10),
-      username: process.env.EVENTS_RABBITMQ_USERNAME as string,
-      password: process.env.EVENTS_RABBITMQ_PASSWORD as string,
-      vhost: process.env.EVENTS_RABBITMQ_VHOST as string,
-    };
-  } else if (eventsType === 'redis') {
-    return {
-      type: eventsType,
-      host: process.env.EVENTS_REDIS_HOST as string,
-      port: parseInt(process.env.EVENTS_REDIS_PORT as string, 10),
-      password: process.env.EVENTS_REDIS_PASSWORD as string,
-      db:
-        process.env.EVENTS_REDIS_DB === undefined
-          ? undefined
-          : parseInt(process.env.EVENTS_REDIS_DB as string, 10),
-      keyPrefix:
-        process.env.EVENTS_REDIS_KEY_PREFIX === undefined
-          ? undefined
-          : (process.env.EVENTS_REDIS_KEY_PREFIX as string),
-      persist: process.env.EVENTS_REDIS_PERSIST === 'true',
-    };
-  } else {
-    throw new Error('Unknown events type: ' + eventsType);
-  }
-}
 
 function getStorageConfig(): StorageConfig {
   const storageType = process.env.STORAGE_TYPE as 's3' | 'local';

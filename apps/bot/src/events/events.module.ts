@@ -2,16 +2,13 @@ import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
-import {
-  Config,
-  RabbitMQEventsConfig,
-  RedisEventsConfig,
-} from '../common/config/configuration';
+import { Config } from '../common/config/configuration';
 import { MetadataModule } from '../metadata/metadata.module';
 import { EventsService } from './events.service';
 import { RabbitMQEventsService } from './custom/rabbitmq-events.service';
 import { RedisEventsService } from './custom/redis-events.service';
 import { RedisModule } from '@songkeys/nestjs-redis';
+import { RabbitMQ, Redis } from '@tf2-automatic/config';
 
 @Global()
 @Module({})
@@ -35,7 +32,7 @@ function rabbitmq(): DynamicModule {
         inject: [ConfigService],
         useFactory: (configService: ConfigService<Config>) => {
           const rabbitmqConfig =
-            configService.getOrThrow<RabbitMQEventsConfig>('events');
+            configService.getOrThrow<RabbitMQ.Config>('events');
 
           return {
             exchanges: [
@@ -68,8 +65,7 @@ function redis(): DynamicModule {
       RedisModule.forRootAsync({
         inject: [ConfigService],
         useFactory: (configService: ConfigService<Config>) => {
-          const redisConfig =
-            configService.getOrThrow<RedisEventsConfig>('events');
+          const redisConfig = configService.getOrThrow<Redis.Config>('events');
 
           const config = {
             host: redisConfig.host,
