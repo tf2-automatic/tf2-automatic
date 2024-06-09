@@ -1,9 +1,19 @@
 type ParsedValue<T> = T extends 'string'
-  ? string | undefined
-  : T extends 'float'
+? string | undefined
+: T extends 'float'
+  ? number | undefined
+  : T extends 'integer'
     ? number | undefined
+    : T extends 'boolean'
+      ? boolean
+      : never;
+
+type ParsedValueWithDefault<T> = T extends 'string'
+  ? string
+  : T extends 'float'
+    ? number
     : T extends 'integer'
-      ? number | undefined
+      ? number
       : T extends 'boolean'
         ? boolean
         : never;
@@ -32,4 +42,18 @@ export function getEnv<T extends 'string' | 'float' | 'integer' | 'boolean'>(
   }
 
   throw new Error(`Invalid type: ${type}`);
+}
+
+export function getEnvWithDefault<T extends 'string' | 'float' | 'integer' | 'boolean'>(
+  key: string,
+  type: T,
+  defaultValue: ParsedValueWithDefault<T>,
+): ParsedValueWithDefault<T> {
+  const value = getEnv(key, type);
+
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  return value as ParsedValueWithDefault<T>;
 }

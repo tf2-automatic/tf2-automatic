@@ -1,4 +1,9 @@
-import { EventsConfig, getEventsConfig } from '@tf2-automatic/config';
+import {
+  EventsConfig,
+  getEnv,
+  getEnvWithDefault,
+  getEventsConfig,
+} from '@tf2-automatic/config';
 
 export interface Config {
   port: number;
@@ -56,65 +61,62 @@ export interface ManagerConfig {
 
 export default (): Config => {
   return {
-    port: parseInt(process.env.PORT as string, 10),
-    ip: process.env.IP_ADDRESS as string | undefined,
+    port: getEnv('PORT', 'integer')!,
+    ip: getEnv('IP_ADDRESS', 'string'),
     steam: {
-      username: process.env.STEAM_USERNAME as string,
-      password: process.env.STEAM_PASSWORD as string,
-      sharedSecret: process.env.STEAM_SHARED_SECRET as string,
-      identitySecret: process.env.STEAM_IDENTITY_SECRET as string,
-      proxyUrl: process.env.STEAM_PROXY_URL as string | undefined,
-      apiKey: process.env.STEAM_API_KEY as string | undefined,
+      username: getEnv('STEAM_USERNAME', 'string')!,
+      password: getEnv('STEAM_PASSWORD', 'string')!,
+      sharedSecret: getEnv('STEAM_SHARED_SECRET', 'string')!,
+      identitySecret: getEnv('STEAM_IDENTITY_SECRET', 'string')!,
+      proxyUrl: getEnv('STEAM_PROXY_URL', 'string'),
+      apiKey: getEnv('STEAM_API_KEY', 'string'),
     },
     trade: {
-      cancelTime:
-        process.env.TRADE_CANCEL_TIME === undefined
-          ? undefined
-          : parseInt(process.env.TRADE_CANCEL_TIME as string, 10),
-      pendingCancelTime:
-        process.env.TRADE_PENDING_CANCEL_TIME === undefined
-          ? undefined
-          : parseInt(process.env.TRADE_PENDING_CANCEL_TIME as string, 10),
-      pollInterval:
-        process.env.TRADE_POLL_INTERVAL === undefined
-          ? 30 * 1000 // 30 seconds
-          : parseInt(process.env.TRADE_POLL_INTERVAL as string, 10),
-      pollFullUpdateInterval:
-        process.env.TRADE_POLL_FULL_UPDATE_INTERVAL === undefined
-          ? 2 * 60 * 1000 // 2 hours
-          : parseInt(process.env.TRADE_POLL_FULL_UPDATE_INTERVAL as string, 10),
+      cancelTime: getEnv('TRADE_CANCEL_TIME', 'integer'),
+      pendingCancelTime: getEnv('TRADE_PENDING_CANCEL_TIME', 'integer'),
+      pollInterval: getEnvWithDefault(
+        'TRADE_POLL_INTERVAL',
+        'integer',
+        30 * 1000,
+      ),
+      pollFullUpdateInterval: getEnvWithDefault(
+        'TRADE_POLL_FULL_UPDATE_INTERVAL',
+        'integer',
+        2 * 60 * 1000,
+      ),
     },
     events: getEventsConfig(),
     storage: getStorageConfig(),
     manager: {
-      enabled: process.env.BOT_MANAGER_ENABLED === 'true',
-      url: process.env.BOT_MANAGER_URL,
-      heartbeatInterval:
-        process.env.BOT_MANAGER_HEARTBEAT_INTERVAL === undefined
-          ? 60000
-          : parseInt(process.env.BOT_MANAGER_HEARTBEAT_INTERVAL as string, 10),
+      enabled: getEnv('BOT_MANAGER_ENABLED', 'boolean'),
+      url: getEnv('BOT_MANAGER_URL', 'string'),
+      heartbeatInterval: getEnvWithDefault(
+        'BOT_MANAGER_HEARTBEAT_INTERVAL',
+        'integer',
+        60000,
+      ),
     },
   };
 };
 
 function getStorageConfig(): StorageConfig {
-  const storageType = process.env.STORAGE_TYPE as 's3' | 'local';
+  const storageType = getEnv('STORAGE_TYPE', 'string') as 's3' | 'local';
 
   if (storageType === 'local') {
     return {
       type: storageType,
-      directory: process.env.STORAGE_LOCAL_PATH as string,
+      directory: getEnv('STORAGE_LOCAL_PATH', 'string')!,
     } satisfies LocalStorageConfig;
   } else if (storageType === 's3') {
     return {
       type: storageType,
-      directory: process.env.STORAGE_S3_PATH as string,
-      endpoint: process.env.STORAGE_S3_ENDPOINT as string,
-      port: parseInt(process.env.STORAGE_S3_PORT as string, 10),
-      useSSL: process.env.STORAGE_S3_USE_SSL === 'true',
-      bucket: process.env.STORAGE_S3_BUCKET as string,
-      accessKeyId: process.env.STORAGE_S3_ACCESS_KEY_ID as string,
-      secretAccessKey: process.env.STORAGE_S3_SECRET_ACCESS_KEY as string,
+      directory: getEnv('STORAGE_S3_PATH', 'string')!,
+      endpoint: getEnv('STORAGE_S3_ENDPOINT', 'string')!,
+      port: getEnv('STORAGE_S3_PORT', 'integer')!,
+      useSSL: getEnv('STORAGE_S3_USE_SSL', 'boolean'),
+      bucket: getEnv('STORAGE_S3_BUCKET', 'string')!,
+      accessKeyId: getEnv('STORAGE_S3_ACCESS_KEY_ID', 'string')!,
+      secretAccessKey: getEnv('STORAGE_S3_SECRET_ACCESS_KEY', 'string')!,
     } satisfies S3StorageConfig;
   } else {
     throw new Error('Unknown storage type: ' + storageType);

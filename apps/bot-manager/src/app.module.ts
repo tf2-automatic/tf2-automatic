@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import configuration, {
-  Config,
-  RedisConfig,
-} from './common/config/configuration';
+import configuration, { Config } from './common/config/configuration';
 import { validation } from './common/config/validation';
 import { BotsModule } from './bots/bots.module';
 import { RedisModule } from '@songkeys/nestjs-redis';
@@ -15,6 +12,7 @@ import { EventsModule } from './events/events.module';
 import { BullModule } from '@nestjs/bullmq';
 import { TradesModule } from './trades/trades.module';
 import { EscrowModule } from './escrow/escrow.module';
+import { Redis as RedisConfig, getEventsConfig } from '@tf2-automatic/config';
 
 @Module({
   imports: [
@@ -28,7 +26,8 @@ import { EscrowModule } from './escrow/escrow.module';
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {
-        const redisConfig = configService.getOrThrow<RedisConfig>('redis');
+        const redisConfig =
+          configService.getOrThrow<RedisConfig.Config>('redis');
         return {
           readyLog: true,
           config: {
@@ -36,7 +35,7 @@ import { EscrowModule } from './escrow/escrow.module';
             port: redisConfig.port,
             password: redisConfig.password,
             db: redisConfig.db,
-            keyPrefix: redisConfig.keyPrefix + ':',
+            keyPrefix: redisConfig.keyPrefix,
           },
         };
       },
@@ -44,9 +43,10 @@ import { EscrowModule } from './escrow/escrow.module';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {
-        const redisConfig = configService.getOrThrow<RedisConfig>('redis');
+        const redisConfig =
+          configService.getOrThrow<RedisConfig.Config>('redis');
         return {
-          prefix: redisConfig.keyPrefix + ':bot-manager:bull',
+          prefix: redisConfig.keyPrefix + 'bot-manager:bull',
           connection: {
             host: redisConfig.host,
             port: redisConfig.port,

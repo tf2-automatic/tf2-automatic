@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { getEnv } from '../helpers';
+import { getEnv, getEnvWithDefault } from '../helpers';
 
 export interface Config {
   type: 'redis';
@@ -7,7 +7,7 @@ export interface Config {
   port: number;
   password?: string;
   db?: number;
-  keyPrefix?: string;
+  keyPrefix: string;
   persist: boolean;
 }
 
@@ -18,7 +18,7 @@ export function getConfig(): Config {
     port: getEnv('REDIS_PORT', 'integer')!,
     password: getEnv('REDIS_PASSWORD', 'string'),
     db: getEnv('REDIS_DB', 'integer'),
-    keyPrefix: getEnv('REDIS_KEY_PREFIX', 'string'),
+    keyPrefix: getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') + ':',
     persist: getEnv('REDIS_PERSIST', 'boolean'),
   };
 }

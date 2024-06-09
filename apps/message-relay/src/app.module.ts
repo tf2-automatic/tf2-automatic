@@ -1,15 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import configuration, {
-  Config,
-  RedisConfig,
-} from './common/config/configuration';
+import configuration, { Config } from './common/config/configuration';
 import { validation } from './common/config/validation';
 import { RedisModule } from '@songkeys/nestjs-redis';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import { EventsModule } from './events/events.module';
 import { PublisherModule } from './publisher/publisher.module';
 import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
+import { Redis, RabbitMQ } from '@tf2-automatic/config';
 
 @Module({
   imports: [
@@ -23,7 +20,7 @@ import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {
-        const redisConfig = configService.getOrThrow<RedisConfig>('redis');
+        const redisConfig = configService.getOrThrow<Redis.Config>('redis');
         return {
           readyLog: true,
           config: [
@@ -33,7 +30,7 @@ import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
               port: redisConfig.port,
               password: redisConfig.password,
               db: redisConfig.db,
-              keyPrefix: redisConfig.keyPrefix + ':message-relay:',
+              keyPrefix: redisConfig.keyPrefix + 'message-relay:',
             },
             // Subscribe to outbox channel
             {
@@ -50,7 +47,7 @@ import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
               port: redisConfig.port,
               password: redisConfig.password,
               db: redisConfig.db,
-              keyPrefix: redisConfig.keyPrefix + ':',
+              keyPrefix: redisConfig.keyPrefix,
             },
           ],
         };
