@@ -1,7 +1,10 @@
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
   ExchangeDetailsItem,
@@ -33,31 +36,48 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
-import { EventsService } from '../events/events.service';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
-import { OUTBOX_KEY, OutboxMessage } from '@tf2-automatic/transactional-outbox';
 import Redlock from 'redlock';
+import { v4 as uuidv4 } from 'uuid';
+import { redisMultiEvent } from '../common/utils/redis-multi-event';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
 const KEY_PREFIX = 'bot-manager:data:';
 
 @Injectable()
-export class InventoriesService {
+export class InventoriesService implements OnApplicationBootstrap {
   private readonly redlock: Redlock;
 
   constructor(
     @InjectRedis()
     private readonly redis: Redis,
     private readonly httpService: HttpService,
-    private readonly eventsService: EventsService,
+    private readonly eventsService: NestEventsService,
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryQueue>,
   ) {
     this.redlock = new Redlock([this.redis]);
+  }
+
+  async onApplicationBootstrap() {
+    await this.eventsService.subscribe(
+      'bot-manager.delete-inventory-items',
+      BOT_EXCHANGE_NAME,
+      [TF2_LOST_EVENT, TF2_GAINED_EVENT, TRADE_CHANGED_EVENT],
+      (event) => this.handleDeleteInventoryItems(event as any),
+    );
+
+    await this.eventsService.subscribe(
+      'bot-manager.update-inventory-items',
+      BOT_MANAGER_EXCHANGE_NAME,
+      [EXCHANGE_DETAILS_EVENT],
+      (event) => this.handleAddInventoryItems(event as any),
+    );
   }
 
   async addToQueue(
@@ -83,6 +103,9 @@ export class InventoriesService {
 
     await this.inventoriesQueue.add(id, data, {
       jobId: id,
+      backoff: {
+        type: 'custom',
+      },
     });
   }
 
@@ -139,28 +162,29 @@ export class InventoriesService {
       async () => {
         await this.redis.hset(tempKey, object);
 
-        const pipeline = this.redis
-          .multi()
-          .rename(tempKey, key)
-          .lpush(
-            OUTBOX_KEY,
-            JSON.stringify({
-              type: INVENTORY_LOADED_EVENT,
-              data: event,
-              metadata: {
-                steamid64: null,
-                time: Math.floor(Date.now() / 1000),
-              },
-            } satisfies OutboxMessage),
-          )
-          .publish(OUTBOX_KEY, '');
+        const multi = this.redis.multi().rename(tempKey, key);
+
+        redisMultiEvent(
+          multi,
+          {
+            type: INVENTORY_LOADED_EVENT,
+            data: event,
+            metadata: {
+              id: uuidv4(),
+              steamid64: null,
+              time: Math.floor(Date.now() / 1000),
+            },
+          } satisfies InventoryLoadedEvent,
+          this.eventsService.getType(),
+          this.eventsService.getPersist(),
+        );
 
         if (ttl > 0) {
           // and make it expire
-          pipeline.expire(key, ttl);
+          multi.expire(key, ttl);
         }
 
-        await pipeline.exec();
+        await multi.exec();
       },
     );
 
@@ -237,12 +261,6 @@ export class InventoriesService {
     );
   }
 
-  @RabbitSubscribe({
-    exchange: BOT_EXCHANGE_NAME,
-    routingKey: [TF2_LOST_EVENT, TF2_GAINED_EVENT, TRADE_CHANGED_EVENT],
-    queue: 'bot-manager.delete-inventory-items',
-    allowNonJsonMessages: false,
-  })
   private handleDeleteInventoryItems(
     event: TF2LostEvent | TradeChangedEvent | TF2GainedEvent,
   ): Promise<void> {
@@ -296,12 +314,6 @@ export class InventoriesService {
     }, result);
   }
 
-  @RabbitSubscribe({
-    exchange: BOT_MANAGER_EXCHANGE_NAME,
-    routingKey: EXCHANGE_DETAILS_EVENT,
-    queue: 'bot-manager.update-inventory-items',
-    allowNonJsonMessages: false,
-  })
   private async handleAddInventoryItems(
     event: ExchangeDetailsEvent,
   ): Promise<void> {
@@ -411,7 +423,7 @@ export class InventoriesService {
         throw signal.error;
       }
 
-      const transaction = this.redis.multi();
+      const multi = this.redis.multi();
 
       // Add gained items to the cached inventories
       Object.keys(gainedItems)
@@ -423,7 +435,7 @@ export class InventoriesService {
           const key = this.getInventoryKeyFromObject(JSON.parse(inventory));
 
           // Add the items to the cached inventories
-          transaction.hmset(
+          multi.hmset(
             key,
             ...items
               .map((item) => ['item:' + item.assetid, JSON.stringify(item)])
@@ -475,13 +487,13 @@ export class InventoriesService {
 
       // Delete the items from the cached inventories
       Object.keys(lostItems).forEach((key) =>
-        transaction.hdel(
+        multi.hdel(
           this.getInventoryKeyFromObject(JSON.parse(key)),
           ...lostItems[key].map((assetid) => 'item:' + assetid),
         ),
       );
 
-      let changed = false;
+      const changedEvents: InventoryChangedEvent['data'][] = [];
 
       Object.keys(changes).forEach((key) => {
         const parts = JSON.parse(key);
@@ -491,35 +503,36 @@ export class InventoriesService {
           return;
         }
 
-        changed = true;
-
-        const changedEvent: InventoryChangedEvent['data'] = {
+        changedEvents.push({
           steamid64: parts.steamid64,
           appid: parts.appid,
           contextid: parts.contextid,
           gained: change.gained,
           lost: change.lost,
           reason,
-        };
+        });
+      });
 
-        transaction.lpush(
-          OUTBOX_KEY,
-          JSON.stringify({
+      for (let i = 0; i < changedEvents.length; i++) {
+        const data = changedEvents[i];
+
+        redisMultiEvent(
+          multi,
+          {
             type: INVENTORY_CHANGED_EVENT,
-            data: changedEvent,
+            data,
             metadata: {
+              id: uuidv4(),
               steamid64: null,
               time: Math.floor(Date.now() / 1000),
             },
-          } satisfies OutboxMessage),
+          } satisfies InventoryChangedEvent,
+          this.eventsService.getType(),
+          this.eventsService.getPersist(),
         );
-      });
-
-      if (changed) {
-        transaction.publish(OUTBOX_KEY, '');
       }
 
-      await transaction.exec();
+      await multi.exec();
     });
   }
 

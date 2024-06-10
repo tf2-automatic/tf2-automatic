@@ -62,6 +62,7 @@ services:
     ports:
       - '3001:3000'
     environment:
+      EVENTS_TYPE: 'rabbitmq'
       REDIS_HOST: 'redis'
       REDIS_PORT: 6379
       REDIS_PASSWORD: 'test'

@@ -23,11 +23,13 @@ import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
-import { OUTBOX_KEY, OutboxMessage } from '@tf2-automatic/transactional-outbox';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
 import Redlock from 'redlock';
+import { v4 as uuidv4 } from 'uuid';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
+import { redisMultiEvent } from '../common/utils/redis-multi-event';
 
 const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
@@ -43,6 +45,7 @@ export class HeartbeatsService {
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
+    private readonly eventsService: NestEventsService,
   ) {
     this.redlock = new Redlock([this.redis]);
   }
@@ -158,7 +161,7 @@ export class HeartbeatsService {
           delay: Math.floor(bot.interval * 1.5),
         });
 
-        await this.redis
+        const multi = this.redis
           .multi()
           // Save bot
           .set(
@@ -166,22 +169,24 @@ export class HeartbeatsService {
             JSON.stringify(bot),
             'EX',
             300,
-          )
-          // Add event to outbox
-          .lpush(
-            OUTBOX_KEY,
-            JSON.stringify({
-              type: BOT_HEARTBEAT_EVENT,
-              data: bot satisfies BotHeartbeatEvent['data'],
-              metadata: {
-                steamid64: null,
-                time: Math.floor(Date.now() / 1000),
-              },
-            } satisfies OutboxMessage),
-          )
-          // Publish that there is a new event
-          .publish(OUTBOX_KEY, '')
-          .exec();
+          );
+
+        redisMultiEvent(
+          multi,
+          {
+            type: BOT_HEARTBEAT_EVENT,
+            data: bot,
+            metadata: {
+              id: uuidv4(),
+              steamid64: null,
+              time: Math.floor(Date.now() / 1000),
+            },
+          } satisfies BotHeartbeatEvent,
+          this.eventsService.getType(),
+          this.eventsService.getPersist(),
+        );
+
+        await multi.exec();
 
         return bot;
       },
@@ -204,25 +209,29 @@ export class HeartbeatsService {
           throw signal.error;
         }
 
-        // Delete bot and add event to outbox
-        await this.redis
+        // Delete bot and create event
+        const multi = this.redis
           .multi()
           .del(
             KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-          )
-          .lpush(
-            OUTBOX_KEY,
-            JSON.stringify({
-              type: BOT_DELETED_EVENT,
-              data: bot satisfies BotDeletedEvent['data'],
-              metadata: {
-                steamid64: null,
-                time: Math.floor(Date.now() / 1000),
-              },
-            } satisfies OutboxMessage),
-          )
-          .publish(OUTBOX_KEY, '')
-          .exec();
+          );
+
+        redisMultiEvent(
+          multi,
+          {
+            type: BOT_DELETED_EVENT,
+            data: bot,
+            metadata: {
+              id: uuidv4(),
+              steamid64: null,
+              time: Math.floor(Date.now() / 1000),
+            },
+          } satisfies BotDeletedEvent,
+          this.eventsService.getType(),
+          this.eventsService.getPersist(),
+        );
+
+        await multi.exec();
       },
     );
   }

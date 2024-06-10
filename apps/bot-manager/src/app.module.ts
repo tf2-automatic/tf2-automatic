@@ -8,11 +8,13 @@ import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
 import { InventoriesModule } from './inventories/inventories.module';
-import { EventsModule } from './events/events.module';
+import { NestEventsModule } from '@tf2-automatic/nestjs-events';
 import { BullModule } from '@nestjs/bullmq';
 import { TradesModule } from './trades/trades.module';
 import { EscrowModule } from './escrow/escrow.module';
 import { Redis as RedisConfig, getEventsConfig } from '@tf2-automatic/config';
+import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
+import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
 
 @Module({
   imports: [
@@ -57,7 +59,11 @@ import { Redis as RedisConfig, getEventsConfig } from '@tf2-automatic/config';
       },
     }),
     PrometheusModule.register(),
-    EventsModule,
+    NestEventsModule.forRoot({
+      publishingExchange: BOT_MANAGER_EXCHANGE_NAME,
+      subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],
+      config: getEventsConfig(),
+    }),
     HealthModule,
     HeartbeatsModule,
     BotsModule,
