@@ -55,7 +55,9 @@ export function getEventRules(types: EventsConfigType[] = []) {
   addRequiredWhenEvents(redis, 'redis');
 
   const rules = {
-    EVENTS_TYPE: Joi.string().valid(...types).required(),
+    EVENTS_TYPE: Joi.string()
+      .valid(...types)
+      .required(),
     EVENTS_PERSIST: Joi.boolean().optional(),
   };
 
