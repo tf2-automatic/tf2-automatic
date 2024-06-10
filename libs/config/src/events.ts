@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { addWhen, getRequiredRules } from './joi';
 import { RabbitMQ, Redis } from './connections';
-import { getEnv } from './helpers';
+import { getEnv, getEnvWithDefault } from './helpers';
 
 export type EventsConfig = (RabbitMQ.Config | Redis.Config) & {
   persist: boolean;
@@ -10,7 +10,7 @@ export type EventsConfig = (RabbitMQ.Config | Redis.Config) & {
 export type EventsConfigType = EventsConfig['type'];
 
 function getType(): EventsConfigType {
-  const type = getEnv('EVENTS_TYPE', 'string');
+  const type = getEnvWithDefault('EVENTS_TYPE', 'string', 'rabbitmq');
   if (type === 'rabbitmq' || type === 'redis') {
     return type;
   }
@@ -57,7 +57,7 @@ export function getEventRules(types: EventsConfigType[] = []) {
   const rules = {
     EVENTS_TYPE: Joi.string()
       .valid(...types)
-      .required(),
+      .optional(),
     EVENTS_PERSIST: Joi.boolean().optional(),
   };
 
