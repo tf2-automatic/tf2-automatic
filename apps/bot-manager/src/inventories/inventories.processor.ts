@@ -2,9 +2,12 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { HttpError } from '@tf2-automatic/bot-data';
 import { AxiosError } from 'axios';
-import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
-import { customBackoffStrategy } from '../common/utils/backoff-strategy';
+import {
+  bullWorkerSettings,
+  customBackoffStrategy,
+} from '../common/utils/backoff-strategy';
 import { InventoriesService } from './inventories.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import SteamID from 'steamid';
@@ -19,14 +22,10 @@ import {
   CustomError,
   CustomUnrecoverableError,
 } from '../common/utils/custom-queue-errors';
-import { EventsService } from '../events/events.service';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
 
 @Processor('inventories', {
-  settings: {
-    backoffStrategy: (attempts: number, _, __, job: MinimalJob) => {
-      return customBackoffStrategy(attempts, job);
-    },
-  },
+  settings: bullWorkerSettings,
   limiter: {
     max: 1,
     duration: 1000,
@@ -38,7 +37,7 @@ export class InventoriesProcessor extends WorkerHost {
   constructor(
     private readonly inventoriesService: InventoriesService,
     private readonly heartbeatsService: HeartbeatsService,
-    private readonly eventsService: EventsService,
+    private readonly eventsService: NestEventsService,
   ) {
     super();
   }

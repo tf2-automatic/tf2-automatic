@@ -5,12 +5,11 @@ import {
   makeGaugeProvider,
 } from '@willsoto/nestjs-prometheus';
 import { BotModule } from '../bot/bot.module';
-import { EventsModule } from '../events/events.module';
 import { TradesController } from './trades.controller';
 import { TradesService } from './trades.service';
 
 @Module({
-  imports: [BotModule, EventsModule, PrometheusModule],
+  imports: [BotModule, PrometheusModule],
   controllers: [TradesController],
   providers: [
     TradesService,

@@ -21,3 +21,9 @@ export const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
 
   return Math.min(wait, maxDelay);
 };
+
+export const bullWorkerSettings = {
+  backoffStrategy: (attempts: number, _, __, job: MinimalJob) => {
+    return customBackoffStrategy(attempts, job);
+  },
+};

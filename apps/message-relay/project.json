@@ -38,7 +38,10 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["apps/message-relay/**/*.ts"]
+        "lintFilePatterns": [
+          "apps/message-relay/**/*.ts",
+          "apps/message-relay/package.json"
+        ]
       }
     },
     "test": {

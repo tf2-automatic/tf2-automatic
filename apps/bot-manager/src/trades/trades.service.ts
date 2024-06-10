@@ -1,10 +1,10 @@
-import {
-  RabbitSubscribe,
-  requeueErrorHandler,
-} from '@golevelup/nestjs-rabbitmq';
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
   CreateTrade,
@@ -43,9 +43,10 @@ import { TradeQueue } from './interfaces/trade-queue.interface';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import Redlock from 'redlock';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
 
 @Injectable()
-export class TradesService {
+export class TradesService implements OnApplicationBootstrap {
   private readonly redlock: Redlock;
 
   constructor(
@@ -56,8 +57,21 @@ export class TradesService {
     @InjectQueue('trades')
     private readonly tradesQueue: Queue<TradeQueue>,
     @InjectRedis() private readonly redis: Redis,
+    private readonly eventsService: NestEventsService,
   ) {
     this.redlock = new Redlock([this.redis]);
+  }
+
+  async onApplicationBootstrap() {
+    await this.eventsService.subscribe(
+      'bot-manager.exchange-details',
+      BOT_EXCHANGE_NAME,
+      [TRADE_CHANGED_EVENT],
+      (event) => this.handleTradeChanged(event as any),
+      {
+        retry: true,
+      },
+    );
   }
 
   async enqueueJob(dto: QueueTradeJob): Promise<QueueTradeResponse> {
@@ -242,14 +256,7 @@ export class TradesService {
     ).then((res) => res.data);
   }
 
-  @RabbitSubscribe({
-    allowNonJsonMessages: false,
-    exchange: BOT_EXCHANGE_NAME,
-    queue: 'bot-manager.exchange_details',
-    routingKey: TRADE_CHANGED_EVENT,
-    errorHandler: requeueErrorHandler,
-  })
-  public async handleTradeChanged(event: TradeChangedEvent) {
+  private async handleTradeChanged(event: TradeChangedEvent) {
     if (event.data.offer.tradeID === null) {
       // Trade has not been accepted
       return;

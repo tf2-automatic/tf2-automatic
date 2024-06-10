@@ -7,13 +7,13 @@ import { BotService } from './bot/bot.service';
 import { ShutdownService } from './shutdown/shutdown.service';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { getEnv } from '@tf2-automatic/config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger:
-      process.env.DEBUG === 'true'
-        ? ['log', 'debug', 'error', 'verbose', 'warn']
-        : ['log', 'warn', 'error'],
+    logger: getEnv('DEBUG', 'boolean')
+      ? ['log', 'debug', 'error', 'verbose', 'warn']
+      : ['log', 'warn', 'error'],
   });
 
   const config = new DocumentBuilder()

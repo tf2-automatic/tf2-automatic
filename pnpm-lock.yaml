@@ -216,6 +216,9 @@ importers:
       '@swc/core':
         specifier: 1.5.25
         version: 1.5.25(@swc/helpers@0.5.11)
+      '@swc/helpers':
+        specifier: ~0.5.11
+        version: 0.5.11
       '@types/amqplib':
         specifier: ^0.10.5
         version: 0.10.5
@@ -9502,7 +9505,6 @@ snapshots:
   '@swc/helpers@0.5.11':
     dependencies:
       tslib: 2.6.3
-    optional: true
 
   '@swc/types@0.1.7':
     dependencies:

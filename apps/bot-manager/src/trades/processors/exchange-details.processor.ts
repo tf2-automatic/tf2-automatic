@@ -6,17 +6,20 @@ import {
 } from '@tf2-automatic/bot-manager-data';
 import { Job } from 'bullmq';
 import SteamID from 'steamid';
-import { EventsService } from '../../events/events.service';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { ExchangeDetailsQueueData } from '../interfaces/exchange-details-queue.interface';
 import { TradesService } from '../trades.service';
+import { bullWorkerSettings } from '../../common/utils/backoff-strategy';
 
-@Processor('getExchangeDetails')
+@Processor('getExchangeDetails', {
+  settings: bullWorkerSettings,
+})
 export class ExchangeDetailsProcessor extends WorkerHost {
   private readonly logger = new Logger(ExchangeDetailsProcessor.name);
 
   constructor(
     private readonly tradesService: TradesService,
-    private readonly eventsService: EventsService,
+    private readonly eventsService: NestEventsService,
   ) {
     super();
   }
