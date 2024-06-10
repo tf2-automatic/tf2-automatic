@@ -7,8 +7,9 @@ import {
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { SafeRedisLeader } from 'ts-safe-redis-leader';
-import { EventsService } from '../events/events.service';
-import { OutboxMessage, OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
+import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
+import { BaseEvent } from '@tf2-automatic/bot-data';
 
 @Injectable()
 export class PublisherService
@@ -28,7 +29,7 @@ export class PublisherService
     private readonly redisOutbox: Redis,
     @InjectRedis()
     private readonly redis: Redis,
-    private readonly eventsService: EventsService,
+    private readonly eventsService: NestEventsService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -125,7 +126,7 @@ export class PublisherService
       return false;
     }
 
-    const event = JSON.parse(message) as OutboxMessage;
+    const event = JSON.parse(message) as BaseEvent<string>;
 
     const secondsAgo = Math.floor(Date.now() / 1000 - event.metadata.time);
 
@@ -142,7 +143,7 @@ export class PublisherService
         '...',
     );
 
-    await this.eventsService.publish(event.type, event.data, event.metadata);
+    await this.eventsService.publishEvent(event);
 
     this.logger.debug('Message published, removing from outbox...');
 

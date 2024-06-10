@@ -7,7 +7,7 @@ import {
 } from './custom/custom.interface';
 import { EventsModuleOptions } from './nestjs-events.module';
 import { v4 as uuidv4 } from 'uuid';
-import { EventsConfigType } from '@tf2-automatic/config';
+import { EventsConfig, EventsConfigType } from '@tf2-automatic/config';
 
 @Injectable()
 export class NestEventsService {
@@ -20,6 +20,10 @@ export class NestEventsService {
 
   getType(): EventsConfigType {
     return this.options.config.type;
+  }
+
+  getPersist(): boolean {
+    return this.options.config.persist;
   }
 
   async publish(

@@ -7,6 +7,8 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PublisherModule } from './publisher/publisher.module';
 import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 import { Redis, RabbitMQ } from '@tf2-automatic/config';
+import { NestEventsModule } from '@tf2-automatic/nestjs-events';
+import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
 
 @Module({
   imports: [
@@ -54,7 +56,14 @@ import { Redis, RabbitMQ } from '@tf2-automatic/config';
       },
     }),
     PrometheusModule.register(),
-    EventsModule,
+    NestEventsModule.forRoot({
+      config: {
+        ...RabbitMQ.getConfig(),
+        persist: true,
+      },
+      publishingExchange: BOT_MANAGER_EXCHANGE_NAME,
+      subscriberExchanges: [],
+    }),
     PublisherModule,
   ],
 })
