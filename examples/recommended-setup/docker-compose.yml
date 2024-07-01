@@ -76,29 +76,6 @@ services:
       interval: 5s
       timeout: 1s
       retries: 3
-  message-relay:
-    image: ghcr.io/tf2-automatic/message-relay:latest
-    pull_policy: always
-    restart: unless-stopped
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      REDIS_HOST: 'redis'
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: 'test'
-      RABBITMQ_HOST: 'rabbitmq'
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: 'test'
-      RABBITMQ_PASSWORD: 'test'
-      RABBITMQ_VHOST: ''
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-S', 'http://localhost:3000/health']
-      interval: 5s
-      timeout: 1s
-      retries: 3
   bot1:
     image: ghcr.io/tf2-automatic/bot:latest
     pull_policy: always

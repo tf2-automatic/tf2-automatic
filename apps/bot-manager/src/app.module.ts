@@ -15,6 +15,7 @@ import { EscrowModule } from './escrow/escrow.module';
 import { Redis as RedisConfig, getEventsConfig } from '@tf2-automatic/config';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
 import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
+import { RelayModule } from './relay/relay.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
     InventoriesModule,
     TradesModule,
     EscrowModule,
+    RelayModule.forRoot(),
   ],
 })
 export class AppModule {}
