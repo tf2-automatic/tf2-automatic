@@ -21,13 +21,9 @@ Different queues for different actions might work differently but the retry opti
 
 Caching is used to reduce the amount of requests sent to Steam and to decrease latency. Inventories and escrow responses are cached and set to expire after some time to prevent the data from becoming outdated.
 
-## Transactional outbox
+## Handling events
 
-Transactional outbox is a pattern used to ensure that when data is updated, an event will also be made. The pattern is used for the data that is saved in Redis, such as inventories and bots.
-
-The message-relay application is used to read the outbox and publish messages to RabbitMQ. It ensures that messages are published atleast once and because of this, it is important that all consumers are idempotent.
-
-For more information, read about the pattern on [microservices.io](https://microservices.io/patterns/data/transactional-outbox.html).
+Because of it being possible for events to be published multiple times, it is important that consumers are indempotent in order to reliably handle events.
 
 ## Ensuring offer state changes are published
 
