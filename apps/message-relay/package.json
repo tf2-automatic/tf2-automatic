@@ -1,7 +1,0 @@
-{
-  "name": "message-relay",
-  "version": "0.0.1",
-  "dependencies": {
-    "redlock": "5.0.0-beta.2"
-  }
-}
