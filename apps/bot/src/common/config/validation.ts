@@ -1,4 +1,5 @@
-import * as Joi from 'joi';
+import { getEventRules } from '@tf2-automatic/config';
+import Joi from 'joi';
 
 const whenStorageTypeS3 = {
   is: 's3',
@@ -9,16 +10,6 @@ const whenStorageTypeLocal = {
   is: 'local',
   then: Joi.required(),
 };
-
-const whenEventsTypeRabbitMQ = {
-  is: 'rabbitmq',
-  then: Joi.required(),
-};
-
-const whenEventsTypeRedis = (required = true) => ({
-  is: 'redis',
-  then: required ? Joi.required() : Joi.optional(),
-});
 
 const whenManager = {
   is: true,
@@ -48,47 +39,7 @@ const validation = Joi.object({
   TRADE_PENDING_CANCEL_TIME: Joi.number().integer().positive().optional(),
   TRADE_POLL_INTERVAL: Joi.number().integer().allow(-1).positive().optional(),
   TRADE_POLL_FULL_UPDATE_INTERVAL: Joi.number().positive().optional(),
-  EVENTS_TYPE: Joi.string().valid('rabbitmq', 'redis').required(),
-  EVENTS_RABBITMQ_HOST: Joi.string().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRabbitMQ,
-  ),
-  EVENTS_RABBITMQ_PORT: Joi.number()
-    .integer()
-    .when('EVENTS_TYPE', whenEventsTypeRabbitMQ),
-  EVENTS_RABBITMQ_USERNAME: Joi.string().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRabbitMQ,
-  ),
-  EVENTS_RABBITMQ_PASSWORD: Joi.string().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRabbitMQ,
-  ),
-  EVENTS_RABBITMQ_VHOST: Joi.string()
-    .allow('')
-    .when('EVENTS_TYPE', whenEventsTypeRabbitMQ),
-  EVENTS_REDIS_HOST: Joi.string().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRedis(true),
-  ),
-  EVENTS_REDIS_PORT: Joi.number()
-    .integer()
-    .when('EVENTS_TYPE', whenEventsTypeRedis(true)),
-  EVENTS_REDIS_PASSWORD: Joi.string().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRedis(false),
-  ),
-  EVENTS_REDIS_DB: Joi.number()
-    .integer()
-    .when('EVENTS_TYPE', whenEventsTypeRedis(false)),
-  EVENTS_REDIS_KEY_PREFIX: Joi.string().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRedis(false),
-  ),
-  EVENTS_REDIS_PERSIST: Joi.boolean().when(
-    'EVENTS_TYPE',
-    whenEventsTypeRedis(true),
-  ),
+  ...getEventRules(),
   DEBUG: Joi.boolean().optional(),
   STORAGE_TYPE: Joi.string().valid('local', 's3').required(),
   STORAGE_LOCAL_PATH: Joi.string().when('STORAGE_TYPE', whenStorageTypeLocal),

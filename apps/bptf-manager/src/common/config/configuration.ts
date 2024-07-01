@@ -1,15 +1,9 @@
+import { Redis, getEnv, getEnvWithDefault } from '@tf2-automatic/config';
+
 export interface Config {
   port: number;
-  redis: RedisConfig;
+  redis: Redis.Config;
   agents: AgentsConfig;
-}
-
-export interface RedisConfig {
-  host: string;
-  port: number;
-  password?: string;
-  db?: number;
-  keyPrefix?: string;
 }
 
 export interface AgentsConfig {
@@ -18,22 +12,14 @@ export interface AgentsConfig {
 
 export default (): Config => {
   return {
-    port: parseInt(process.env.PORT as string, 10),
-    redis: {
-      host: process.env.REDIS_HOST as string,
-      port: parseInt(process.env.REDIS_PORT as string, 10),
-      password: process.env.REDIS_PASSWORD,
-      db:
-        process.env.REDIS_DB !== undefined
-          ? parseInt(process.env.REDIS_DB, 10)
-          : undefined,
-      keyPrefix: process.env.REDIS_PREFIX ?? 'tf2-automatic',
-    },
+    port: getEnv('PORT', 'integer')!,
+    redis: Redis.getConfig(),
     agents: {
-      registerInterval:
-        process.env.AGENTS_REGISTER_INTERVAL !== undefined
-          ? parseInt(process.env.AGENTS_REGISTER_INTERVAL as string, 10)
-          : 5 * 60 * 1000,
+      registerInterval: getEnvWithDefault(
+        'AGENTS_REGISTER_INTERVAL',
+        'integer',
+        5 * 60 * 1000,
+      ),
     },
   };
 };

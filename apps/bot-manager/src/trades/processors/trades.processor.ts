@@ -14,7 +14,7 @@ import {
   TradeFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
 import { AxiosError } from 'axios';
-import { Job, MinimalJob, UnrecoverableError } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
@@ -24,19 +24,18 @@ import {
   TradeQueue,
 } from '../interfaces/trade-queue.interface';
 import { TradesService } from '../trades.service';
-import { customBackoffStrategy } from '../../common/utils/backoff-strategy';
-import { EventsService } from '../../events/events.service';
+import {
+  bullWorkerSettings,
+  customBackoffStrategy,
+} from '../../common/utils/backoff-strategy';
+import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
   CustomError,
   CustomUnrecoverableError,
 } from '../../common/utils/custom-queue-errors';
 
 @Processor('trades', {
-  settings: {
-    backoffStrategy: (attempts: number, _, __, job: MinimalJob) => {
-      return customBackoffStrategy(attempts, job);
-    },
-  },
+  settings: bullWorkerSettings,
   limiter: {
     max: 5,
     duration: 5000,
@@ -48,7 +47,7 @@ export class TradesProcessor extends WorkerHost {
   constructor(
     private readonly tradesService: TradesService,
     private readonly heartbeatsService: HeartbeatsService,
-    private readonly eventsService: EventsService,
+    private readonly eventsService: NestEventsService,
   ) {
     super();
   }

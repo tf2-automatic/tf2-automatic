@@ -6,7 +6,7 @@ import { TokensService } from '../../tokens/tokens.service';
 import { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
-import { Config, RedisConfig } from '../../common/config/configuration';
+import { Config } from '../../common/config/configuration';
 import {
   JobData,
   JobName,
@@ -15,6 +15,7 @@ import {
 } from '../interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../../agents/agents.service';
 import { ManageListingsService } from '../manage-listings.service';
+import { Redis } from '@tf2-automatic/config';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 
@@ -41,7 +42,7 @@ export class ManageListingsProcessor
   ) {
     super();
 
-    const redisConfig = this.configService.getOrThrow<RedisConfig>('redis');
+    const redisConfig = this.configService.getOrThrow<Redis.Config>('redis');
 
     this.batchGroup = new Bottleneck.Group({
       datastore: 'ioredis',

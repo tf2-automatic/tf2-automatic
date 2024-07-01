@@ -13,6 +13,7 @@ import {
 import { MetadataService } from '../metadata/metadata.service';
 import fs from 'fs';
 import { AxiosError } from 'axios';
+import { getEnv } from '@tf2-automatic/config';
 
 @Injectable()
 export class ManagerService implements OnModuleDestroy {
@@ -41,12 +42,12 @@ export class ManagerService implements OnModuleDestroy {
       this.ip = ourIp;
     } else {
       this.ip = ip.address(
-        process.env.NODE_ENV === 'development' ? 'private' : 'public',
+        getEnv('NODE_ENV', 'string') === 'development' ? 'private' : 'public',
         'ipv4',
       );
     }
 
-    if (process.env.NODE_ENV === 'production') {
+    if (getEnv('NODE_ENV', 'string') === 'production') {
       this.version = JSON.parse(
         fs.readFileSync('package.json', 'utf8'),
       ).version;
