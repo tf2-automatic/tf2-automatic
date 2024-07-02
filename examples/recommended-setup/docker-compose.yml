@@ -123,11 +123,11 @@ services:
       STEAM_IDENTITY_SECRET: ''
       # RabbitMQ connection details
       EVENTS_TYPE: 'rabbitmq'
-      EVENTS_RABBITMQ_HOST: 'rabbitmq'
-      EVENTS_RABBITMQ_PORT: 5672
-      EVENTS_RABBITMQ_USERNAME: 'test'
-      EVENTS_RABBITMQ_PASSWORD: 'test'
-      EVENTS_RABBITMQ_VHOST: ''
+      RABBITMQ_HOST: 'rabbitmq'
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: 'test'
+      RABBITMQ_PASSWORD: 'test'
+      RABBITMQ_VHOST: ''
       # Storage settings
       STORAGE_TYPE: 's3'
       STORAGE_S3_ENDPOINT: 'minio'
