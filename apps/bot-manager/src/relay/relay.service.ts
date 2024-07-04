@@ -5,36 +5,51 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import { Redis, RedisOptions } from 'ioredis';
 import { SafeRedisLeader } from 'ts-safe-redis-leader';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 import { BaseEvent } from '@tf2-automatic/bot-data';
+import { ConfigService } from '@nestjs/config';
+import { Config } from '../common/config/configuration';
+import { Redis as RedisConfig } from '@tf2-automatic/config';
 
 @Injectable()
-export class PublisherService
-  implements OnApplicationBootstrap, OnModuleDestroy
-{
-  private readonly logger = new Logger(PublisherService.name);
+export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
+  private readonly logger = new Logger(RelayService.name);
 
   private leader: SafeRedisLeader;
   private isLeader = false;
   private working = false;
   private timeout: NodeJS.Timeout;
 
+  private readonly leaderRedis: Redis;
+  private readonly subscriber: Redis;
+
   constructor(
-    @InjectRedis('subscribe')
-    private readonly redisSubcriber: Redis,
-    @InjectRedis(OUTBOX_KEY)
-    private readonly redisOutbox: Redis,
+    private readonly eventsService: NestEventsService,
+    private readonly configService: ConfigService<Config>,
     @InjectRedis()
     private readonly redis: Redis,
-    private readonly eventsService: NestEventsService,
-  ) {}
+  ) {
+    const redisConfig =
+      this.configService.getOrThrow<RedisConfig.Config>('redis');
+
+    const config: RedisOptions = {
+      host: redisConfig.host,
+      port: redisConfig.port,
+      password: redisConfig.password,
+      db: redisConfig.db,
+      keyPrefix: redisConfig.keyPrefix,
+    };
+
+    this.subscriber = new Redis(config);
+    this.leaderRedis = new Redis(config);
+  }
 
   async onApplicationBootstrap() {
     this.leader = new SafeRedisLeader(
-      this.redis,
+      this.leaderRedis,
       1000,
       2000,
       'publisher-leader-election',
@@ -48,9 +63,9 @@ export class PublisherService
       this.demoted();
     });
 
-    await this.redisSubcriber.subscribe(OUTBOX_KEY);
+    await this.subscriber.subscribe(OUTBOX_KEY);
 
-    this.redisSubcriber.on('message', (channel) => {
+    this.subscriber.on('message', (channel) => {
       if (channel !== OUTBOX_KEY) {
         return;
       }
@@ -58,8 +73,6 @@ export class PublisherService
       if (!this.isLeader) {
         return;
       }
-
-      this.logger.debug('Notified of a new message');
 
       this.loop();
     });
@@ -69,7 +82,10 @@ export class PublisherService
 
   async onModuleDestroy() {
     clearTimeout(this.timeout);
+
     await this.leader.shutdown();
+
+    await Promise.all([this.subscriber.quit(), this.leaderRedis.quit()]);
   }
 
   private elected() {
@@ -121,35 +137,18 @@ export class PublisherService
       return false;
     }
 
-    const message = await this.redisOutbox.lindex(OUTBOX_KEY, -1);
+    const message = await this.redis.lindex(OUTBOX_KEY, -1);
     if (!message) {
       return false;
     }
 
     const event = JSON.parse(message) as BaseEvent<string>;
 
-    const secondsAgo = Math.floor(Date.now() / 1000 - event.metadata.time);
-
-    this.logger.debug(
-      'Publishing message of type "' +
-        event.type +
-        '" made ' +
-        (secondsAgo <= 0
-          ? 'now'
-          : secondsAgo +
-            ' ' +
-            (secondsAgo === 1 ? 'second' : 'seconds') +
-            ' ago') +
-        '...',
-    );
-
+    // Publish message
     await this.eventsService.publishEvent(event);
 
-    this.logger.debug('Message published, removing from outbox...');
-
-    await this.redisOutbox.lrem(OUTBOX_KEY, 1, message);
-
-    this.logger.debug('Removed from outbox');
+    // Remove message from outbox
+    await this.redis.lrem(OUTBOX_KEY, 1, message);
 
     return true;
   }

@@ -7,7 +7,7 @@ import {
 } from './custom/custom.interface';
 import { EventsModuleOptions } from './nestjs-events.module';
 import { v4 as uuidv4 } from 'uuid';
-import { EventsConfig, EventsConfigType } from '@tf2-automatic/config';
+import { EventsConfigType } from '@tf2-automatic/config';
 
 @Injectable()
 export class NestEventsService {
