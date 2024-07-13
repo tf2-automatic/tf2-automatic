@@ -8,7 +8,10 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["libs/is-steamid-validator/**/*.ts"]
+        "lintFilePatterns": [
+          "libs/is-steamid-validator/**/*.ts",
+          "libs/is-steamid-validator/package.json"
+        ]
       }
     },
     "test": {
@@ -34,6 +37,31 @@
         "packageJson": "libs/is-steamid-validator/package.json",
         "main": "libs/is-steamid-validator/src/index.ts",
         "assets": ["libs/is-steamid-validator/*.md"]
+      }
+    },
+    "npm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "if [ \"{args.version}\" = \"undefined\" ]; then exit 1; fi",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "jq '.version=\"{args.version}\"' package.json > package.json.tmp",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "mv package.json.tmp package.json",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "npm publish --tag {args.tag}",
+            "forwardAllArgs": false
+          }
+        ],
+        "cwd": "dist/libs/is-steamid-validator/",
+        "parallel": false
       }
     }
   },
