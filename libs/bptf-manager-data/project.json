@@ -11,7 +11,8 @@
         "outputPath": "dist/libs/bptf-manager-data",
         "main": "libs/bptf-manager-data/src/index.ts",
         "tsConfig": "libs/bptf-manager-data/tsconfig.lib.json",
-        "assets": ["libs/bptf-manager-data/*.md"]
+        "assets": ["libs/bptf-manager-data/*.md"],
+        "external": "none"
       }
     },
     "lint": {
