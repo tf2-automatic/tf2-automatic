@@ -38,7 +38,8 @@
       "@tf2-automatic/testing": ["libs/testing/src/index.ts"],
       "@tf2-automatic/transactional-outbox": [
         "libs/transactional-outbox/src/index.ts"
-      ]
+      ],
+      "@tf2-automatic/executors": ["libs/executors/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
