@@ -185,7 +185,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Build and publish
-        run: pnpm exec nx run ${{ matrix.projectName }}:npm --args="--version=${{ needs.release.outputs.new_release_version }} --tag=${{ needs.release.outputs.new_release_channel }}"
+        run: pnpm exec nx run ${{ matrix.projectName }}:npm --release-version=${{ needs.release.outputs.new_release_version }} --release-tag=${{ needs.release.outputs.new_release_channel }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Delete old versions

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "type": "object",
+  "properties": {
+    "release-version": {
+      "type": "string",
+      "description": "The new version to release."
+    },
+    "release-tag": {
+      "type": "string",
+      "description": "The tag to use when releasing."
+    },
+    "dry-run": {
+      "type": "boolean",
+      "description": "Whether to run the release as a dry-run.",
+      "required": false
+    }
+  }
+}
