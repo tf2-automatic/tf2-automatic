@@ -1,5 +1,6 @@
 import { ExecutorContext } from '@nx/devkit';
 import executor, { NPMExecutorOptions } from './executor';
+import path from 'path';
 
 const mockedPackageJson = JSON.stringify(
   {
@@ -89,7 +90,7 @@ describe('NPM Executor', () => {
     await executor(options, context);
 
     expect(fs.readFileSync).toHaveBeenCalledWith(
-      'dist\\libs\\mock-project\\package.json',
+      path.normalize('dist/libs/mock-project/package.json'),
       'utf-8',
     );
   });
@@ -105,7 +106,7 @@ describe('NPM Executor', () => {
 
     expect(child_process.exec).toHaveBeenCalledWith(
       'npm publish --tag latest',
-      { cwd: 'dist\\libs\\mock-project' },
+      { cwd: path.normalize('dist/libs/mock-project') },
       expect.any(Function),
     );
   });
