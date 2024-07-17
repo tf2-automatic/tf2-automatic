@@ -63,6 +63,7 @@ export class BotService implements OnModuleDestroy {
   private lastWebLogin: Date | null = null;
   private running = false;
   private loggedAccountLimitations = false;
+  private webSessionInterval: NodeJS.Timeout | null = null;
 
   private histogramEnds: Map<string, HistogramEndCallback> = new Map();
 
@@ -234,7 +235,7 @@ export class BotService implements OnModuleDestroy {
   }
 
   isReady(): Promise<boolean | string> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!this.running) {
         return resolve('Bot is not running');
       }
@@ -243,19 +244,7 @@ export class BotService implements OnModuleDestroy {
         return resolve('Bot is not connected to Steam');
       }
 
-      this.community.loggedIn((err, loggedIn) => {
-        if (err) {
-          return reject(err);
-        }
-
-        if (!loggedIn) {
-          // Web session expired, relog
-          this.webLogOn();
-          return resolve('Bot is not logged in to steamcommunity.com');
-        }
-
-        resolve(true);
-      });
+      resolve(true);
     });
   }
 
@@ -507,6 +496,12 @@ export class BotService implements OnModuleDestroy {
       });
     });
 
+    this.webSessionInterval = setInterval(() => {
+      this.checkWebSession().catch((err) => {
+        this.logger.error('Failed to check web session: ' + err.message);
+      });
+    }, this.configService.getOrThrow('webSessionRefreshInterval')).unref();
+
     this.running = true;
 
     this.logger.log('Bot is ready');
@@ -539,6 +534,28 @@ export class BotService implements OnModuleDestroy {
       this.lastWebLogin = new Date();
       this.client.webLogOn();
     }
+  }
+
+  private checkWebSession(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.logger.debug('Checking web session...');
+
+      this.community.loggedIn((err, loggedIn) => {
+        if (err) {
+          return reject(err);
+        }
+
+        this.logger.debug('Web session logged in: ' + loggedIn);
+
+        if (!loggedIn) {
+          // Web session expired, relog
+          this.webLogOn();
+          return resolve(false);
+        }
+
+        resolve(true);
+      });
+    });
   }
 
   private async waitForAPIKey(): Promise<void> {
@@ -908,6 +925,10 @@ export class BotService implements OnModuleDestroy {
   private async stop(): Promise<void> {
     this.logger.log('Stopping bot...');
 
+    if (this.webSessionInterval) {
+      clearInterval(this.webSessionInterval);
+      this.webSessionInterval = null;
+    }
     this.manager.shutdown();
     this.client.logOff();
     this.client.removeAllListeners();
