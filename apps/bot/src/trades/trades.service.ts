@@ -466,7 +466,9 @@ export class TradesService {
     return this.sendOffer(counter);
   }
 
-  private sendOffer(offer: ActualTradeOffer): Promise<CreateTradeResponse> {
+  private async sendOffer(
+    offer: ActualTradeOffer,
+  ): Promise<CreateTradeResponse> {
     this.logger.log(`Sending offer to ${offer.partner}...`);
 
     this.logger.debug(
@@ -480,22 +482,25 @@ export class TradesService {
         .join(',')}]`,
     );
 
-    return this._sendOffer(offer).then(() => {
-      this.logger.log(
-        `Offer #${offer.id} sent to ${offer.partner} has state ${
-          SteamTradeOfferManager.ETradeOfferState[offer.state]
-        }`,
-      );
-
-      this.sentCounter.inc();
-
-      // Add offer to queue to ensure state and confirmation is published if needed
-      this.ensureOfferPublishedQueue.push(offer).catch(() => {
-        // Ignore error
-      });
-
-      return this.mapOffer(offer);
+    await this._sendOffer(offer).catch((err) => {
+      this.handleError(err);
+      throw err;
     });
+
+    this.logger.log(
+      `Offer #${offer.id} sent to ${offer.partner} has state ${
+        SteamTradeOfferManager.ETradeOfferState[offer.state]
+      }`,
+    );
+
+    this.sentCounter.inc();
+
+    // Add offer to queue to ensure state and confirmation is published if needed
+    this.ensureOfferPublishedQueue.push(offer).catch(() => {
+      // Ignore error
+    });
+
+    return this.mapOffer(offer);
   }
 
   private _sendOffer(offer: ActualTradeOffer): Promise<void> {
@@ -540,7 +545,10 @@ export class TradesService {
       throw new BadRequestException('Offer is not active');
     }
 
-    const state = await this._acceptTrade(offer);
+    const state = await this._acceptTrade(offer).catch((err) => {
+      this.handleError(err);
+      throw err;
+    });
 
     this.logger.log(
       `Offer #${offer.id} from ${offer.partner} successfully accepted${
@@ -628,11 +636,7 @@ export class TradesService {
     const offer = await this._getTrade(id);
 
     await this._removeTrade(offer).catch((err) => {
-      if (err instanceof Error && err.message === 'HTTP error 500') {
-        // Steam for some reason returns 500 when the session expired
-        this.botService.webLogOn();
-      }
-
+      this.handleError(err);
       throw err;
     });
 
@@ -719,6 +723,15 @@ export class TradesService {
         return resolve(items as unknown as Item[]);
       });
     });
+  }
+
+  private handleError(err: any): void {
+    if (err instanceof Error) {
+      if (err.message === 'HTTP error 500') {
+        // Steam for some reason returns 500 when the session expired
+        this.botService.webLogOn();
+      }
+    }
   }
 
   private mapOffer(offer: ActualTradeOffer): TradeOffer {
