@@ -622,58 +622,62 @@ export class TradesService {
     });
   }
 
-  removeTrade(id: string): Promise<TradeOffer> {
+  async removeTrade(id: string): Promise<TradeOffer> {
     this.logger.debug('Removing trade offer #' + id + '...');
 
-    return new Promise<TradeOffer>((resolve, reject) => {
-      this.manager.getOffer(id, (err, offer) => {
+    const offer = await this._getTrade(id);
+
+    await this._removeTrade(offer).catch((err) => {
+      if (err instanceof Error && err.message === 'HTTP error 500') {
+        // Steam for some reason returns 500 when the session expired
+        this.botService.webLogOn();
+      }
+
+      throw err;
+    });
+
+    this.logger.debug('Removed trade offer #' + id);
+
+    return this.mapOffer(offer);
+  }
+
+  private async _removeTrade(offer: ActualTradeOffer): Promise<void> {
+    if (
+      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
+      offer.state !==
+        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      throw new BadRequestException('Offer is not active');
+    }
+
+    return new Promise((resolve, reject) => {
+      offer.cancel((err) => {
         if (err) {
-          if (err.message === 'NoMatch') {
-            return reject(new BadRequestException('Trade offer not found'));
+          this.logger.error(
+            `Error while removing trade offer #${offer.id}: ${err.message}${
+              err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+            }`,
+          );
+
+          if (
+            err.message ===
+            `Offer #${offer.id} is not active, so it may not be cancelled or declined`
+          ) {
+            return reject(new BadRequestException('Offer is not active'));
+          } else if (err.eresult !== undefined) {
+            return reject(
+              new SteamException(
+                err.message,
+                err.eresult as unknown as EResult,
+              ),
+            );
           }
 
           return reject(err);
         }
 
-        if (
-          offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
-          offer.state !==
-            SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
-        ) {
-          return reject(new BadRequestException('Offer is not active'));
-        }
-
-        offer.cancel((err) => {
-          if (err) {
-            this.logger.error(
-              `Error while removing trade offer #${id}: ${err.message}${
-                err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-              }`,
-            );
-
-            if (
-              err.message ===
-              `Offer #${offer.id} is not active, so it may not be cancelled or declined`
-            ) {
-              return reject(new BadRequestException('Offer is not active'));
-            } else if (err.eresult !== undefined) {
-              return reject(
-                new SteamException(
-                  err.message,
-                  err.eresult as unknown as EResult,
-                ),
-              );
-            }
-
-            return reject(err);
-          }
-
-          return resolve(this.mapOffer(offer));
-        });
+        resolve();
       });
-    }).then((offer) => {
-      this.logger.debug('Removed trade offer #' + id);
-      return offer;
     });
   }
 
