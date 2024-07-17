@@ -25,6 +25,11 @@ const validation = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
   PORT: Joi.number().port().required(),
   IP_ADDRESS: Joi.string().ip().optional(),
+  WEB_SESSION_REFRESH_INTERVAL: Joi.number()
+    .integer()
+    .positive()
+    .min(60000)
+    .optional(),
   STEAM_USERNAME: Joi.string().required(),
   STEAM_PASSWORD: Joi.string().required(),
   STEAM_SHARED_SECRET: Joi.string().required(),
