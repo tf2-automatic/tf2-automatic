@@ -8,6 +8,7 @@ import {
 export interface Config {
   port: number;
   ip?: string;
+  webSessionRefreshInterval: number;
   steam: SteamAccountConfig;
   trade: SteamTradeConfig;
   events: EventsConfig;
@@ -63,6 +64,11 @@ export default (): Config => {
   return {
     port: getEnv('PORT', 'integer')!,
     ip: getEnv('IP_ADDRESS', 'string'),
+    webSessionRefreshInterval: getEnvWithDefault(
+      'WEB_SESSION_REFRESH_INTERVAL',
+      'integer',
+      10 * 60 * 1000,
+    ),
     steam: {
       username: getEnv('STEAM_USERNAME', 'string')!,
       password: getEnv('STEAM_PASSWORD', 'string')!,
