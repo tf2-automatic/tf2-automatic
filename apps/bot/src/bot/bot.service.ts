@@ -526,7 +526,7 @@ export class BotService implements OnModuleDestroy {
       });
   }
 
-  private webLogOn(): void {
+  webLogOn(): void {
     this.logger.debug('webLogOn()');
 
     const now = new Date();
