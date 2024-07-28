@@ -91,13 +91,13 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private elected() {
-    this.logger.log('Elected as leader');
+    this.logger.debug('Elected as leader');
     this.isLeader = true;
     this.loop();
   }
 
   private demoted() {
-    this.logger.log('No longer leader');
+    this.logger.debug('No longer leader');
     this.isLeader = false;
     clearTimeout(this.timeout);
   }
