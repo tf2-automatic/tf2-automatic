@@ -6,6 +6,8 @@ const rules = {
   PORT: Joi.number().required(),
   ...getEventRules(),
   ...Redis.getRules(),
+  LEADER_TIMEOUT: Joi.number().integer().optional().min(1000),
+  LEADER_RENEW_TIMEOUT: Joi.number().integer().optional().min(2000),
 };
 
 const validation = Joi.object(rules);
