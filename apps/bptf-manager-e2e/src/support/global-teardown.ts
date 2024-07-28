@@ -15,5 +15,8 @@ module.exports = async function () {
   });
 
   console.log('Stopping Docker Compose...');
-  await compose.down({ cwd: './apps/bptf-manager-e2e' });
+  await compose.down({
+    cwd: './apps/bptf-manager-e2e',
+    commandOptions: ['--volumes'],
+  });
 };
