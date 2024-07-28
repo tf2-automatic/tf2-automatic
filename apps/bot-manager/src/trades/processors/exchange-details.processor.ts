@@ -30,7 +30,11 @@ export class ExchangeDetailsProcessor extends WorkerHost {
 
     this.logger.debug('Getting exchange details for offer ' + offer.id + '...');
 
-    const details = await this.tradesService.getExchangeDetails(bot, offer.id!);
+    const details = await this.tradesService.getExchangeDetails(
+      bot,
+      offer.id!,
+      true,
+    );
 
     this.logger.debug(
       'Publishing exchange details for offer ' + offer.id + '...',

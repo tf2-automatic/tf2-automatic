@@ -15,9 +15,10 @@ import {
   QueueTradeTypes,
 } from '@tf2-automatic/bot-manager-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -248,4 +249,16 @@ export class TradeQueueJobDto implements QueueTrade {
   @ValidateNested()
   @Type(() => QueueRetryDto)
   retry?: QueueRetryDto;
+}
+
+export class GetExchangeDetailsDto {
+  @ApiProperty({
+    description: 'Get the details even if the trade failed',
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform((params) => params.value === 'true')
+  getDetailsIfFailed = false;
 }

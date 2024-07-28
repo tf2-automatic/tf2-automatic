@@ -32,7 +32,11 @@ import {
   Job,
   QueueTradeJob,
 } from '@tf2-automatic/bot-manager-data';
-import { CreateTradeDto, GetTradesDto } from '@tf2-automatic/dto';
+import {
+  CreateTradeDto,
+  GetExchangeDetailsDto,
+  GetTradesDto,
+} from '@tf2-automatic/dto';
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
@@ -270,6 +274,9 @@ export class TradesService implements OnApplicationBootstrap {
       {
         offer: event.data.offer,
         bot: steamid.getSteamID64(),
+        retry: {
+          maxDelay: 60000,
+        },
       },
       {
         jobId: `offer:${event.data.offer.id}`,
@@ -280,6 +287,7 @@ export class TradesService implements OnApplicationBootstrap {
   async getExchangeDetails(
     steamid: SteamID,
     offerId: string,
+    getDetailsIfFailed = false,
   ): Promise<TradeOfferExchangeDetails> {
     const bot = await this.heartbeatsService.getBot(steamid);
 
@@ -289,7 +297,15 @@ export class TradesService implements OnApplicationBootstrap {
         offerId,
       );
 
-    return firstValueFrom(this.httpService.get(url)).then((res) => res.data);
+    const params: GetExchangeDetailsDto = {
+      getDetailsIfFailed,
+    };
+
+    return firstValueFrom(
+      this.httpService.get<TradeOfferExchangeDetails>(url, {
+        params,
+      }),
+    ).then((res) => res.data);
   }
 
   mapJob(job: BullJob<TradeQueue>): Job {

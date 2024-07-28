@@ -48,6 +48,7 @@ import {
   CounterTradeDto,
   CreateTradeDto,
   GetTradesDto,
+  GetExchangeDetailsDto,
 } from '@tf2-automatic/dto';
 
 @ApiTags('Trades')
@@ -207,8 +208,14 @@ export class TradesController {
   })
   getExchangeDetails(
     @Param('id') id: string,
+    @Query(
+      new ValidationPipe({
+        transform: true,
+      }),
+    )
+    exchangeDetailsDto: GetExchangeDetailsDto,
   ): Promise<TradeOfferExchangeDetails> {
-    return this.tradesService.getExchangeDetails(id);
+    return this.tradesService.getExchangeDetails(id, exchangeDetailsDto);
   }
 
   @Get(TRADE_RECEIVED_ITEMS_PATH)
