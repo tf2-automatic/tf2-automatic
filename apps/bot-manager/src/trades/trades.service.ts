@@ -274,6 +274,9 @@ export class TradesService implements OnApplicationBootstrap {
       {
         offer: event.data.offer,
         bot: steamid.getSteamID64(),
+        retry: {
+          maxDelay: 60000,
+        },
       },
       {
         jobId: `offer:${event.data.offer.id}`,
