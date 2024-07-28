@@ -6,7 +6,6 @@ on:
       - opened
       - synchronize
       - edited
-  merge_group:
 
 jobs:
   affected:
@@ -15,19 +14,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Get base branch name
-        id: base
-        run: |
-          if [[ "${{ github.event_name }}" == "merge_group" ]]; then
-            echo "BRANCH=$(echo ${{ github.event.merge_group.base_ref }} | cut -b 12-)" >> $GITHUB_OUTPUT
-          else
-            echo "BRANCH=${{ github.base_ref }}" >> $GITHUB_OUTPUT
-          fi
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v4
-        with:
-          # Affected projects are found based on the base branch
-          main-branch-name: ${{ steps.base.outputs.BRANCH }}
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
