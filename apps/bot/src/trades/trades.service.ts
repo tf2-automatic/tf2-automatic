@@ -687,12 +687,19 @@ export class TradesService {
 
   async getExchangeDetails(id: string): Promise<TradeOfferExchangeDetails> {
     const offer = await this._getTrade(id);
+    if (!offer.tradeID) {
+      throw new BadRequestException('No trade id');
+    }
 
     return new Promise((resolve, reject) => {
       offer.getExchangeDetails(
         false,
         (err, status, tradeInitTime, receivedItems, sentItems) => {
           if (err) {
+            if (err.message.startsWith('Trade status is ')) {
+              return reject(new BadRequestException(err.message));
+            }
+
             return reject(err);
           }
 
