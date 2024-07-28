@@ -32,6 +32,7 @@ import sizeof from 'object-sizeof';
 import {
   CounterTradeDto,
   CreateTradeDto,
+  GetExchangeDetailsDto,
   GetTradesDto,
 } from '@tf2-automatic/dto';
 import Bottleneck from 'bottleneck';
@@ -685,15 +686,19 @@ export class TradesService {
     });
   }
 
-  async getExchangeDetails(id: string): Promise<TradeOfferExchangeDetails> {
+  async getExchangeDetails(
+    id: string,
+    exchangeDetailsDto: GetExchangeDetailsDto,
+  ): Promise<TradeOfferExchangeDetails> {
     const offer = await this._getTrade(id);
+
     if (!offer.tradeID) {
       throw new BadRequestException('No trade id');
     }
 
     return new Promise((resolve, reject) => {
       offer.getExchangeDetails(
-        false,
+        exchangeDetailsDto.getDetailsIfFailed,
         (err, status, tradeInitTime, receivedItems, sentItems) => {
           if (err) {
             if (err.message.startsWith('Trade status is ')) {
