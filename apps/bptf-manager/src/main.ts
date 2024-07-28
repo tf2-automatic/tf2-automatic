@@ -23,6 +23,8 @@ async function bootstrap() {
 
   app.use(json({ limit: '50mb' }));
 
+  console.log('hello');
+
   const port = configService.getOrThrow<number>('port');
 
   await app.listen(port);
