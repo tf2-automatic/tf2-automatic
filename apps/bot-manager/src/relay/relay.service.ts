@@ -11,7 +11,7 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import { ConfigService } from '@nestjs/config';
-import { Config } from '../common/config/configuration';
+import { Config, RelayConfig } from '../common/config/configuration';
 import { Redis as RedisConfig } from '@tf2-automatic/config';
 
 @Injectable()
@@ -48,10 +48,12 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   async onApplicationBootstrap() {
+    const relayConfig = this.configService.getOrThrow<RelayConfig>('relay');
+
     this.leader = new SafeRedisLeader(
       this.leaderRedis,
-      1000,
-      2000,
+      relayConfig.leaderTimeout,
+      relayConfig.leaderRenewTimeout,
       'publisher-leader-election',
     );
 
@@ -89,13 +91,13 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private elected() {
-    this.logger.log('Elected as leader');
+    this.logger.debug('Elected as leader');
     this.isLeader = true;
     this.loop();
   }
 
   private demoted() {
-    this.logger.log('No longer leader');
+    this.logger.debug('No longer leader');
     this.isLeader = false;
     clearTimeout(this.timeout);
   }
