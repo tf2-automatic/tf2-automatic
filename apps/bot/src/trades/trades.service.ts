@@ -37,12 +37,8 @@ import {
 } from '@tf2-automatic/dto';
 import Bottleneck from 'bottleneck';
 import CEconItem from 'steamcommunity/classes/CEconItem';
-
-interface TradeOfferData {
-  published?: SteamUser.ETradeOfferState;
-  conf?: number;
-  accept?: number;
-}
+import { GarbageCollectorService } from './gc.service';
+import { TradeOfferData } from './types';
 
 @Injectable()
 export class TradesService {
@@ -66,6 +62,7 @@ export class TradesService {
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
     private readonly eventsService: EventsService,
+    private readonly gc: GarbageCollectorService,
     @InjectMetric('bot_offers_sent_total')
     private readonly sentCounter: Counter,
     @InjectMetric('bot_offers_received_total')
@@ -89,11 +86,7 @@ export class TradesService {
       this.handleOfferChanged(offer, oldState);
     });
 
-    this.manager.on('pollData', () => {
-      this.ensurePollData();
-    });
-
-    this.manager.once('pollSuccess', () => {
+    this.manager.on('pollSuccess', () => {
       this.ensurePollData();
     });
 
@@ -108,8 +101,13 @@ export class TradesService {
 
         callback(err, sent, received);
 
+        const gotAll =
+          args.length === 2 &&
+          args[0] === 3 &&
+          new Date(args[1]).getTime() === 1000;
+
         try {
-          this.handleOffers(sent, received);
+          this.handleOffers(sent, received, gotAll);
         } catch (err) {
           // Catch the error because we don't want trade offer manager to think an error occurred
           this.logger.warn('Error while handling offers: ' + err.message);
@@ -131,6 +129,7 @@ export class TradesService {
   private handleOffers(
     sent: ActualTradeOffer[],
     received: ActualTradeOffer[],
+    isAll: boolean,
   ) {
     const ensurePublished = (offer: ActualTradeOffer): void => {
       this.ensureOfferPublishedQueue.push(offer).catch(() => {
@@ -140,6 +139,10 @@ export class TradesService {
 
     sent.forEach(ensurePublished);
     received.forEach(ensurePublished);
+
+    if (isAll) {
+      this.gc.cleanup(sent, received);
+    }
   }
 
   private ensurePollData(): void {
@@ -158,11 +161,11 @@ export class TradesService {
       this.logger.debug('Enqueuing offers to ensure poll data is published');
 
       const ensurePublished = (id: string): void => {
-          this.ensurePolldataPublishedQueue.push(id).catch((err) => {
-            // Ignore the error
-            this.logger.warn('Error ensuring offer published: ' + err.message);
-            console.log(err);
-          });
+        this.ensurePolldataPublishedQueue.push(id).catch((err) => {
+          // Ignore the error
+          this.logger.warn('Error ensuring offer published: ' + err.message);
+          console.log(err);
+        });
       };
 
       Object.keys(this.manager.pollData.sent).forEach(ensurePublished);

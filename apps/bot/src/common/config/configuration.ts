@@ -30,6 +30,7 @@ export interface SteamTradeConfig {
   pendingCancelTime?: number;
   pollInterval: number;
   pollFullUpdateInterval: number;
+  pollDataForgetTime: number;
 }
 
 export type StorageConfig = S3StorageConfig | LocalStorageConfig;
@@ -89,6 +90,11 @@ export default (): Config => {
         'TRADE_POLL_FULL_UPDATE_INTERVAL',
         'integer',
         2 * 60 * 1000,
+      ),
+      pollDataForgetTime: getEnvWithDefault(
+        'TRADE_POLL_DATA_FORGET_TIME',
+        'integer',
+        14 * 24 * 60 * 1000,
       ),
     },
     events: getEventsConfig(),

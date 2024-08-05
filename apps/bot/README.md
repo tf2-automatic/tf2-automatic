@@ -23,8 +23,9 @@ The bot is configured using environment variables. Below is a list of the enviro
 | STEAM_PROXY_URL | Proxy used for all communications with Steam | No |  |
 | TRADE_CANCEL_TIME | Milliseconds a sent offer may be active for before it is canceled. Disabled if no value | No |  |
 | TRADE_PENDING_CANCEL_TIME | Milliseconds a sent offer may be pending for before it is canceled. Disabled if no value | No |  |
-| TRADE_POLL_INTERVAL | Milliseconds between getting the current state of recent trades. Use `-1` to disable | No | `30000` |
-| TRADE_POLL_FULL_UPDATE_INTERVAL | Milliseconds between getting the current state of all trades. Disabled if no value | No | `120000` |
+| TRADE_POLL_INTERVAL | Milliseconds between getting the current state of recent trades. Use `-1` to disable | No | 30 seconds |
+| TRADE_POLL_FULL_UPDATE_INTERVAL | Milliseconds between getting the current state of all trades. Disabled if no value | No | 2 minutes |
+| TRADE_POLL_DATA_FORGET_TIME | Milliseconds a trade has not seen during a full poll before removing it from the polldata | No | 14 days |
 | EVENTS_TYPE | How events should be published, either using "rabbitmq" or "redis" | Yes |  |
 | EVENTS_PERSIST | If events should be persisted to a list or not (only used for "redis" events type) | No | `false` |
 | RABBITMQ_HOST | Address of the RabbitMQ server | If "rabbitmq" events type |  |
@@ -47,5 +48,5 @@ The bot is configured using environment variables. Below is a list of the enviro
 | STORAGE_SECRET_ACCESS_KEY | Secret key used to authenticate with S3 service | If "s3" storage type |  |
 | BOT_MANAGER_ENABLED | If the bot should register itself with a bot-manager | No | `false` |
 | BOT_MANAGER_URL | URL of the bot-manager | No |  |
-| BOT_MANAGER_HEARTBEAT_INTERVAL | Milliseconds between heartbeats sent to the bot-manager | No | `60000` |
+| BOT_MANAGER_HEARTBEAT_INTERVAL | Milliseconds between heartbeats sent to the bot-manager | No | 1 minute |
 | IP_ADDRESS | Manually set IP of the bot in bot-manager heartbeats | No |  |
