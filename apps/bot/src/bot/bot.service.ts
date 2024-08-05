@@ -457,7 +457,6 @@ export class BotService implements OnModuleDestroy {
 
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
-    this.logger.log('Getting API key...');
     await this.waitForAPIKey();
 
     this.client.on('webSession', (_, cookies) => {
@@ -570,6 +569,8 @@ export class BotService implements OnModuleDestroy {
     if (apiKey) {
       // We assume the API key is valid
       this.manager.apiKey = apiKey;
+    } else {
+      this.logger.log('Getting API key...');
     }
 
     await this.setCookies(cookies);
