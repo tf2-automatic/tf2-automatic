@@ -128,12 +128,18 @@ export class TradesService {
     };
   }
 
-  private handleOffers(sent: ActualTradeOffer[], received: ActualTradeOffer[]) {
-    sent.concat(received).forEach((offer) =>
+  private handleOffers(
+    sent: ActualTradeOffer[],
+    received: ActualTradeOffer[],
+  ) {
+    const ensurePublished = (offer: ActualTradeOffer): void => {
       this.ensureOfferPublishedQueue.push(offer).catch(() => {
         // Ignore error
-      }),
-    );
+      });
+    };
+
+    sent.forEach(ensurePublished);
+    received.forEach(ensurePublished);
   }
 
   private ensurePollData(): void {
@@ -150,15 +156,17 @@ export class TradesService {
       this.activeOffers.set({ type: 'total' }, sent + received);
 
       this.logger.debug('Enqueuing offers to ensure poll data is published');
-      Object.keys(this.manager.pollData.sent)
-        .concat(Object.keys(this.manager.pollData.received))
-        .forEach((id) => {
+
+      const ensurePublished = (id: string): void => {
           this.ensurePolldataPublishedQueue.push(id).catch((err) => {
             // Ignore the error
             this.logger.warn('Error ensuring offer published: ' + err.message);
             console.log(err);
           });
-        });
+      };
+
+      Object.keys(this.manager.pollData.sent).forEach(ensurePublished);
+      Object.keys(this.manager.pollData.received).forEach(ensurePublished);
     }, 10000);
   }
 
@@ -198,10 +206,8 @@ export class TradesService {
     if (currentState !== null) {
       const pollDataOfferData = this.manager.pollData.offerData ?? {};
 
-      const offerData: TradeOfferData | null = pollDataOfferData[id] ?? null;
-      const publishedState = offerData?.published ?? null;
-
-      if (currentState === publishedState) {
+      const offerData: TradeOfferData = pollDataOfferData[id] ?? {};
+      if (currentState === offerData.published) {
         // Offer was already published
         return;
       }
@@ -217,23 +223,21 @@ export class TradesService {
     return this.ensureOfferPublishedQueue.push(offer);
   }
 
-  private ensureOfferPublished(offer): Promise<void> {
+  private ensureOfferPublished(offer: ActualTradeOffer): Promise<void> {
     return this.ensureOfferStatePublished(offer).then(() => {
       return this.ensureConfirmationPublished(offer);
     });
   }
 
   private ensureOfferStatePublished(offer: ActualTradeOffer): Promise<void> {
-    const publishedState = offer.data('published') as
-      | TradeOfferData['published']
-      | null;
+    const offerData = offer.data() as TradeOfferData;
 
-    if (offer.state === publishedState) {
+    if (offer.state === offerData.published) {
       // This check is redundant but it's here just in case
       return Promise.resolve();
     }
 
-    return this.publishOffer(offer, publishedState);
+    return this.publishOffer(offer, offerData.published);
   }
 
   private ensureConfirmationPublished(offer: ActualTradeOffer): Promise<void> {
@@ -354,7 +358,10 @@ export class TradesService {
     // Wait for the event to be published
     return publish()
       .then(() => {
-        offer.data('published', offer.state);
+        offer.data(
+          'published',
+          offer.state satisfies TradeOfferData['published'],
+        );
       })
       .catch((err) => {
         this.logger.warn('Error publishing offer: ' + err.message);

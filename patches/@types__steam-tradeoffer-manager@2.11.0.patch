@@ -21,7 +21,7 @@ index 9434e88a17a7a9315fa030330ba959eb5743f126..aac4d17597245bd632dd53cea8fd1138
  
      interface TradeOfferManagerOptions {
 diff --git a/lib/classes/TradeOffer.d.ts b/lib/classes/TradeOffer.d.ts
-index 73fe761d736d07d688262636b1f18f65a9f27a93..315d2c920a719a7373f56d5751d54391254406e7 100644
+index 73fe761d736d07d688262636b1f18f65a9f27a93..0af3e5c73bd0d67c1e797375fa69332421b36b47 100644
 --- a/lib/classes/TradeOffer.d.ts
 +++ b/lib/classes/TradeOffer.d.ts
 @@ -40,13 +40,13 @@ declare class TradeOffer {
@@ -40,3 +40,12 @@ index 73fe761d736d07d688262636b1f18f65a9f27a93..315d2c920a719a7373f56d5751d54391
  
      /**
       * `true` if this offer was sent by you, `false` if you received it
+@@ -132,7 +132,7 @@ declare class TradeOffer {
+      * @param key - A `string` containing the data key you wish to get/set
+      * @param value - Any arbitrary data type that can be stringified using JSON.stringify. Using undefined will unset the value.
+      */
+-    data(key: string, value?: any): any;
++    data(key?: string, value?: any): any;
+ 
+     /**
+      * Gets the contents of your trading partner's inventory for a particular app and context. Same difference from `loadPartnerInventory` as there is between
