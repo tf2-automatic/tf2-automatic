@@ -44,6 +44,7 @@ const validation = Joi.object({
   TRADE_PENDING_CANCEL_TIME: Joi.number().integer().positive().optional(),
   TRADE_POLL_INTERVAL: Joi.number().integer().allow(-1).positive().optional(),
   TRADE_POLL_FULL_UPDATE_INTERVAL: Joi.number().positive().optional(),
+  TRADE_POLL_DATA_FORGET_TIME: Joi.number().positive().optional(),
   ...getEventRules(),
   DEBUG: Joi.boolean().optional(),
   STORAGE_TYPE: Joi.string().valid('local', 's3').required(),
