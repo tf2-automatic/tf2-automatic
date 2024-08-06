@@ -42,19 +42,17 @@ connection.on('connectFailed', (err) => {
 
 // Set up a channel listening for messages in the queue.
 const channelWrapper = connection.createChannel({
-  setup: (channel: ConfirmChannel) => {
-    return Promise.all([
-      // Assert the queue, so that it exists
-      channel.assertQueue(QUEUE_NAME),
-      // Bind the queue to the exchanges with the routing key `*.*` to route
-      // all messages from both exchanges to the queue
-      channel.bindQueue(QUEUE_NAME, BOT_EXCHANGE_NAME, '*.*'),
-      channel.bindQueue(QUEUE_NAME, BOT_MANAGER_EXCHANGE_NAME, '*.*'),
-      // Only request 1 unacked message from queue
-      channel.prefetch(1),
-      // Set up a consumer that handles messages from the queue
-      channel.consume(QUEUE_NAME, messageHandler),
-    ]);
+  setup: async (channel: ConfirmChannel) => {
+    // Assert the queue, so that it exists
+    await channel.assertQueue(QUEUE_NAME);
+    // Bind the queue to the exchanges with the routing key `*.*` to route
+    // all messages from both exchanges to the queue
+    await channel.bindQueue(QUEUE_NAME, BOT_EXCHANGE_NAME, '*.*');
+    await channel.bindQueue(QUEUE_NAME, BOT_MANAGER_EXCHANGE_NAME, '*.*');
+    // Only request 1 unacked message from queue
+    await channel.prefetch(1);
+    // Set up a consumer that handles messages from the queue
+    await channel.consume(QUEUE_NAME, messageHandler);
   },
 });
 
