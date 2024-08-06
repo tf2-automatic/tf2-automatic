@@ -48,8 +48,8 @@ const channelWrapper = connection.createChannel({
       channel.assertQueue(QUEUE_NAME),
       // Bind the queue to the exchanges with the routing key `*.*` to route
       // all messages from both exchanges to the queue
-      channel.bindExchange(QUEUE_NAME, BOT_EXCHANGE_NAME, '*.*'),
-      channel.bindExchange(QUEUE_NAME, BOT_MANAGER_EXCHANGE_NAME, '*.*'),
+      channel.bindQueue(QUEUE_NAME, BOT_EXCHANGE_NAME, '*.*'),
+      channel.bindQueue(QUEUE_NAME, BOT_MANAGER_EXCHANGE_NAME, '*.*'),
       // Only request 1 unacked message from queue
       channel.prefetch(1),
       // Set up a consumer that handles messages from the queue
