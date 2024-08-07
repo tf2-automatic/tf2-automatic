@@ -14,7 +14,7 @@ COPY patches ./patches
 RUN pnpm install --frozen-lockfile --prod
 
 FROM node:20-alpine AS runner
-ENV NODE_ENV production
+ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=source --chown=nestjs:nodejs /app ./
 ARG VERSION
@@ -22,5 +22,5 @@ RUN test -n "$VERSION"
 RUN sed -i 's/"version": .*/"version": "'"$VERSION"'",/' package.json
 COPY --from=installer /app/node_modules ./node_modules
 EXPOSE 3000
-ENV PORT 3000
+ENV PORT=3000
 CMD ["node", "main.js"]
