@@ -68,7 +68,10 @@ describe('DesiredListingsService', () => {
 
       const result = await service.addDesired(steamid, desired);
 
-      expectMockUsing(steamid);
+      expectMockUsing(
+        steamid,
+        desired.map((d) => hashListing(d.listing)),
+      );
 
       const hash = hashListing(desired[0].listing);
 
@@ -136,7 +139,7 @@ describe('DesiredListingsService', () => {
 
       const result = await service.addDesired(steamid, desired);
 
-      expectMockUsing(steamid);
+      expectMockUsing(steamid, [existingDesired.getHash()]);
 
       // Reusing it because it is the exact same because no changes were made
       const saved: DesiredListingInterface = existingDesired.toJSON();
@@ -193,7 +196,7 @@ describe('DesiredListingsService', () => {
 
       const result = await service.addDesired(steamid, desired);
 
-      expectMockUsing(steamid);
+      expectMockUsing(steamid, [hashListing(desired[0].listing)]);
 
       const saved: DesiredListingInterface = {
         hash: hashListing(desired[0].listing),
@@ -248,7 +251,7 @@ describe('DesiredListingsService', () => {
 
       await service.removeDesired(steamid, remove);
 
-      expectMockUsing(steamid);
+      expectMockUsing(steamid, [hashListing(remove[0])]);
 
       expect(mockRedis.exec).toHaveBeenCalledTimes(0);
 
@@ -281,7 +284,7 @@ describe('DesiredListingsService', () => {
 
       await service.removeDesired(steamid, [remove]);
 
-      expectMockUsing(steamid);
+      expectMockUsing(steamid, [hashListing(remove)]);
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(
@@ -328,7 +331,7 @@ describe('DesiredListingsService', () => {
 
       await service.removeDesired(steamid, [remove]);
 
-      expectMockUsing(steamid);
+      expectMockUsing(steamid, [remove.hash!]);
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(
@@ -392,10 +395,15 @@ describe('DesiredListingsService', () => {
  * Test if desired listings were locked
  * @param {SteamID} steamid
  **/
-function expectMockUsing(steamid: SteamID) {
+function expectMockUsing(steamid: SteamID, hashes: string[]) {
   expect(mock.redlock.using).toHaveBeenCalledTimes(1);
+
+  const resources = hashes.map(
+    (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
+  );
+
   expect(mock.redlock.using).toHaveBeenCalledWith(
-    ['desired:' + steamid.getSteamID64()],
+    resources,
     1000,
     expect.any(Function),
   );

@@ -38,43 +38,43 @@ export class DesiredListingsService {
       ListingFactory.CreateDesiredListingFromDto(steamid, create, now),
     );
 
-    return this.redlock.using(
-      ['desired:' + steamid.getSteamID64()],
-      1000,
-      async (signal) => {
-        // Get current listings and check if they are different from the new listings
-        const current = await this.getDesiredByHashes(
-          steamid,
-          desired.map((d) => d.getHash()),
-        );
-
-        if (signal.aborted) {
-          throw signal.error;
-        }
-
-        const changed = DesiredListingsService.compareAndUpdateDesired(
-          desired,
-          current,
-        );
-
-        const transaction = this.redis.multi();
-        DesiredListingsService.chainableSaveDesired(
-          transaction,
-          steamid,
-          desired,
-        );
-        await transaction.exec();
-
-        if (changed.length > 0) {
-          await this.eventEmitter.emitAsync('desired-listings.added', {
-            steamid,
-            desired: changed,
-          } satisfies DesiredListingsAddedEvent);
-        }
-
-        return desired;
-      },
+    const resources = desired.map(
+      (d) => `desired:${steamid.getSteamID64()}:${d.getHash()}`,
     );
+
+    return this.redlock.using(resources, 1000, async (signal) => {
+      // Get current listings and check if they are different from the new listings
+      const current = await this.getDesiredByHashes(
+        steamid,
+        desired.map((d) => d.getHash()),
+      );
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      const changed = DesiredListingsService.compareAndUpdateDesired(
+        desired,
+        current,
+      );
+
+      const transaction = this.redis.multi();
+      DesiredListingsService.chainableSaveDesired(
+        transaction,
+        steamid,
+        desired,
+      );
+      await transaction.exec();
+
+      if (changed.length > 0) {
+        await this.eventEmitter.emitAsync('desired-listings.added', {
+          steamid,
+          desired: changed,
+        } satisfies DesiredListingsAddedEvent);
+      }
+
+      return desired;
+    });
   }
 
   static compareAndUpdateDesired(
@@ -107,38 +107,38 @@ export class DesiredListingsService {
       (listing) => listing.hash ?? hashListing(listing),
     );
 
-    return this.redlock.using(
-      ['desired:' + steamid.getSteamID64()],
-      1000,
-      async (signal) => {
-        const map = await this.getDesiredByHashes(steamid, hashes);
-
-        if (signal.aborted) {
-          throw signal.error;
-        }
-
-        if (map.size === 0) {
-          return [];
-        }
-
-        // It is okay to only remove the matched listings because unmatched listings don't exist anyway
-        const desired = Array.from(map.values());
-
-        const transaction = this.redis.multi();
-        transaction.hdel(
-          DesiredListingsService.getDesiredKey(steamid),
-          ...desired.map((d) => d.getHash()),
-        );
-        await transaction.exec();
-
-        await this.eventEmitter.emitAsync('desired-listings.removed', {
-          steamid,
-          desired,
-        } satisfies DesiredListingsRemovedEvent);
-
-        return desired;
-      },
+    const resources = hashes.map(
+      (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
     );
+
+    return this.redlock.using(resources, 1000, async (signal) => {
+      const map = await this.getDesiredByHashes(steamid, hashes);
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      if (map.size === 0) {
+        return [];
+      }
+
+      // It is okay to only remove the matched listings because unmatched listings don't exist anyway
+      const desired = Array.from(map.values());
+
+      const transaction = this.redis.multi();
+      transaction.hdel(
+        DesiredListingsService.getDesiredKey(steamid),
+        ...desired.map((d) => d.getHash()),
+      );
+      await transaction.exec();
+
+      await this.eventEmitter.emitAsync('desired-listings.removed', {
+        steamid,
+        desired,
+      } satisfies DesiredListingsRemovedEvent);
+
+      return desired;
+    });
   }
 
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
