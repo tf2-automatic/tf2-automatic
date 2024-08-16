@@ -597,6 +597,26 @@ export class TradesService {
     });
   }
 
+  async checkAccepted(id: string): Promise<boolean> {
+    const offer = await this._getTrade(id);
+
+    if (
+      offer.state === SteamTradeOfferManager.ETradeOfferState.Accepted ||
+      offer.state === SteamTradeOfferManager.ETradeOfferState.InEscrow
+    ) {
+      return true;
+    }
+
+    if (
+      offer.confirmationMethod !==
+      SteamTradeOfferManager.EConfirmationMethod.None
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
   async acceptTrade(id: string): Promise<TradeOffer> {
     this.logger.log(`Accepting trade offer #${id}...`);
 
@@ -656,6 +676,15 @@ export class TradesService {
     });
   }
 
+  async checkConfirmed(id: string): Promise<boolean> {
+    const offer = await this._getTrade(id);
+    if (offer.tradeID) {
+      return true;
+    }
+
+    return false;
+  }
+
   acceptConfirmation(id: string): Promise<void> {
     this.logger.log(`Accepting confirmation for offer #${id}...`);
 
@@ -689,6 +718,19 @@ export class TradesService {
       this.logger.log(`Accepted confirmation for offer #${id}!`);
       this.manager.doPoll();
     });
+  }
+
+  async checkRemoved(id: string): Promise<boolean> {
+    const offer = await this._getTrade(id);
+
+    if (
+      offer.state === SteamTradeOfferManager.ETradeOfferState.Declined ||
+      offer.state === SteamTradeOfferManager.ETradeOfferState.Canceled
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
   async removeTrade(id: string): Promise<TradeOffer> {

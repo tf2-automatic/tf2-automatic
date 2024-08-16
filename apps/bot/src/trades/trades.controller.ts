@@ -35,6 +35,11 @@ import {
   TRADE_COUNTER_PATH,
   TRADE_REFRESH_PATH,
   RefreshTradeResponse,
+  TRADE_CONFIRMED_PATH,
+  TRADE_ACCEPTED_PATH,
+  CheckAcceptedResponse,
+  TRADE_DELETED_PATH,
+  CheckDeletedResponse,
 } from '@tf2-automatic/bot-data';
 import {
   ItemModel,
@@ -163,6 +168,18 @@ export class TradesController {
     return this.tradesService.removeTrade(id);
   }
 
+  @Get(TRADE_DELETED_PATH)
+  @ApiOperation({
+    summary: 'Check if trade is canceled / declined',
+    description: 'Checks if a trade has already been canceled / declined',
+  })
+  @ApiParamOfferID()
+  async checkRemoved(@Param('id') id: string): Promise<CheckDeletedResponse> {
+    return this.tradesService.checkRemoved(id).then((deleted) => {
+      return { deleted };
+    });
+  }
+
   @Post(TRADE_ACCEPT_PATH)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -180,6 +197,19 @@ export class TradesController {
     return this.tradesService.acceptTrade(id);
   }
 
+  @Get(TRADE_ACCEPTED_PATH)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Check if trade is accepted',
+    description: 'Checks if a trade has already been accepted',
+  })
+  @ApiParamOfferID()
+  async checkAccepted(@Param('id') id: string): Promise<CheckAcceptedResponse> {
+    return this.tradesService.checkAccepted(id).then((accepted) => {
+      return { accepted };
+    });
+  }
+
   @Post(TRADE_CONFIRMATION_PATH)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -191,6 +221,18 @@ export class TradesController {
   ): Promise<AcceptConfirmationResponse> {
     return this.tradesService.acceptConfirmation(id).then(() => {
       return { success: true };
+    });
+  }
+
+  @Get(TRADE_CONFIRMED_PATH)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Check if trade is confirmed',
+    description: 'Checks if a trade offer has already been confirmed',
+  })
+  checkConfirmed(@Param('id') id: string): Promise<{ confirmed: boolean }> {
+    return this.tradesService.checkConfirmed(id).then((confirmed) => {
+      return { confirmed };
     });
   }
 
