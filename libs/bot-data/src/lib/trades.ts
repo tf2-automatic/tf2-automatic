@@ -88,13 +88,28 @@ export type AcceptConfirmationResponse = {
   success: boolean;
 };
 
+export interface CheckDeletedResponse {
+  deleted: boolean;
+}
+
+export interface CheckAcceptedResponse {
+  accepted: boolean;
+}
+
+export interface CheckConfirmationResponse {
+  confirmed: boolean;
+}
+
 export const TRADES_BASE_URL = '/trades';
 export const TRADES_PATH = '/';
 export const TRADE_PATH = '/:id';
+export const TRADE_DELETED_PATH = '/:id/deleted';
 export const TRADE_ACCEPT_PATH = `${TRADE_PATH}/accept`;
+export const TRADE_ACCEPTED_PATH = `${TRADE_PATH}/accepted`;
 export const TRADE_EXCHANGE_DETAILS_PATH = `${TRADE_PATH}/exchange`;
 export const TRADE_RECEIVED_ITEMS_PATH = `${TRADE_PATH}/received`;
 export const TRADE_CONFIRMATION_PATH = `${TRADE_PATH}/confirm`;
+export const TRADE_CONFIRMED_PATH = `${TRADE_PATH}/confirmed`;
 export const TRADE_COUNTER_PATH = `${TRADE_PATH}/counter`;
 export const TRADE_REFRESH_PATH = `${TRADE_PATH}/refresh`;
 
