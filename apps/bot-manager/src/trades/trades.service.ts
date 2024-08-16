@@ -40,7 +40,6 @@ import {
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
-import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { TradeQueue } from './interfaces/trade-queue.interface';
@@ -54,7 +53,6 @@ export class TradesService implements OnApplicationBootstrap {
   private readonly redlock: Redlock;
 
   constructor(
-    private readonly heartbeatsService: HeartbeatsService,
     private readonly httpService: HttpService,
     @InjectQueue('getExchangeDetails')
     private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
@@ -285,12 +283,10 @@ export class TradesService implements OnApplicationBootstrap {
   }
 
   async getExchangeDetails(
-    steamid: SteamID,
+    bot: Bot,
     offerId: string,
     getDetailsIfFailed = false,
   ): Promise<TradeOfferExchangeDetails> {
-    const bot = await this.heartbeatsService.getBot(steamid);
-
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_EXCHANGE_DETAILS_PATH}`.replace(
         ':id',
