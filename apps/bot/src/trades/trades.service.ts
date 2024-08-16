@@ -19,7 +19,11 @@ import {
   ExchangeDetailsItem,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
-import { Config, SteamAccountConfig } from '../common/config/configuration';
+import {
+  Config,
+  SteamAccountConfig,
+  SteamTradeConfig,
+} from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common/services';
 import { EventsService } from '../events/events.service';
@@ -39,6 +43,7 @@ import Bottleneck from 'bottleneck';
 import CEconItem from 'steamcommunity/classes/CEconItem';
 import { GarbageCollectorService } from './gc.service';
 import { TradeOfferData } from './types';
+import NodeCache from 'node-cache';
 
 @Injectable()
 export class TradesService {
@@ -58,6 +63,8 @@ export class TradesService {
     minTime: 1000,
   });
 
+  private cache: NodeCache;
+
   constructor(
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
@@ -74,6 +81,16 @@ export class TradesService {
     @InjectMetric('bot_offers_active')
     private readonly activeOffers: Gauge,
   ) {
+    const pullFullUpdateIntervalSeconds =
+      this.configService.getOrThrow<SteamTradeConfig>('trade')
+        .pollFullUpdateInterval / 1000;
+
+    this.cache = new NodeCache({
+      useClones: false,
+      stdTTL: pullFullUpdateIntervalSeconds * 2,
+      checkperiod: pullFullUpdateIntervalSeconds,
+    });
+
     this.manager.on('newOffer', (offer) => {
       this.handleNewOffer(offer);
     });
@@ -131,14 +148,16 @@ export class TradesService {
     received: ActualTradeOffer[],
     isAll: boolean,
   ) {
-    const ensurePublished = (offer: ActualTradeOffer): void => {
+    const handleOffer = (offer: ActualTradeOffer): void => {
+      this.cache.set(offer.id!, offer);
+
       this.ensureOfferPublishedQueue.push(offer).catch(() => {
         // Ignore error
       });
     };
 
-    sent.forEach(ensurePublished);
-    received.forEach(ensurePublished);
+    sent.forEach(handleOffer);
+    received.forEach(handleOffer);
 
     if (isAll) {
       this.gc.cleanup(sent, received);
@@ -397,12 +416,26 @@ export class TradesService {
     });
   }
 
-  private _getTrade(id: string): Promise<ActualTradeOffer> {
+  private _getTrade(id: string, useCache = true): Promise<ActualTradeOffer> {
     return new Promise((resolve, reject) => {
+      if (useCache) {
+        const cached = this.cache.get<ActualTradeOffer | Error>(id);
+        if (cached) {
+          if (cached instanceof Error) {
+            return reject(cached);
+          }
+          return resolve(cached);
+        }
+      }
+
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
+          this.cache.del(id);
+
           if (err.message === 'NoMatch') {
-            return reject(new BadRequestException('Trade offer not found'));
+            const err = new NotFoundException('Trade offer not found');
+            this.cache.set(id, err);
+            return reject(err);
           }
 
           return reject(err);
@@ -413,13 +446,20 @@ export class TradesService {
     });
   }
 
-  private getTradeAndLogError(id: string): Promise<ActualTradeOffer> {
-    return this._getTrade(id).catch((err) => {
+  private getTradeAndLogError(
+    id: string,
+    useCache = false,
+  ): Promise<ActualTradeOffer> {
+    const hasCache = this.cache.has(id);
+    return this._getTrade(id, useCache).catch((err) => {
+      if (!hasCache) {
       this.logger.error(
         `Error getting trade offer: ${err.message}${
           err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
         }`,
       );
+      }
+      
       throw err;
     });
   }
