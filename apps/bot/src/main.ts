@@ -34,6 +34,10 @@ async function bootstrap() {
   // Subscribe to shutdown event
   app.get(ShutdownService).subscribeToShutdown(() => app.close());
 
+  const server = app.getHttpServer();
+  server.keepAliveTimeout =
+    configService.getOrThrow<number>('keepAliveTimeout');
+
   try {
     await app.init();
   } catch (err) {
