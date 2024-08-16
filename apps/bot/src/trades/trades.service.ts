@@ -438,6 +438,16 @@ export class TradesService {
             return reject(err);
           }
 
+          if (err.eresult !== undefined || err.cause !== undefined) {
+            return reject(
+              new SteamException(
+                err.message,
+                err.eresult as any,
+                err.cause as any,
+              ),
+            );
+          }
+
           return reject(err);
         }
 
