@@ -23,19 +23,27 @@ export type CreateTradeJob = BaseTradeQueue<
 
 export type CounterTradeJob = BaseTradeQueue<'COUNTER', ManagerCounterTrade>;
 
-export type DeleteTradeJob = BaseTradeQueue<'DELETE', string>;
+export type DeleteTradeJob = BaseTradeQueue<
+  'DELETE',
+  string,
+  { alreadyDeleted?: boolean }
+>;
 
-export type AcceptTradeJob = BaseTradeQueue<'ACCEPT', string>;
+export type AcceptTradeJob = BaseTradeQueue<
+  'ACCEPT',
+  string,
+  { alreadyAccepted?: boolean }
+>;
 
-export type ConfirmTradeJob = BaseTradeQueue<'CONFIRM', string>;
+export type ConfirmTradeJob = BaseTradeQueue<
+  'CONFIRM',
+  string,
+  { alreadyConfirmed?: boolean }
+>;
 
 export type RefreshTradeJob = BaseTradeQueue<'REFRESH', string>;
 
-interface BaseTradeQueue<
-  Event extends QueueTradeType,
-  Raw,
-  Extra = Record<string, unknown>,
-> {
+interface BaseTradeQueue<Event extends QueueTradeType, Raw, Extra = unknown> {
   type: Event;
   raw: Raw;
   extra: Extra;

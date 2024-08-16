@@ -19,8 +19,11 @@ import SteamUser from 'steam-user';
 import SteamID from 'steamid';
 import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
 import {
+  AcceptTradeJob,
+  ConfirmTradeJob,
   CounterTradeJob,
   CreateTradeJob,
+  DeleteTradeJob,
   TradeQueue,
 } from '../interfaces/trade-queue.interface';
 import { TradesService } from '../trades.service';
@@ -154,11 +157,11 @@ export class TradesProcessor extends WorkerHost {
       case 'COUNTER':
         return this.handleCounterJob(job as Job<CounterTradeJob>, bot);
       case 'DELETE':
-        return this.tradesService.deleteTrade(bot, job.data.raw);
+        return this.handleDeleteJob(job as Job<DeleteTradeJob>, bot);
       case 'ACCEPT':
-        return this.tradesService.acceptTrade(bot, job.data.raw);
+        return this.handleAcceptJob(job as Job<AcceptTradeJob>, bot);
       case 'CONFIRM':
-        return this.tradesService.confirmTrade(bot, job.data.raw);
+        return this.handleConfirmJob(job as Job<ConfirmTradeJob>, bot);
       case 'REFRESH':
         return this.refreshTrade(bot, job.data.raw);
       default:
@@ -247,6 +250,65 @@ export class TradesProcessor extends WorkerHost {
       await this.handleSendTradeError(job, err, now);
       throw err;
     }
+  }
+
+  private async handleDeleteJob(
+    job: Job<DeleteTradeJob>,
+    bot: Bot,
+  ): Promise<void> {
+    const check = await this.tradesService.deletedTrade(bot, job.data.raw);
+
+    if (job.data.extra.alreadyDeleted === undefined) {
+      job.data.extra.alreadyDeleted = check.deleted;
+      await job.updateData(job.data);
+    } else {
+      if (check.deleted !== job.data.extra.alreadyDeleted) {
+        return;
+      }
+    }
+
+    await this.tradesService.deleteTrade(bot, job.data.raw);
+  }
+
+  private async handleAcceptJob(
+    job: Job<AcceptTradeJob>,
+    bot: Bot,
+  ): Promise<void> {
+    const check = await this.tradesService.acceptedTrade(bot, job.data.raw);
+
+    if (job.data.extra.alreadyAccepted === undefined) {
+      job.data.extra.alreadyAccepted = check.accepted;
+      await job.updateData(job.data);
+    } else {
+      if (check.accepted !== job.data.extra.alreadyAccepted) {
+        return;
+      }
+    }
+
+    await this.tradesService.acceptTrade(bot, job.data.raw);
+  }
+
+  private async handleConfirmJob(
+    job: Job<ConfirmTradeJob>,
+    bot: Bot,
+  ): Promise<void> {
+    // Check if offer was confirmed
+    const check = await this.tradesService.confirmedTrade(bot, job.data.raw);
+
+    // Check if the check was already done before
+    if (job.data.extra.alreadyConfirmed === undefined) {
+      // Add confirmed state to job data
+      job.data.extra.alreadyConfirmed = check.confirmed;
+      await job.updateData(job.data);
+    } else {
+      // Check if state has changed
+      if (check.confirmed !== job.data.extra.alreadyConfirmed) {
+        // Offer was confirmed
+        return;
+      }
+    }
+
+    await this.tradesService.confirmTrade(bot, job.data.raw);
   }
 
   private async handleSendTradeError(job: Job, err: Error, now: number) {

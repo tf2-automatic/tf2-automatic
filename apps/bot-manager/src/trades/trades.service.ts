@@ -25,6 +25,12 @@ import {
   CounterTrade,
   TRADE_REFRESH_PATH,
   TradeOffer,
+  TRADE_CONFIRMED_PATH,
+  CheckConfirmationResponse,
+  CheckAcceptedResponse,
+  TRADE_ACCEPTED_PATH,
+  CheckDeletedResponse,
+  TRADE_DELETED_PATH,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -161,6 +167,20 @@ export class TradesService implements OnApplicationBootstrap {
     await firstValueFrom(this.httpService.delete(url));
   }
 
+  async deletedTrade(bot: Bot, tradeId: string): Promise<CheckDeletedResponse> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_DELETED_PATH}`.replace(
+        ':id',
+        tradeId,
+      );
+
+    const response = await firstValueFrom(
+      this.httpService.get<CheckDeletedResponse>(url),
+    );
+
+    return response.data;
+  }
+
   async acceptTrade(bot: Bot, tradeId: string): Promise<void> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
@@ -171,6 +191,23 @@ export class TradesService implements OnApplicationBootstrap {
     await firstValueFrom(this.httpService.post(url));
   }
 
+  async acceptedTrade(
+    bot: Bot,
+    tradeId: string,
+  ): Promise<CheckAcceptedResponse> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPTED_PATH}`.replace(
+        ':id',
+        tradeId,
+      );
+
+    const response = await firstValueFrom(
+      this.httpService.get<CheckAcceptedResponse>(url),
+    );
+
+    return response.data;
+  }
+
   async confirmTrade(bot: Bot, tradeId: string): Promise<void> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
@@ -179,6 +216,23 @@ export class TradesService implements OnApplicationBootstrap {
       );
 
     await firstValueFrom(this.httpService.post(url));
+  }
+
+  async confirmedTrade(
+    bot: Bot,
+    tradeId: string,
+  ): Promise<CheckConfirmationResponse> {
+    const url =
+      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMED_PATH}`.replace(
+        ':id',
+        tradeId,
+      );
+
+    const response = await firstValueFrom(
+      this.httpService.get<CheckConfirmationResponse>(url),
+    );
+
+    return response.data;
   }
 
   async refreshTrade(bot: Bot, tradeId: string): Promise<TradeOffer> {
