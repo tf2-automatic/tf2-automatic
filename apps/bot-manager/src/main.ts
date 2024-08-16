@@ -20,6 +20,10 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
+  const server = app.getHttpServer();
+  server.keepAliveTimeout =
+    configService.getOrThrow<number>('keepAliveTimeout');
+
   const port = configService.getOrThrow<number>('port');
 
   await app.listen(port);

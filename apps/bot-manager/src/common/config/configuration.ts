@@ -13,6 +13,7 @@ export interface RelayConfig {
 
 export interface Config {
   port: number;
+  keepAliveTimeout: number;
   redis: Redis.Config;
   events: EventsConfig;
   relay: RelayConfig;
@@ -21,6 +22,7 @@ export interface Config {
 export default (): Config => {
   return {
     port: getEnv('PORT', 'integer')!,
+    keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 60000),
     redis: Redis.getConfig(),
     events: getEventsConfig(),
     relay: {
