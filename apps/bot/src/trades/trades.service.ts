@@ -463,13 +463,13 @@ export class TradesService {
     const hasCache = this.cache.has(id);
     return this._getTrade(id, useCache).catch((err) => {
       if (!hasCache) {
-      this.logger.error(
-        `Error getting trade offer: ${err.message}${
-          err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-        }`,
-      );
+        this.logger.error(
+          `Error getting trade offer: ${err.message}${
+            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
+          }`,
+        );
       }
-      
+
       throw err;
     });
   }
@@ -618,13 +618,14 @@ export class TradesService {
   }
 
   async acceptTrade(id: string): Promise<TradeOffer> {
-    this.logger.log(`Accepting trade offer #${id}...`);
+    const accepted = await this.checkAccepted(id);
+    if (accepted) {
+      throw new BadRequestException('Offer is already accepted');
+    }
 
     const offer = await this._getTrade(id);
 
-    if (offer.state !== SteamTradeOfferManager.ETradeOfferState.Active) {
-      throw new BadRequestException('Offer is not active');
-    }
+    this.logger.log(`Accepting trade offer #${offer.id!}...`);
 
     const state = await this._acceptTrade(offer).catch((err) => {
       this.handleError(err);
@@ -685,10 +686,34 @@ export class TradesService {
     return false;
   }
 
-  acceptConfirmation(id: string): Promise<void> {
-    this.logger.log(`Accepting confirmation for offer #${id}...`);
+  async acceptConfirmation(id: string): Promise<void> {
+    const confirmed = await this.checkConfirmed(id);
+    if (confirmed) {
+      throw new BadRequestException('Trade is already confirmed');
+    }
 
+    const offerData = this.getOfferData(id);
+    if (!offerData.conf) {
+      // Why check if the offer is confirmed if it doesn't require confirmation?
+      throw new BadRequestException('Offer does not require confirmation');
+    }
+
+    await this._acceptConfirmation(id).catch((err) => {
+      if (err.message === 'Could not find confirmation for object ' + id) {
+        const message = 'Confirmation not found';
+        throw new NotFoundException(message);
+      }
+
+      throw err;
+    });
+
+    this.manager.doPoll();
+  }
+
+  private _acceptConfirmation(id: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
+      this.logger.log(`Accepting confirmation for offer #${id}...`);
+
       this.community.acceptConfirmationForObject(
         this.configService.getOrThrow<SteamAccountConfig>('steam')
           .identitySecret,
@@ -700,23 +725,14 @@ export class TradesService {
                 err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
               }`,
             );
-
-            if (
-              err.message ===
-              'Could not find confirmation for object ' + id
-            ) {
-              return reject(new NotFoundException('Confirmation not found'));
-            }
-
             return reject(err);
           }
+
+          this.logger.log(`Accepted confirmation for offer #${id}!`);
 
           return resolve();
         },
       );
-    }).then(() => {
-      this.logger.log(`Accepted confirmation for offer #${id}!`);
-      this.manager.doPoll();
     });
   }
 
@@ -734,7 +750,10 @@ export class TradesService {
   }
 
   async removeTrade(id: string): Promise<TradeOffer> {
-    this.logger.debug('Removing trade offer #' + id + '...');
+    const removed = await this.checkRemoved(id);
+    if (removed) {
+      throw new BadRequestException('Offer is already removed');
+    }
 
     const offer = await this._getTrade(id);
 
@@ -742,8 +761,6 @@ export class TradesService {
       this.handleError(err);
       throw err;
     });
-
-    this.logger.debug('Removed trade offer #' + id);
 
     return this.mapOffer(offer);
   }
@@ -756,6 +773,8 @@ export class TradesService {
     ) {
       throw new BadRequestException('Offer is not active');
     }
+
+    this.logger.debug('Removing trade offer #' + offer.id! + '...');
 
     return new Promise((resolve, reject) => {
       offer.cancel((err) => {
@@ -782,6 +801,8 @@ export class TradesService {
 
           return reject(err);
         }
+
+        this.logger.debug('Removed trade offer #' + offer.id!);
 
         resolve();
       });
@@ -869,5 +890,27 @@ export class TradesService {
           ? null
           : Math.floor(offer.escrowEnds.getTime() / 1000),
     };
+  }
+
+  private getOfferData(id: string): TradeOfferData {
+    return this.manager.pollData.offerData?.[id] ?? {};
+  }
+
+  private setOfferDataKey<K extends keyof TradeOfferData>(
+    id: string,
+    key: K,
+    value: TradeOfferData[K],
+    publish = true,
+  ): void {
+    const data = this.getOfferData(id);
+    data[key] = value;
+    this.setOfferData(id, data, publish);
+  }
+
+  private setOfferData(id: string, data: TradeOfferData, publish = true): void {
+    this.manager.pollData.offerData[id] = data;
+    if (publish) {
+      this.manager.emit('pollData', this.manager.pollData);
+    }
   }
 }
