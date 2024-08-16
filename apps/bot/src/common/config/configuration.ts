@@ -7,6 +7,7 @@ import {
 
 export interface Config {
   port: number;
+  keepAliveTimeout: number;
   ip?: string;
   webSessionRefreshInterval: number;
   steam: SteamAccountConfig;
@@ -64,6 +65,8 @@ export interface ManagerConfig {
 export default (): Config => {
   return {
     port: getEnv('PORT', 'integer')!,
+    // The bot has long lived requests so we don't want to timeout
+    keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 0),
     ip: getEnv('IP_ADDRESS', 'string'),
     webSessionRefreshInterval: getEnvWithDefault(
       'WEB_SESSION_REFRESH_INTERVAL',

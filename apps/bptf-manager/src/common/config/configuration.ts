@@ -2,6 +2,7 @@ import { Redis, getEnv, getEnvWithDefault } from '@tf2-automatic/config';
 
 export interface Config {
   port: number;
+  keepAliveTimeout: number;
   redis: Redis.Config;
   agents: AgentsConfig;
 }
@@ -13,6 +14,7 @@ export interface AgentsConfig {
 export default (): Config => {
   return {
     port: getEnv('PORT', 'integer')!,
+    keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 60000),
     redis: Redis.getConfig(),
     agents: {
       registerInterval: getEnvWithDefault(

@@ -23,6 +23,10 @@ async function bootstrap() {
 
   app.use(json({ limit: '50mb' }));
 
+  const server = app.getHttpServer();
+  server.keepAliveTimeout =
+    configService.getOrThrow<number>('keepAliveTimeout');
+
   const port = configService.getOrThrow<number>('port');
 
   await app.listen(port);
