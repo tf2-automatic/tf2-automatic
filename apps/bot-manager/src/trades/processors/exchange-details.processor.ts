@@ -10,6 +10,7 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { ExchangeDetailsQueueData } from '../interfaces/exchange-details-queue.interface';
 import { TradesService } from '../trades.service';
 import { bullWorkerSettings } from '../../common/utils/backoff-strategy';
+import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
 
 @Processor('getExchangeDetails', {
   settings: bullWorkerSettings,
@@ -20,15 +21,18 @@ export class ExchangeDetailsProcessor extends WorkerHost {
   constructor(
     private readonly tradesService: TradesService,
     private readonly eventsService: NestEventsService,
+    private readonly heartbeatService: HeartbeatsService,
   ) {
     super();
   }
 
   async process(job: Job<ExchangeDetailsQueueData>): Promise<void> {
     const offer = job.data.offer;
-    const bot = new SteamID(job.data.bot);
+    const steamid = new SteamID(job.data.bot);
 
     this.logger.debug('Getting exchange details for offer ' + offer.id + '...');
+
+    const bot = await this.heartbeatService.getBot(steamid);
 
     const details = await this.tradesService.getExchangeDetails(
       bot,
@@ -46,7 +50,7 @@ export class ExchangeDetailsProcessor extends WorkerHost {
         offer: job.data.offer,
         details,
       } satisfies ExchangeDetailsEvent['data'],
-      bot,
+      steamid,
     );
   }
 }
