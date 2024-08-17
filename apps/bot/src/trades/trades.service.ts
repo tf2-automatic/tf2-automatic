@@ -651,6 +651,8 @@ export class TradesService {
 
   private _acceptTrade(offer: ActualTradeOffer): Promise<string> {
     return new Promise<string>((resolve, reject) => {
+      this.cache.del(offer.id!);
+
       offer.accept(false, (err, state) => {
         if (err) {
           this.logger.error(
@@ -715,6 +717,8 @@ export class TradesService {
   private _acceptConfirmation(id: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.logger.log(`Accepting confirmation for offer #${id}...`);
+
+      this.cache.del(id);
 
       this.community.acceptConfirmationForObject(
         this.configService.getOrThrow<SteamAccountConfig>('steam')
