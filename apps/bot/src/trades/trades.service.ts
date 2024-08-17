@@ -692,9 +692,11 @@ export class TradesService {
       throw new BadRequestException('Trade is already confirmed');
     }
 
-    const offerData = this.getOfferData(id);
-    if (!offerData.conf) {
-      // Why check if the offer is confirmed if it doesn't require confirmation?
+    const offer = await this._getTrade(id);
+    if (
+      offer.confirmationMethod ===
+      SteamTradeOfferManager.EConfirmationMethod.None
+    ) {
       throw new BadRequestException('Offer does not require confirmation');
     }
 
