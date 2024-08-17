@@ -625,18 +625,10 @@ export class TradesService {
 
     const offer = await this._getTrade(id);
 
-    this.logger.log(`Accepting trade offer #${offer.id!}...`);
-
     const state = await this._acceptTrade(offer).catch((err) => {
       this.handleError(err);
       throw err;
     });
-
-    this.logger.log(
-      `Offer #${offer.id} from ${offer.partner} successfully accepted${
-        state === 'pending' ? '; confirmation required' : ''
-      }`,
-    );
 
     // Set accept time to result in confirmation being published again
     offer.data('accept', Date.now());
@@ -651,6 +643,8 @@ export class TradesService {
 
   private _acceptTrade(offer: ActualTradeOffer): Promise<string> {
     return new Promise<string>((resolve, reject) => {
+      this.logger.log(`Accepting trade offer #${offer.id!}...`);
+
       this.cache.del(offer.id!);
 
       offer.accept(false, (err, state) => {
@@ -673,6 +667,12 @@ export class TradesService {
 
           return reject(err);
         }
+
+        this.logger.log(
+          `Offer #${offer.id} from ${offer.partner} successfully accepted${
+            state === 'pending' ? '; confirmation required' : ''
+          }`,
+        );
 
         return resolve(state);
       });
