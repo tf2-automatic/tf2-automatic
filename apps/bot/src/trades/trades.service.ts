@@ -625,7 +625,7 @@ export class TradesService {
 
     const offer = await this._getTrade(id);
 
-    const state = await this._acceptTrade(offer).catch((err) => {
+    await this._acceptTrade(offer).catch((err) => {
       this.handleError(err);
       throw err;
     });
