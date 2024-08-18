@@ -524,6 +524,8 @@ export class TradesService {
     counter.addMyItems(dto.itemsToGive as CEconItem[]);
     counter.addTheirItems(dto.itemsToReceive as CEconItem[]);
 
+    this.cache.del(offer.id!);
+
     return this.sendOffer(counter);
   }
 
@@ -781,6 +783,8 @@ export class TradesService {
     }
 
     this.logger.debug('Removing trade offer #' + offer.id! + '...');
+
+    this.cache.del(offer.id!);
 
     return new Promise((resolve, reject) => {
       offer.cancel((err) => {
