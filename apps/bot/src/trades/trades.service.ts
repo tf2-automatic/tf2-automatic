@@ -510,6 +510,8 @@ export class TradesService {
 
   async counterTrade(id: string, dto: CounterTradeDto): Promise<TradeOffer> {
     const offer = await this._getTrade(id);
+    this.isActiveOrThrow(offer, true);
+
     const counter = offer.counter();
 
     if (dto.message) {
@@ -626,6 +628,7 @@ export class TradesService {
     }
 
     const offer = await this._getTrade(id);
+    this.isActiveOrThrow(offer, true);
 
     await this._acceptTrade(offer).catch((err) => {
       this.handleError(err);
@@ -764,6 +767,7 @@ export class TradesService {
     }
 
     const offer = await this._getTrade(id);
+    this.isActiveOrThrow(offer, false);
 
     await this._removeTrade(offer).catch((err) => {
       this.handleError(err);
@@ -774,14 +778,6 @@ export class TradesService {
   }
 
   private async _removeTrade(offer: ActualTradeOffer): Promise<void> {
-    if (
-      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
-      offer.state !==
-        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
-    ) {
-      throw new BadRequestException('Offer is not active');
-    }
-
     this.logger.debug('Removing trade offer #' + offer.id! + '...');
 
     this.cache.del(offer.id!);
@@ -876,6 +872,23 @@ export class TradesService {
         // Steam for some reason returns 500 when the session expired
         this.botService.webLogOn();
       }
+    }
+  }
+
+  private isActiveOrThrow(offer: ActualTradeOffer, onlyActive: boolean): void {
+    if (
+      onlyActive &&
+      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active
+    ) {
+      throw new BadRequestException('Offer is not active');
+    }
+
+    if (
+      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
+      offer.state !==
+        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      throw new BadRequestException('Offer is not active');
     }
   }
 
