@@ -108,10 +108,17 @@ export class ManageListingsService {
 
     await transaction.exec();
 
-    await Promise.all([
-      this.createJob(event.steamid, ManageJobType.Update),
-      this.createJob(event.steamid, ManageJobType.Create),
-    ]);
+    const promises: Promise<unknown>[] = [];
+
+    if (create.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Create));
+    }
+
+    if (update.length > 0) {
+      promises.push(this.createJob(event.steamid, ManageJobType.Update));
+    }
+
+    await Promise.all(promises);
   }
 
   @OnEvent('desired-listings.removed')
