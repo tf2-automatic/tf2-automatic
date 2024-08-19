@@ -126,8 +126,7 @@
     "patchedDependencies": {
       "@types/steam-tradeoffer-manager@2.11.0": "patches/@types__steam-tradeoffer-manager@2.11.0.patch",
       "@types/steamcommunity@3.43.7": "patches/@types__steamcommunity@3.43.7.patch",
-      "tf2-currencies@1.2.4": "patches/tf2-currencies@1.2.4.patch",
-      "redlock@5.0.0-beta.2": "patches/redlock@5.0.0-beta.2.patch"
+      "tf2-currencies@1.2.4": "patches/tf2-currencies@1.2.4.patch"
     }
   }
 }
