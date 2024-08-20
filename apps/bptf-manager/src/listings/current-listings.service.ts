@@ -317,7 +317,8 @@ export class CurrentListingsService {
 
     const createdHashes = Object.keys(created);
 
-    await this.saveTempListings(steamid, Object.values(created));
+    const mapped = this.mapListings(Object.values(created));
+    await this.saveTempListings(steamid, mapped);
 
     const transaction = this.redis.multi();
 
@@ -451,15 +452,11 @@ export class CurrentListingsService {
       }
 
       if (overwritten.length > 0) {
-        await this.saveTempListings(steamid, overwritten);
+        const mapped = this.mapListings(overwritten);
 
-        await this.redis.hmset(
-          this.getCurrentKey(steamid),
-          ...overwritten.flatMap((listing) => [
-            listing.id,
-            JSON.stringify(listing),
-          ]),
-        );
+        await this.saveTempListings(steamid, mapped);
+
+        await this.redis.hmset(this.getCurrentKey(steamid), mapped);
       }
     }
 
@@ -579,7 +576,8 @@ export class CurrentListingsService {
       const tempKey = this.getTempCurrentKey(steamid, time);
 
       if (response.results.length > 0) {
-        await this.saveTempListings(steamid, response.results);
+        const mapped = this.mapListings(response.results);
+        await this.saveTempListings(steamid, mapped);
 
         // Add listings to current temp key
         await this.redis
@@ -672,9 +670,9 @@ export class CurrentListingsService {
 
   private async saveTempListings(
     steamid: SteamID,
-    listings: Listing[],
+    listings: Record<string, string>,
   ): Promise<void> {
-    if (listings.length === 0) {
+    if (Object.keys(listings).length === 0) {
       return;
     }
 
@@ -684,7 +682,7 @@ export class CurrentListingsService {
 
     // Add listings to all temp keys for this steamid
     keys.forEach((key) => {
-      transaction.hmset(key, this.mapListings(listings));
+      transaction.hmset(key, listings);
     });
 
     await transaction.exec();
