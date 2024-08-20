@@ -36,6 +36,9 @@ import {
   JobType,
 } from './interfaces/get-listings.queue.interface';
 import { DesiredListing } from './classes/desired-listing.class';
+import { LockConfig } from '@tf2-automatic/config';
+import { ConfigService } from '@nestjs/config';
+import { Config } from '../common/config/configuration';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -51,8 +54,12 @@ export class CurrentListingsService {
     private readonly listingLimitsService: ListingLimitsService,
     @InjectQueue('get-listings')
     private readonly getListingsQueue: Queue<JobData, unknown, JobName>,
+    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock([redis]);
+    this.redlock = new Redlock(
+      [redis],
+      this.configService.getOrThrow<LockConfig>('locking'),
+    );
   }
 
   @OnEvent('agents.registered')

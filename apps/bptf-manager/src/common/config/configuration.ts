@@ -1,10 +1,17 @@
-import { Redis, getEnv, getEnvWithDefault } from '@tf2-automatic/config';
+import {
+  LockConfig,
+  Redis,
+  getEnv,
+  getEnvWithDefault,
+  getLockConfig,
+} from '@tf2-automatic/config';
 
 export interface Config {
   port: number;
   keepAliveTimeout: number;
   redis: Redis.Config;
   agents: AgentsConfig;
+  locking: LockConfig;
 }
 
 export interface AgentsConfig {
@@ -23,5 +30,6 @@ export default (): Config => {
         5 * 60 * 1000,
       ),
     },
+    locking: getLockConfig(),
   };
 };

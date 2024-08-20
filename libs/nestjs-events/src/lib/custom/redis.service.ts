@@ -1,9 +1,10 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import { EventsModuleOptions } from '../nestjs-events.module';
 import { CustomEventsService, SubscriberSettings } from './custom.interface';
 import { Redis } from 'ioredis';
-import { Redis as RedisConfig } from '@tf2-automatic/config';
+import { LockConfig, Redis as RedisConfig } from '@tf2-automatic/config';
 import Redlock from 'redlock';
 
 type Handler<T = BaseEvent<string>> = (message: T) => Promise<void>;
@@ -29,10 +30,14 @@ export class RedisEventsService
   constructor(
     @Inject('EVENTS_OPTIONS')
     private readonly options: EventsModuleOptions<RedisConfig.Config>,
+    private readonly configService: ConfigService,
   ) {
     this.publisher = new Redis(options.config);
     this.subscriber = new Redis(options.config);
-    this.redlock = new Redlock([this.publisher]);
+    this.redlock = new Redlock(
+      [this.publisher],
+      this.configService.getOrThrow<LockConfig>('locking'),
+    );
 
     this.subscriber.on('message', (channel, message) => {
       const exchanges = this.subscribers[channel];
