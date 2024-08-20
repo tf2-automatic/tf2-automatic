@@ -153,13 +153,7 @@ export class CurrentListingsService {
 
     const limits = await this.listingLimitsService.getLimits(steamid);
 
-    const resources = ids.map((id) =>
-      this.getResourceForListingId(steamid, id),
-    );
-    const result = await this.redlock.using(resources, 10000, () => {
-      // Delete listings on backpack.tf
-      return this._deleteListings(token, ids);
-    });
+    const result = await this._deleteListings(token, ids);
 
     this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
 
@@ -213,10 +207,7 @@ export class CurrentListingsService {
     const resources = ids.map((id) =>
       this.getResourceForListingId(steamid, id),
     );
-    const result = await this.redlock.using(resources, 10000, () => {
-      // Delete listings on backpack.tf
-      return this._deleteArchivedListings(token, ids);
-    });
+    const result = await this._deleteArchivedListings(token, ids);
 
     this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
 
@@ -254,11 +245,7 @@ export class CurrentListingsService {
 
     const limits = await this.listingLimitsService.getLimits(steamid);
 
-    const resources = desired.map((d) => this.getResources(steamid, d)).flat();
-    const result = await this.redlock.using(resources, 10000, () => {
-      // Create listings on backpack.tf
-      return this._createListings(token, listings);
-    });
+    const result = await this._createListings(token, listings);
 
     const createdCount = result.filter((r) => r.result !== undefined).length;
 
@@ -438,10 +425,7 @@ export class CurrentListingsService {
         '...',
     );
 
-    const resources = desired.map((d) => this.getResources(steamid, d)).flat();
-    const result = await this.redlock.using(resources, 10000, () => {
-      return this._updateListings(token, listings);
-    });
+    const result = await this._updateListings(token, listings);
 
     this.logger.log(
       'Updated ' + result.updated.length + ' listing(s) for ' + token.steamid64,
@@ -916,25 +900,7 @@ export class CurrentListingsService {
     return `${KEY_PREFIX}listings:current:keep:${steamid.getSteamID64()}`;
   }
 
-  private getResources(steamid: SteamID, desired: DesiredListing): string[] {
-    const resources = [this.getResourceForDesired(steamid, desired)];
-
-    const id = desired.getID();
-    if (id) {
-      resources.push(this.getResourceForListingId(steamid, id));
-    }
-
-    return resources;
-  }
-
   private getResourceForListingId(steamid: SteamID, id: string): string {
     return `bptf-manager:current:${steamid.getSteamID64()}:${id}`;
-  }
-
-  private getResourceForDesired(
-    steamid: SteamID,
-    desired: DesiredListing,
-  ): string {
-    return `bptf-manager:current:${steamid.getSteamID64()}:${desired.getHash()}`;
   }
 }
