@@ -15,7 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getJobs, getRepeatableJob } from '../common/utils';
-import { LockConfig } from '@tf2-automatic/config';
+import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY = 'bptf-manager:data:agents';
 
@@ -34,10 +34,7 @@ export class AgentsService {
     private readonly configService: ConfigService<Config>,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    this.redlock = new Redlock(
-      [redis],
-      this.configService.getOrThrow<LockConfig>('locking'),
-    );
+    this.redlock = new Redlock([redis], getLockConfig());
   }
 
   async getAgents(): Promise<Agent[]> {
