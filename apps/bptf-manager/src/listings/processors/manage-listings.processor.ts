@@ -1,5 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger, OnModuleDestroy } from '@nestjs/common';
+import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
 import SteamID from 'steamid';
 import { TokensService } from '../../tokens/tokens.service';
@@ -16,6 +16,10 @@ import {
 import { AgentsService } from '../../agents/agents.service';
 import { ManageListingsService } from '../manage-listings.service';
 import { Redis } from '@tf2-automatic/config';
+import { InjectRedis } from '@songkeys/nestjs-redis';
+import IORedis from 'ioredis';
+import fs from 'fs';
+import path from 'path';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 
@@ -24,11 +28,11 @@ type CustomJob = Job<JobData, JobResult, JobName>;
 })
 export class ManageListingsProcessor
   extends WorkerHost<Worker<JobData, JobResult, JobName>>
-  implements OnModuleDestroy
+  implements OnModuleDestroy, OnModuleInit
 {
   private readonly logger = new Logger(ManageListingsProcessor.name);
-  private readonly batchGroup: Bottleneck.Group;
-  private readonly deleteAllGroup: Bottleneck.Group;
+  private batchGroup: Bottleneck.Group;
+  private deleteAllGroup: Bottleneck.Group;
 
   private readonly createBatchSize = 100;
   private readonly deleteBatchSize = 100;
@@ -39,9 +43,15 @@ export class ManageListingsProcessor
     private readonly tokensService: TokensService,
     private readonly configService: ConfigService<Config>,
     private readonly agentsService: AgentsService,
+    @InjectRedis()
+    private readonly redis: IORedis,
   ) {
     super();
 
+    this.createBottlenecks(true);
+  }
+
+  private createBottlenecks(clearDatastore = false): void {
     const redisConfig = this.configService.getOrThrow<Redis.Config>('redis');
 
     this.batchGroup = new Bottleneck.Group({
@@ -54,12 +64,13 @@ export class ManageListingsProcessor
         keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
       },
       id: 'listings:batch',
-      // Max concurrency of 4 (create, update, delete, delete archived)
-      maxConcurrent: 4,
-      minTime: 1000,
+      maxConcurrent: 1,
+      minTime: 6000,
       reservoir: 10,
-      reservoirRefreshAmount: 10,
-      reservoirRefreshInterval: 60 * 1000,
+      reservoirIncreaseAmount: 10,
+      reservoirIncreaseInterval: 60000,
+      reservoirIncreaseMaximum: 10,
+      clearDatastore,
     });
 
     this.createGroupListeners(this.batchGroup);
@@ -76,6 +87,7 @@ export class ManageListingsProcessor
       id: 'listings:deleteAll',
       maxConcurrent: 1,
       minTime: 60000,
+      clearDatastore,
     });
 
     this.createGroupListeners(this.deleteAllGroup);
@@ -121,6 +133,48 @@ export class ManageListingsProcessor
         console.error(err);
       });
     });
+  }
+
+  private async disconnectBottlenecks(): Promise<void> {
+    await Promise.all([
+      this.batchGroup.disconnect(true),
+      this.deleteAllGroup.disconnect(true),
+    ]);
+  }
+
+  async onModuleInit(): Promise<void> {
+    // Compare current version with old version
+    const oldVersion = await this.redis.get(
+      'tf2-automatic:bptf-manager:version',
+    );
+
+    const packageJson = fs.readFileSync(
+      path.join(__dirname, 'package.json'),
+      'utf-8',
+    );
+
+    const currentVersion = JSON.parse(packageJson).version;
+    if (oldVersion === currentVersion) {
+      return;
+    }
+
+    this.logger.warn(
+      `Running a different version, current: ${currentVersion} previous: ${oldVersion}. Updating limiters...`,
+    );
+
+    this.batchGroup.updateSettings({
+      clearDatastore: true,
+    });
+
+    this.deleteAllGroup.updateSettings({
+      clearDatastore: true,
+    });
+
+    await this.disconnectBottlenecks();
+
+    this.createBottlenecks(true);
+
+    await this.redis.set('tf2-automatic:bptf-manager:version', currentVersion);
   }
 
   async process(job: CustomJob): Promise<JobResult> {
@@ -176,22 +230,7 @@ export class ManageListingsProcessor
       await this.manageListingsService
         .createListings(token, hashes)
         .catch((err) => {
-          if (err instanceof AxiosError) {
-            if (err.response?.status === 429) {
-              // We are rate limited, find the correct reservoir
-              const limiters = this.batchGroup.limiters();
-              const match = limiters.find((l) => l.key === key);
-
-              if (match) {
-                // Drain the reservoir
-                return match.limiter.incrementReservoir(-10).then(() => {
-                  throw err;
-                });
-              }
-            }
-          }
-
-          throw err;
+          return this.handleBatchError(key, err);
         });
 
       return hashes.length === this.createBatchSize;
@@ -229,22 +268,7 @@ export class ManageListingsProcessor
       await this.manageListingsService
         .updateListings(token, hashes)
         .catch((err) => {
-          if (err instanceof AxiosError) {
-            if (err.response?.status === 429) {
-              // We are rate limited, find the correct reservoir
-              const limiters = this.batchGroup.limiters();
-              const match = limiters.find((l) => l.key === key);
-
-              if (match) {
-                // Drain the reservoir
-                return match.limiter.incrementReservoir(-10).then(() => {
-                  throw err;
-                });
-              }
-            }
-          }
-
-          throw err;
+          return this.handleBatchError(key, err);
         });
 
       return hashes.length === this.createBatchSize;
@@ -325,6 +349,52 @@ export class ManageListingsProcessor
     return false;
   }
 
+  private async handleBatchError(
+    key: string,
+    err: Error | AxiosError,
+  ): Promise<void> {
+    if (!(err instanceof AxiosError)) {
+      throw err;
+    }
+
+    if (err.response?.status !== 429) {
+      throw err;
+    }
+
+    // We are rate limited, find the correct reservoir
+    const limiters = this.batchGroup.limiters();
+    const match = limiters.find((l) => l.key === key);
+
+    if (!match) {
+      // Shouldn't happen
+      throw err;
+    }
+
+    const waitTime = new String(err.response.data.message).match(
+      /Try again in (\d+) seconds./,
+    );
+
+    // Decrement by 10 by default
+    let decrementAmount = 10;
+
+    if (waitTime) {
+      const tryAgainTime = parseInt(waitTime[1]);
+      // Decrement by 1 for every 6 seconds we need to wait
+      decrementAmount = Math.min(Math.ceil(tryAgainTime / 6), 10);
+    }
+
+    const current = await match.limiter.currentReservoir();
+
+    // Subtract `decrementAmount` because this is how many requests we need to wait for
+    // Subtract `current` because the reservoir needs to be emptied
+    const increment = -decrementAmount - (current ?? 0);
+
+    // No reason to think about parallel requests because it is limited to one at a time
+    return match.limiter.incrementReservoir(increment).then(() => {
+      throw err;
+    });
+  }
+
   @OnWorkerEvent('error')
   onError(err: Error): void {
     this.logger.error('Error in worker');
@@ -338,7 +408,6 @@ export class ManageListingsProcessor
     );
 
     if (err instanceof AxiosError) {
-      console.error('Status code ' + err.response?.status);
       console.error(err.response?.data);
     } else {
       console.error(err);
@@ -360,9 +429,6 @@ export class ManageListingsProcessor
   }
 
   onModuleDestroy() {
-    return Promise.allSettled([
-      this.batchGroup.disconnect(true),
-      this.deleteAllGroup.disconnect(true),
-    ]);
+    return this.disconnectBottlenecks();
   }
 }
