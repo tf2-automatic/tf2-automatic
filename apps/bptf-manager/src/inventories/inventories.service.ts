@@ -18,9 +18,7 @@ import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';
 import Redlock from 'redlock';
-import { Config } from '../common/config/configuration';
-import { ConfigService } from '@nestjs/config';
-import { LockConfig } from '@tf2-automatic/config';
+import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -43,12 +41,8 @@ export class InventoriesService {
     >,
     private readonly httpService: HttpService,
     @InjectRedis() private readonly redis: Redis,
-    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock(
-      [this.redis],
-      this.configService.getOrThrow<LockConfig>('locking'),
-    );
+    this.redlock = new Redlock([this.redis], getLockConfig());
   }
 
   async scheduleRefresh(

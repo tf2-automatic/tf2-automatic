@@ -11,9 +11,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JobData } from './interfaces/queue';
 import Redlock from 'redlock';
-import { Config } from '../common/config/configuration';
-import { ConfigService } from '@nestjs/config';
-import { LockConfig } from '@tf2-automatic/config';
+import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -29,12 +27,8 @@ export class NotificationsService {
     @InjectQueue('notifications')
     private readonly notificationsQueue: Queue<JobData>,
     private readonly eventEmitter: EventEmitter2,
-    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock(
-      [redis],
-      this.configService.getOrThrow<LockConfig>('locking'),
-    );
+    this.redlock = new Redlock([redis], getLockConfig());
   }
 
   async getNotifications(steamid: SteamID): Promise<Notification[]> {

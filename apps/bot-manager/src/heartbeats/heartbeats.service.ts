@@ -30,9 +30,7 @@ import Redlock from 'redlock';
 import { v4 as uuidv4 } from 'uuid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
-import { Config } from '../common/config/configuration';
-import { ConfigService } from '@nestjs/config';
-import { LockConfig } from '@tf2-automatic/config';
+import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
@@ -49,12 +47,8 @@ export class HeartbeatsService {
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
     private readonly eventsService: NestEventsService,
-    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock(
-      [this.redis],
-      this.configService.getOrThrow<LockConfig>('locking'),
-    );
+    this.redlock = new Redlock([this.redis], getLockConfig());
   }
 
   getBots(): Promise<Bot[]> {

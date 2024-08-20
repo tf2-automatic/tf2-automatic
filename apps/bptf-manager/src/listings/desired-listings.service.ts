@@ -15,9 +15,7 @@ import { DesiredListing } from './classes/desired-listing.class';
 import { AddDesiredListing } from './classes/add-desired-listing.class';
 import { ListingFactory } from './classes/listing.factory';
 import hashListing from './utils/desired-listing-hash';
-import { Config } from '../common/config/configuration';
-import { ConfigService } from '@nestjs/config';
-import { LockConfig } from '@tf2-automatic/config';
+import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -27,12 +25,8 @@ export class DesiredListingsService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly eventEmitter: EventEmitter2,
-    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock(
-      [redis],
-      this.configService.getOrThrow<LockConfig>('locking'),
-    );
+    this.redlock = new Redlock([redis], getLockConfig());
   }
 
   async addDesired(
