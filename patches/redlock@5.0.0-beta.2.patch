@@ -1,0 +1,33 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index 8700963f5c9ec9fc1fdc53846846130bfc2f2108..0000000000000000000000000000000000000000
+diff --git a/dist/cjs/index.js b/dist/cjs/index.js
+index c4bcc12ef66b817cdea5a0d37571e6a8714623ee..385f60ae589ce90f931bb9d03c472d0eaf9c4eed 100644
+--- a/dist/cjs/index.js
++++ b/dist/cjs/index.js
+@@ -235,6 +235,10 @@ class Redlock extends events_1.EventEmitter {
+      * error, as the lock will automatically expire after its timeout.
+      */
+     async release(lock, settings) {
++        if (lock.expiration < Date.now()) {
++          return Promise.resolve({ start: Date.now(), attempts: [] });
++        }
++
+         // Immediately invalidate the lock.
+         lock.expiration = 0;
+         // Attempt to release the lock.
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 66154e23ee7c95f491c10f96fdd616eacabc03be..db5db472986b47ecf02e2b0d5a4237a50a50c9d1 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -229,6 +229,10 @@ export default class Redlock extends EventEmitter {
+      * error, as the lock will automatically expire after its timeout.
+      */
+     async release(lock, settings) {
++        if (lock.expiration < Date.now()) {
++            return Promise.resolve({ start: Date.now(), attempts: [] });
++        }
++
+         // Immediately invalidate the lock.
+         lock.expiration = 0;
+         // Attempt to release the lock.
