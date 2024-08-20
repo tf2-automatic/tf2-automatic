@@ -44,6 +44,9 @@ import { InventoryQueue } from './interfaces/queue.interfaces';
 import Redlock from 'redlock';
 import { v4 as uuidv4 } from 'uuid';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
+import { Config } from '../common/config/configuration';
+import { ConfigService } from '@nestjs/config';
+import { LockConfig } from '@tf2-automatic/config';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
@@ -60,8 +63,12 @@ export class InventoriesService implements OnApplicationBootstrap {
     private readonly eventsService: NestEventsService,
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryQueue>,
+    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock([this.redis]);
+    this.redlock = new Redlock(
+      [this.redis],
+      this.configService.getOrThrow<LockConfig>('locking'),
+    );
   }
 
   async onApplicationBootstrap() {

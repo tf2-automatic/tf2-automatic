@@ -53,6 +53,9 @@ import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import Redlock from 'redlock';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
+import { ConfigService } from '@nestjs/config';
+import { Config } from '../common/config/configuration';
+import { LockConfig } from '@tf2-automatic/config';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -66,8 +69,12 @@ export class TradesService implements OnApplicationBootstrap {
     private readonly tradesQueue: Queue<TradeQueue>,
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
+    private readonly configService: ConfigService<Config>,
   ) {
-    this.redlock = new Redlock([this.redis]);
+    this.redlock = new Redlock(
+      [this.redis],
+      this.configService.getOrThrow<LockConfig>('locking'),
+    );
   }
 
   async onApplicationBootstrap() {

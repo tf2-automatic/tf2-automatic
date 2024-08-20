@@ -1,9 +1,11 @@
 import {
   EventsConfig,
+  LockConfig,
   Redis,
   getEnv,
   getEnvWithDefault,
   getEventsConfig,
+  getLockConfig,
 } from '@tf2-automatic/config';
 
 export interface RelayConfig {
@@ -17,6 +19,7 @@ export interface Config {
   redis: Redis.Config;
   events: EventsConfig;
   relay: RelayConfig;
+  locking: LockConfig;
 }
 
 export default (): Config => {
@@ -33,5 +36,6 @@ export default (): Config => {
         10000,
       ),
     },
+    locking: getLockConfig(),
   };
 };
