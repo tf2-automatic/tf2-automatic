@@ -114,13 +114,12 @@ export class DesiredListingsService {
 
     return this.redlock.using(resources, 1000, async (signal) => {
       const map = await this.getDesiredByHashes(steamid, hashes);
+      if (map.size === 0) {
+        return [];
+      }
 
       if (signal.aborted) {
         throw signal.error;
-      }
-
-      if (map.size === 0) {
-        return [];
       }
 
       // It is okay to only remove the matched listings because unmatched listings don't exist anyway
