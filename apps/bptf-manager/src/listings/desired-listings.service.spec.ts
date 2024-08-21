@@ -101,8 +101,8 @@ describe('DesiredListingsService', () => {
 
       expect(result).toEqual([expectedDesired]);
 
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'desired-listings.added',
         {
           steamid,
@@ -224,8 +224,8 @@ describe('DesiredListingsService', () => {
 
       expect(result).toEqual([expectedDesired]);
 
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'desired-listings.added',
         {
           steamid,
@@ -293,8 +293,8 @@ describe('DesiredListingsService', () => {
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'desired-listings.removed',
         {
           steamid,
@@ -340,8 +340,8 @@ describe('DesiredListingsService', () => {
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-      expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'desired-listings.removed',
         {
           steamid,

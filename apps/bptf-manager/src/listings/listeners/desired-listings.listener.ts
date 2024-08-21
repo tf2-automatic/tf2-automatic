@@ -120,7 +120,7 @@ export class DesiredListingsListener {
 
     await transaction.exec();
 
-    await this.eventEmitter.emitAsync('desired-listings.created', {
+    this.eventEmitter.emit('desired-listings.created', {
       steamid: event.steamid,
       desired,
       listings: event.listings,
