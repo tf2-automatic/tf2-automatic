@@ -43,7 +43,7 @@ export class DesiredListingsService {
       (d) => `desired:${steamid.getSteamID64()}:${d.getHash()}`,
     );
 
-    return this.redlock.using(resources, 1000, async (signal) => {
+    return this.redlock.using(resources, 5000, async (signal) => {
       // Get current listings and check if they are different from the new listings
       const current = await this.getDesiredByHashes(
         steamid,
@@ -114,7 +114,7 @@ export class DesiredListingsService {
       (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
     );
 
-    return this.redlock.using(resources, 1000, async (signal) => {
+    return this.redlock.using(resources, 5000, async (signal) => {
       const map = await this.getDesiredByHashes(steamid, hashes);
       if (map.size === 0) {
         return [];
