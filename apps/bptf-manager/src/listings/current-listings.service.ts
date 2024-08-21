@@ -564,96 +564,69 @@ export class CurrentListingsService {
       });
     }
 
-      const tempKey = this.getTempCurrentKey(steamid, time);
+    const tempKey = this.getTempCurrentKey(steamid, time);
 
-      if (response.results.length > 0) {
-        const mapped = this.mapListings(response.results);
-        await this.saveTempListings(steamid, mapped);
+    if (response.results.length > 0) {
+      const mapped = this.mapListings(response.results);
+      await this.saveTempListings(steamid, mapped);
 
-        // Add listings to current temp key
-        await this.redis
-          .multi()
-          .hmset(tempKey, this.mapListings(response.results))
-          // Make sure it expires after 5 minutes
-          .expire(tempKey, 5 * 60)
-          .exec();
-      }
+      // Add listings to current temp key
+      await this.redis
+        .multi()
+        .hmset(tempKey, this.mapListings(response.results))
+        // Make sure it expires after 5 minutes
+        .expire(tempKey, 5 * 60)
+        .exec();
+    }
 
-      if (signal.aborted) {
-        throw signal.error;
-      }
+    if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
+      // Fetch more listings
+      return this.createJob(
+        steamid,
+        type,
+        time,
+        response.cursor.skip + response.cursor.limit,
+        response.cursor.limit,
+      );
+    }
 
-      if (
-        response.cursor.skip + response.cursor.limit >=
-        response.cursor.total
-      ) {
-        // Save that we are done getting listings of type
-        await this.redis.set(
-          this.getTempCurrentKey(steamid, time) + ':' + type + ':done',
-          '1',
-          'EX',
-          5 * 60,
-        );
+    // Save that we are done getting listings of type
+    await this.redis.set(tempKey + ':' + type + ':done', '1', 'EX', 5 * 60);
 
-        const done = await this.redis.keys(
-          this.redis.options.keyPrefix +
-            this.getTempCurrentKey(steamid, time) +
-            ':*:done',
-        );
+    const done = await this.redis.keys(
+      this.redis.options.keyPrefix + tempKey + ':*:done',
+    );
 
-        if (done.length < 2) {
-          // Not yet done with getting all active and archived
-          return;
-        }
+    if (done.length < 2) {
+      // Not yet done with getting all active and archived
+      return;
+    }
 
-        if (signal.aborted) {
-          throw signal.error;
-        }
+    // Check if a temp key exists
+    const exists = await this.redis.exists(tempKey);
 
-        // Check if a temp key exists
-        const exists = await this.redis.exists(
-          this.getTempCurrentKey(steamid, time),
-        );
+    const transaction = this.redis.multi();
 
-        const transaction = this.redis.multi();
+    if (exists) {
+      // It exists, copy it to the current key and remove expiration
+      transaction
+        .copy(tempKey, this.getCurrentKey(steamid), 'REPLACE')
+        .persist(this.getCurrentKey(steamid));
+    } else {
+      // It does not exist, delete current key
+      transaction.del(this.getCurrentKey(steamid));
+    }
 
-        if (exists) {
-          // It exists, copy it to the current key and remove expiration
-          transaction
-            .copy(
-              this.getTempCurrentKey(steamid, time),
-              this.getCurrentKey(steamid),
-              'REPLACE',
-            )
-            .persist(this.getCurrentKey(steamid));
-        } else {
-          // It does not exist, delete current key
-          transaction.del(this.getCurrentKey(steamid));
-        }
+    transaction.del(
+      done.map((key) =>
+        key.replace(this.redis.options.keyPrefix as string, ''),
+      ),
+    );
 
-        transaction.del(
-          done.map((key) =>
-            key.replace(this.redis.options.keyPrefix as string, ''),
-          ),
-        );
+    await transaction.exec();
 
-        await transaction.exec();
-
-        // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
-        await this.eventEmitter.emitAsync(
-          'current-listings.refreshed',
-          steamid,
-        );
-      } else {
-        // Fetch more listings
-        await this.createJob(
-          steamid,
-          type,
-          time,
-          response.cursor.skip + response.cursor.limit,
-          response.cursor.limit,
-        );
-      }
+    // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
+    await this.eventEmitter.emitAsync('current-listings.refreshed', steamid);
   }
 
   private async saveTempListings(
