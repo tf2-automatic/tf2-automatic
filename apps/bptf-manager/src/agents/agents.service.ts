@@ -191,52 +191,41 @@ export class AgentsService {
     token: Token,
     userAgent = 'github.com/tf2-automatic/tf2-automatic',
   ): Promise<AgentResponse> {
-    const resource = `bptf-manager:agents:register:${token.steamid64}`;
-
-    return this.redlock.using([resource], 5000, {}, async () => {
-      return firstValueFrom(
-        this.httpService.post<AgentResponse>(
-          'https://api.backpack.tf/api/agent/pulse',
-          {},
-          {
-            headers: {
-              'User-Agent': userAgent,
-              'X-Auth-Token': token.value,
-            },
+    return firstValueFrom(
+      this.httpService.post<AgentResponse>(
+        'https://api.backpack.tf/api/agent/pulse',
+        {},
+        {
+          headers: {
+            'User-Agent': userAgent,
+            'X-Auth-Token': token.value,
           },
-        ),
-      ).then((response) => {
-        this.eventEmitter.emit(
-          'agents.registered',
-          new SteamID(token.steamid64),
-        );
+        },
+      ),
+    ).then((response) => {
+      this.eventEmitter.emit('agents.registered', new SteamID(token.steamid64));
 
-        return response.data;
-      });
+      return response.data;
     });
   }
 
   unregisterAgent(token: Token): Promise<AgentResponse> {
-    const resource = `bptf-manager:agents:register:${token.steamid64}`;
-
-    return this.redlock.using([resource], 5000, {}, async () => {
-      return firstValueFrom(
-        this.httpService.post<AgentResponse>(
-          'https://api.backpack.tf/api/agent/stop',
-          {},
-          {
-            headers: {
-              'X-Auth-Token': token.value,
-            },
+    return firstValueFrom(
+      this.httpService.post<AgentResponse>(
+        'https://api.backpack.tf/api/agent/stop',
+        {},
+        {
+          headers: {
+            'X-Auth-Token': token.value,
           },
-        ),
-      ).then((response) => {
-        this.eventEmitter.emit(
-          'agents.unregistered',
-          new SteamID(token.steamid64),
-        );
-        return response.data;
-      });
+        },
+      ),
+    ).then((response) => {
+      this.eventEmitter.emit(
+        'agents.unregistered',
+        new SteamID(token.steamid64),
+      );
+      return response.data;
     });
   }
 }
