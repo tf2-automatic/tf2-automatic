@@ -84,7 +84,9 @@ export class DesiredListingsService {
   ) {
     const changed: AddDesiredListing[] = [];
 
-    desired.forEach((d) => {
+    for (let i = 0; i < desired.length; i++) {
+      const d = desired[i];
+
       // Update desired based on current listings
       const c = current.get(d.getHash()) ?? null;
 
@@ -95,7 +97,7 @@ export class DesiredListingsService {
       if (!c || d.isDifferent(c)) {
         changed.push(d);
       }
-    });
+    }
 
     return changed;
   }
@@ -168,15 +170,16 @@ export class DesiredListingsService {
       ...hashes,
     );
 
-    values.forEach((raw) => {
+    for (let i = 0; i < values.length; i++) {
+      const raw = values[i];
       if (raw === null) {
-        return;
+        continue;
       }
 
       const desired = ListingFactory.CreateDesiredListing(JSON.parse(raw));
 
       result.set(desired.getHash(), desired);
-    });
+    }
 
     return result;
   }
