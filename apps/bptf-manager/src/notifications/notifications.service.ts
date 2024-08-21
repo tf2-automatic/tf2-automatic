@@ -48,7 +48,7 @@ export class NotificationsService {
     time: number = Date.now(),
     skip?: number,
     limit?: number,
-  ) {
+  ): Promise<void> {
     const response = await this.fetchNotifications(token, skip, limit);
 
     this.logger.debug(
@@ -66,58 +66,42 @@ export class NotificationsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    const resource =
-      KEY_PREFIX + `notifications:refresh:${steamid.getSteamID64()}`;
+    const key = this.getKey(steamid);
+    const tempKey = key + ':' + time;
 
-    await this.redlock.using([resource], 5000, async (signal) => {
-      const key = this.getKey(steamid);
-      const tempKey = key + ':' + time;
+    if (response.results.length > 0) {
+      await this.saveTempNotifications(steamid, response.results);
 
-      if (response.results.length > 0) {
-        await this.saveTempNotifications(steamid, response.results);
+      await this.redis
+        .multi()
+        .hmset(tempKey, ...this.flatMap(response.results))
+        .expire(tempKey, 5 * 60)
+        .exec();
+    }
 
-        await this.redis
-          .multi()
-          .hmset(tempKey, ...this.flatMap(response.results))
-          .expire(tempKey, 5 * 60)
-          .exec();
-      }
+    if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
+      // Fetch more notifications
+      return this.createJob(
+        steamid,
+        time,
+        response.cursor.skip + response.cursor.limit,
+        response.cursor.limit,
+      );
+    }
 
-      if (signal.aborted) {
-        throw signal.error;
-      }
+    const exists = await this.redis.exists(tempKey);
 
-      if (
-        response.cursor.skip + response.cursor.limit >=
-        response.cursor.total
-      ) {
-        const exists = await this.redis.exists(tempKey);
+    const transaction = this.redis.multi();
 
-        const transaction = this.redis.multi();
+    if (exists) {
+      transaction.copy(tempKey, this.getKey(steamid), 'REPLACE').persist(key);
+    } else {
+      transaction.del(key);
+    }
 
-        if (exists) {
-          transaction
-            .copy(tempKey, this.getKey(steamid), 'REPLACE')
-            .persist(key);
-        } else {
-          transaction.del(key);
-        }
+    await transaction.exec();
 
-        await transaction.exec();
-
-        await this.eventEmitter.emitAsync('notifications.refreshed', steamid);
-      } else {
-        // Fetch more notifications
-        await this.createJob(
-          steamid,
-          time,
-          response.cursor.skip + response.cursor.limit,
-          response.cursor.limit,
-        );
-      }
-    });
-
-    return response;
+    await this.eventEmitter.emitAsync('notifications.refreshed', steamid);
   }
 
   private async saveTempNotifications(
