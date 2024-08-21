@@ -126,6 +126,9 @@ export class AgentsService {
       1000,
       async (signal) => {
         const agent = await this.getAgent(steamid);
+        if (!agent) {
+          return;
+        }
 
         if (signal.aborted) {
           throw signal.error;
@@ -133,10 +136,6 @@ export class AgentsService {
 
         // Stop more attempts to refresh the agent
         await this.deleteAgent(steamid);
-
-        if (!agent) {
-          return;
-        }
 
         // Notify all listeners that the agent is no longer registering
         await this.eventEmitter.emitAsync('agents.unregistering', steamid);
