@@ -29,21 +29,17 @@ import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import Redlock from 'redlock';
 import {
   JobData,
   JobName,
   JobType,
 } from './interfaces/get-listings.queue.interface';
 import { DesiredListing } from './classes/desired-listing.class';
-import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
-
-  private readonly redlock: Redlock;
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
@@ -52,9 +48,7 @@ export class CurrentListingsService {
     private readonly listingLimitsService: ListingLimitsService,
     @InjectQueue('get-listings')
     private readonly getListingsQueue: Queue<JobData, unknown, JobName>,
-  ) {
-    this.redlock = new Redlock([redis], getLockConfig());
-  }
+  ) {}
 
   @OnEvent('agents.registered')
   private async agentsRegistered(steamid: SteamID): Promise<void> {
@@ -519,7 +513,7 @@ export class CurrentListingsService {
     time: number,
     skip?: number,
     limit?: number,
-  ) {
+  ): Promise<void> {
     let promise: Promise<GetListingsResponse>;
 
     if (type === JobType.Active) {
@@ -570,9 +564,6 @@ export class CurrentListingsService {
       });
     }
 
-    const resource = `bptf-manager:listings:refresh:${steamid.getSteamID64()}`;
-
-    await this.redlock.using([resource], 5000, async (signal) => {
       const tempKey = this.getTempCurrentKey(steamid, time);
 
       if (response.results.length > 0) {
@@ -663,9 +654,6 @@ export class CurrentListingsService {
           response.cursor.limit,
         );
       }
-    });
-
-    return response;
   }
 
   private async saveTempListings(
