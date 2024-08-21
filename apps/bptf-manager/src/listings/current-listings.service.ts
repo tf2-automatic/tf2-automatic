@@ -178,7 +178,7 @@ export class CurrentListingsService {
     await transaction.exec();
 
     // Publish that the listings have been deleted
-    await this.eventEmitter.emitAsync('current-listings.deleted', {
+    this.eventEmitter.emit('current-listings.deleted', {
       steamid,
       ids,
       isActive: true,
@@ -209,7 +209,7 @@ export class CurrentListingsService {
     await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
 
     // Publish that the listings have been deleted
-    await this.eventEmitter.emitAsync('current-listings.deleted', {
+    this.eventEmitter.emit('current-listings.deleted', {
       steamid,
       ids,
       isActive: false,
@@ -502,7 +502,7 @@ export class CurrentListingsService {
 
     await transaction.exec();
 
-    await this.eventEmitter.emitAsync('current-listings.deleted-all', steamid);
+    this.eventEmitter.emitAsync('current-listings.deleted-all', steamid);
 
     return active.deleted + archived.deleted;
   }

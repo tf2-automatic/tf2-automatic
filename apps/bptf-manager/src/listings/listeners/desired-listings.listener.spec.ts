@@ -189,8 +189,8 @@ describe('DesiredListingsListener', () => {
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
 
     // Check if the event is emitted
-    expect(mockEventEmitter.emitAsync).toHaveBeenCalledTimes(1);
-    expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
+    expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
       'desired-listings.created',
       {
         steamid: steamid,
