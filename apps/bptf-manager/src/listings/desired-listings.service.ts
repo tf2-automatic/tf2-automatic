@@ -68,7 +68,7 @@ export class DesiredListingsService {
       await transaction.exec();
 
       if (changed.length > 0) {
-        await this.eventEmitter.emitAsync('desired-listings.added', {
+        this.eventEmitter.emit('desired-listings.added', {
           steamid,
           desired: changed,
         } satisfies DesiredListingsAddedEvent);
@@ -133,7 +133,7 @@ export class DesiredListingsService {
       );
       await transaction.exec();
 
-      await this.eventEmitter.emitAsync('desired-listings.removed', {
+      this.eventEmitter.emit('desired-listings.removed', {
         steamid,
         desired,
       } satisfies DesiredListingsRemovedEvent);
