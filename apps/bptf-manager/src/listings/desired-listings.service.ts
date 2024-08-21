@@ -15,10 +15,11 @@ import { DesiredListing } from './classes/desired-listing.class';
 import { AddDesiredListing } from './classes/add-desired-listing.class';
 import { ListingFactory } from './classes/listing.factory';
 import hashListing from './utils/desired-listing-hash';
-import { getLockConfig } from '@tf2-automatic/config';
+import { Injectable } from '@nestjs/common';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
+@Injectable()
 export class DesiredListingsService {
   private readonly redlock: Redlock;
 
