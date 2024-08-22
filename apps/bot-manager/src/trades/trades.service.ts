@@ -51,13 +51,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { TradeQueue } from './interfaces/trade-queue.interface';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
-import Redlock from 'redlock';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { getLockConfig } from '@tf2-automatic/config';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     private readonly httpService: HttpService,
@@ -68,7 +67,7 @@ export class TradesService implements OnApplicationBootstrap {
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
   ) {
-    this.redlock = new Redlock([this.redis], getLockConfig());
+    this.locker = new Locker(this.redis);
   }
 
   async onApplicationBootstrap() {
@@ -132,7 +131,7 @@ export class TradesService implements OnApplicationBootstrap {
 
     const jobId = 'trades:' + offerId;
 
-    return this.redlock.using([jobId], 1000, async (signal) => {
+    return this.locker.using([jobId], LockDuration.SHORT, async (signal) => {
       const exists = await this.tradesQueue.getJob(jobId);
       if (exists) {
         throw new ConflictException('A job already exists for the offer');

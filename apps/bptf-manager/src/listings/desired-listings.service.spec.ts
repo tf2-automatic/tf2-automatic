@@ -404,7 +404,7 @@ function expectMockUsing(steamid: SteamID, hashes: string[]) {
 
   expect(mock.redlock.using).toHaveBeenCalledWith(
     resources,
-    1000,
+    5000,
     expect.any(Function),
   );
 }

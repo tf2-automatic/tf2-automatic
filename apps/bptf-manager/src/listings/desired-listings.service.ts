@@ -4,7 +4,6 @@ import {
   RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import { ChainableCommander, Redis } from 'ioredis';
-import Redlock from 'redlock';
 import SteamID from 'steamid';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -15,19 +14,20 @@ import { DesiredListing } from './classes/desired-listing.class';
 import { AddDesiredListing } from './classes/add-desired-listing.class';
 import { ListingFactory } from './classes/listing.factory';
 import hashListing from './utils/desired-listing-hash';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { Injectable } from '@nestjs/common';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
 @Injectable()
 export class DesiredListingsService {
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    this.redlock = new Redlock([redis], getLockConfig());
+    this.locker = new Locker(redis);
   }
 
   async addDesired(
@@ -44,7 +44,7 @@ export class DesiredListingsService {
       (d) => `desired:${steamid.getSteamID64()}:${d.getHash()}`,
     );
 
-    return this.redlock.using(resources, 5000, async (signal) => {
+    return this.locker.using(resources, LockDuration.MEDIUM, async (signal) => {
       // Get current listings and check if they are different from the new listings
       const current = await this.getDesiredByHashes(
         steamid,
@@ -115,7 +115,7 @@ export class DesiredListingsService {
       (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
     );
 
-    return this.redlock.using(resources, 5000, async (signal) => {
+    return this.locker.using(resources, LockDuration.MEDIUM, async (signal) => {
       const map = await this.getDesiredByHashes(steamid, hashes);
       if (map.size === 0) {
         return [];

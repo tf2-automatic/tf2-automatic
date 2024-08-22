@@ -41,10 +41,9 @@ import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
-import Redlock from 'redlock';
 import { v4 as uuidv4 } from 'uuid';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
-import { getLockConfig } from '@tf2-automatic/config';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
@@ -52,7 +51,7 @@ const KEY_PREFIX = 'bot-manager:data:';
 
 @Injectable()
 export class InventoriesService implements OnApplicationBootstrap {
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     @InjectRedis()
@@ -62,7 +61,7 @@ export class InventoriesService implements OnApplicationBootstrap {
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryQueue>,
   ) {
-    this.redlock = new Redlock([this.redis], getLockConfig());
+    this.locker = new Locker(this.redis);
   }
 
   async onApplicationBootstrap() {
@@ -151,7 +150,7 @@ export class InventoriesService implements OnApplicationBootstrap {
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
-    await this.redlock.using(
+    await this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -159,7 +158,7 @@ export class InventoriesService implements OnApplicationBootstrap {
           contextid,
         }),
       ],
-      1000,
+      LockDuration.SHORT,
       async () => {
         await this.redis.hset(tempKey, object);
 
@@ -204,7 +203,7 @@ export class InventoriesService implements OnApplicationBootstrap {
       this.getInventoryJobId(steamid, appid, contextid),
     );
 
-    return this.redlock.using(
+    return this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -212,7 +211,7 @@ export class InventoriesService implements OnApplicationBootstrap {
           contextid,
         }),
       ],
-      1000,
+      LockDuration.SHORT,
       async () => {
         await this.redis.del(this.getInventoryKey(steamid, appid, contextid));
       },
@@ -226,7 +225,7 @@ export class InventoriesService implements OnApplicationBootstrap {
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    return this.redlock.using(
+    return this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -234,7 +233,7 @@ export class InventoriesService implements OnApplicationBootstrap {
           contextid,
         }),
       ],
-      1000,
+      LockDuration.SHORT,
       async (signal) => {
         const timestamp = await this.redis.hget(key, 'timestamp');
         if (timestamp === null) {
@@ -412,7 +411,7 @@ export class InventoriesService implements OnApplicationBootstrap {
       return this.getInventoryResource(parts);
     });
 
-    return this.redlock.using(resources, 5000, async (signal) => {
+    return this.locker.using(resources, LockDuration.LONG, async (signal) => {
       // Check if cached inventories exist for the given items
       const inventoriesExists = await Promise.all(
         Object.keys(gainedItems).map((key) =>

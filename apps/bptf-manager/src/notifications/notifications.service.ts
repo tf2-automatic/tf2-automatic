@@ -10,8 +10,6 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JobData } from './interfaces/queue';
-import Redlock from 'redlock';
-import { getLockConfig } from '@tf2-automatic/config';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -19,17 +17,13 @@ const KEY_PREFIX = 'bptf-manager:data:';
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  private readonly redlock: Redlock;
-
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     @InjectQueue('notifications')
     private readonly notificationsQueue: Queue<JobData>,
     private readonly eventEmitter: EventEmitter2,
-  ) {
-    this.redlock = new Redlock([redis], getLockConfig());
-  }
+  ) {}
 
   async getNotifications(steamid: SteamID): Promise<Notification[]> {
     const values = await this.redis.hvals(this.getKey(steamid));

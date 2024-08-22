@@ -3,8 +3,8 @@ import { BaseEvent } from '@tf2-automatic/bot-data';
 import { EventsModuleOptions } from '../nestjs-events.module';
 import { CustomEventsService, SubscriberSettings } from './custom.interface';
 import { Redis } from 'ioredis';
-import { getLockConfig, Redis as RedisConfig } from '@tf2-automatic/config';
-import Redlock from 'redlock';
+import { Redis as RedisConfig } from '@tf2-automatic/config';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 type Handler<T = BaseEvent<string>> = (message: T) => Promise<void>;
 
@@ -24,7 +24,7 @@ export class RedisEventsService
 
   private readonly publisher: Redis;
   private readonly subscriber: Redis;
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     @Inject('EVENTS_OPTIONS')
@@ -32,10 +32,7 @@ export class RedisEventsService
   ) {
     this.publisher = new Redis(options.config);
     this.subscriber = new Redis(options.config);
-    this.redlock = new Redlock(
-      [this.publisher],
-      getLockConfig()
-    );
+    this.locker = new Locker(this.publisher);
 
     this.subscriber.on('message', (channel, message) => {
       const exchanges = this.subscribers[channel];
@@ -54,8 +51,8 @@ export class RedisEventsService
         (subscriber) => subscriber.name + '_' + event.metadata.id,
       );
 
-      this.redlock
-        .using(resources, 10000, async () => {
+      this.locker
+        .using(resources, LockDuration.LONG, async () => {
           subscribers.forEach((subscriber) =>
             this.handleEvent(subscriber, event),
           );
