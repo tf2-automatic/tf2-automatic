@@ -16,12 +16,13 @@ import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getJobs, getRepeatableJob } from '../common/utils';
 import { getLockConfig } from '@tf2-automatic/config';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 const KEY = 'bptf-manager:data:agents';
 
 @Injectable()
 export class AgentsService {
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     @InjectQueue('registerAgents')
@@ -34,7 +35,7 @@ export class AgentsService {
     private readonly configService: ConfigService<Config>,
     private readonly eventEmitter: EventEmitter2,
   ) {
-    this.redlock = new Redlock([redis], getLockConfig());
+    this.locker = new Locker(redis);
   }
 
   async getAgents(): Promise<Agent[]> {
@@ -79,9 +80,9 @@ export class AgentsService {
   enqueueRegisterAgent(steamid: SteamID, dto: CreateAgentDto): Promise<Agent> {
     const steamid64 = steamid.getSteamID64();
 
-    return this.redlock.using(
+    return this.locker.using(
       [`bptf-manager:agents:${steamid64}`],
-      1000,
+      LockDuration.SHORT,
       async () => {
         const agent = await this.setAgent(steamid, dto);
 
@@ -121,9 +122,9 @@ export class AgentsService {
   async enqueueUnregisterAgent(steamid: SteamID): Promise<void> {
     const steamid64 = steamid.getSteamID64();
 
-    await this.redlock.using(
+    await this.locker.using(
       [`bptf-manager:agents:${steamid64}`],
-      1000,
+      LockDuration.SHORT,
       async (signal) => {
         const agent = await this.getAgent(steamid);
         if (!agent) {

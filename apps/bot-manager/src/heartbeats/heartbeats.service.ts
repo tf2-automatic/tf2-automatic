@@ -26,11 +26,10 @@ import { BotHeartbeatDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
-import Redlock from 'redlock';
 import { v4 as uuidv4 } from 'uuid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
-import { getLockConfig } from '@tf2-automatic/config';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
@@ -39,7 +38,7 @@ const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 @Injectable()
 export class HeartbeatsService {
   private readonly logger = new Logger(HeartbeatsService.name);
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
@@ -48,7 +47,7 @@ export class HeartbeatsService {
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
     private readonly eventsService: NestEventsService,
   ) {
-    this.redlock = new Redlock([this.redis], getLockConfig());
+    this.locker = new Locker(this.redis);
   }
 
   getBots(): Promise<Bot[]> {
@@ -135,9 +134,9 @@ export class HeartbeatsService {
     );
 
     // Create lock to make sure that a bot can't be saved and deleted at the same time
-    return this.redlock.using(
+    return this.locker.using(
       [`bots:${steamid.getSteamID64()}`],
-      1000,
+      LockDuration.SHORT,
       async (signal) => {
         const running = await this.getRunningBot(bot).catch((err) => {
           this.logger.warn('Bot is not accessible: ' + err.message);
@@ -196,9 +195,9 @@ export class HeartbeatsService {
 
   async deleteBot(steamid: SteamID): Promise<void> {
     // Create lock
-    await this.redlock.using(
+    await this.locker.using(
       [`bots:${steamid.getSteamID64()}`],
-      1000,
+      LockDuration.SHORT,
       async (signal) => {
         const bot = await this.getBotFromRedis(steamid);
         if (bot === null) {

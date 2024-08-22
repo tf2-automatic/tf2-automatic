@@ -19,6 +19,7 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';
 import Redlock from 'redlock';
 import { getLockConfig } from '@tf2-automatic/config';
+import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 const KEY_PREFIX = 'bptf-manager:data:';
 
@@ -26,7 +27,7 @@ const KEY_PREFIX = 'bptf-manager:data:';
 export class InventoriesService {
   private readonly logger = new Logger(InventoriesService.name);
 
-  private readonly redlock: Redlock;
+  private readonly locker: Locker;
 
   constructor(
     @InjectQueue('inventories')
@@ -42,7 +43,7 @@ export class InventoriesService {
     private readonly httpService: HttpService,
     @InjectRedis() private readonly redis: Redis,
   ) {
-    this.redlock = new Redlock([this.redis], getLockConfig());
+    this.locker = new Locker(this.redis);
   }
 
   async scheduleRefresh(
@@ -53,9 +54,9 @@ export class InventoriesService {
 
     const time = body?.time ?? Math.floor(Date.now() / 1000);
 
-    await this.redlock.using(
+    await this.locker.using(
       [`bptf-manager:inventories:${steamid64}`],
-      1000,
+      LockDuration.SHORT,
       async (signal) => {
         const refreshPoint = await this.getRefreshPoint(steamid);
 
