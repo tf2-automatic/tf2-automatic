@@ -30,7 +30,8 @@ export interface TradeOfferExchangeDetails {
   sentItems: ExchangeDetailsItem[];
 }
 
-export interface TradeOffer<T extends Item | Asset> {
+// TODO: Remove default type on next major version
+export interface TradeOffer<T extends Item | Asset = Item> {
   partner: string;
   id: string;
   message: string;
