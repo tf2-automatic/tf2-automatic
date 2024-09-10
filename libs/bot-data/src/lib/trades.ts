@@ -30,13 +30,13 @@ export interface TradeOfferExchangeDetails {
   sentItems: ExchangeDetailsItem[];
 }
 
-export interface TradeOffer {
+export interface TradeOffer<T extends Item | Asset> {
   partner: string;
   id: string;
   message: string;
   state: ETradeOfferState;
-  itemsToGive: Item[];
-  itemsToReceive: Item[];
+  itemsToGive: T[];
+  itemsToReceive: T[];
   isGlitched: boolean;
   isOurOffer: boolean;
   createdAt: number;
@@ -48,17 +48,20 @@ export interface TradeOffer {
   escrowEndsAt: number | null;
 }
 
+export type TradeOfferWithItems = TradeOffer<Item>;
+export type TradeOfferWithAssets = TradeOffer<Asset>;
+
 interface BaseOfferEvent {
-  offer: TradeOffer;
+  offer: TradeOfferWithItems;
 }
 
 export interface GetTradesResponse {
-  sent: TradeOffer[];
-  received: TradeOffer[];
+  sent: TradeOfferWithItems[];
+  received: TradeOfferWithItems[];
 }
 
-export type GetTradeResponse = TradeOffer;
-export type RefreshTradeResponse = TradeOffer;
+export type GetTradeResponse = TradeOfferWithItems;
+export type RefreshTradeResponse = TradeOfferWithItems;
 
 export interface Asset {
   assetid: string;
@@ -80,9 +83,9 @@ export interface CreateTrade extends BaseTrade {
 
 export type CounterTrade = BaseTrade;
 
-export type CreateTradeResponse = TradeOffer;
-export type AcceptTradeResponse = TradeOffer;
-export type DeleteTradeResponse = TradeOffer;
+export type CreateTradeResponse = TradeOfferWithAssets;
+export type AcceptTradeResponse = TradeOfferWithItems;
+export type DeleteTradeResponse = TradeOfferWithItems;
 
 export type AcceptConfirmationResponse = {
   success: boolean;

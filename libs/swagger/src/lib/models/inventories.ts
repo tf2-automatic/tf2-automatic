@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   Action,
+  Asset,
   Description,
   Inventory,
   Item,
@@ -8,7 +9,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { InventoryResponse } from '@tf2-automatic/bot-manager-data';
 
-export class ItemModel implements Item {
+export class AssetModel implements Asset {
   @ApiProperty({
     example: 440,
     description: 'The appid of the game the item is from',
@@ -27,17 +28,19 @@ export class ItemModel implements Item {
   })
   assetid: string;
 
-  @ApiProperty()
-  classid: string;
-
-  @ApiProperty()
-  instanceid: string;
-
   @ApiProperty({
     example: 0,
     description: 'The amount of items in the stack',
   })
   amount: number;
+}
+
+export class ItemModel extends AssetModel implements Item {
+  @ApiProperty()
+  classid: string;
+
+  @ApiProperty()
+  instanceid: string;
 
   @ApiProperty({
     example: 0,

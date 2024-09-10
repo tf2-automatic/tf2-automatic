@@ -17,6 +17,9 @@ import {
   TRADE_SENT_EVENT,
   TRADE_CONFIRMATION_NEEDED_EVENT,
   ExchangeDetailsItem,
+  TradeOfferWithItems,
+  TradeOfferWithAssets,
+  Asset,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import {
@@ -398,10 +401,10 @@ export class TradesService {
         }
 
         const sentMapped = sent.map((offer) => {
-          return this.mapOffer(offer);
+          return this.mapOffer<Item>(offer);
         });
         const receivedMapped = received.map((offer) => {
-          return this.mapOffer(offer);
+          return this.mapOffer<Item>(offer);
         });
 
         return resolve({ sent: sentMapped, received: receivedMapped });
@@ -474,7 +477,7 @@ export class TradesService {
     });
   }
 
-  async getTrade(id: string): Promise<TradeOffer> {
+  async getTrade(id: string): Promise<TradeOfferWithItems> {
     const offer = await this.getTradeAndLogError(id);
     return this.mapOffer(offer);
   }
@@ -482,7 +485,7 @@ export class TradesService {
   /**
    * Gets a trade offer and publishes it even if it was already published
    */
-  async refreshTrade(id: string): Promise<TradeOffer> {
+  async refreshTrade(id: string): Promise<TradeOfferWithItems> {
     const offer = await this.getTradeAndLogError(id);
 
     // Publish the offer and say the old state was the last published state
@@ -508,7 +511,10 @@ export class TradesService {
     return this.sendOffer(offer);
   }
 
-  async counterTrade(id: string, dto: CounterTradeDto): Promise<TradeOffer> {
+  async counterTrade(
+    id: string,
+    dto: CounterTradeDto,
+  ): Promise<TradeOfferWithAssets> {
     const offer = await this._getTrade(id);
     this.isActiveOrThrow(offer, true);
 
@@ -621,7 +627,7 @@ export class TradesService {
     return false;
   }
 
-  async acceptTrade(id: string): Promise<TradeOffer> {
+  async acceptTrade(id: string): Promise<TradeOfferWithItems> {
     const accepted = await this.checkAccepted(id);
     if (accepted) {
       throw new BadRequestException('Offer is already accepted');
@@ -760,7 +766,7 @@ export class TradesService {
     return false;
   }
 
-  async removeTrade(id: string): Promise<TradeOffer> {
+  async removeTrade(id: string): Promise<TradeOfferWithItems> {
     const removed = await this.checkRemoved(id);
     if (removed) {
       throw new BadRequestException('Offer is already removed');
@@ -892,14 +898,16 @@ export class TradesService {
     }
   }
 
-  private mapOffer(offer: ActualTradeOffer): TradeOffer {
+  private mapOffer<T extends Item | Asset>(
+    offer: ActualTradeOffer,
+  ): TradeOffer<T> {
     return {
       partner: offer.partner.getSteamID64(),
       id: offer.id!,
       message: offer.message,
       state: offer.state,
-      itemsToGive: offer.itemsToGive as unknown as Item[],
-      itemsToReceive: offer.itemsToReceive as unknown as Item[],
+      itemsToGive: offer.itemsToGive as unknown as T[],
+      itemsToReceive: offer.itemsToReceive as unknown as T[],
       isGlitched: offer.isGlitched(),
       isOurOffer: offer.isOurOffer,
       createdAt: Math.floor(offer.created.getTime() / 1000),
