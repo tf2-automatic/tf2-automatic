@@ -1,12 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  Asset,
   ExchangeDetailsItem,
   GetTradesResponse,
   Item,
   TradeOffer,
   TradeOfferExchangeDetails,
+  TradeOfferWithAssets,
+  TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
-import { ItemModel } from './inventories';
+import { AssetModel, ItemModel } from './inventories';
 import { ETradeStatus } from 'steam-tradeoffer-manager';
 import { ETradeOfferState, ETradeOfferConfirmationMethod } from 'steam-user';
 
@@ -66,7 +69,7 @@ export class DetailsModel implements TradeOfferExchangeDetails {
 
 const now = Math.floor(Date.now() / 1000);
 
-export class TradeModel implements TradeOffer {
+export class BaseTradeModel implements Partial<TradeOffer<never>> {
   @ApiProperty({
     example: '76561198120070906',
     description:
@@ -92,20 +95,6 @@ export class TradeModel implements TradeOffer {
     description: 'Current state of the offer',
   })
   state: ETradeOfferState;
-
-  @ApiProperty({
-    type: [ItemModel],
-    description:
-      'Items that we will give to the partner when the offer is accepted',
-  })
-  itemsToGive: Item[];
-
-  @ApiProperty({
-    type: [ItemModel],
-    description:
-      'Items that we will receive from the partner when the offer is accepted',
-  })
-  itemsToReceive: Item[];
 
   @ApiProperty({
     example: false,
@@ -166,16 +155,54 @@ export class TradeModel implements TradeOffer {
   escrowEndsAt: number | null;
 }
 
+export class TradeWithItemsModel
+  extends BaseTradeModel
+  implements TradeOfferWithItems
+{
+  @ApiProperty({
+    type: [ItemModel],
+    description:
+      'Items that we will give to the partner when the offer is accepted',
+  })
+  itemsToGive: Item[];
+
+  @ApiProperty({
+    type: [ItemModel],
+    description:
+      'Items that we will receive from the partner when the offer is accepted',
+  })
+  itemsToReceive: Item[];
+}
+
+export class TradeWithAssetsModel
+  extends BaseTradeModel
+  implements TradeOfferWithAssets
+{
+  @ApiProperty({
+    type: [AssetModel],
+    description:
+      'Assets that we will give to the partner when the offer is accepted',
+  })
+  itemsToGive: Asset[];
+
+  @ApiProperty({
+    type: [AssetModel],
+    description:
+      'Assets that we will receive from the partner when the offer is accepted',
+  })
+  itemsToReceive: Asset[];
+}
+
 export class TradesModel implements GetTradesResponse {
   @ApiProperty({
     description: 'Sent trades',
-    type: [TradeModel],
+    type: [TradeWithItemsModel],
   })
-  sent: TradeOffer[];
+  sent: TradeOfferWithItems[];
 
   @ApiProperty({
     description: 'Received trades',
-    type: [TradeModel],
+    type: [TradeWithItemsModel],
   })
-  received: TradeOffer[];
+  received: TradeOfferWithItems[];
 }

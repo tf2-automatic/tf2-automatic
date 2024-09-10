@@ -45,8 +45,9 @@ import {
   ItemModel,
   ApiParamOfferID,
   DetailsModel,
-  TradeModel,
   TradesModel,
+  TradeWithItemsModel,
+  TradeWithAssetsModel,
 } from '@tf2-automatic/swagger';
 import { TradesService } from './trades.service';
 import {
@@ -87,7 +88,7 @@ export class TradesController {
   })
   @ApiParamOfferID()
   @ApiOkResponse({
-    type: TradeModel,
+    type: TradeWithItemsModel,
   })
   @ApiNotFoundResponse({
     description: 'Trade offer not found',
@@ -104,7 +105,7 @@ export class TradesController {
   })
   @ApiParamOfferID()
   @ApiOkResponse({
-    type: TradeModel,
+    type: TradeWithItemsModel,
   })
   @ApiNotFoundResponse({
     description: 'Trade offer not found',
@@ -119,7 +120,7 @@ export class TradesController {
     description: 'Create a trade',
   })
   @ApiOkResponse({
-    type: TradeModel,
+    type: TradeWithAssetsModel,
   })
   async createTrade(
     @Body(
@@ -138,7 +139,7 @@ export class TradesController {
     description: 'Counter a trade by id',
   })
   @ApiOkResponse({
-    type: TradeModel,
+    type: TradeWithAssetsModel,
   })
   counterTrade(
     @Param('id') id: string,
@@ -159,7 +160,7 @@ export class TradesController {
   })
   @ApiParamOfferID()
   @ApiOkResponse({
-    type: TradeModel,
+    type: TradeWithItemsModel,
   })
   @ApiNotFoundResponse({
     description: 'Trade offer not found',
@@ -188,7 +189,7 @@ export class TradesController {
   })
   @ApiParamOfferID()
   @ApiOkResponse({
-    type: TradeModel,
+    type: TradeWithItemsModel,
   })
   @ApiNotFoundResponse({
     description: 'Trade offer not found',

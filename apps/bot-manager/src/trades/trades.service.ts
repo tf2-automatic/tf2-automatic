@@ -24,13 +24,13 @@ import {
   TRADE_COUNTER_PATH,
   CounterTrade,
   TRADE_REFRESH_PATH,
-  TradeOffer,
   TRADE_CONFIRMED_PATH,
   CheckConfirmationResponse,
   CheckAcceptedResponse,
   TRADE_ACCEPTED_PATH,
   CheckDeletedResponse,
   TRADE_DELETED_PATH,
+  TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -235,7 +235,7 @@ export class TradesService implements OnApplicationBootstrap {
     return response.data;
   }
 
-  async refreshTrade(bot: Bot, tradeId: string): Promise<TradeOffer> {
+  async refreshTrade(bot: Bot, tradeId: string): Promise<TradeOfferWithItems> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_REFRESH_PATH}`.replace(
         ':id',

@@ -3,8 +3,8 @@ import {
   CounterTrade,
   CreateTrade,
   HttpError,
-  TradeOffer,
   TradeOfferExchangeDetails,
+  TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
 import { Job, RetryOptions } from './misc';
 
@@ -73,7 +73,7 @@ export const EXCHANGE_DETAILS_EVENT: ExchangeDetailsEventType = `${TRADES_EVENT_
 export type ExchangeDetailsEvent = BaseEvent<
   ExchangeDetailsEventType,
   {
-    offer: TradeOffer;
+    offer: TradeOfferWithItems;
     details: TradeOfferExchangeDetails;
   }
 >;

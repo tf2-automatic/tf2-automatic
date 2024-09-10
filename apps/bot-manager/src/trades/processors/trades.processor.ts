@@ -4,7 +4,7 @@ import {
   CreateTrade,
   HttpError,
   SteamError,
-  TradeOffer,
+  TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -341,8 +341,8 @@ export class TradesProcessor extends WorkerHost {
   private findMatchingTrade(
     trade: CreateTrade,
     time: number,
-    trades: TradeOffer[],
-  ): TradeOffer | null {
+    trades: TradeOfferWithItems[],
+  ): TradeOfferWithItems | null {
     // Get trades created after specific time
     const itemsInTrade = trade.itemsToGive.concat(trade.itemsToReceive);
 
