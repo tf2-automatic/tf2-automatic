@@ -3,7 +3,7 @@
   "version": "latest",
   "dependencies": {
     "class-validator": "0.14.1",
-    "steamid": "2.0.0",
-    "tslib": "2.6.3"
+    "steamid": "^2.0.0",
+    "tslib": "^2.7.0"
   }
 }
