@@ -30,13 +30,14 @@ export interface TradeOfferExchangeDetails {
   sentItems: ExchangeDetailsItem[];
 }
 
-export interface TradeOffer {
+// TODO: Remove default type on next major version
+export interface TradeOffer<T extends Item | Asset = Item> {
   partner: string;
   id: string;
   message: string;
   state: ETradeOfferState;
-  itemsToGive: Item[];
-  itemsToReceive: Item[];
+  itemsToGive: T[];
+  itemsToReceive: T[];
   isGlitched: boolean;
   isOurOffer: boolean;
   createdAt: number;
@@ -48,17 +49,20 @@ export interface TradeOffer {
   escrowEndsAt: number | null;
 }
 
-interface BaseOfferEvent {
-  offer: TradeOffer;
+export type TradeOfferWithItems = TradeOffer<Item>;
+export type TradeOfferWithAssets = TradeOffer<Asset>;
+
+interface BaseOfferEvent<T extends Item | Asset> {
+  offer: TradeOffer<T>;
 }
 
 export interface GetTradesResponse {
-  sent: TradeOffer[];
-  received: TradeOffer[];
+  sent: TradeOfferWithItems[];
+  received: TradeOfferWithItems[];
 }
 
-export type GetTradeResponse = TradeOffer;
-export type RefreshTradeResponse = TradeOffer;
+export type GetTradeResponse = TradeOfferWithItems;
+export type RefreshTradeResponse = TradeOfferWithItems;
 
 export interface Asset {
   assetid: string;
@@ -80,9 +84,9 @@ export interface CreateTrade extends BaseTrade {
 
 export type CounterTrade = BaseTrade;
 
-export type CreateTradeResponse = TradeOffer;
-export type AcceptTradeResponse = TradeOffer;
-export type DeleteTradeResponse = TradeOffer;
+export type CreateTradeResponse = TradeOfferWithAssets;
+export type AcceptTradeResponse = TradeOfferWithItems;
+export type DeleteTradeResponse = TradeOfferWithItems;
 
 export type AcceptConfirmationResponse = {
   success: boolean;
@@ -132,19 +136,22 @@ export const TRADE_RECEIVED_EVENT: TradeReceivedEventType = `${TRADE_EVENT_PREFI
 export const TRADE_CHANGED_EVENT: TradeChangedEventType = `${TRADE_EVENT_PREFIX}.changed`;
 export const TRADE_CONFIRMATION_NEEDED_EVENT: TradeConfirmationNeededEventType = `${TRADE_EVENT_PREFIX}.confirmation_needed`;
 
-export type TradeSentEvent = BaseEvent<TradeSentEventType, BaseOfferEvent>;
+export type TradeSentEvent = BaseEvent<
+  TradeSentEventType,
+  BaseOfferEvent<Asset>
+>;
 
 export type TradeReceivedEvent = BaseEvent<
   TradeReceivedEventType,
-  BaseOfferEvent
+  BaseOfferEvent<Item>
 >;
 
 export type TradeChangedEvent = BaseEvent<
   TradeChangedEventType,
-  BaseOfferEvent & { oldState: ETradeOfferState | null }
+  BaseOfferEvent<Item> & { oldState: ETradeOfferState | null }
 >;
 
 export type TradeConfirmationNeededEvent = BaseEvent<
   TradeConfirmationNeededEventType,
-  BaseOfferEvent
+  BaseOfferEvent<Item | Asset>
 >;
