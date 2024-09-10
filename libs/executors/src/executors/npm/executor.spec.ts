@@ -40,10 +40,10 @@ const context: ExecutorContext = {
 jest.mock('fs');
 jest.mock('child_process');
 
-/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const child_process = require('child_process');
-/* eslint-enable @typescript-eslint/no-var-requires */
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 fs.readFileSync = jest.fn(() => mockedPackageJson);
 fs.writeFileSync = jest.fn();
