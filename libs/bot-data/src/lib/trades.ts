@@ -52,8 +52,8 @@ export interface TradeOffer<T extends Item | Asset = Item> {
 export type TradeOfferWithItems = TradeOffer<Item>;
 export type TradeOfferWithAssets = TradeOffer<Asset>;
 
-interface BaseOfferEvent {
-  offer: TradeOfferWithItems;
+interface BaseOfferEvent<T extends Item | Asset> {
+  offer: TradeOffer<T>;
 }
 
 export interface GetTradesResponse {
@@ -136,19 +136,22 @@ export const TRADE_RECEIVED_EVENT: TradeReceivedEventType = `${TRADE_EVENT_PREFI
 export const TRADE_CHANGED_EVENT: TradeChangedEventType = `${TRADE_EVENT_PREFIX}.changed`;
 export const TRADE_CONFIRMATION_NEEDED_EVENT: TradeConfirmationNeededEventType = `${TRADE_EVENT_PREFIX}.confirmation_needed`;
 
-export type TradeSentEvent = BaseEvent<TradeSentEventType, BaseOfferEvent>;
+export type TradeSentEvent = BaseEvent<
+  TradeSentEventType,
+  BaseOfferEvent<Asset>
+>;
 
 export type TradeReceivedEvent = BaseEvent<
   TradeReceivedEventType,
-  BaseOfferEvent
+  BaseOfferEvent<Item>
 >;
 
 export type TradeChangedEvent = BaseEvent<
   TradeChangedEventType,
-  BaseOfferEvent & { oldState: ETradeOfferState | null }
+  BaseOfferEvent<Item> & { oldState: ETradeOfferState | null }
 >;
 
 export type TradeConfirmationNeededEvent = BaseEvent<
   TradeConfirmationNeededEventType,
-  BaseOfferEvent
+  BaseOfferEvent<Item | Asset>
 >;
