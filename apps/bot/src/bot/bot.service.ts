@@ -57,6 +57,7 @@ export class BotService implements OnModuleDestroy {
   private manager: SteamTradeOfferManager;
   private pollInterval: number;
   private customGamePlayed: string | null = null;
+  private personaState: SteamUser.EPersonaState | null = null;
 
   private _startPromise: Promise<void> | null = null;
   private _reconnectPromise: Promise<void> | null = null;
@@ -144,10 +145,7 @@ export class BotService implements OnModuleDestroy {
       this.logger.log('Logged in to Steam!');
 
       this.setGamePlayed(440);
-
-      if (this.running) {
-        this.client.setPersona(SteamUser.EPersonaState.Online);
-      }
+      this.setPersonaState();
 
       this.metadataService.setSteamID(this.client.steamID as SteamID);
 
@@ -294,6 +292,19 @@ export class BotService implements OnModuleDestroy {
     const gamesPlayed: number[] = this.client._playingAppIds;
 
     this.setGamePlayed(gamesPlayed.length > 0 ? gamesPlayed[0] : null);
+  }
+
+  setCustomPersonaState(state: SteamUser.EPersonaState | null) {
+    this.personaState = state;
+    this.setPersonaState();
+  }
+
+  setPersonaState() {
+    if (!this.running) {
+      return;
+    }
+
+    this.client.setPersona(this.personaState ?? SteamUser.EPersonaState.Online);
   }
 
   private handleReadEvent(
@@ -483,7 +494,7 @@ export class BotService implements OnModuleDestroy {
 
     this.logger.log('Bot is ready');
 
-    this.client.setPersona(SteamUser.EPersonaState.Online);
+    this.setPersonaState();
 
     this.manager.doPoll();
 
