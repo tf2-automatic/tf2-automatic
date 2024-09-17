@@ -14,7 +14,6 @@ import { StorageService } from '../storage/storage.service';
 @Injectable()
 export class ProfileService implements OnModuleInit {
   private readonly community = this.botService.getCommunity();
-  private readonly client = this.botService.getClient();
 
   constructor(
     private readonly botService: BotService,
