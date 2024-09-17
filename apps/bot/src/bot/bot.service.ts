@@ -335,26 +335,6 @@ export class BotService implements OnModuleDestroy {
     return this._startPromise;
   }
 
-  private async getCustomGame(): Promise<string | null> {
-    if (this.customGamePlayed) {
-      return this.customGamePlayed;
-    }
-
-    const customGamePath = `customgame.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-
-    const customGame = await this.storageService
-      .read(customGamePath)
-      .catch(null);
-
-    if (customGame) {
-      this.customGamePlayed = customGame;
-    }
-
-    return this.customGamePlayed;
-  }
-
   private async getDisabled(): Promise<string | false> {
     const steamDetails =
       this.configService.getOrThrow<SteamAccountConfig>('steam');
@@ -450,8 +430,6 @@ export class BotService implements OnModuleDestroy {
     this.manager.on('debug', (message: string) => {
       this.logger.debug(message);
     });
-
-    await this.getCustomGame();
 
     await this.reconnect();
 

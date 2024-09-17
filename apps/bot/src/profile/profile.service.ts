@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   UpdateCustomGameDto,
   UpdateProfileAvatarDto,
@@ -12,7 +12,7 @@ import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { StorageService } from '../storage/storage.service';
 
 @Injectable()
-export class ProfileService {
+export class ProfileService implements OnModuleInit {
   private readonly community = this.botService.getCommunity();
   private readonly client = this.botService.getClient();
 
@@ -21,6 +21,11 @@ export class ProfileService {
     private readonly configService: ConfigService<Config>,
     private readonly storageService: StorageService,
   ) {}
+
+  async onModuleInit() {
+    const customGame = await this.getCustomGame();
+    this.botService.setCustomGame(customGame);
+  }
 
   setAvatar(dto: UpdateProfileAvatarDto): Promise<void> {
     return new Promise((resolve, reject) => {
