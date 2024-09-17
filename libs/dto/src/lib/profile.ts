@@ -34,6 +34,7 @@ export class UpdateCustomGameDto implements UpdateCustomGame {
     example: 'A super cool game!',
   })
   @IsString()
+  @IsNotEmpty()
   name: string;
 }
 
