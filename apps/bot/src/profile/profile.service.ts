@@ -99,24 +99,35 @@ export class ProfileService implements OnModuleInit {
     });
   }
 
-  async setCustomGame(dto: UpdateCustomGameDto) {
-    // Check the custom game file and play that if it exists, otherwise play only TF2
-    const customGamePath = `customgame.${
+  private getCustomGamePath() {
+    return `customgame.${
       this.configService.getOrThrow<SteamAccountConfig>('steam').username
     }.txt`;
-
-    await this.storageService.write(customGamePath, dto.name);
-
-    this.botService.setCustomGame(dto.name === '' ? null : dto.name);
   }
 
-  async clearCustomGame() {
-    const customGamePath = `customgame.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
+  setCustomGame(dto: UpdateCustomGameDto): Promise<void> {
+    return this.saveCustomGame(dto.name);
+  }
 
-    await this.storageService.write(customGamePath, '');
+  clearCustomGame(): Promise<void> {
+    return this.saveCustomGame(null);
+  }
 
-    this.botService.setCustomGame(null);
+  private async saveCustomGame(name: string | null) {
+    // Save the name, or empty string if null
+    await this.storageService.write(this.getCustomGamePath(), name ?? '');
+    this.botService.setCustomGame(name);
+  }
+
+  private async getCustomGame(): Promise<string | null> {
+    const customGame = await this.storageService
+      .read(this.getCustomGamePath())
+      .catch(null);
+
+    if (!customGame) {
+      return null;
+    }
+
+    return customGame;
   }
 }
