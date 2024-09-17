@@ -1,7 +1,12 @@
+import type SteamUser from 'steam-user';
 import type SteamCommunity from 'steamcommunity';
 
 export interface UpdateCustomGame {
   name: string;
+}
+
+export interface UpdateCustomPersonaState {
+  state: SteamUser.EPersonaState;
 }
 
 export interface UpdateProfileAvatar {
@@ -46,6 +51,7 @@ export const PROFILE_SETTINGS_PATH = '/settings';
 export const PROFILE_NAME_PATH = '/name';
 export const PROFILE_TRADEOFFERURL_PATH = '/tradeofferurl';
 export const PROFILE_CUSTOM_GAME_PATH = '/game';
+export const PROFILE_CUSTOM_PERSONA_STATE_PATH = '/state';
 
 export const PROFILE_AVATAR_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_AVATAR_PATH}`;
 export const PROFILE_FULL_PATH = `${PROFILE_BASE_URL}`;

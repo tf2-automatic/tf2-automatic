@@ -19,6 +19,7 @@ import {
   PROFILE_AVATAR_PATH,
   PROFILE_BASE_URL,
   PROFILE_CUSTOM_GAME_PATH,
+  PROFILE_CUSTOM_PERSONA_STATE_PATH,
   PROFILE_NAME_PATH,
   PROFILE_PATH,
   PROFILE_SETTINGS_PATH,
@@ -27,6 +28,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import {
   UpdateCustomGameDto,
+  UpdateCustomPersonaStateDto,
   UpdateProfileAvatarDto,
   UpdateProfileDto,
   UpdateProfileSettingsDto,
@@ -141,9 +143,33 @@ export class ProfileController {
   @Delete(PROFILE_CUSTOM_GAME_PATH)
   @ApiOperation({
     summary: 'Clear the custom game',
-    description: 'Clear the bots custom game and return to TF2 only',
+    description: "Clear the bot's custom game and return to TF2 only",
   })
   clearCustomGame() {
     return this.profileService.clearCustomGame();
+  }
+
+  @Put(PROFILE_CUSTOM_PERSONA_STATE_PATH)
+  @ApiOperation({
+    summary: 'Set a custom persona state',
+    description: 'Set a custom persona state for the bot',
+  })
+  @ApiBody({
+    type: UpdateCustomPersonaStateDto,
+  })
+  setCustomPersonaState(
+    @Body(new ValidationPipe()) dto: UpdateCustomPersonaStateDto,
+  ) {
+    return this.profileService.setCustomPersonaState(dto.state);
+  }
+
+  @Delete(PROFILE_CUSTOM_PERSONA_STATE_PATH)
+  @ApiOperation({
+    summary: 'Clear the custom persona state',
+    description:
+      "Clear the bot's custom persona state and return to Online/Offline only",
+  })
+  clearCustomPersonaState() {
+    return this.profileService.clearCustomPersonaState();
   }
 }

@@ -10,6 +10,7 @@ import { BotService } from '../bot/bot.service';
 import { ConfigService } from '@nestjs/config';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { StorageService } from '../storage/storage.service';
+import SteamUser from 'steam-user';
 
 @Injectable()
 export class ProfileService implements OnModuleInit {
@@ -22,8 +23,13 @@ export class ProfileService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const customGame = await this.getCustomGame();
+    const [customGame, customPersonaState] = await Promise.all([
+      this.getCustomGame(),
+      this.getCustomPersonaState(),
+    ]);
+
     this.botService.setCustomGame(customGame);
+    this.botService.setCustomPersonaState(customPersonaState);
   }
 
   setAvatar(dto: UpdateProfileAvatarDto): Promise<void> {
@@ -104,6 +110,12 @@ export class ProfileService implements OnModuleInit {
     }.txt`;
   }
 
+  private getCustomPersonaStatePath() {
+    return `persona.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+  }
+
   setCustomGame(dto: UpdateCustomGameDto): Promise<void> {
     return this.saveCustomGame(dto.name);
   }
@@ -118,6 +130,22 @@ export class ProfileService implements OnModuleInit {
     this.botService.setCustomGame(name);
   }
 
+  setCustomPersonaState(state: SteamUser.EPersonaState): Promise<void> {
+    return this.saveCustomPersonaState(state);
+  }
+
+  clearCustomPersonaState(): Promise<void> {
+    return this.saveCustomPersonaState(null);
+  }
+
+  private async saveCustomPersonaState(state: SteamUser.EPersonaState | null) {
+    await this.storageService.write(
+      this.getCustomPersonaStatePath(),
+      state !== null ? state.toString() : '',
+    );
+    this.botService.setCustomPersonaState(state);
+  }
+
   private async getCustomGame(): Promise<string | null> {
     const customGame = await this.storageService
       .read(this.getCustomGamePath())
@@ -128,5 +156,17 @@ export class ProfileService implements OnModuleInit {
     }
 
     return customGame;
+  }
+
+  private async getCustomPersonaState(): Promise<SteamUser.EPersonaState | null> {
+    const persona = await this.storageService
+      .read(this.getCustomGamePath())
+      .catch(null);
+
+    if (persona === null || persona === '') {
+      return null;
+    }
+
+    return parseInt(persona, 10);
   }
 }

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   UpdateCustomGame,
+  UpdateCustomPersonaState,
   UpdateProfile,
   UpdateProfileAvatar,
   UpdateProfileSettings,
@@ -10,10 +11,12 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUrl,
 } from 'class-validator';
+import SteamUser from 'steam-user';
 import SteamCommunity from 'steamcommunity';
 
 export class UpdateProfileAvatarDto implements UpdateProfileAvatar {
@@ -36,6 +39,18 @@ export class UpdateCustomGameDto implements UpdateCustomGame {
   @IsString()
   @IsNotEmpty()
   name: string;
+}
+
+export class UpdateCustomPersonaStateDto implements UpdateCustomPersonaState {
+  @ApiProperty({
+    description: 'The custom persona state',
+    example: SteamUser.EPersonaState.Online,
+    type: Number,
+    required: true,
+  })
+  @IsEnum(SteamUser.EPersonaState)
+  @Type(() => Number)
+  state: SteamUser.EPersonaState;
 }
 
 export class UpdateProfileSettingsDto implements UpdateProfileSettings {
