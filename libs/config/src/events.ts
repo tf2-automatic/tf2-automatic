@@ -9,8 +9,10 @@ export type EventsConfig = (RabbitMQ.Config | Redis.Config) & {
 
 export type EventsConfigType = EventsConfig['type'];
 
+export const DEFAULT_EVENTS_TYPE: EventsConfigType = 'rabbitmq';
+
 function getType(): EventsConfigType {
-  const type = getEnvWithDefault('EVENTS_TYPE', 'string', 'rabbitmq');
+  const type = getEnvWithDefault('EVENTS_TYPE', 'string', DEFAULT_EVENTS_TYPE);
   if (type === 'rabbitmq' || type === 'redis') {
     return type;
   }
@@ -41,9 +43,21 @@ export function addRequiredWhenEvents(
   is: EventsConfigType,
 ) {
   const required = getRequiredRules(rules);
+
+  let match;
+  if (is === DEFAULT_EVENTS_TYPE) {
+    match = Joi.alt(is, Joi.not().exist());
+  } else {
+    match = is;
+  }
+
   addWhen(rules, required, {
     ref: 'EVENTS_TYPE',
-    options: { is, then: Joi.required(), otherwise: Joi.optional() },
+    options: {
+      is: match,
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    },
   });
 }
 
@@ -61,9 +75,8 @@ export function getEventRules(types: EventsConfigType[] = []) {
     EVENTS_PERSIST: Joi.boolean().optional(),
   };
 
-  if (types.length === 0 || types.includes('rabbitmq')) {
-    Object.assign(rules, rabbitmq);
-  }
+  // Because RabbitMQ is the default, we have to always include it
+  Object.assign(rules, rabbitmq);
 
   if (types.length === 0 || types.includes('redis')) {
     Object.assign(rules, redis);
