@@ -143,7 +143,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.reconnectTimeout = setTimeout(() => {
       this.logger.debug('Reconnecting to GC to refresh inventory');
       this.manuallyDisconnectedFromGC = true;
-      this.botService.leaveGames();
+      this.botService.setGamePlayed(null);
       this.reconnectTimeout = null;
     }, 10000);
   }

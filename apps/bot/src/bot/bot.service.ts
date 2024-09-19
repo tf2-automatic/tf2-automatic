@@ -262,10 +262,6 @@ export class BotService implements OnModuleDestroy {
     return this.community;
   }
 
-  leaveGames(): void {
-    this.client.gamesPlayed([]);
-  }
-
   setGamePlayed(appid: number | null) {
     const gamesPlayed: (string | number)[] = [];
 
