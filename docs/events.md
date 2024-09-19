@@ -1,8 +1,6 @@
 # Events
 
-The bot and manager publishes events to different RabbitMQ exchanges.
-
-All events have the same structure.
+The different applications publishes events. All events are stored as JSON and have the same base structure: 
 
 - `type` - The type of the event (same as the routing key)
 - `data` - An object containing data depending on the event type
@@ -265,8 +263,7 @@ Event made when a trade offer job fails and won't be retried.
 
 ## TF2
 
-The TF2 events are used to react to items being added to or removed from the inventory  
-The bot manager keeps track of this on its own, but should you want to do anything with the events you can
+The TF2 events are used to react to items being added or removed from the inventory.
 
 ### tf2.gained (bot)
 
@@ -281,3 +278,9 @@ The bot manager keeps track of this on its own, but should you want to do anythi
 
 - `type` - `tf2.lost`
 - `data` - a `TF2Item` object, refer to the type
+
+### tf2.schema (bot)
+
+Event made when the TF2 GC notifies clients of a new schema.
+
+`TF2_SCHEMA_EVENT`
