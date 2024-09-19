@@ -57,7 +57,7 @@ export class NestEventsService {
     handler: (message: T) => Promise<void>,
     settings?: SubscriberSettings,
   ): Promise<void> {
-    if (!this.options.publishingExchange.includes(exchange)) {
+    if (!this.options.subscriberExchanges.includes(exchange)) {
       throw new Error('Invalid exchange');
     }
 
