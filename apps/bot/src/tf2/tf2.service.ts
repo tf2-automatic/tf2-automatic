@@ -16,6 +16,7 @@ import {
   TF2LostEvent,
   TF2_GAINED_EVENT,
   TF2_LOST_EVENT,
+  TF2_SCHEMA_EVENT,
 } from '@tf2-automatic/bot-data';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
@@ -23,7 +24,9 @@ import { EventsService } from '../events/events.service';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
 
 // Stop node-tf2 from fetching the item schema
-delete TeamFortress2.prototype._handlers[TF2Language.UpdateItemSchema];
+TeamFortress2.prototype._handlers[TF2Language.UpdateItemSchema] = function () {
+  this.emit('itemSchema');
+};
 
 enum TaskType {
   Craft = 'CRAFT',
@@ -132,6 +135,12 @@ export class TF2Service implements OnApplicationShutdown {
         .catch(() => {
           // Ignore error
         });
+    });
+
+    this.tf2.on('itemSchema', () => {
+      this.eventsService.publish(TF2_SCHEMA_EVENT).catch(() => {
+        // Ignore error
+      });
     });
   }
 
