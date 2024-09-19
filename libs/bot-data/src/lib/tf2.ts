@@ -103,10 +103,12 @@ export const TF2_SORT_FULL_PATH = `${TF2_BASE_URL}${TF2_SORT_PATH}`;
 
 export type TF2GainedEventType = 'tf2.gained';
 export type TF2LostEventType = 'tf2.lost';
+export type TF2SchemaEventType = 'tf2.schema';
 
 export const TF2_EVENT_PREFIX = 'tf2';
 export const TF2_GAINED_EVENT: TF2GainedEventType = `${TF2_EVENT_PREFIX}.gained`;
 export const TF2_LOST_EVENT: TF2LostEventType = `${TF2_EVENT_PREFIX}.lost`;
+export const TF2_SCHEMA_EVENT: TF2SchemaEventType = `${TF2_EVENT_PREFIX}.schema`;
 
 export type TF2GainedEvent = BaseEvent<TF2GainedEventType, TF2Item>;
 
