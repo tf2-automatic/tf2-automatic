@@ -49,6 +49,7 @@ export class HeartbeatsController {
   @ApiOkResponse({
     description: 'Bot deleted',
   })
+  @ApiParamSteamID('SteamID64 of the bot to delete')
   handleDelete(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
     return this.heartbeatsService.deleteBot(steamid);
   }
