@@ -3,9 +3,17 @@ import { getEnv, getEnvWithDefault } from '../helpers';
 import fs from 'fs';
 import path from 'path';
 
-const packageJson = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
-);
+function getAppName(): string | null {
+  if (process.env['NODE_ENV'] === 'test') {
+    return null;
+  }
+
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
+  );
+
+  return packageJson;
+}
 
 export interface Config {
   type: 'redis';
@@ -17,7 +25,9 @@ export interface Config {
   persist: boolean;
 }
 
-export function getConfig(prefix = true): Config {
+export function getConfig(usePrefix = true): Config {
+  const prefix = getAppName();
+
   return {
     type: 'redis',
     host: getEnv('REDIS_HOST', 'string')!,
@@ -27,7 +37,7 @@ export function getConfig(prefix = true): Config {
     keyPrefix:
       getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') +
       ':' +
-      (prefix ? packageJson.name + ':' : ''),
+      (usePrefix && prefix ? prefix + ':' : ''),
     persist: getEnv('REDIS_PERSIST', 'boolean'),
   };
 }
