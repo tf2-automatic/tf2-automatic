@@ -36,8 +36,6 @@ import {
 } from './interfaces/get-listings.queue.interface';
 import { DesiredListing } from './classes/desired-listing.class';
 
-const KEY_PREFIX = 'bptf-manager:data:';
-
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
@@ -848,7 +846,7 @@ export class CurrentListingsService {
   }
 
   private getCurrentKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:current:${steamid.getSteamID64()}`;
+    return `listings:current:${steamid.getSteamID64()}`;
   }
 
   private getTempCurrentKey(steamid: SteamID, time: number | '*'): string {
@@ -856,7 +854,7 @@ export class CurrentListingsService {
   }
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:current:keep:${steamid.getSteamID64()}`;
+    return `listings:current:keep:${steamid.getSteamID64()}`;
   }
 
   private getResourceForListingId(steamid: SteamID, id: string): string {

@@ -87,7 +87,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         hash,
         JSON.stringify(saved),
       );
@@ -148,7 +148,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'bptf-manager:data:listings:desired:' + saved.steamid64,
+        'listings:desired:' + saved.steamid64,
         saved.hash,
         JSON.stringify(saved),
       );
@@ -210,7 +210,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'bptf-manager:data:listings:desired:' + saved.steamid64,
+        'listings:desired:' + saved.steamid64,
         saved.hash,
         JSON.stringify(saved),
       );
@@ -288,7 +288,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(
-        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         existingDesired.getHash(),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
@@ -335,7 +335,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(
-        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         existingDesired.getHash(),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
@@ -383,7 +383,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'bptf-manager:data:listings:desired:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         desired.getHash(),
         JSON.stringify(saved),
       );
@@ -399,7 +399,7 @@ function expectMockUsing(steamid: SteamID, hashes: string[]) {
   expect(mock.redlock.using).toHaveBeenCalledTimes(1);
 
   const resources = hashes.map(
-    (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
+    (hash) => `locking:desired:${steamid.getSteamID64()}:${hash}`,
   );
 
   expect(mock.redlock.using).toHaveBeenCalledWith(

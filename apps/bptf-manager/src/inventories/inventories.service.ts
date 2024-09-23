@@ -17,11 +17,7 @@ import {
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';
-import Redlock from 'redlock';
-import { getLockConfig } from '@tf2-automatic/config';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
-
-const KEY_PREFIX = 'bptf-manager:data:';
 
 @Injectable()
 export class InventoriesService {
@@ -168,11 +164,11 @@ export class InventoriesService {
   }
 
   private getInventoryKey(steamid64: string) {
-    return KEY_PREFIX + 'inventories:' + steamid64;
+    return 'inventories:' + steamid64;
   }
 
   private getInventoryRefreshPointKey(steamid64: string) {
-    return KEY_PREFIX + 'inventories:refresh:' + steamid64;
+    return 'inventories:refresh:' + steamid64;
   }
 
   async getInventoryStatus(

@@ -27,7 +27,7 @@ function getConnectionForEventsConfig() {
     case 'rabbitmq':
       return RabbitMQ.getConfig();
     case 'redis':
-      return Redis.getConfig();
+      return Redis.getConfig(false);
   }
 }
 

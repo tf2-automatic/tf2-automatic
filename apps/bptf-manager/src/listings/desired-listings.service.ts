@@ -17,8 +17,6 @@ import hashListing from './utils/desired-listing-hash';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { Injectable } from '@nestjs/common';
 
-const KEY_PREFIX = 'bptf-manager:data:';
-
 @Injectable()
 export class DesiredListingsService {
   private readonly locker: Locker;
@@ -197,6 +195,6 @@ export class DesiredListingsService {
   }
 
   private static getDesiredKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
+    return `listings:desired:${steamid.getSteamID64()}`;
   }
 }

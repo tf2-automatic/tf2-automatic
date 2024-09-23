@@ -15,8 +15,6 @@ import { GetEscrowDto } from '@tf2-automatic/dto';
 
 const ESCROW_EXPIRE_TIME = 24 * 60 * 60;
 
-const KEY_PREFIX = 'bot-manager:data:';
-
 interface EscrowWithTimestamp {
   timestamp: number;
   escrowDays: number;
@@ -84,7 +82,7 @@ export class EscrowService {
       escrowDays: response.data.escrowDays,
     };
 
-    const key = `${KEY_PREFIX}escrow:${steamid.getSteamID64()}`;
+    const key = `escrow:${steamid.getSteamID64()}`;
 
     await this.redis
       .pipeline()
@@ -98,7 +96,7 @@ export class EscrowService {
   async getEscrowFromCache(
     steamid: SteamID,
   ): Promise<EscrowWithTimestamp | null> {
-    const key = `${KEY_PREFIX}escrow:${steamid.getSteamID64()}`;
+    const key = `escrow:${steamid.getSteamID64()}`;
     const object = await this.redis.hgetall(key);
 
     if (Object.keys(object).length === 0) {
@@ -115,6 +113,6 @@ export class EscrowService {
   }
 
   async deleteEscrow(steamid: SteamID): Promise<void> {
-    await this.redis.del(`${KEY_PREFIX}escrow:${steamid.getSteamID64()}`);
+    await this.redis.del(`escrow:${steamid.getSteamID64()}`);
   }
 }
