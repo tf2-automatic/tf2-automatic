@@ -31,7 +31,6 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 
-const KEY_PREFIX = 'bot-manager:data:';
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 
@@ -52,7 +51,7 @@ export class HeartbeatsService {
 
   getBots(): Promise<Bot[]> {
     return this.redis
-      .keys(`${this.redis.options.keyPrefix}${KEY_PREFIX}${BOT_PREFIX}:*`)
+      .keys(`${this.redis.options.keyPrefix}${BOT_PREFIX}:*`)
       .then((keys) => {
         if (keys.length === 0) {
           return [];
@@ -64,10 +63,7 @@ export class HeartbeatsService {
             return new SteamID(steamid as string);
           })
           .map((steamid) => {
-            return (KEY_PREFIX + BOT_KEY).replace(
-              'STEAMID64',
-              steamid.getSteamID64(),
-            );
+            return BOT_KEY.replace('STEAMID64', steamid.getSteamID64());
           });
 
         return this.redis.mget(botKeys).then((result) => {
@@ -79,7 +75,7 @@ export class HeartbeatsService {
 
   private async getBotFromRedis(steamid: SteamID): Promise<Bot | null> {
     const bot = await this.redis
-      .get(KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
+      .get(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
       .then((result) => {
         if (result === null) {
           return null;
@@ -165,7 +161,7 @@ export class HeartbeatsService {
           .multi()
           // Save bot
           .set(
-            KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
+            BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
             JSON.stringify(bot),
             'EX',
             300,
@@ -212,9 +208,7 @@ export class HeartbeatsService {
         // Delete bot and create event
         const multi = this.redis
           .multi()
-          .del(
-            KEY_PREFIX + BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-          );
+          .del(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()));
 
         redisMultiEvent(
           multi,

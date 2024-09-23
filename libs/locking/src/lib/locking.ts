@@ -1,6 +1,6 @@
-import { getLockConfig } from "@tf2-automatic/config";
-import { Redis } from "ioredis";
-import Redlock, { RedlockAbortSignal } from "redlock";
+import { getLockConfig } from '@tf2-automatic/config';
+import { Redis } from 'ioredis';
+import Redlock, { RedlockAbortSignal } from 'redlock';
 
 export enum LockDuration {
   SHORT,
@@ -12,6 +12,8 @@ export class Locker {
   private readonly redlock: Redlock;
 
   private readonly config = getLockConfig();
+
+  private readonly prefix = 'locking:';
 
   constructor(private readonly redis: Redis) {
     this.redlock = new Redlock([this.redis], this.config);
@@ -25,10 +27,20 @@ export class Locker {
         return this.config.durationMedium;
       case LockDuration.LONG:
         return this.config.durationLong;
-    }  
+    }
   }
 
-  async using<T>(resources: string[], duration: LockDuration, routine: (signal: RedlockAbortSignal) => Promise<T>): Promise<T> {
-    return this.redlock.using(resources, this.getDuration(duration) * this.config.durationMultiplier, routine);
+  async using<T>(
+    resources: string[],
+    duration: LockDuration,
+    routine: (signal: RedlockAbortSignal) => Promise<T>,
+  ): Promise<T> {
+    const prefixed = resources.map((resource) => this.prefix + resource);
+
+    return this.redlock.using(
+      prefixed,
+      this.getDuration(duration) * this.config.durationMultiplier,
+      routine,
+    );
   }
 }
