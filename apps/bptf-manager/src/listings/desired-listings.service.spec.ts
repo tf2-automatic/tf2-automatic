@@ -399,7 +399,7 @@ function expectMockUsing(steamid: SteamID, hashes: string[]) {
   expect(mock.redlock.using).toHaveBeenCalledTimes(1);
 
   const resources = hashes.map(
-    (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
+    (hash) => `locking:desired:${steamid.getSteamID64()}:${hash}`,
   );
 
   expect(mock.redlock.using).toHaveBeenCalledWith(
