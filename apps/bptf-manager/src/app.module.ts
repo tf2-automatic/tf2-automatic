@@ -43,7 +43,7 @@ import { Redis } from '@tf2-automatic/config';
       useFactory: (configService: ConfigService<Config>) => {
         const redisConfig = configService.getOrThrow<Redis.Config>('redis');
         return {
-          prefix: redisConfig.keyPrefix + 'bptf-manager:bull',
+          prefix: redisConfig.keyPrefix + 'bull',
           connection: {
             host: redisConfig.host,
             port: redisConfig.port,

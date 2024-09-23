@@ -47,8 +47,6 @@ import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 const INVENTORY_EXPIRE_TIME = 600;
 
-const KEY_PREFIX = 'bot-manager:data:';
-
 @Injectable()
 export class InventoriesService implements OnApplicationBootstrap {
   private readonly locker: Locker;
@@ -611,7 +609,7 @@ export class InventoriesService implements OnApplicationBootstrap {
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `${KEY_PREFIX}inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+    return `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
   }
 
   private getInventoryKeyFromObject(data: {

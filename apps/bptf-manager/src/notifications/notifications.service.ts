@@ -11,8 +11,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JobData } from './interfaces/queue';
 
-const KEY_PREFIX = 'bptf-manager:data:';
-
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -147,7 +145,7 @@ export class NotificationsService {
   }
 
   private getKey(steamid: SteamID) {
-    return KEY_PREFIX + 'notifications:' + steamid.getSteamID64();
+    return 'notifications:' + steamid.getSteamID64();
   }
 
   fetchNotifications(

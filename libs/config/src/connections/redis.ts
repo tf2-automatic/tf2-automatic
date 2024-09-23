@@ -1,5 +1,11 @@
 import Joi from 'joi';
 import { getEnv, getEnvWithDefault } from '../helpers';
+import fs from 'fs';
+import path from 'path';
+
+const packageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
+);
 
 export interface Config {
   type: 'redis';
@@ -11,14 +17,17 @@ export interface Config {
   persist: boolean;
 }
 
-export function getConfig(): Config {
+export function getConfig(prefix = true): Config {
   return {
     type: 'redis',
     host: getEnv('REDIS_HOST', 'string')!,
     port: getEnv('REDIS_PORT', 'integer')!,
     password: getEnv('REDIS_PASSWORD', 'string'),
     db: getEnv('REDIS_DB', 'integer'),
-    keyPrefix: getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') + ':',
+    keyPrefix:
+      getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') +
+      ':' +
+      (prefix ? packageJson.name + ':' : ''),
     persist: getEnv('REDIS_PERSIST', 'boolean'),
   };
 }
