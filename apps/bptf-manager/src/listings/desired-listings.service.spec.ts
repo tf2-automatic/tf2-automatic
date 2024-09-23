@@ -87,7 +87,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         hash,
         JSON.stringify(saved),
       );
@@ -148,7 +148,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'listings:desired:76561198120070906:' + saved.steamid64,
+        'listings:desired:' + saved.steamid64,
         saved.hash,
         JSON.stringify(saved),
       );
@@ -210,7 +210,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'listings:desired:76561198120070906:' + saved.steamid64,
+        'listings:desired:' + saved.steamid64,
         saved.hash,
         JSON.stringify(saved),
       );
@@ -288,7 +288,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(
-        'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         existingDesired.getHash(),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
@@ -335,7 +335,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(
-        'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         existingDesired.getHash(),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
@@ -383,7 +383,7 @@ describe('DesiredListingsService', () => {
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
-        'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+        'listings:desired:' + steamid.getSteamID64(),
         desired.getHash(),
         JSON.stringify(saved),
       );

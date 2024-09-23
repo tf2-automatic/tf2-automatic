@@ -81,7 +81,7 @@ describe('DesiredListingsListener', () => {
 
     expect(mock.redis.hset).toHaveBeenCalledTimes(1);
     expect(mock.redis.hset).toHaveBeenCalledWith(
-      'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+      'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
       JSON.stringify(saved),
     );
@@ -121,7 +121,7 @@ describe('DesiredListingsListener', () => {
 
     expect(mock.redis.hset).toHaveBeenCalledTimes(1);
     expect(mock.redis.hset).toHaveBeenCalledWith(
-      'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+      'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
       JSON.stringify(saved),
     );
@@ -182,7 +182,7 @@ describe('DesiredListingsListener', () => {
     // Check if the desired listing is saved to the database
     expect(mock.redis.hset).toHaveBeenCalledTimes(1);
     expect(mock.redis.hset).toHaveBeenCalledWith(
-      'listings:desired:76561198120070906:' + steamid.getSteamID64(),
+      'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
       JSON.stringify(saved),
     );
