@@ -12,7 +12,7 @@ function getAppName(): string | null {
     fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
   );
 
-  return packageJson;
+  return packageJson.name;
 }
 
 export interface Config {
