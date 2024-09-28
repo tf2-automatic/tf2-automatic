@@ -68,6 +68,9 @@ export class InventoriesService implements OnApplicationBootstrap {
       BOT_EXCHANGE_NAME,
       [TF2_LOST_EVENT, TF2_GAINED_EVENT, TRADE_CHANGED_EVENT],
       (event) => this.handleDeleteInventoryItems(event as any),
+      {
+        retry: true,
+      },
     );
 
     await this.eventsService.subscribe(
@@ -75,6 +78,9 @@ export class InventoriesService implements OnApplicationBootstrap {
       BOT_MANAGER_EXCHANGE_NAME,
       [EXCHANGE_DETAILS_EVENT],
       (event) => this.handleAddInventoryItems(event as any),
+      {
+        retry: true,
+      },
     );
   }
 
@@ -269,9 +275,6 @@ export class InventoriesService implements OnApplicationBootstrap {
         return this.handleItemLost(event);
       case TF2_GAINED_EVENT:
         return this.handleItemGained(event);
-      default:
-        // @ts-expect-error Gives compile-time error if all cases are not handled.
-        throw new Error('Unknown type: ' + event.type);
     }
   }
 
