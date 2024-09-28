@@ -11,6 +11,7 @@ import {
 } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { DesiredListing as DesiredListingClass } from '../classes/desired-listing.class';
+import { pack } from 'msgpackr';
 
 jest.mock('eventemitter2');
 jest.mock('redlock', () => jest.fn().mockImplementation(() => mock.redlock));
@@ -83,7 +84,7 @@ describe('DesiredListingsListener', () => {
     expect(mock.redis.hset).toHaveBeenCalledWith(
       'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
-      JSON.stringify(saved),
+      pack(saved),
     );
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
   });
@@ -123,7 +124,7 @@ describe('DesiredListingsListener', () => {
     expect(mock.redis.hset).toHaveBeenCalledWith(
       'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
-      JSON.stringify(saved),
+      pack(saved),
     );
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
   });
@@ -184,7 +185,7 @@ describe('DesiredListingsListener', () => {
     expect(mock.redis.hset).toHaveBeenCalledWith(
       'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
-      JSON.stringify(saved),
+      pack(saved),
     );
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
 

@@ -18,6 +18,7 @@ import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
+import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class InventoriesService {
@@ -230,13 +231,13 @@ export class InventoriesService {
 
     await this.redis
       .pipeline()
-      .set(key, JSON.stringify(data))
+      .set(key, pack(data))
       .expire(key, 24 * 60 * 60)
       .exec();
   }
 
   async getInventory(steamid: SteamID): Promise<Inventory | null> {
-    const data = await this.redis.get(
+    const data = await this.redis.getBuffer(
       this.getInventoryKey(steamid.getSteamID64()),
     );
 
@@ -244,7 +245,7 @@ export class InventoriesService {
       return null;
     }
 
-    return JSON.parse(data);
+    return unpack(data);
   }
 
   async setRefreshPoint(steamid: SteamID, time: number): Promise<void> {
