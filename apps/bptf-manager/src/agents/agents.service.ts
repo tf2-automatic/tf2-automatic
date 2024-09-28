@@ -38,9 +38,9 @@ export class AgentsService {
   }
 
   async getAgents(): Promise<Agent[]> {
-    const agents = await this.redis.hvals(KEY);
+    const agents = await this.redis.hvalsBuffer(KEY);
 
-    return agents.map((key) => JSON.parse(key));
+    return agents.map((key) => unpack(key));
   }
 
   private async setAgent(
