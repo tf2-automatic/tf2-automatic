@@ -10,6 +10,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JobData } from './interfaces/queue';
+import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class NotificationsService {
@@ -24,10 +25,10 @@ export class NotificationsService {
   ) {}
 
   async getNotifications(steamid: SteamID): Promise<Notification[]> {
-    const values = await this.redis.hvals(this.getKey(steamid));
+    const values = await this.redis.hvalsBuffer(this.getKey(steamid));
 
     return values.map((raw) => {
-      return JSON.parse(raw) as Notification;
+      return unpack(raw) as Notification;
     });
   }
 
@@ -66,7 +67,7 @@ export class NotificationsService {
 
       await this.redis
         .multi()
-        .hmset(tempKey, ...this.flatMap(response.results))
+        .hmset(tempKey, this.mapNotifications(response.results))
         .expire(tempKey, 5 * 60)
         .exec();
     }
@@ -109,14 +110,22 @@ export class NotificationsService {
     const transaction = this.redis.multi();
 
     keys.forEach((key) => {
-      transaction.hmset(key, ...this.flatMap(notifications));
+      transaction.hmset(key, this.mapNotifications(notifications));
     });
 
     await transaction.exec();
   }
 
-  private flatMap(notifications: Notification[]): string[] {
-    return notifications.flatMap((n) => [n.id, JSON.stringify(n)]);
+  private mapNotifications(
+    notifications: Notification[],
+  ): Record<string, Buffer> {
+    const result: Record<string, Buffer> = {};
+
+    for (const notification of notifications) {
+      result[notification.id] = pack(notification);
+    }
+
+    return result;
   }
 
   @OnEvent('agents.registered')

@@ -35,6 +35,7 @@ import {
   JobType,
 } from './interfaces/get-listings.queue.interface';
 import { DesiredListing } from './classes/desired-listing.class';
+import { pack, unpack } from 'msgpackr';
 
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
@@ -94,10 +95,10 @@ export class CurrentListingsService {
   }
 
   async getAllCurrent(steamid: SteamID): Promise<Listing[]> {
-    const values = await this.redis.hvals(this.getCurrentKey(steamid));
+    const values = await this.redis.hvalsBuffer(this.getCurrentKey(steamid));
 
     return values.map((raw) => {
-      return JSON.parse(raw) as Listing;
+      return unpack(raw) as Listing;
     });
   }
 
@@ -111,14 +112,17 @@ export class CurrentListingsService {
       return result;
     }
 
-    const values = await this.redis.hmget(this.getCurrentKey(steamid), ...ids);
+    const values = await this.redis.hmgetBuffer(
+      this.getCurrentKey(steamid),
+      ...ids,
+    );
 
     values.forEach((raw) => {
       if (raw === null) {
         return;
       }
 
-      const listing = JSON.parse(raw) as Listing;
+      const listing = unpack(raw) as Listing;
 
       result.set(listing.id, listing);
     });
@@ -343,7 +347,7 @@ export class CurrentListingsService {
         this.getCurrentKey(steamid),
         ...createdHashes.flatMap((hash) => [
           created[hash].id,
-          JSON.stringify(created[hash]),
+          pack(created[hash]),
         ]),
       );
     }
@@ -629,7 +633,7 @@ export class CurrentListingsService {
 
   private async saveTempListings(
     steamid: SteamID,
-    listings: Record<string, string>,
+    listings: Record<string, Buffer>,
   ): Promise<void> {
     if (Object.keys(listings).length === 0) {
       return;
@@ -667,11 +671,11 @@ export class CurrentListingsService {
     await transaction.exec();
   }
 
-  private mapListings(listings: Listing[]): Record<string, string> {
-    const mapped: Record<string, string> = {};
+  private mapListings(listings: Listing[]): Record<string, Buffer> {
+    const mapped: Record<string, Buffer> = {};
 
     listings.forEach((listing) => {
-      mapped[listing.id] = JSON.stringify(listing);
+      mapped[listing.id] = pack(listing);
     });
 
     return mapped;

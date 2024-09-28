@@ -30,6 +30,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
+import { pack, unpack } from 'msgpackr';
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -66,22 +67,22 @@ export class HeartbeatsService {
             return BOT_KEY.replace('STEAMID64', steamid.getSteamID64());
           });
 
-        return this.redis.mget(botKeys).then((result) => {
-          const filtered = result.filter((bot) => bot !== null) as string[];
-          return filtered.map((bot) => JSON.parse(bot));
+        return this.redis.mgetBuffer(botKeys).then((result) => {
+          const filtered = result.filter((bot) => bot !== null);
+          return filtered.map((bot) => unpack(bot));
         });
       });
   }
 
   private async getBotFromRedis(steamid: SteamID): Promise<Bot | null> {
     const bot = await this.redis
-      .get(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
+      .getBuffer(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
       .then((result) => {
         if (result === null) {
           return null;
         }
 
-        return JSON.parse(result);
+        return unpack(result);
       });
 
     return bot;
@@ -162,7 +163,7 @@ export class HeartbeatsService {
           // Save bot
           .set(
             BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-            JSON.stringify(bot),
+            pack(bot),
             'EX',
             300,
           );

@@ -11,6 +11,7 @@ import {
 } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
 import { DesiredListing as DesiredListingClass } from '../classes/desired-listing.class';
+import { pack } from 'msgpackr';
 
 jest.mock('eventemitter2');
 jest.mock('redlock', () => jest.fn().mockImplementation(() => mock.redlock));
@@ -83,7 +84,7 @@ describe('DesiredListingsListener', () => {
     expect(mock.redis.hset).toHaveBeenCalledWith(
       'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
-      JSON.stringify(saved),
+      pack(saved),
     );
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
   });
@@ -116,14 +117,13 @@ describe('DesiredListingsListener', () => {
       steamid64: steamid.getSteamID64(),
       listing: desired.getListing(),
       updatedAt: 0,
-      error: undefined,
     };
 
     expect(mock.redis.hset).toHaveBeenCalledTimes(1);
     expect(mock.redis.hset).toHaveBeenCalledWith(
       'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
-      JSON.stringify(saved),
+      pack(saved),
     );
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
   });
@@ -176,7 +176,6 @@ describe('DesiredListingsListener', () => {
       listing: desired.getListing(),
       lastAttemptedAt: 0,
       updatedAt: 0,
-      error: undefined,
     };
 
     // Check if the desired listing is saved to the database
@@ -184,7 +183,7 @@ describe('DesiredListingsListener', () => {
     expect(mock.redis.hset).toHaveBeenCalledWith(
       'listings:desired:' + steamid.getSteamID64(),
       desired.getHash(),
-      JSON.stringify(saved),
+      pack(saved),
     );
     expect(mock.redis.exec).toHaveBeenCalledTimes(1);
 

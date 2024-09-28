@@ -14,6 +14,7 @@ import { DesiredListing as DesiredListingInterface } from '@tf2-automatic/bptf-m
 import hashListing from './utils/desired-listing-hash';
 import { mock } from '@tf2-automatic/testing';
 import { AddDesiredListing } from './classes/add-desired-listing.class';
+import { pack } from 'msgpackr';
 
 jest.mock('eventemitter2');
 jest.mock('redlock', () => jest.fn().mockImplementation(() => mock.redlock));
@@ -89,7 +90,7 @@ describe('DesiredListingsService', () => {
       expect(mockRedis.hset).toHaveBeenCalledWith(
         'listings:desired:' + steamid.getSteamID64(),
         hash,
-        JSON.stringify(saved),
+        pack(saved),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
@@ -150,7 +151,7 @@ describe('DesiredListingsService', () => {
       expect(mockRedis.hset).toHaveBeenCalledWith(
         'listings:desired:' + saved.steamid64,
         saved.hash,
-        JSON.stringify(saved),
+        pack(saved),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
@@ -212,7 +213,7 @@ describe('DesiredListingsService', () => {
       expect(mockRedis.hset).toHaveBeenCalledWith(
         'listings:desired:' + saved.steamid64,
         saved.hash,
-        JSON.stringify(saved),
+        pack(saved),
       );
       expect(mockRedis.exec).toHaveBeenCalledTimes(1);
 
@@ -376,16 +377,13 @@ describe('DesiredListingsService', () => {
         steamid64: desired.getSteamID().getSteamID64(),
         listing: desired.getListing(),
         updatedAt: desired.getUpdatedAt(),
-        error: desired.getError(),
-        priority: desired.getPriority(),
-        lastAttemptedAt: desired.getLastAttemptedAt(),
       };
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);
       expect(mockRedis.hset).toHaveBeenCalledWith(
         'listings:desired:' + steamid.getSteamID64(),
         desired.getHash(),
-        JSON.stringify(saved),
+        pack(saved),
       );
     });
   });
