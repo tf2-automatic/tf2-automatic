@@ -34,17 +34,12 @@ export class Subscriber<T extends BaseEvent<string>> {
   });
   private interval: NodeJS.Timeout | null = null;
 
-  private previouslyClosed = true;
-
   constructor(
     private readonly engine: CustomEventsService,
     private readonly options: SubscriberOptions<T>,
   ) {
     this.breaker.on('open', () => {
-      if (this.previouslyClosed) {
-        this.previouslyClosed = false;
-        this.logger.warn('Circuit breaker opened');
-      }
+      this.logger.warn('Circuit breaker opened');
 
       promiseRetry(
         async (retry) => {
@@ -85,10 +80,7 @@ export class Subscriber<T extends BaseEvent<string>> {
     });
 
     this.breaker.on('close', () => {
-      if (!this.previouslyClosed) {
-        this.previouslyClosed = true;
-        this.logger.warn('Circuit breaker closed');
-      }
+      this.logger.warn('Circuit breaker closed');
 
       promiseRetry(
         async (retry) => {
