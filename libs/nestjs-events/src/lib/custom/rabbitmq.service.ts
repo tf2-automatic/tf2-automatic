@@ -1,5 +1,6 @@
 import {
   AmqpConnection,
+  defaultNackErrorHandler,
   MessageHandlerOptions,
   requeueErrorHandler,
 } from '@golevelup/nestjs-rabbitmq';
@@ -58,11 +59,13 @@ export class RabbitMQEventsService
     messageOptions.errorHandler = (channel, message, error) => {
       if (error instanceof SyntaxError) {
         // Do not requeue messages with a syntax error (e.g. invalid JSON)
-        return channel.nack(message, false, false);
+        return defaultNackErrorHandler(channel, message, error);
       }
 
       if (settings?.retry) {
         return requeueErrorHandler(channel, message, error);
+      } else {
+        return defaultNackErrorHandler(channel, message, error);
       }
     };
 
