@@ -35,7 +35,10 @@ export class NestEventsModule {
       useValue: options,
     });
 
-    Logger.log('Using events type "' + options.config.type + '"', NestEventsModule.name);
+    Logger.log(
+      'Using events type "' + options.config.type + '"',
+      NestEventsModule.name,
+    );
 
     return dynamicModule;
   }
