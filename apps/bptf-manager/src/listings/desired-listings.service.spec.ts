@@ -377,9 +377,6 @@ describe('DesiredListingsService', () => {
         steamid64: desired.getSteamID().getSteamID64(),
         listing: desired.getListing(),
         updatedAt: desired.getUpdatedAt(),
-        error: desired.getError(),
-        priority: desired.getPriority(),
-        lastAttemptedAt: desired.getLastAttemptedAt(),
       };
 
       expect(mockRedis.hset).toHaveBeenCalledTimes(1);

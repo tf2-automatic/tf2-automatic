@@ -117,7 +117,6 @@ describe('DesiredListingsListener', () => {
       steamid64: steamid.getSteamID64(),
       listing: desired.getListing(),
       updatedAt: 0,
-      error: undefined,
     };
 
     expect(mock.redis.hset).toHaveBeenCalledTimes(1);
@@ -177,7 +176,6 @@ describe('DesiredListingsListener', () => {
       listing: desired.getListing(),
       lastAttemptedAt: 0,
       updatedAt: 0,
-      error: undefined,
     };
 
     // Check if the desired listing is saved to the database
