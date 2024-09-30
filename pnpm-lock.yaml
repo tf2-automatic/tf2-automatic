@@ -17,6 +17,9 @@ patchedDependencies:
   tf2-currencies@1.2.4:
     hash: p5d7n6ut6djhlaei5sdevh2ouu
     path: patches/tf2-currencies@1.2.4.patch
+  tf2@4.0.0:
+    hash: juhxipbhotnhgy4rg6czyifz5m
+    path: patches/tf2@4.0.0.patch
 
 importers:
 
@@ -147,7 +150,7 @@ importers:
         version: 2.0.0
       tf2:
         specifier: ^4.0.0
-        version: 4.0.0
+        version: 4.0.0(patch_hash=juhxipbhotnhgy4rg6czyifz5m)
       tf2-currencies:
         specifier: ^1.2.4
         version: 1.2.4(patch_hash=p5d7n6ut6djhlaei5sdevh2ouu)
@@ -9429,6 +9432,21 @@ snapshots:
       - typescript
       - verdaccio
 
+  '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)':
+    dependencies:
+      '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
+    transitivePeerDependencies:
+      - '@babel/traverse'
+      - '@swc-node/register'
+      - '@swc/core'
+      - '@swc/wasm'
+      - '@types/node'
+      - debug
+      - nx
+      - supports-color
+      - typescript
+      - verdaccio
+
   '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)':
     dependencies:
       '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
@@ -9714,7 +9732,7 @@ snapshots:
       '@babel/preset-env': 7.25.4(@babel/core@7.25.2)
       '@babel/preset-typescript': 7.24.7(@babel/core@7.25.2)
       '@babel/runtime': 7.25.6
-      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
+      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
       '@nx/devkit': 19.7.2(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))
       '@nx/workspace': 19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))
       babel-plugin-const-enum: 1.2.0(@babel/core@7.25.2)
@@ -15965,7 +15983,7 @@ snapshots:
     dependencies:
       pluralize: 7.0.0
 
-  tf2@4.0.0:
+  tf2@4.0.0(patch_hash=juhxipbhotnhgy4rg6czyifz5m):
     dependencies:
       '@doctormckay/stdlib': 2.10.0
       bytebuffer: 5.0.1

@@ -284,3 +284,8 @@ The TF2 events are used to react to items being added or removed from the invent
 Event made when the TF2 GC notifies clients of a new schema.
 
 `TF2_SCHEMA_EVENT`
+
+- `type` - `tf2.schema`
+- `data`
+  - `version` - The version of the current schema
+  - `itemsGameUrl` - The url for the VDF schema

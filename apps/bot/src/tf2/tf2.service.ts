@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
-import TF2Language from 'tf2/language';
 import {
   CraftResult,
   SortBackpackTypes,
@@ -14,6 +13,7 @@ import {
   TF2GainedEvent,
   TF2Item,
   TF2LostEvent,
+  TF2SchemaEvent,
   TF2_GAINED_EVENT,
   TF2_LOST_EVENT,
   TF2_SCHEMA_EVENT,
@@ -22,11 +22,6 @@ import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
-
-// Stop node-tf2 from fetching the item schema
-TeamFortress2.prototype._handlers[TF2Language.UpdateItemSchema] = function () {
-  this.emit('itemSchema');
-};
 
 enum TaskType {
   Craft = 'CRAFT',
@@ -137,10 +132,15 @@ export class TF2Service implements OnApplicationShutdown {
         });
     });
 
-    this.tf2.on('itemSchema', () => {
-      this.eventsService.publish(TF2_SCHEMA_EVENT).catch(() => {
-        // Ignore error
-      });
+    this.tf2.on('itemSchema', (version: string, itemsGameUrl: string) => {
+      this.eventsService
+        .publish(TF2_SCHEMA_EVENT, {
+          version,
+          itemsGameUrl,
+        } satisfies TF2SchemaEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
   }
 
