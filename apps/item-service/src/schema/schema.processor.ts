@@ -32,7 +32,7 @@ export class SchemaProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
-    let processor: (job: Job, apiKey: string) => Promise<void>;
+    let processor: (job: Job) => Promise<void>;
 
     switch (job.name) {
       case 'schema':
@@ -48,16 +48,17 @@ export class SchemaProcessor extends WorkerHost {
 
     this.logger.debug('Processing job ' + job.name + ' #' + job.id + '...');
 
-    const apiKey = await this.botsService.getApiKey();
-    await processor(job, apiKey);
+    await processor(job);
   }
 
-  private async updateSchema(job: Job, apiKey: string) {
+  private async updateSchema(job: Job) {
+    const apiKey = await this.botsService.getApiKey();
     const result = await this.getSchemaOverview(apiKey);
     await this.schemaService.updateOverview(job, result);
   }
 
-  private async updateItems(job: Job, apiKey: string) {
+  private async updateItems(job: Job) {
+    const apiKey = await this.botsService.getApiKey();
     const result = await this.getSchemaItems(apiKey, job.data.start);
     await this.schemaService.updateItems(job, result);
   }
