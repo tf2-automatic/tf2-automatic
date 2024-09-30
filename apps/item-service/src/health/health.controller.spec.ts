@@ -2,6 +2,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import { RedisHealthIndicator } from './redis.health';
+import { HealthService } from './health.service';
 
 describe('HealthController', () => {
   let controller: HealthController;
@@ -13,6 +14,10 @@ describe('HealthController', () => {
       providers: [
         {
           provide: RedisHealthIndicator,
+          useValue: {},
+        },
+        {
+          provide: HealthService,
           useValue: {},
         },
       ],
