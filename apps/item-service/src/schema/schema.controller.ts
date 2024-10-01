@@ -153,12 +153,12 @@ export class SchemaController {
 
   @Get('/paintkits/name/:name')
   @ApiOperation({
-    summary: 'Get paintkit by name',
-    description: 'Returns a paintkit',
+    summary: 'Get paint kit by name',
+    description: 'Returns a paint kit',
   })
   @ApiParam({
     name: 'name',
-    description: 'The name of the paintkit',
+    description: 'The name of the paint kit',
     example: 'Night Owl',
   })
   @ApiResponse({
@@ -172,12 +172,12 @@ export class SchemaController {
 
   @Get('/paintkits/id/:id')
   @ApiOperation({
-    summary: 'Get paintkit by id',
-    description: 'Returns a paintkit',
+    summary: 'Get paint kit by id',
+    description: 'Returns a paint kit',
   })
   @ApiParam({
     name: 'id',
-    description: 'The id of the paintkit',
+    description: 'The id of the paint kit',
     example: '14',
   })
   @ApiResponse({
