@@ -326,9 +326,13 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
+      .del(SCHEMA_QUALITIES_NAME_KEY)
       .hmset(SCHEMA_QUALITIES_NAME_KEY, qualitiesByName)
+      .del(SCHEMA_QUALITIES_ID_KEY)
       .hmset(SCHEMA_QUALITIES_ID_KEY, qualitiesById)
+      .del(SCHEMA_EFFECTS_NAME_KEY)
       .hmset(SCHEMA_EFFECTS_NAME_KEY, effectsByName)
+      .del(SCHEMA_EFFECTS_ID_KEY)
       .hmset(SCHEMA_EFFECTS_ID_KEY, effectsById)
       .exec();
 
