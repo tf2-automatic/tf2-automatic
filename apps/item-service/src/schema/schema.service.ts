@@ -176,7 +176,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
   async createJobsIfNotRecentlyUpdated(url?: string): Promise<boolean> {
     // Check if the url is the same as the current one
-    if (url && !(await this.isSameItemsGameUrl(url))) {
+    if (url && (await this.isSameItemsGameUrl(url))) {
       return false;
     }
 
