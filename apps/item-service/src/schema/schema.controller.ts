@@ -10,6 +10,8 @@ import { SchemaService } from './schema.service';
 import {
   AttachedParticle,
   AttachedParticleModel,
+  PaintKit,
+  PaintKitModel,
   Quality,
   QualityModel,
   SchemaItem,
@@ -147,5 +149,41 @@ export class SchemaController {
     @Param('id') id: string,
   ): Promise<AttachedParticle> {
     return this.schemaService.getEffectsById(id);
+  }
+
+  @Get('/paintkits/name/:name')
+  @ApiOperation({
+    summary: 'Get paintkit by name',
+    description: 'Returns a paintkit',
+  })
+  @ApiParam({
+    name: 'name',
+    description: 'The name of the paintkit',
+    example: 'Night Owl',
+  })
+  @ApiResponse({
+    type: PaintKitModel,
+  })
+  async getSchemaPaintkitsByName(
+    @Param('name') name: string,
+  ): Promise<PaintKit> {
+    return this.schemaService.getPaintKitByName(name);
+  }
+
+  @Get('/paintkits/id/:id')
+  @ApiOperation({
+    summary: 'Get paintkit by id',
+    description: 'Returns a paintkit',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'The id of the paintkit',
+    example: '14',
+  })
+  @ApiResponse({
+    type: PaintKitModel,
+  })
+  async getSchemaPaintkitsById(@Param('id') id: string): Promise<PaintKit> {
+    return this.schemaService.getPaintKitById(id);
   }
 }

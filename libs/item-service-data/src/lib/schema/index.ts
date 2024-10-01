@@ -19,6 +19,11 @@ export interface AttachedParticle {
   attachment?: string;
 }
 
+export interface PaintKit {
+  id: number;
+  name: string;
+}
+
 export class QualityModel implements Quality {
   @ApiProperty({
     example: 6,
@@ -54,6 +59,18 @@ export class AttachedParticleModel {
 
   @ApiProperty({
     example: 'Burning Flames',
+  })
+  name!: string;
+}
+
+export class PaintKitModel {
+  @ApiProperty({
+    example: 14,
+  })
+  id!: number;
+
+  @ApiProperty({
+    example: 'Night Owl',
   })
   name!: string;
 }

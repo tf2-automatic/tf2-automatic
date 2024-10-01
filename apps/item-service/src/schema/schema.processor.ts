@@ -41,6 +41,9 @@ export class SchemaProcessor extends WorkerHost {
       case 'items':
         processor = this.updateItems.bind(this);
         break;
+      case 'proto_obj_defs':
+        processor = this.updateProtoObjDefs.bind(this);
+        break;
       default:
         this.logger.error(`Unknown job name: ${job.name}`);
         return;
@@ -61,6 +64,13 @@ export class SchemaProcessor extends WorkerHost {
     const apiKey = await this.botsService.getApiKey();
     const result = await this.getSchemaItems(apiKey, job.data.start);
     await this.schemaService.updateItems(job, result);
+  }
+
+  private async updateProtoObjDefs(job: Job) {
+    const result = await this.getVDFFromUrl(
+      'https://raw.githubusercontent.com/SteamDatabase/GameTracking-TF2/master/tf/resource/tf_proto_obj_defs_english.txt',
+    );
+    await this.schemaService.updateProtoObjDefs(job, result);
   }
 
   private async getSchemaOverview(
@@ -101,6 +111,16 @@ export class SchemaProcessor extends WorkerHost {
     );
 
     return response.data.result;
+  }
+
+  private async getVDFFromUrl(url: string): Promise<string> {
+    const response = await firstValueFrom(
+      this.httpService.get(url, {
+        transformResponse: (data) => data,
+        responseType: 'text',
+      }),
+    );
+    return response.data;
   }
 
   @OnWorkerEvent('error')

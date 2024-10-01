@@ -1,7 +1,7 @@
 import { AttachedParticle, SchemaItem } from '@tf2-automatic/item-service-data';
 import { Job } from 'bullmq';
 
-export type JobName = 'schema' | 'items';
+export type JobName = 'schema' | 'items' | 'proto_obj_defs';
 
 export type JobWithTypes = Job<JobData, unknown, JobName>;
 

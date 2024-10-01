@@ -22,7 +22,12 @@ import {
   JobWithTypes as Job,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
-import { Quality, SchemaItem } from '@tf2-automatic/item-service-data';
+import {
+  PaintKit,
+  Quality,
+  SchemaItem,
+} from '@tf2-automatic/item-service-data';
+import { parse as vdf } from 'kvparser';
 
 // Keeps track of the current version of the schema
 const ITEMS_GAME_URL_KEY = 'schema:items-game-url';
@@ -42,6 +47,10 @@ const SCHEMA_QUALITIES_NAME_KEY = 'schema:qualities:name:<name>';
 const SCHEMA_EFFECTS_ID_KEY = 'schema:effects:id:<id>';
 // A hash set that stores all schema effects with the name as the key
 const SCHEMA_EFFECTS_NAME_KEY = 'schema:effects:name:<name>';
+// A hash set that stores all paintkits with the id as the key
+const PAINTKIT_ID_KEY = 'schema:paintkit:id:<id>';
+// A hash set that stores all paintkits with the name as the key
+const PAINTKIT_NAME_KEY = 'schema:paintkit:name:<name>';
 
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
@@ -161,6 +170,29 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(effect);
   }
 
+  async getPaintKitById(id: string): Promise<PaintKit> {
+    const paintkit = await this.redis.hgetBuffer(PAINTKIT_ID_KEY, id);
+
+    if (!paintkit) {
+      throw new NotFoundException('Paintkit not found');
+    }
+
+    return unpack(paintkit);
+  }
+
+  async getPaintKitByName(name: string): Promise<PaintKit> {
+    const paintkit = await this.redis.hgetBuffer(
+      PAINTKIT_NAME_KEY,
+      Buffer.from(name).toString('base64'),
+    );
+
+    if (!paintkit) {
+      throw new NotFoundException('Paintkit not found');
+    }
+
+    return unpack(paintkit);
+  }
+
   private async getCurrentKey(): Promise<string | null> {
     return this.redis.get(CURRENT_SCHEMA_KEY);
   }
@@ -224,6 +256,37 @@ export class SchemaService implements OnApplicationBootstrap {
     return Number(currentKey) > time;
   }
 
+  private createSchemaJob() {
+    return this.queue.add('schema', {
+      time: Date.now(),
+    });
+  }
+
+  private createItemsJob(time: number, start: number) {
+    return this.queue.add('items', {
+      time,
+      start,
+    });
+  }
+
+  private createItemJobs(time: number) {
+    return this.queue.addBulk([
+      {
+        name: 'proto_obj_defs',
+        data: {
+          time,
+        },
+      },
+      {
+        name: 'items',
+        data: {
+          time,
+          start: 0,
+        },
+      },
+    ]);
+  }
+
   async updateOverview(job: Job, result: GetSchemaOverviewResponse) {
     // Check if the items game url is the same as the current one
     if (await this.isSameItemsGameUrl(result.items_game_url)) {
@@ -269,25 +332,12 @@ export class SchemaService implements OnApplicationBootstrap {
       .hmset(SCHEMA_EFFECTS_ID_KEY, effectsById)
       .exec();
 
-    await this.createItemsJob(job.data.time, 0);
+    await this.createItemJobs(job.data.time);
 
     await Promise.all([
       this.setLastUpdated(),
       this.setItemsGameUrl(result.items_game_url),
     ]);
-  }
-
-  private createSchemaJob() {
-    return this.queue.add('schema', {
-      time: Date.now(),
-    });
-  }
-
-  private createItemsJob(time: number, start: number) {
-    return this.queue.add('items', {
-      time,
-      start,
-    });
   }
 
   async updateItems(job: Job, result: GetSchemaItemsResponse) {
@@ -347,6 +397,50 @@ export class SchemaService implements OnApplicationBootstrap {
       this.getKey(SCHEMA_ITEMS_NAME_KEY, { name: '*' }),
       job.data.time.toString(),
     );
+  }
+
+  async updateProtoObjDefs(job: Job, result: string) {
+    const parsed = vdf(result);
+
+    const protodefs = parsed.lang.Tokens;
+
+    const paintkitsById: Record<string, Buffer> = {};
+    const paintkitsByName: Record<string, Buffer> = {};
+
+    for (const protodef in protodefs) {
+      const parts = protodef.slice(0, protodef.indexOf(' ')).split('_');
+      if (parts.length !== 3) {
+        continue;
+      }
+
+      const type = parts[0];
+      if (type !== '9') {
+        continue;
+      }
+
+      const id = parseInt(parts[1]);
+      if (isNaN(id)) {
+        continue;
+      }
+
+      const name = protodefs[protodef];
+      if (name.startsWith(id + ': (Unused)')) {
+        continue;
+      }
+
+      const packed = pack({ id, name });
+
+      paintkitsById[id.toString()] = packed;
+      paintkitsByName[Buffer.from(name).toString('base64')] = packed;
+    }
+
+    await this.redis
+      .multi()
+      .del(PAINTKIT_ID_KEY)
+      .hmset(PAINTKIT_ID_KEY, paintkitsById)
+      .del(PAINTKIT_NAME_KEY)
+      .hmset(PAINTKIT_NAME_KEY, paintkitsByName)
+      .exec();
   }
 
   private deleteKeysByPattern(pattern: string, excludeSuffix?: string) {
