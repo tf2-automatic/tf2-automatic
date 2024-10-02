@@ -17,7 +17,7 @@ export type InventoryItem =
 
 export interface InventoryResponse {
   timestamp: number;
-  inventory: InventoryItem[];
+  items: InventoryItem[];
 }
 
 export interface EnqueueInventory {

@@ -160,9 +160,9 @@ export class InventoriesService
       ),
     );
 
-    const inventory = response.data;
+    const items = response.data;
 
-    const object = inventory.reduce((acc, item) => {
+    const object = items.reduce((acc, item) => {
       acc[`item:${item.assetid}`] = pack(item);
       return acc;
     }, {});
@@ -177,7 +177,7 @@ export class InventoriesService
       appid,
       contextid,
       timestamp: now,
-      itemCount: inventory.length,
+      itemCount: items.length,
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
@@ -221,7 +221,7 @@ export class InventoriesService
 
     return {
       timestamp: now,
-      inventory,
+      items,
     };
   }
 
@@ -332,7 +332,7 @@ export class InventoriesService
       },
     );
 
-    const inventory = Object.keys(object)
+    const items = Object.keys(object)
       .filter((key) => {
         return key.startsWith('item:');
       })
