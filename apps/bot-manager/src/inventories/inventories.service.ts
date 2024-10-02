@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
   OnApplicationBootstrap,
+  OnModuleDestroy,
+  RequestTimeoutException,
 } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
@@ -39,7 +41,7 @@ import SteamID from 'steamid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Job, Queue, QueueEvents } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
 import { v4 as uuidv4 } from 'uuid';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
@@ -55,8 +57,19 @@ interface InventoryIdentifier {
 const INVENTORY_EXPIRE_TIME = 600;
 
 @Injectable()
-export class InventoriesService implements OnApplicationBootstrap {
+export class InventoriesService
+  implements OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly locker: Locker;
+
+  private readonly inventoryQueueEvents = new QueueEvents(
+    this.inventoriesQueue.name,
+    {
+      autorun: true,
+      prefix: this.inventoriesQueue.opts.prefix,
+      connection: this.inventoriesQueue.opts.connection,
+    },
+  );
 
   constructor(
     @InjectRedis()
@@ -70,6 +83,9 @@ export class InventoriesService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    // TODO: For some reason we can't do `autorun: false` and then call
+    // `this.inventoryQueueEvents.run()`
+
     await this.eventsService.subscribe(
       'bot-manager.delete-inventory-items',
       BOT_EXCHANGE_NAME,
@@ -91,12 +107,16 @@ export class InventoriesService implements OnApplicationBootstrap {
     );
   }
 
+  async onModuleDestroy() {
+    return this.inventoryQueueEvents.close();
+  }
+
   async addToQueue(
     steamid: SteamID,
     appid: number,
     contextid: string,
     dto: EnqueueInventoryDto,
-  ): Promise<void> {
+  ): Promise<Job> {
     const data: InventoryQueue = {
       raw: {
         steamid64: steamid.getSteamID64(),
@@ -112,7 +132,7 @@ export class InventoriesService implements OnApplicationBootstrap {
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
 
-    await this.inventoriesQueue.add(id, data, {
+    return this.inventoriesQueue.add(id, data, {
       jobId: id,
       backoff: {
         type: 'custom',
@@ -229,6 +249,56 @@ export class InventoriesService implements OnApplicationBootstrap {
     );
   }
 
+  async fetchInventory(
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+    useCache = true,
+  ): Promise<InventoryResponse> {
+    if (useCache) {
+      try {
+        const inventory = await this.getInventoryFromCache(
+          steamid,
+          appid,
+          contextid,
+        );
+
+        return inventory;
+      } catch (err) {
+        if (!(err instanceof NotFoundException)) {
+          throw err;
+        }
+
+        // Inventory is not in the cache
+      }
+    }
+
+    // Add the job to the queue. I believe that if it is already in the queue
+    // then it will not be replaced
+    const job = await this.addToQueue(steamid, appid, contextid, {
+      ttl: INVENTORY_EXPIRE_TIME,
+    });
+
+    // Wait for it to finish
+    await job
+      .waitUntilFinished(this.inventoryQueueEvents, 10000)
+      .catch((err: Error) => {
+        if (
+          err.message.startsWith(
+            'Job wait ' + job.id! + ' timed out before finishing',
+          )
+        ) {
+          throw new RequestTimeoutException(
+            'Inventory was not fetched in time',
+          );
+      }
+
+      throw err;
+    });
+
+    return this.getInventoryFromCache(steamid, appid, contextid);
+  }
+
   async getInventoryFromCache(
     steamid: SteamID,
     appid: number,
@@ -258,16 +328,16 @@ export class InventoriesService implements OnApplicationBootstrap {
 
         const object = await this.redis.hgetallBuffer(key);
 
-        const inventory = Object.keys(object)
-          .filter((key) => {
-            return key.startsWith('item:');
-          })
-          .map((item) => unpack(object[item]));
+    const inventory = Object.keys(object)
+      .filter((key) => {
+        return key.startsWith('item:');
+      })
+      .map((item) => unpack(object[item]));
 
-        return {
+    return {
           timestamp: parseInt(timestamp, 10),
-          inventory,
-        };
+      inventory,
+    };
       },
     );
   }
