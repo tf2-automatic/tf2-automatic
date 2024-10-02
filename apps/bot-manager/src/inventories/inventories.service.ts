@@ -291,10 +291,10 @@ export class InventoriesService
           throw new RequestTimeoutException(
             'Inventory was not fetched in time',
           );
-      }
+        }
 
-      throw err;
-    });
+        throw err;
+      });
 
     return this.getInventoryFromCache(steamid, appid, contextid);
   }
@@ -306,7 +306,7 @@ export class InventoriesService
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    return this.locker.using(
+    const { timestamp, object } = await this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -328,6 +328,10 @@ export class InventoriesService
 
         const object = await this.redis.hgetallBuffer(key);
 
+        return { timestamp: parseInt(timestamp, 10), object };
+      },
+    );
+
     const inventory = Object.keys(object)
       .filter((key) => {
         return key.startsWith('item:');
@@ -335,11 +339,9 @@ export class InventoriesService
       .map((item) => unpack(object[item]));
 
     return {
-          timestamp: parseInt(timestamp, 10),
-      inventory,
+      timestamp,
+      items,
     };
-      },
-    );
   }
 
   private handleDeleteInventoryItems(
