@@ -108,7 +108,7 @@ export default (): Config => {
       heartbeatInterval: getEnvWithDefault(
         'BOT_MANAGER_HEARTBEAT_INTERVAL',
         'integer',
-        60000,
+        20000,
       ),
     },
   };
