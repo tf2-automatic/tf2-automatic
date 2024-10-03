@@ -43,14 +43,14 @@ export class HeartbeatsController {
 
   @Delete(HEARTBEAT_PATH)
   @ApiOperation({
-    summary: 'Delete bot',
-    description: 'Delete a bot from the bot manager.',
+    summary: 'Mark a bot as stopped',
+    description: 'Mark a bot as stopped in the bot manager.',
   })
   @ApiOkResponse({
-    description: 'Bot deleted',
+    description: 'Bot marked as stopped',
   })
-  @ApiParamSteamID('SteamID64 of the bot to delete')
+  @ApiParamSteamID('SteamID64 of the bot to mark as stopped')
   handleDelete(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
-    return this.heartbeatsService.deleteBot(steamid);
+    return this.heartbeatsService.markStopped(steamid, true);
   }
 }

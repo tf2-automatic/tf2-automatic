@@ -26,16 +26,22 @@ export class HeartbeatsProcessor extends WorkerHost {
 
       // Check if the bot has sent a heartbeat recently
       if (bot.lastSeen === job.data.lastSeen) {
-        // Bot has not sent a new heartbeat, delete it
-        return this.heartbeatsService.deleteBot(new SteamID(steamid64));
+        // Bot has not sent a new heartbeat, mark it as stopped
+        return this.heartbeatsService.markStopped(
+          new SteamID(steamid64),
+          false,
+        );
       }
     } catch (err) {
       if (err instanceof NotFoundException) {
         // Bot does not exist, do nothing
         return;
       } else if (err instanceof InternalServerErrorException) {
-        // Bot is not running / not available, delete it
-        return this.heartbeatsService.deleteBot(new SteamID(steamid64));
+        // Bot is not running / not available, mark it as stopped
+        return this.heartbeatsService.markStopped(
+          new SteamID(steamid64),
+          false,
+        );
       } else {
         // Unexpected error
         throw err;

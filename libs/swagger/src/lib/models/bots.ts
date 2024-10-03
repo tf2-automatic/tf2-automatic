@@ -35,8 +35,14 @@ export class BotModel implements Bot {
   version: string | null;
 
   @ApiProperty({
+    example: true,
+    description: 'Whether the bot is running or not',
+  })
+  running: boolean;
+
+  @ApiProperty({
     example: Math.floor(Date.now() / 1000),
-    description: 'The last time the bot sent a heartbeat',
+    description: 'The last time the bot sent a heartbeat or shutdown signal',
   })
   lastSeen: number;
 }

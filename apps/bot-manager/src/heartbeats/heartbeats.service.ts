@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   Bot,
@@ -74,6 +75,11 @@ export class HeartbeatsService {
       });
   }
 
+  async getRunningBots(): Promise<Bot[]> {
+    const bots = await this.getBots();
+    return bots.filter((bot) => bot.running === true);
+  }
+
   private async getBotFromRedis(steamid: SteamID): Promise<Bot | null> {
     const bot = await this.redis
       .getBuffer(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
@@ -94,6 +100,10 @@ export class HeartbeatsService {
       throw new NotFoundException('Bot not found');
     }
 
+    if (bot.running === false) {
+      throw new ServiceUnavailableException('Bot is not running');
+    }
+
     // Check if the bot is alive / ip + port combination is valid
     const running = await this.getRunningBot(bot).catch(() => {
       throw new InternalServerErrorException(
@@ -103,7 +113,7 @@ export class HeartbeatsService {
 
     if (running === null || running.steamid64 !== bot.steamid64) {
       // Bot is not the same as we thought it was
-      return this.deleteBot(steamid).then(() => {
+      return this.markStopped(steamid, false).then(() => {
         throw new NotFoundException('Bot not found');
       });
     }
@@ -118,17 +128,9 @@ export class HeartbeatsService {
       port: heartbeat.port,
       version: heartbeat.version ?? null,
       interval: heartbeat.interval,
+      running: true,
       lastSeen: Math.floor(Date.now() / 1000),
     };
-
-    this.logger.debug(
-      'Received heartbeat from bot ' +
-        bot.steamid64 +
-        ' at ' +
-        bot.ip +
-        ':' +
-        bot.port,
-    );
 
     // Create lock to make sure that a bot can't be saved and deleted at the same time
     return this.locker.using(
@@ -161,12 +163,7 @@ export class HeartbeatsService {
         const multi = this.redis
           .multi()
           // Save bot
-          .set(
-            BOT_KEY.replace('STEAMID64', steamid.getSteamID64()),
-            pack(bot),
-            'EX',
-            300,
-          );
+          .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
         redisMultiEvent(
           multi,
@@ -186,6 +183,54 @@ export class HeartbeatsService {
         await multi.exec();
 
         return bot;
+      },
+    );
+  }
+
+  async markStopped(steamid: SteamID, isStopSignal: boolean): Promise<void> {
+    // Create lock
+    await this.locker.using(
+      [`bots:${steamid.getSteamID64()}`],
+      LockDuration.SHORT,
+      async (signal) => {
+        const bot = await this.getBotFromRedis(steamid);
+        if (bot === null) {
+          // Bot does not exist
+          throw new NotFoundException('Bot not found');
+        }
+
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        // Mark bot as stopped
+        bot.running = false;
+        if (isStopSignal) {
+          // Update last seen
+          bot.lastSeen = Math.floor(Date.now() / 1000);
+        }
+
+        // Create event
+        const multi = this.redis
+          .multi()
+          .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
+
+        redisMultiEvent(
+          multi,
+          {
+            type: BOT_HEARTBEAT_EVENT,
+            data: bot,
+            metadata: {
+              id: uuidv4(),
+              steamid64: null,
+              time: Math.floor(Date.now() / 1000),
+            },
+          } satisfies BotHeartbeatEvent,
+          this.eventsService.getType(),
+          this.eventsService.getPersist(),
+        );
+
+        await multi.exec();
       },
     );
   }

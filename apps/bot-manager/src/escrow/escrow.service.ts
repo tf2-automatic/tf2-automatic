@@ -47,7 +47,7 @@ export class EscrowService {
     if (query.bot !== undefined) {
       bot = await this.heartbeatsService.getBot(query.bot);
     } else {
-      const bots = await this.heartbeatsService.getBots();
+      const bots = await this.heartbeatsService.getRunningBots();
       if (bots.length === 0) {
         throw new ServiceUnavailableException('No bots available');
       }

@@ -19,7 +19,7 @@ export class BotsService {
   ) {}
 
   async getApiKey(): Promise<string> {
-    const bots = await this.getBots();
+    const bots = await this.getRunningBots();
 
     if (bots.length === 0) {
       throw new NotFoundException('No bots found');
@@ -35,6 +35,11 @@ export class BotsService {
     }
 
     return info.apiKey;
+  }
+
+  async getRunningBots(): Promise<ManagerBot[]> {
+    const bots = await this.getBots();
+    return bots.filter((bot) => bot.running === true);
   }
 
   async getBots(): Promise<ManagerBot[]> {
