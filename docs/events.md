@@ -59,11 +59,27 @@ Event made when the bot makes a heartbeat that is received by the bot-manager.
   - `ip`
   - `port`
   - `interval`
+  - `running`
+  - `latseSeen`
+
+### bots.stopped (bot-manager)
+
+Event made when the bot is no longer running/responsive.
+
+`BOT_STOPPED_EVENT`
+
+- `type` - `bots.stopped`
+- `data`
+  - `steamid64`
+  - `ip`
+  - `port`
+  - `interval`
+  - `running`
   - `latseSeen`
 
 ### bots.deleted (bot-manager)
 
-Event made when the bot is no longer responsive and is removed from the bots list.
+Event made when the bot is removed from the bots list.
 
 `BOT_DELETED_EVENT`
 
@@ -73,6 +89,7 @@ Event made when the bot is no longer responsive and is removed from the bots lis
   - `ip`
   - `port`
   - `interval`
+  - `running`
   - `latseSeen`
 
 ## Friends

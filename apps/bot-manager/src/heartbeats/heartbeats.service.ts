@@ -12,8 +12,10 @@ import {
   Bot,
   BOT_DELETED_EVENT,
   BOT_HEARTBEAT_EVENT,
+  BOT_STOPPED_EVENT,
   BotDeletedEvent,
   BotHeartbeatEvent,
+  BotStoppedEvent,
 } from '@tf2-automatic/bot-manager-data';
 import {
   Bot as RunningBot,
@@ -230,14 +232,14 @@ export class HeartbeatsService {
         redisMultiEvent(
           multi,
           {
-            type: BOT_HEARTBEAT_EVENT,
+            type: BOT_STOPPED_EVENT,
             data: bot,
             metadata: {
               id: uuidv4(),
               steamid64: null,
               time: Math.floor(Date.now() / 1000),
             },
-          } satisfies BotHeartbeatEvent,
+          } satisfies BotStoppedEvent,
           this.eventsService.getType(),
           this.eventsService.getPersist(),
         );
