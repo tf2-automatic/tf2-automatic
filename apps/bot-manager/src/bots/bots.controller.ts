@@ -1,4 +1,4 @@
-import { Controller, Param, Get } from '@nestjs/common';
+import { Controller, Param, Get, Delete } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   BOTS_PATH,
@@ -40,5 +40,19 @@ export class BotsController {
   })
   getBots() {
     return this.botsService.getBots();
+  }
+
+  @Delete(BOT_PATH)
+  @ApiOperation({
+    summary: 'Delete bot',
+    description:
+      'Deletes a bot from the bot manager. Should only be used when the bot is not running and no longer part of the system.',
+  })
+  @ApiParamSteamID('SteamID64 of the bot')
+  @ApiOkResponse({
+    description: 'Bot deleted',
+  })
+  deleteBot(@Param('steamid', ParseSteamIDPipe) steamid: SteamID) {
+    return this.botsService.deleteBot(steamid);
   }
 }
