@@ -20,6 +20,8 @@ export class HeartbeatsProcessor extends WorkerHost {
   async process(job: Job<HeartbeatsQueue>): Promise<void> {
     const { steamid64 } = job.data;
 
+    this.logger.warn('Missed heartbeat from bot ' + steamid64);
+
     try {
       // Check if the bot exists and is running
       const bot = await this.heartbeatsService.getBot(new SteamID(steamid64));

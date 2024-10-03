@@ -137,6 +137,18 @@ export class HeartbeatsService {
       [`bots:${steamid.getSteamID64()}`],
       LockDuration.SHORT,
       async (signal) => {
+        const existing = await this.getBotFromRedis(steamid);
+        if (existing) {
+          // Found existing bot, look for old job and remove it
+          const job = await this.heartbeatsQueue
+            .getJob(existing.steamid64 + ':' + existing.lastSeen)
+            .catch(() => null);
+          if (job) {
+            // Remove job from queue, ignore errors
+            await job.remove().catch(() => undefined);
+          }
+        }
+
         const running = await this.getRunningBot(bot).catch((err) => {
           this.logger.warn('Bot is not accessible: ' + err.message);
           throw new InternalServerErrorException(
