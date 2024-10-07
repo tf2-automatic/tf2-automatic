@@ -152,6 +152,10 @@ export class TradesService {
     received: ActualTradeOffer[],
     isAll: boolean,
   ) {
+    if (this.manager.pollData.offerData === undefined) {
+      this.manager.pollData.offerData = {};
+    }
+
     const handleOffer = (offer: ActualTradeOffer): void => {
       this.cache.set(offer.id!, offer);
 
