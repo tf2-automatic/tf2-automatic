@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
@@ -35,7 +36,11 @@ export class HeartbeatsProcessor extends WorkerHost {
         );
       }
     } catch (err) {
-      if (err instanceof NotFoundException) {
+      if (
+        err instanceof NotFoundException ||
+        (err instanceof ServiceUnavailableException &&
+          err.message === 'Bot is not running')
+      ) {
         // Bot does not exist, do nothing
         return;
       } else if (err instanceof InternalServerErrorException) {
