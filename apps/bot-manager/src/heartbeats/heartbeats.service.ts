@@ -27,7 +27,7 @@ import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { BotHeartbeatDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
@@ -141,14 +141,7 @@ export class HeartbeatsService {
       async (signal) => {
         const existing = await this.getBotFromRedis(steamid);
         if (existing) {
-          // Found existing bot, look for old job and remove it
-          const job = await this.heartbeatsQueue
-            .getJob(existing.steamid64 + ':' + existing.lastSeen)
-            .catch(() => null);
-          if (job) {
-            // Remove job from queue, ignore errors
-            await job.remove().catch(() => undefined);
-          }
+          await this.deleteHeartbeatJobIfExists(existing);
         }
 
         const running = await this.getRunningBot(bot).catch((err) => {
@@ -212,6 +205,8 @@ export class HeartbeatsService {
           // Bot does not exist
           throw new NotFoundException('Bot not found');
         }
+
+        await this.deleteHeartbeatJobIfExists(bot);
 
         if (signal.aborted) {
           throw signal.error;
@@ -288,6 +283,18 @@ export class HeartbeatsService {
         await multi.exec();
       },
     );
+  }
+
+  private getHeartbeatJob(bot: Bot): Promise<Job | undefined> {
+    return this.heartbeatsQueue.getJob(bot.steamid64 + ':' + bot.lastSeen);
+  }
+
+  private async deleteHeartbeatJobIfExists(bot: Bot): Promise<void> {
+    const job = await this.getHeartbeatJob(bot).catch(() => null);
+    if (job) {
+      // Remove job from queue, ignore errors
+      await job.remove().catch(() => undefined);
+    }
   }
 
   private async getRunningBot(bot: Bot): Promise<RunningBot | null> {
