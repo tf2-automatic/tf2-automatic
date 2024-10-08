@@ -45,7 +45,7 @@ export function getS3StorageConfig(): S3StorageConfig {
 
 export function getLocalStorageConfigRules() {
   return {
-    STORAGE_DIRECTORY: Joi.string().required(),
+    STORAGE_LOCAL_PATH: Joi.string().required(),
   };
 }
 
