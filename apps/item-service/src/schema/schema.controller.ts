@@ -25,6 +25,15 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 export class SchemaController {
   constructor(private readonly schemaService: SchemaService) {}
 
+  @Get()
+  @ApiOperation({
+    summary: 'Get schema metadata',
+    description: 'Returns the schema metadata',
+  })
+  async getSchemaMetadata() {
+    return this.schemaService.getSchemaMetadata();
+  }
+
   @Post('/refresh')
   @ApiOperation({
     summary: 'Update schema',

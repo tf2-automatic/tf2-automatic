@@ -87,6 +87,32 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
+  async getSchemaMetadata(): Promise<SchemaMetadataResponse> {
+    const itemsGameUrl = await this.getItemsGameUrl();
+    if (!itemsGameUrl) {
+      throw new NotFoundException('Schema not found');
+    }
+
+    const lastUpdated = await this.redis.get(LAST_UPDATED_KEY);
+    if (!lastUpdated) {
+      throw new NotFoundException('Schema not found');
+    }
+
+    const lastUpdatedParsed = Math.floor(parseInt(lastUpdated, 10) / 1000);
+
+    const itemsCount = await this.redis.hlen(SCHEMA_ITEMS_KEY);
+
+    const counts = await this.queue.getJobCounts();
+    const updating = counts.waiting + counts.active > 0;
+
+    return {
+      itemsGameUrl,
+      itemsCount,
+      updating,
+      lastUpdated: lastUpdatedParsed,
+    };
+  }
+
   async getItemByDefindex(defindex: string): Promise<any> {
     const items = await this.getItemsByDefindexes([defindex]);
 
@@ -233,12 +259,7 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   private setLastUpdated() {
-    return this.redis.set(
-      LAST_UPDATED_KEY,
-      Date.now(),
-      'EX',
-      Math.floor(this.updateTimeout / 1000),
-    );
+    return this.redis.set(LAST_UPDATED_KEY, Date.now());
   }
 
   private getItemsGameUrl(): Promise<string | null> {
