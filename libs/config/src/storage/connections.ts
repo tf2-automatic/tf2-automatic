@@ -26,7 +26,7 @@ export interface LocalStorageConfig extends BaseConfig {
 export function getLocalStorageConfig(): LocalStorageConfig {
   return {
     type: 'local',
-    directory: getEnv('STORAGE_DIRECTORY', 'string')!,
+    directory: getEnv('STORAGE_LOCAL_PATH', 'string')!,
   };
 }
 
