@@ -1,15 +1,5 @@
-import { getEventRules } from '@tf2-automatic/config';
+import { getEventRules, getStorageConfigRules } from '@tf2-automatic/config';
 import Joi from 'joi';
-
-const whenStorageTypeS3 = {
-  is: 's3',
-  then: Joi.required(),
-};
-
-const whenStorageTypeLocal = {
-  is: 'local',
-  then: Joi.required(),
-};
 
 const whenManager = {
   is: true,
@@ -46,22 +36,8 @@ const validation = Joi.object({
   TRADE_POLL_FULL_UPDATE_INTERVAL: Joi.number().positive().optional(),
   TRADE_POLL_DATA_FORGET_TIME: Joi.number().positive().optional(),
   ...getEventRules(),
+  ...getStorageConfigRules(),
   DEBUG: Joi.boolean().optional(),
-  STORAGE_TYPE: Joi.string().valid('local', 's3').required(),
-  STORAGE_LOCAL_PATH: Joi.string().when('STORAGE_TYPE', whenStorageTypeLocal),
-  STORAGE_S3_ENDPOINT: Joi.string().when('STORAGE_TYPE', whenStorageTypeS3),
-  STORAGE_S3_PORT: Joi.number().when('STORAGE_TYPE', whenStorageTypeS3),
-  STORAGE_S3_USE_SSL: Joi.boolean().when('STORAGE_TYPE', whenStorageTypeS3),
-  STORAGE_S3_PATH: Joi.string().when('STORAGE_TYPE', whenStorageTypeS3),
-  STORAGE_S3_ACCESS_KEY_ID: Joi.string().when(
-    'STORAGE_TYPE',
-    whenStorageTypeS3,
-  ),
-  STORAGE_S3_SECRET_ACCESS_KEY: Joi.string().when(
-    'STORAGE_TYPE',
-    whenStorageTypeS3,
-  ),
-  STORAGE_S3_BUCKET: Joi.string().when('STORAGE_TYPE', whenStorageTypeS3),
   BOT_MANAGER_ENABLED: Joi.boolean().optional(),
   BOT_MANAGER_URL: Joi.string()
     .uri({

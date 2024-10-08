@@ -36,6 +36,7 @@
       ],
       "@tf2-automatic/locking": ["libs/locking/src/index.ts"],
       "@tf2-automatic/nestjs-events": ["libs/nestjs-events/src/index.ts"],
+      "@tf2-automatic/nestjs-storage": ["libs/nestjs-storage/src/index.ts"],
       "@tf2-automatic/nestjs-steamid-pipe": [
         "libs/nestjs-steamid-pipe/src/index.ts"
       ],

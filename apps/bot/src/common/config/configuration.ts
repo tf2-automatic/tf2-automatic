@@ -3,6 +3,8 @@ import {
   getEnv,
   getEnvWithDefault,
   getEventsConfig,
+  getStorageConfig,
+  StorageConfig,
 } from '@tf2-automatic/config';
 
 export interface Config {
@@ -32,28 +34,6 @@ export interface SteamTradeConfig {
   pollInterval: number;
   pollFullUpdateInterval: number;
   pollDataForgetTime: number;
-}
-
-export type StorageConfig = S3StorageConfig | LocalStorageConfig;
-
-export interface S3StorageConfig extends BaseChoiceConfig {
-  type: 's3';
-  endpoint: string;
-  port: number;
-  useSSL: boolean;
-  bucket: string;
-  directory: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-}
-
-export interface LocalStorageConfig extends BaseChoiceConfig {
-  type: 'local';
-  directory: string;
-}
-
-interface BaseChoiceConfig {
-  type: unknown;
 }
 
 export interface ManagerConfig {
@@ -113,27 +93,3 @@ export default (): Config => {
     },
   };
 };
-
-function getStorageConfig(): StorageConfig {
-  const storageType = getEnv('STORAGE_TYPE', 'string') as 's3' | 'local';
-
-  if (storageType === 'local') {
-    return {
-      type: storageType,
-      directory: getEnv('STORAGE_LOCAL_PATH', 'string')!,
-    } satisfies LocalStorageConfig;
-  } else if (storageType === 's3') {
-    return {
-      type: storageType,
-      directory: getEnv('STORAGE_S3_PATH', 'string')!,
-      endpoint: getEnv('STORAGE_S3_ENDPOINT', 'string')!,
-      port: getEnv('STORAGE_S3_PORT', 'integer')!,
-      useSSL: getEnv('STORAGE_S3_USE_SSL', 'boolean'),
-      bucket: getEnv('STORAGE_S3_BUCKET', 'string')!,
-      accessKeyId: getEnv('STORAGE_S3_ACCESS_KEY_ID', 'string')!,
-      secretAccessKey: getEnv('STORAGE_S3_SECRET_ACCESS_KEY', 'string')!,
-    } satisfies S3StorageConfig;
-  } else {
-    throw new Error('Unknown storage type: ' + storageType);
-  }
-}

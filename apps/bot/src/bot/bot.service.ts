@@ -10,7 +10,7 @@ import {
   SteamTradeConfig,
 } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
-import { StorageService } from '../storage/storage.service';
+import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { MetadataService } from '../metadata/metadata.service';
@@ -71,7 +71,7 @@ export class BotService implements OnModuleDestroy {
   constructor(
     private shutdownService: ShutdownService,
     private configService: ConfigService<Config>,
-    private storageService: StorageService,
+    private storageService: NestStorageService,
     private eventsService: EventsService,
     private metadataService: MetadataService,
     private eventEmitter: EventEmitter2,

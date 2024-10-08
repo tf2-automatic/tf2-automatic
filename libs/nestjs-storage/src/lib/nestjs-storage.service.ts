@@ -1,14 +1,15 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Config, StorageConfig } from '../common/config/configuration';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { StorageEngine } from './engines/engine.interface';
+import { MODULE_OPTIONS_TOKEN } from './nestjs-storage.module-definition';
+import { StorageModuleOptions } from './nestjs-storage.module';
 import { LocalStorageEngine } from './engines/local-storage.engine';
 import { S3StorageEngine } from './engines/s3-storage.engine';
 
@@ -28,8 +29,8 @@ interface NextWrite {
 }
 
 @Injectable()
-export class StorageService implements OnApplicationShutdown, OnModuleInit {
-  private readonly logger = new Logger(StorageService.name);
+export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
+  private readonly logger = new Logger(NestStorageService.name);
 
   private readonly _readPromises: Map<string, Promise<ReadFileResult>> =
     new Map();
@@ -39,18 +40,18 @@ export class StorageService implements OnApplicationShutdown, OnModuleInit {
   private readonly writeQueue: queueAsPromised<WriteTask, WriteFileResult> =
     fastq.promise(this.processWriteQueue.bind(this), 1);
 
-  private engine: StorageEngine;
+  private readonly engine: StorageEngine;
 
-  constructor(private readonly configService: ConfigService<Config>) {
-    const storageConfig =
-      this.configService.getOrThrow<StorageConfig>('storage');
-
-    if (storageConfig.type === 'local') {
-      this.engine = new LocalStorageEngine(storageConfig);
-    } else if (storageConfig.type === 's3') {
-      this.engine = new S3StorageEngine(storageConfig);
+  constructor(
+    @Inject(MODULE_OPTIONS_TOKEN)
+    private readonly options: StorageModuleOptions,
+  ) {
+    if (this.options.type === 'local') {
+      this.engine = new LocalStorageEngine(this.options);
+    } else if (this.options.type === 's3') {
+      this.engine = new S3StorageEngine(this.options);
     } else {
-      throw new Error('Invalid storage type: ' + storageConfig);
+      throw new Error(`Unsupported storage engine type`);
     }
   }
 
