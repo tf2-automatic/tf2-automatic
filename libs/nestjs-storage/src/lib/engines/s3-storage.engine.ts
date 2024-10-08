@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { S3StorageConfig } from '../../common/config/configuration';
+import { S3StorageConfig } from '@tf2-automatic/config';
 import { StorageEngine } from './engine.interface';
 import * as Minio from 'minio';
 import path from 'path';
