@@ -113,6 +113,29 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
+  async getItems(cursor: number, count: number): Promise<SchemaItemsResponse> {
+    const [newCursor, elements] = await this.redis.hscanBuffer(
+      SCHEMA_ITEMS_KEY,
+      cursor,
+      'COUNT',
+      count,
+    );
+
+    const items: SchemaItem[] = [];
+
+    for (let i = 0; i < elements.length; i += 2) {
+      items.push(unpack(elements[i + 1]));
+    }
+
+    const next = parseInt(newCursor.toString('utf8'), 10);
+
+    return {
+      current: cursor,
+      next: next === 0 ? null : next,
+      items,
+    };
+  }
+
   async getItemByDefindex(defindex: string): Promise<any> {
     const items = await this.getItemsByDefindexes([defindex]);
 

@@ -4,7 +4,9 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { SchemaService } from './schema.service';
 import {
@@ -16,9 +18,16 @@ import {
   QualityModel,
   SchemaItem,
   SchemaItemModel,
+  SchemaItemsResponse,
   UpdateSchemaResponse,
 } from '@tf2-automatic/item-service-data';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @ApiTags('Schema')
 @Controller('schema')
@@ -63,6 +72,31 @@ export class SchemaController {
   })
   async getSchemaOverview() {
     return this.schemaService.getSchemaOverview();
+  }
+
+  @Get('/items')
+  @ApiOperation({
+    summary: 'Get schema items paginated',
+    description: 'Returns schema items paginated using a cursor and count',
+  })
+  @ApiResponse({
+    type: SchemaItemsResponse,
+  })
+  @ApiQuery({
+    name: 'cursor',
+    description: 'The cursor to use, defaults to 0.',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'count',
+    description: 'The number of items to return, defaults to 1000.',
+    required: false,
+  })
+  async getItems(
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor = 0,
+    @Query('count', new ParseIntPipe({ optional: true })) count = 1000,
+  ): Promise<SchemaItemsResponse> {
+    return this.schemaService.getItems(cursor, count);
   }
 
   @Get('/items/defindex/:defindex')
