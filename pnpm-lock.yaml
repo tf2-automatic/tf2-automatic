@@ -304,8 +304,8 @@ importers:
         specifier: ^8.5.0
         version: 8.5.0(eslint@9.10.0(jiti@1.21.6))(typescript@5.6.2)
       commitizen:
-        specifier: ^4.3.0
-        version: 4.3.0(@types/node@22.5.4)(typescript@5.6.2)
+        specifier: ^4.3.1
+        version: 4.3.1(@types/node@22.5.4)(typescript@5.6.2)
       cz-conventional-changelog:
         specifier: ^3.3.0
         version: 3.3.0(@types/node@22.5.4)(typescript@5.6.2)
@@ -3180,8 +3180,8 @@ packages:
     resolution: {integrity: sha512-SsxdiOf064DWoZLH799Ata6u7iV658A11PlWtZATDlXPpKGJnbJZ5Z24ybixAi+LUUqJ/GKowAejtC5GFUG7Tw==}
     engines: {node: '>= 6'}
 
-  commitizen@4.3.0:
-    resolution: {integrity: sha512-H0iNtClNEhT0fotHvGV3E9tDejDeS04sN1veIebsKYGMuGscFaswRoYJKmT3eW85eIJAs0F28bG2+a/9wCOfPw==}
+  commitizen@4.3.1:
+    resolution: {integrity: sha512-gwAPAVTy/j5YcOOebcCRIijn+mSjWJC+IYKivTu6aG8Ei/scoXgfsMRnuAk6b0GRste2J4NGxVdMN3ZpfNaVaw==}
     engines: {node: '>= 12'}
     hasBin: true
 
@@ -9445,21 +9445,6 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)':
-    dependencies:
-      '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
-    transitivePeerDependencies:
-      - '@babel/traverse'
-      - '@swc-node/register'
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - debug
-      - nx
-      - supports-color
-      - typescript
-      - verdaccio
-
   '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)':
     dependencies:
       '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
@@ -9745,7 +9730,7 @@ snapshots:
       '@babel/preset-env': 7.25.4(@babel/core@7.25.2)
       '@babel/preset-typescript': 7.24.7(@babel/core@7.25.2)
       '@babel/runtime': 7.25.6
-      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
+      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
       '@nx/devkit': 19.7.2(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))
       '@nx/workspace': 19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))
       babel-plugin-const-enum: 1.2.0(@babel/core@7.25.2)
@@ -11639,7 +11624,7 @@ snapshots:
       has-own-prop: 2.0.0
       repeat-string: 1.6.1
 
-  commitizen@4.3.0(@types/node@22.5.4)(typescript@5.6.2):
+  commitizen@4.3.1(@types/node@22.5.4)(typescript@5.6.2):
     dependencies:
       cachedir: 2.3.0
       cz-conventional-changelog: 3.3.0(@types/node@22.5.4)(typescript@5.6.2)
@@ -11975,7 +11960,7 @@ snapshots:
   cz-conventional-changelog@3.3.0(@types/node@22.5.4)(typescript@5.6.2):
     dependencies:
       chalk: 2.4.2
-      commitizen: 4.3.0(@types/node@22.5.4)(typescript@5.6.2)
+      commitizen: 4.3.1(@types/node@22.5.4)(typescript@5.6.2)
       conventional-commit-types: 3.0.0
       lodash.map: 4.6.0
       longest: 2.0.1
