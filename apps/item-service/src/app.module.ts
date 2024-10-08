@@ -6,7 +6,11 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { RedisModule } from '@songkeys/nestjs-redis';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { getEventsConfig, Redis } from '@tf2-automatic/config';
+import {
+  getEventsConfig,
+  getStorageConfig,
+  Redis,
+} from '@tf2-automatic/config';
 import { NestEventsModule } from '@tf2-automatic/nestjs-events';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
 import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
@@ -14,6 +18,7 @@ import { ITEM_SERVICE_EXCHANGE_NAME } from '@tf2-automatic/item-service-data';
 import { SchemaModule } from './schema/schema.module';
 import { BotsModule } from './bots/bots.module';
 import { HealthModule } from './health/health.module';
+import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
 
 @Module({
   imports: [
@@ -60,6 +65,7 @@ import { HealthModule } from './health/health.module';
       subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],
       config: getEventsConfig(),
     }),
+    NestStorageModule.register(getStorageConfig()),
     PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     HealthModule,

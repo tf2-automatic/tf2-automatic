@@ -18,7 +18,6 @@ import { ConfigService } from '@nestjs/config';
 import {
   JobData,
   GetSchemaItemsResponse,
-  GetSchemaOverviewResponse,
   JobWithTypes as Job,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
@@ -26,8 +25,12 @@ import {
   PaintKit,
   Quality,
   SchemaItem,
+  SchemaItemsResponse,
+  SchemaMetadataResponse,
+  SchemaOverviewResponse,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
+import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 
 // Keeps track of the current version of the schema
 const ITEMS_GAME_URL_KEY = 'schema:items-game-url';
@@ -63,6 +66,7 @@ export class SchemaService implements OnApplicationBootstrap {
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
     private readonly configService: ConfigService<Config>,
+    private readonly storageService: NestStorageService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -269,8 +273,15 @@ export class SchemaService implements OnApplicationBootstrap {
     });
   }
 
-  private createItemJobs(time: number) {
+  private createItemJobs(time: number, itemsGameUrl: string) {
     return this.queue.addBulk([
+      {
+        name: 'items_game',
+        data: {
+          time,
+          items_game_url: itemsGameUrl,
+        },
+      },
       {
         name: 'proto_obj_defs',
         data: {
@@ -287,13 +298,16 @@ export class SchemaService implements OnApplicationBootstrap {
     ]);
   }
 
-  async updateOverview(job: Job, result: GetSchemaOverviewResponse) {
+  async updateOverview(job: Job, result: SchemaOverviewResponse) {
     // Check if the items game url is the same as the current one
     if (await this.isSameItemsGameUrl(result.items_game_url)) {
       return;
     } else if (await this.isOlderThanCurrentSchema(job.data.time)) {
       return;
     }
+
+    // Start saving the overview
+    const savingOverview = this.saveSchemaOverviewFile(result);
 
     // Store schema stuff
     const qualitiesByName: Record<string, Buffer> = {};
@@ -324,6 +338,9 @@ export class SchemaService implements OnApplicationBootstrap {
       effectsById[effect.id.toString()] = packed;
     }
 
+    // Wait for the overview to be saved
+    await savingOverview;
+
     await this.redis
       .multi()
       .del(SCHEMA_QUALITIES_NAME_KEY)
@@ -336,7 +353,7 @@ export class SchemaService implements OnApplicationBootstrap {
       .hmset(SCHEMA_EFFECTS_ID_KEY, effectsById)
       .exec();
 
-    await this.createItemJobs(job.data.time);
+    await this.createItemJobs(job.data.time, result.items_game_url);
 
     await Promise.all([
       this.setLastUpdated(),
@@ -445,6 +462,23 @@ export class SchemaService implements OnApplicationBootstrap {
       .del(PAINTKIT_NAME_KEY)
       .hmset(PAINTKIT_NAME_KEY, paintkitsByName)
       .exec();
+  }
+
+  async updateItemsGame(job: Job, result: string) {
+    await this.saveSchemaItemsGameFile(result);
+  }
+
+  private async saveSchemaItemsGameFile(result: string): Promise<void> {
+    await this.storageService.write('items_game.txt', result);
+  }
+
+  async getSchemaItemsGame(): Promise<string> {
+    const items = await this.storageService.read('items_game.txt');
+    if (!items) {
+      throw new NotFoundException('Schema items not found');
+    }
+
+    return items;
   }
 
   private deleteKeysByPattern(pattern: string, excludeSuffix?: string) {

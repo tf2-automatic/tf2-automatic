@@ -38,6 +38,15 @@ export class SchemaController {
     };
   }
 
+  @Get('/items_game')
+  @ApiOperation({
+    summary: 'Get items game',
+    description: 'Returns the items game',
+  })
+  async getItemsGame(): Promise<any> {
+    return this.schemaService.getSchemaItemsGame();
+  }
+
   @Get('/items/defindex/:defindex')
   @ApiOperation({
     summary: 'Get schema item by defindex',

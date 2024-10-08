@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { AttachedParticle } from '.';
 
 export interface SchemaItem {
   name: string;
@@ -226,4 +227,24 @@ export class SchemaItemModel implements SchemaItem {
     ],
   })
   attributes?: Attribute[] | undefined;
+}
+
+export class SchemaItemsResponse {
+  @ApiProperty({
+    description: 'The cursor used for the current request',
+    example: 0,
+  })
+  current: number;
+
+  @ApiProperty({
+    description: 'The cursor to use for the next request',
+    example: 1000,
+  })
+  next: number | null;
+
+  @ApiProperty({
+    type: SchemaItemModel,
+    isArray: true,
+  })
+  items: SchemaItem[];
 }

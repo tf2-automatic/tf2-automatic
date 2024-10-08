@@ -5,12 +5,9 @@ import { SchemaService } from './schema.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { BotsService } from '../bots/bots.service';
-import {
-  JobWithTypes as Job,
-  GetSchemaItemsResponse,
-  GetSchemaOverviewResponse,
-} from './schema.types';
+import { JobWithTypes as Job, GetSchemaItemsResponse } from './schema.types';
 import configuration from '../common/config/configuration';
+import { SchemaOverviewResponse } from '@tf2-automatic/item-service-data';
 
 @Processor('schema', {
   settings: bullWorkerSettings,
@@ -44,6 +41,9 @@ export class SchemaProcessor extends WorkerHost {
       case 'proto_obj_defs':
         processor = this.updateProtoObjDefs.bind(this);
         break;
+      case 'items_game':
+        processor = this.updateItemsGame.bind(this);
+        break;
       default:
         this.logger.error(`Unknown job name: ${job.name}`);
         return;
@@ -73,9 +73,14 @@ export class SchemaProcessor extends WorkerHost {
     await this.schemaService.updateProtoObjDefs(job, result);
   }
 
+  private async updateItemsGame(job: Job) {
+    const result = await this.getVDFFromUrl(job.data.items_game_url!);
+    await this.schemaService.updateItemsGame(job, result);
+  }
+
   private async getSchemaOverview(
     apiKey: string,
-  ): Promise<GetSchemaOverviewResponse> {
+  ): Promise<SchemaOverviewResponse> {
     const response = await firstValueFrom(
       this.httpService.get(
         'https://api.steampowered.com/IEconItems_440/GetSchemaOverview/v0001/',
