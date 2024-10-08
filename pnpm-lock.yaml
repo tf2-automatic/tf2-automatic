@@ -283,8 +283,8 @@ importers:
         specifier: 2.11.0
         version: 2.11.0(patch_hash=hurj2fhwvgc5sdrtngb6fbcnfa)
       '@types/steam-user':
-        specifier: ^5.0.2
-        version: 5.0.2
+        specifier: ^5.0.3
+        version: 5.0.3
       '@types/steamcommunity':
         specifier: ^3.43.7
         version: 3.43.7(patch_hash=bqxwdkcogngdiksr7xhiy2trvi)
@@ -2361,8 +2361,8 @@ packages:
   '@types/steam-tradeoffer-manager@2.11.0':
     resolution: {integrity: sha512-Y4/DM8vCpj3BQNm6eZgfP/xqOEIO5Ri887YSx+f3fqaiDnPsnVq4bU012xrF7SAnbNkt3OS/pSMEmt61zxXvNQ==}
 
-  '@types/steam-user@5.0.2':
-    resolution: {integrity: sha512-fd11ARKuA5GN4QLh9hSBb/VzW+9CScalk2dHtWI1VAJ9nzzYtCqEVopFMJZP9KHnU/9ZhNv9f+DbgXxhCwLXcA==}
+  '@types/steam-user@5.0.3':
+    resolution: {integrity: sha512-jn4bPDEKGZDZEr1sIRNxLlZuffkG4mSeL+6AC95P/YUQmfYiwfwlvljcXxLFkHwdIPAGqErB4AsGqiL64najTg==}
 
   '@types/steam@0.0.32':
     resolution: {integrity: sha512-gn08zT7AaGe8Vm9iHQuhQIolnmVCG8tsNQV+Gkzt/M3OYfXnl4Dsmlt/hcuon6iAUtMi/Kp8v/qMMfPkBez3MA==}
@@ -9445,21 +9445,6 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)':
-    dependencies:
-      '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
-    transitivePeerDependencies:
-      - '@babel/traverse'
-      - '@swc-node/register'
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - debug
-      - nx
-      - supports-color
-      - typescript
-      - verdaccio
-
   '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)':
     dependencies:
       '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
@@ -9745,7 +9730,7 @@ snapshots:
       '@babel/preset-env': 7.25.4(@babel/core@7.25.2)
       '@babel/preset-typescript': 7.24.7(@babel/core@7.25.2)
       '@babel/runtime': 7.25.6
-      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
+      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
       '@nx/devkit': 19.7.2(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))
       '@nx/workspace': 19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))
       babel-plugin-const-enum: 1.2.0(@babel/core@7.25.2)
@@ -10660,11 +10645,11 @@ snapshots:
     dependencies:
       '@types/file-manager': 2.0.3
       '@types/steam': 0.0.32
-      '@types/steam-user': 5.0.2
+      '@types/steam-user': 5.0.3
       '@types/steamcommunity': 3.43.7(patch_hash=bqxwdkcogngdiksr7xhiy2trvi)
       '@types/steamid': 2.0.3
 
-  '@types/steam-user@5.0.2':
+  '@types/steam-user@5.0.3':
     dependencies:
       '@types/bytebuffer': 5.0.49
       '@types/file-manager': 2.0.3

@@ -45,7 +45,7 @@
     "@types/promise-retry": "^1.1.6",
     "@types/steam-totp": "^2.1.2",
     "@types/steam-tradeoffer-manager": "2.11.0",
-    "@types/steam-user": "^5.0.2",
+    "@types/steam-user": "^5.0.3",
     "@types/steamcommunity": "^3.43.7",
     "@types/steamid": "^2.0.3",
     "@types/uuid": "^10.0.0",
