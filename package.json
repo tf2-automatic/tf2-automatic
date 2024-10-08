@@ -16,7 +16,7 @@
     "@jest/globals": "^29.7.0",
     "@nestjs/schematics": "^10.1.4",
     "@nestjs/testing": "^10.4.1",
-    "@nx-tools/nx-container": "^6.0.2",
+    "@nx-tools/nx-container": "^6.0.4",
     "@nx/devkit": "19.7.2",
     "@nx/eslint-plugin": "19.7.2",
     "@nx/jest": "19.7.2",
