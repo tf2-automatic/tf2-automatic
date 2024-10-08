@@ -47,6 +47,15 @@ export class SchemaController {
     return this.schemaService.getSchemaItemsGame();
   }
 
+  @Get('/overview')
+  @ApiOperation({
+    summary: 'Get schema overview',
+    description: 'Returns an overview of the schema',
+  })
+  async getSchemaOverview() {
+    return this.schemaService.getSchemaOverview();
+  }
+
   @Get('/items/defindex/:defindex')
   @ApiOperation({
     summary: 'Get schema item by defindex',

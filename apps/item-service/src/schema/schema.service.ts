@@ -55,6 +55,9 @@ const PAINTKIT_ID_KEY = 'schema:paintkit:id:<id>';
 // A hash set that stores all paintkits with the name as the key
 const PAINTKIT_NAME_KEY = 'schema:paintkit:name:<name>';
 
+// The name of the schema overview file
+const OVERVIEW_FILE = 'schema-overview.json';
+
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
   private readonly updateTimeout =
@@ -466,6 +469,24 @@ export class SchemaService implements OnApplicationBootstrap {
 
   async updateItemsGame(job: Job, result: string) {
     await this.saveSchemaItemsGameFile(result);
+  }
+
+  private async saveSchemaOverviewFile(
+    result: SchemaOverviewResponse,
+  ): Promise<void> {
+    await this.storageService.write(
+      OVERVIEW_FILE,
+      pack(result).toString('base64'),
+    );
+  }
+
+  async getSchemaOverview(): Promise<SchemaOverviewResponse> {
+    const overview = await this.storageService.read(OVERVIEW_FILE);
+    if (!overview) {
+      throw new NotFoundException('Schema overview not found');
+    }
+
+    return unpack(Buffer.from(overview, 'base64'));
   }
 
   private async saveSchemaItemsGameFile(result: string): Promise<void> {
