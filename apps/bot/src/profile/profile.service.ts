@@ -9,7 +9,7 @@ import { EditProfileSettings, ProfileSetting } from 'steamcommunity';
 import { BotService } from '../bot/bot.service';
 import { ConfigService } from '@nestjs/config';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
-import { StorageService } from '../storage/storage.service';
+import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 import SteamUser from 'steam-user';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class ProfileService implements OnModuleInit {
   constructor(
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
-    private readonly storageService: StorageService,
+    private readonly storageService: NestStorageService,
   ) {}
 
   async onModuleInit() {

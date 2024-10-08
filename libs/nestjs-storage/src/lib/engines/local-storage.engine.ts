@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import writeFileAtomic from 'write-file-atomic';
-import { LocalStorageConfig } from '../../common/config/configuration';
+import { LocalStorageConfig } from '@tf2-automatic/config';
 import { StorageEngine } from './engine.interface';
 
 export class LocalStorageEngine implements StorageEngine {

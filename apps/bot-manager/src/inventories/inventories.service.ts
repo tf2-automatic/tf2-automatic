@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
   OnApplicationBootstrap,
+  OnModuleDestroy,
+  RequestTimeoutException,
 } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
@@ -39,19 +41,35 @@ import SteamID from 'steamid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Job, Queue, QueueEvents } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
 import { v4 as uuidv4 } from 'uuid';
 import { redisMultiEvent } from '../common/utils/redis-multi-event';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
+import { pack, unpack } from 'msgpackr';
+
+interface InventoryIdentifier {
+  steamid64: string;
+  appid: number;
+  contextid: string;
+}
 
 const INVENTORY_EXPIRE_TIME = 600;
 
-const KEY_PREFIX = 'bot-manager:data:';
-
 @Injectable()
-export class InventoriesService implements OnApplicationBootstrap {
+export class InventoriesService
+  implements OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly locker: Locker;
+
+  private readonly inventoryQueueEvents = new QueueEvents(
+    this.inventoriesQueue.name,
+    {
+      autorun: true,
+      prefix: this.inventoriesQueue.opts.prefix,
+      connection: this.inventoriesQueue.opts.connection,
+    },
+  );
 
   constructor(
     @InjectRedis()
@@ -65,11 +83,17 @@ export class InventoriesService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
+    // TODO: For some reason we can't do `autorun: false` and then call
+    // `this.inventoryQueueEvents.run()`
+
     await this.eventsService.subscribe(
       'bot-manager.delete-inventory-items',
       BOT_EXCHANGE_NAME,
       [TF2_LOST_EVENT, TF2_GAINED_EVENT, TRADE_CHANGED_EVENT],
       (event) => this.handleDeleteInventoryItems(event as any),
+      {
+        retry: true,
+      },
     );
 
     await this.eventsService.subscribe(
@@ -77,7 +101,14 @@ export class InventoriesService implements OnApplicationBootstrap {
       BOT_MANAGER_EXCHANGE_NAME,
       [EXCHANGE_DETAILS_EVENT],
       (event) => this.handleAddInventoryItems(event as any),
+      {
+        retry: true,
+      },
     );
+  }
+
+  async onModuleDestroy() {
+    return this.inventoryQueueEvents.close();
   }
 
   async addToQueue(
@@ -85,7 +116,7 @@ export class InventoriesService implements OnApplicationBootstrap {
     appid: number,
     contextid: string,
     dto: EnqueueInventoryDto,
-  ): Promise<void> {
+  ): Promise<Job> {
     const data: InventoryQueue = {
       raw: {
         steamid64: steamid.getSteamID64(),
@@ -101,7 +132,7 @@ export class InventoriesService implements OnApplicationBootstrap {
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
 
-    await this.inventoriesQueue.add(id, data, {
+    return this.inventoriesQueue.add(id, data, {
       jobId: id,
       backoff: {
         type: 'custom',
@@ -129,10 +160,10 @@ export class InventoriesService implements OnApplicationBootstrap {
       ),
     );
 
-    const inventory = response.data;
+    const items = response.data;
 
-    const object = inventory.reduce((acc, item) => {
-      acc[`item:${item.assetid}`] = JSON.stringify(item);
+    const object = items.reduce((acc, item) => {
+      acc[`item:${item.assetid}`] = pack(item);
       return acc;
     }, {});
 
@@ -146,7 +177,7 @@ export class InventoriesService implements OnApplicationBootstrap {
       appid,
       contextid,
       timestamp: now,
-      itemCount: inventory.length,
+      itemCount: items.length,
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
@@ -190,7 +221,7 @@ export class InventoriesService implements OnApplicationBootstrap {
 
     return {
       timestamp: now,
-      inventory,
+      items,
     };
   }
 
@@ -218,6 +249,56 @@ export class InventoriesService implements OnApplicationBootstrap {
     );
   }
 
+  async fetchInventory(
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+    useCache = true,
+  ): Promise<InventoryResponse> {
+    if (useCache) {
+      try {
+        const inventory = await this.getInventoryFromCache(
+          steamid,
+          appid,
+          contextid,
+        );
+
+        return inventory;
+      } catch (err) {
+        if (!(err instanceof NotFoundException)) {
+          throw err;
+        }
+
+        // Inventory is not in the cache
+      }
+    }
+
+    // Add the job to the queue. I believe that if it is already in the queue
+    // then it will not be replaced
+    const job = await this.addToQueue(steamid, appid, contextid, {
+      ttl: INVENTORY_EXPIRE_TIME,
+    });
+
+    // Wait for it to finish
+    await job
+      .waitUntilFinished(this.inventoryQueueEvents, 10000)
+      .catch((err: Error) => {
+        if (
+          err.message.startsWith(
+            'Job wait ' + job.id! + ' timed out before finishing',
+          )
+        ) {
+          throw new RequestTimeoutException(
+            'Inventory was not fetched in time',
+          );
+        }
+
+        throw err;
+      });
+
+    return this.getInventoryFromCache(steamid, appid, contextid);
+  }
+
   async getInventoryFromCache(
     steamid: SteamID,
     appid: number,
@@ -225,7 +306,7 @@ export class InventoriesService implements OnApplicationBootstrap {
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    return this.locker.using(
+    const { timestamp, object } = await this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -245,20 +326,22 @@ export class InventoriesService implements OnApplicationBootstrap {
           throw signal.error;
         }
 
-        const object = await this.redis.hgetall(key);
+        const object = await this.redis.hgetallBuffer(key);
 
-        const inventory = Object.keys(object)
-          .filter((key) => {
-            return key.startsWith('item:');
-          })
-          .map((item) => JSON.parse(object[item]));
-
-        return {
-          timestamp: parseInt(timestamp, 10),
-          inventory,
-        };
+        return { timestamp: parseInt(timestamp, 10), object };
       },
     );
+
+    const items = Object.keys(object)
+      .filter((key) => {
+        return key.startsWith('item:');
+      })
+      .map((item) => unpack(object[item]));
+
+    return {
+      timestamp,
+      items,
+    };
   }
 
   private handleDeleteInventoryItems(
@@ -271,9 +354,6 @@ export class InventoriesService implements OnApplicationBootstrap {
         return this.handleItemLost(event);
       case TF2_GAINED_EVENT:
         return this.handleItemGained(event);
-      default:
-        // @ts-expect-error Gives compile-time error if all cases are not handled.
-        throw new Error('Unknown type: ' + event.type);
     }
   }
 
@@ -285,11 +365,11 @@ export class InventoriesService implements OnApplicationBootstrap {
     assetids: string[],
   ) {
     assetids.forEach((assetid) => {
-      const key = JSON.stringify({
+      const key = pack({
         steamid64: steamid.getSteamID64(),
         appid: appid,
         contextid: contextid,
-      });
+      } satisfies InventoryIdentifier).toString('base64');
 
       result[key] = result[key] ?? [];
       result[key].push(assetid);
@@ -302,11 +382,11 @@ export class InventoriesService implements OnApplicationBootstrap {
     items: InventoryItem[],
   ) {
     items.reduce((acc, cur) => {
-      const key = JSON.stringify({
+      const key = pack({
         steamid64: steamid.getSteamID64(),
         appid: cur.appid,
         contextid: cur.contextid,
-      });
+      } satisfies InventoryIdentifier).toString('base64');
 
       acc[key] = acc[key] ?? [];
       acc[key].push(cur);
@@ -407,7 +487,7 @@ export class InventoriesService implements OnApplicationBootstrap {
       }, new Set<string>());
 
     const resources = Array.from(inventories).map((inventory) => {
-      const parts = JSON.parse(inventory);
+      const parts = unpack(Buffer.from(inventory, 'base64'));
       return this.getInventoryResource(parts);
     });
 
@@ -415,7 +495,9 @@ export class InventoriesService implements OnApplicationBootstrap {
       // Check if cached inventories exist for the given items
       const inventoriesExists = await Promise.all(
         Object.keys(gainedItems).map((key) =>
-          this.redis.exists(this.getInventoryKeyFromObject(JSON.parse(key))),
+          this.redis.exists(
+            this.getInventoryKeyFromObject(unpack(Buffer.from(key, 'base64'))),
+          ),
         ),
       );
 
@@ -432,14 +514,14 @@ export class InventoriesService implements OnApplicationBootstrap {
         .forEach((inventory) => {
           const items = gainedItems[inventory];
 
-          const key = this.getInventoryKeyFromObject(JSON.parse(inventory));
+          const key = this.getInventoryKeyFromObject(
+            unpack(Buffer.from(inventory, 'base64')),
+          );
 
           // Add the items to the cached inventories
           multi.hmset(
             key,
-            ...items
-              .map((item) => ['item:' + item.assetid, JSON.stringify(item)])
-              .flat(),
+            ...items.map((item) => ['item:' + item.assetid, pack(item)]).flat(),
           );
         });
 
@@ -456,22 +538,24 @@ export class InventoriesService implements OnApplicationBootstrap {
       // Get lost items from the cached inventories
       await Promise.all(
         Object.keys(lostItems).map((key) => {
-          const parts = JSON.parse(key);
+          const parts = unpack(
+            Buffer.from(key, 'base64'),
+          ) as InventoryIdentifier;
 
           return (
             this.redis
               // Get the items from the cached inventories
-              .hmget(
+              .hmgetBuffer(
                 this.getInventoryKeyFromObject(parts),
                 ...lostItems[key].map((assetid) => 'item:' + assetid),
               )
               .then((raw) => {
                 // Filter out null values and parse the items
                 const items = raw
-                  .filter((item): item is string => {
-                    return typeof item === 'string';
+                  .filter((item) => {
+                    return item !== null;
                   })
-                  .map((item) => JSON.parse(item));
+                  .map((item) => unpack(item));
 
                 // Add the items to the changes object
                 changes[key] = changes[key] ?? { gained: [], lost: [] };
@@ -488,7 +572,7 @@ export class InventoriesService implements OnApplicationBootstrap {
       // Delete the items from the cached inventories
       Object.keys(lostItems).forEach((key) =>
         multi.hdel(
-          this.getInventoryKeyFromObject(JSON.parse(key)),
+          this.getInventoryKeyFromObject(unpack(Buffer.from(key, 'base64'))),
           ...lostItems[key].map((assetid) => 'item:' + assetid),
         ),
       );
@@ -496,7 +580,7 @@ export class InventoriesService implements OnApplicationBootstrap {
       const changedEvents: InventoryChangedEvent['data'][] = [];
 
       Object.keys(changes).forEach((key) => {
-        const parts = JSON.parse(key);
+        const parts = unpack(Buffer.from(key, 'base64')) as InventoryIdentifier;
         const change = changes[key];
 
         if (change.gained.length === 0 && change.lost.length === 0) {
@@ -611,23 +695,15 @@ export class InventoriesService implements OnApplicationBootstrap {
   }
 
   private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `${KEY_PREFIX}inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+    return `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
   }
 
-  private getInventoryKeyFromObject(data: {
-    steamid64: string;
-    appid: number;
-    contextid: string;
-  }) {
+  private getInventoryKeyFromObject(data: InventoryIdentifier) {
     const { steamid64, appid, contextid } = data;
     return this.getInventoryKey(new SteamID(steamid64), appid, contextid);
   }
 
-  private getInventoryResource(data: {
-    steamid64: string;
-    appid: number;
-    contextid: string;
-  }) {
+  private getInventoryResource(data: InventoryIdentifier) {
     const { steamid64, appid, contextid } = data;
     return `inventories:${steamid64}:${appid}:${contextid}`;
   }

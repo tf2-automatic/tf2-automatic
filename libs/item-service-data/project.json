@@ -1,0 +1,47 @@
+{
+  "name": "item-service-data",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/item-service-data/src",
+  "projectType": "library",
+  "targets": {
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "libs/item-service-data/**/*.ts",
+          "libs/item-service-data/package.json"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/item-service-data/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/item-service-data",
+        "tsConfig": "libs/item-service-data/tsconfig.lib.json",
+        "packageJson": "libs/item-service-data/package.json",
+        "main": "libs/item-service-data/src/index.ts",
+        "assets": ["libs/item-service-data/*.md"]
+      }
+    },
+    "npm": {
+      "executor": "@tf2-automatic/executors:npm"
+    }
+  },
+  "tags": []
+}

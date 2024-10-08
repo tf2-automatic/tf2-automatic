@@ -49,7 +49,7 @@ import { RelayModule } from './relay/relay.module';
         const redisConfig =
           configService.getOrThrow<RedisConfig.Config>('redis');
         return {
-          prefix: redisConfig.keyPrefix + 'bot-manager:bull',
+          prefix: redisConfig.keyPrefix + 'bull',
           connection: {
             host: redisConfig.host,
             port: redisConfig.port,

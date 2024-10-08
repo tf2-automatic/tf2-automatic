@@ -134,7 +134,7 @@ export class InventoriesProcessor extends WorkerHost {
       });
     } else {
       // Get list of bots
-      const bots = await this.heartbeatsService.getBots();
+      const bots = await this.heartbeatsService.getRunningBots();
       if (bots.length === 0) {
         throw new Error('No bots available');
       }

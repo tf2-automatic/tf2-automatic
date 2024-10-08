@@ -16,8 +16,7 @@ import { ListingFactory } from './classes/listing.factory';
 import hashListing from './utils/desired-listing-hash';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { Injectable } from '@nestjs/common';
-
-const KEY_PREFIX = 'bptf-manager:data:';
+import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class DesiredListingsService {
@@ -145,12 +144,12 @@ export class DesiredListingsService {
   }
 
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
-    const values = await this.redis.hvals(
+    const values = await this.redis.hvalsBuffer(
       DesiredListingsService.getDesiredKey(steamid),
     );
 
     const desired = values.map((raw) =>
-      ListingFactory.CreateDesiredListing(JSON.parse(raw)),
+      ListingFactory.CreateDesiredListing(unpack(raw)),
     );
 
     return desired;
@@ -166,7 +165,7 @@ export class DesiredListingsService {
       return result;
     }
 
-    const values = await this.redis.hmget(
+    const values = await this.redis.hmgetBuffer(
       DesiredListingsService.getDesiredKey(steamid),
       ...hashes,
     );
@@ -177,7 +176,7 @@ export class DesiredListingsService {
         continue;
       }
 
-      const desired = ListingFactory.CreateDesiredListing(JSON.parse(raw));
+      const desired = ListingFactory.CreateDesiredListing(unpack(raw));
 
       result.set(desired.getHash(), desired);
     }
@@ -192,11 +191,11 @@ export class DesiredListingsService {
   ) {
     chainable.hset(
       this.getDesiredKey(steamid),
-      ...desired.flatMap((d) => [d.getHash(), JSON.stringify(d.toJSON())]),
+      ...desired.flatMap((d) => [d.getHash(), pack(d.toJSON())]),
     );
   }
 
   private static getDesiredKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:desired:${steamid.getSteamID64()}`;
+    return `listings:desired:${steamid.getSteamID64()}`;
   }
 }

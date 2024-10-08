@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import { EventsModuleOptions } from '../nestjs-events.module';
-import { CustomEventsService, SubscriberSettings } from './custom.interface';
+import { CustomEventsService, SubscriberSettings } from './custom.class';
 import { Redis } from 'ioredis';
 import { Redis as RedisConfig } from '@tf2-automatic/config';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
@@ -15,9 +15,12 @@ interface Subscriber {
   settings?: SubscriberSettings;
 }
 
+export type Identifier = string;
+
 @Injectable()
 export class RedisEventsService
-  implements OnModuleDestroy, CustomEventsService
+  extends CustomEventsService
+  implements OnModuleDestroy
 {
   private readonly subscribers: Record<string, Record<string, Subscriber[]>> =
     {};
@@ -30,6 +33,8 @@ export class RedisEventsService
     @Inject('EVENTS_OPTIONS')
     private readonly options: EventsModuleOptions<RedisConfig.Config>,
   ) {
+    super();
+
     this.publisher = new Redis(options.config);
     this.subscriber = new Redis(options.config);
     this.locker = new Locker(this.publisher);
@@ -68,6 +73,10 @@ export class RedisEventsService
     await this.publisher.quit();
   }
 
+  canAttempt(): boolean {
+    return false;
+  }
+
   private handleEvent(subscriber: Subscriber, event: BaseEvent<string>) {
     subscriber.handler(event).catch(() => {
       if (subscriber.settings?.retry) {
@@ -100,7 +109,7 @@ export class RedisEventsService
     events: string[],
     handler: Handler<T>,
     settings?: SubscriberSettings,
-  ): Promise<void> {
+  ): Promise<Identifier> {
     const subscriber: Subscriber = {
       name,
       exchange,
@@ -119,5 +128,11 @@ export class RedisEventsService
     });
 
     await this.subscriber.subscribe(exchange);
+
+    return exchange;
+  }
+
+  async unsubscribe(identifier: Identifier): Promise<void> {
+    await this.subscriber.unsubscribe(identifier);
   }
 }
