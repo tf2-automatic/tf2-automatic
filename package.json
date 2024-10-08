@@ -24,7 +24,7 @@
     "@nx/linter": "19.7.2",
     "@nx/nest": "19.7.2",
     "@nx/node": "19.7.2",
-    "@nx/plugin": "19.7.2",
+    "@nx/plugin": "20.0.0",
     "@nx/webpack": "19.7.2",
     "@nx/workspace": "19.7.2",
     "@semantic-release/commit-analyzer": "^13.0.0",
