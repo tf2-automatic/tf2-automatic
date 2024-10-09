@@ -174,8 +174,8 @@ importers:
         version: 5.0.1
     optionalDependencies:
       husky:
-        specifier: ^9.1.5
-        version: 9.1.5
+        specifier: ^9.1.6
+        version: 9.1.6
       is-ci:
         specifier: ^3.0.1
         version: 3.0.1
@@ -4492,8 +4492,8 @@ packages:
     resolution: {integrity: sha512-/1/GPCpDUCCYwlERiYjxoczfP0zfvZMU/OWgQPMya9AbAE24vseigFdhAMObpc8Q4lc/kjutPfUddDYyAmejnA==}
     engines: {node: '>=18.18.0'}
 
-  husky@9.1.5:
-    resolution: {integrity: sha512-rowAVRUBfI0b4+niA4SJMhfQwc107VLkBUgEYYAOQAbqDCnra1nYh83hF/MDmhYs9t9n1E3DuKOrs2LYNC+0Ag==}
+  husky@9.1.6:
+    resolution: {integrity: sha512-sqbjZKK7kf44hfdE94EoX8MZNk0n7HeW37O4YrVGCF4wzgQjp+akPAkfUK5LZ6KuR/6sqeAVuXHji+RzQgOn5A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -9445,21 +9445,6 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)':
-    dependencies:
-      '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
-    transitivePeerDependencies:
-      - '@babel/traverse'
-      - '@swc-node/register'
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - debug
-      - nx
-      - supports-color
-      - typescript
-      - verdaccio
-
   '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)':
     dependencies:
       '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
@@ -9745,7 +9730,7 @@ snapshots:
       '@babel/preset-env': 7.25.4(@babel/core@7.25.2)
       '@babel/preset-typescript': 7.24.7(@babel/core@7.25.2)
       '@babel/runtime': 7.25.6
-      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
+      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
       '@nx/devkit': 19.7.2(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))
       '@nx/workspace': 19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))
       babel-plugin-const-enum: 1.2.0(@babel/core@7.25.2)
@@ -13136,7 +13121,7 @@ snapshots:
 
   human-signals@8.0.0: {}
 
-  husky@9.1.5:
+  husky@9.1.6:
     optional: true
 
   hyperdyperid@1.2.0: {}
