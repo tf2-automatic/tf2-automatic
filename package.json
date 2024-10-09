@@ -18,7 +18,7 @@
     "@nestjs/testing": "^10.4.1",
     "@nx-tools/nx-container": "^6.0.2",
     "@nx/devkit": "19.7.2",
-    "@nx/eslint-plugin": "19.7.2",
+    "@nx/eslint-plugin": "20.0.0",
     "@nx/jest": "19.7.2",
     "@nx/js": "19.7.2",
     "@nx/linter": "19.7.2",
