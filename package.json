@@ -41,7 +41,7 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "22.5.4",
     "@types/object-hash": "^3.0.6",
-    "@types/opossum": "^8.1.7",
+    "@types/opossum": "^8.1.8",
     "@types/promise-retry": "^1.1.6",
     "@types/steam-totp": "^2.1.2",
     "@types/steam-tradeoffer-manager": "2.11.0",
