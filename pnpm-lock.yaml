@@ -29,8 +29,8 @@ importers:
   .:
     dependencies:
       '@golevelup/nestjs-rabbitmq':
-        specifier: ^5.4.1
-        version: 5.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1)
+        specifier: ^5.5.0
+        version: 5.5.0(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1)
       '@nestjs/axios':
         specifier: ^3.0.3
         version: 3.0.3(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(axios@1.7.7)(rxjs@7.8.1)
@@ -1193,8 +1193,8 @@ packages:
       '@nestjs/common': ^10.x
       rxjs: ^7.x
 
-  '@golevelup/nestjs-rabbitmq@5.4.1':
-    resolution: {integrity: sha512-p9TXxdCcsxiqlid9uvxoYFqKkpAEcaCCeCKzxw4FO4CpfA28qhZC8kqVGeItIFaLnCdT/Eb0Ut2gY5okYr0Q6A==}
+  '@golevelup/nestjs-rabbitmq@5.5.0':
+    resolution: {integrity: sha512-sS2d40ZeWonSvy3aF2Oaav7+eu30oyAGShDDDebcBQJ/bPqxpofpiB0pq5PW628exyXVKUNe0jPV83plhvJkAg==}
     peerDependencies:
       '@nestjs/common': ^10.x
       '@nestjs/core': ^10.x
@@ -8863,7 +8863,7 @@ snapshots:
       lodash: 4.17.21
       rxjs: 7.8.1
 
-  '@golevelup/nestjs-rabbitmq@5.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1)':
+  '@golevelup/nestjs-rabbitmq@5.5.0(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(reflect-metadata@0.2.2)(rxjs@7.8.1)':
     dependencies:
       '@golevelup/nestjs-common': 2.0.0(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))
       '@golevelup/nestjs-discovery': 4.0.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.1(@nestjs/common@10.4.1(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/platform-express@10.4.1)(reflect-metadata@0.2.2)(rxjs@7.8.1))
@@ -9445,21 +9445,6 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)':
-    dependencies:
-      '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
-    transitivePeerDependencies:
-      - '@babel/traverse'
-      - '@swc-node/register'
-      - '@swc/core'
-      - '@swc/wasm'
-      - '@types/node'
-      - debug
-      - nx
-      - supports-color
-      - typescript
-      - verdaccio
-
   '@nrwl/js@19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)':
     dependencies:
       '@nx/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
@@ -9745,7 +9730,7 @@ snapshots:
       '@babel/preset-env': 7.25.4(@babel/core@7.25.2)
       '@babel/preset-typescript': 7.24.7(@babel/core@7.25.2)
       '@babel/runtime': 7.25.6
-      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.4.5)
+      '@nrwl/js': 19.7.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))(@types/node@22.5.4)(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))(typescript@5.6.2)
       '@nx/devkit': 19.7.2(nx@19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13)))
       '@nx/workspace': 19.7.2(@swc-node/register@1.10.9(@swc/core@1.7.24(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.24(@swc/helpers@0.5.13))
       babel-plugin-const-enum: 1.2.0(@babel/core@7.25.2)
