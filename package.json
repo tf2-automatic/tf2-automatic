@@ -78,7 +78,7 @@
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.4.1",
     "@nestjs/event-emitter": "^2.0.4",
-    "@nestjs/platform-express": "^10.4.1",
+    "@nestjs/platform-express": "^10.4.4",
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/terminus": "^10.2.3",
     "@songkeys/nestjs-redis": "^10.0.0",
