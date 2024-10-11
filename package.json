@@ -54,7 +54,7 @@
     "@typescript-eslint/parser": "^8.5.0",
     "commitizen": "^4.3.0",
     "cz-conventional-changelog": "^3.3.0",
-    "docker-compose": "^0.24.8",
+    "docker-compose": "^1.1.0",
     "eslint": "~9.10.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
