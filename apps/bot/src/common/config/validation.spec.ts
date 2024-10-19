@@ -11,7 +11,6 @@ describe('validation', () => {
         STEAM_SHARED_SECRET: 'sharedSecret',
         STEAM_IDENTITY_SECRET: 'identitySecret',
         EVENTS_TYPE: 'rabbitmq',
-        EVENTS_PERSIST: 'true',
         RABBITMQ_HOST: 'host',
         RABBITMQ_PORT: 5672,
         RABBITMQ_USERNAME: 'username',
