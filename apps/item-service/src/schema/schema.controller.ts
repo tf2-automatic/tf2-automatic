@@ -16,6 +16,20 @@ import {
   PaintKitModel,
   Quality,
   QualityModel,
+  SCHEMA_BASE_PATH,
+  SCHEMA_EFFECT_ID_PATH,
+  SCHEMA_EFFECT_NAME_PATH,
+  SCHEMA_ITEM_DEFINDEX_PATH,
+  SCHEMA_ITEM_NAME_PATH,
+  SCHEMA_ITEMS_GAME_PATH,
+  SCHEMA_ITEMS_PATH,
+  SCHEMA_OVERVIEW_PATH,
+  SCHEMA_PAINTKIT_ID_PATH,
+  SCHEMA_PAINTKIT_NAME_PATH,
+  SCHEMA_PATH,
+  SCHEMA_QUALITY_ID_PATH,
+  SCHEMA_QUALITY_NAME_PATH,
+  SCHEMA_REFRESH_PATH,
   SchemaItem,
   SchemaItemModel,
   SchemaItemsResponse,
@@ -30,11 +44,11 @@ import {
 } from '@nestjs/swagger';
 
 @ApiTags('Schema')
-@Controller('schema')
+@Controller(SCHEMA_BASE_PATH)
 export class SchemaController {
   constructor(private readonly schemaService: SchemaService) {}
 
-  @Get()
+  @Get(SCHEMA_PATH)
   @ApiOperation({
     summary: 'Get schema metadata',
     description: 'Returns the schema metadata',
@@ -43,7 +57,7 @@ export class SchemaController {
     return this.schemaService.getSchemaMetadata();
   }
 
-  @Post('/refresh')
+  @Post(SCHEMA_REFRESH_PATH)
   @ApiOperation({
     summary: 'Update schema',
     description: 'Enqueues a job to update the schema',
@@ -56,7 +70,7 @@ export class SchemaController {
     };
   }
 
-  @Get('/items_game')
+  @Get(SCHEMA_ITEMS_GAME_PATH)
   @ApiOperation({
     summary: 'Get items game',
     description: 'Returns the items game',
@@ -65,7 +79,7 @@ export class SchemaController {
     return this.schemaService.getSchemaItemsGame();
   }
 
-  @Get('/overview')
+  @Get(SCHEMA_OVERVIEW_PATH)
   @ApiOperation({
     summary: 'Get schema overview',
     description: 'Returns an overview of the schema',
@@ -74,7 +88,7 @@ export class SchemaController {
     return this.schemaService.getSchemaOverview();
   }
 
-  @Get('/items')
+  @Get(SCHEMA_ITEMS_PATH)
   @ApiOperation({
     summary: 'Get schema items paginated',
     description: 'Returns schema items paginated using a cursor and count',
@@ -99,7 +113,7 @@ export class SchemaController {
     return this.schemaService.getItems(cursor, count);
   }
 
-  @Get('/items/defindex/:defindex')
+  @Get(SCHEMA_ITEM_DEFINDEX_PATH)
   @ApiOperation({
     summary: 'Get schema item by defindex',
     description: 'Returns a schema item by its defindex',
@@ -118,7 +132,7 @@ export class SchemaController {
     return this.schemaService.getItemByDefindex(defindex);
   }
 
-  @Get('/items/name/:name')
+  @Get(SCHEMA_ITEM_NAME_PATH)
   @ApiOperation({
     summary: 'Get schema item(s) by name',
     description: 'Returns schema items that match the name provide',
@@ -138,7 +152,7 @@ export class SchemaController {
     return this.schemaService.getItemsByName(name);
   }
 
-  @Get('/qualities/name/:name')
+  @Get(SCHEMA_QUALITY_NAME_PATH)
   @ApiOperation({
     summary: 'Get schema quality by name',
     description: 'Returns a schema quality',
@@ -154,10 +168,10 @@ export class SchemaController {
   async getSchemaQualitiesByName(
     @Param('name') name: string,
   ): Promise<Quality> {
-    return this.schemaService.getQualitiesByName(name);
+    return this.schemaService.getQualityByName(name);
   }
 
-  @Get('/qualities/id/:id')
+  @Get(SCHEMA_QUALITY_ID_PATH)
   @ApiOperation({
     summary: 'Get schema quality by id',
     description: 'Returns a schema quality',
@@ -171,10 +185,10 @@ export class SchemaController {
     type: QualityModel,
   })
   async getSchemaQualitiesById(@Param('id') id: string): Promise<Quality> {
-    return this.schemaService.getQualitiesById(id);
+    return this.schemaService.getQualityById(id);
   }
 
-  @Get('/effects/name/:name')
+  @Get(SCHEMA_EFFECT_NAME_PATH)
   @ApiOperation({
     summary: 'Get schema effect by name',
     description: 'Returns a schema effect',
@@ -190,10 +204,10 @@ export class SchemaController {
   async getSchemaEffectsByName(
     @Param('name') name: string,
   ): Promise<AttachedParticle> {
-    return this.schemaService.getEffectsByName(name);
+    return this.schemaService.getEffectByName(name);
   }
 
-  @Get('/effects/id/:id')
+  @Get(SCHEMA_EFFECT_ID_PATH)
   @ApiOperation({
     summary: 'Get schema effect by id',
     description: 'Returns a schema effect',
@@ -209,10 +223,10 @@ export class SchemaController {
   async getSchemaEffectsById(
     @Param('id') id: string,
   ): Promise<AttachedParticle> {
-    return this.schemaService.getEffectsById(id);
+    return this.schemaService.getEffectById(id);
   }
 
-  @Get('/paintkits/name/:name')
+  @Get(SCHEMA_PAINTKIT_NAME_PATH)
   @ApiOperation({
     summary: 'Get paint kit by name',
     description: 'Returns a paint kit',
@@ -231,7 +245,7 @@ export class SchemaController {
     return this.schemaService.getPaintKitByName(name);
   }
 
-  @Get('/paintkits/id/:id')
+  @Get(SCHEMA_PAINTKIT_ID_PATH)
   @ApiOperation({
     summary: 'Get paint kit by id',
     description: 'Returns a paint kit',

@@ -22,6 +22,7 @@ import {
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
+  AttachedParticle,
   PaintKit,
   Quality,
   SchemaItem,
@@ -180,7 +181,7 @@ export class SchemaService implements OnApplicationBootstrap {
     return items;
   }
 
-  async getQualitiesById(id: string): Promise<Quality> {
+  async getQualityById(id: string): Promise<Quality> {
     const quality = await this.redis.hgetBuffer(SCHEMA_QUALITIES_ID_KEY, id);
 
     if (!quality) {
@@ -190,7 +191,7 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(quality);
   }
 
-  async getQualitiesByName(name: string): Promise<Quality> {
+  async getQualityByName(name: string): Promise<Quality> {
     const quality = await this.redis.hgetBuffer(
       SCHEMA_QUALITIES_NAME_KEY,
       Buffer.from(name).toString('base64'),
@@ -203,7 +204,7 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(quality);
   }
 
-  async getEffectsById(id: string): Promise<any> {
+  async getEffectById(id: string): Promise<AttachedParticle> {
     const effect = await this.redis.hgetBuffer(SCHEMA_EFFECTS_ID_KEY, id);
 
     if (!effect) {
@@ -213,7 +214,7 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(effect);
   }
 
-  async getEffectsByName(name: string): Promise<any> {
+  async getEffectByName(name: string): Promise<AttachedParticle> {
     const effect = await this.redis.hgetBuffer(
       SCHEMA_EFFECTS_NAME_KEY,
       Buffer.from(name).toString('base64'),
