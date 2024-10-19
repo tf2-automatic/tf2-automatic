@@ -107,7 +107,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,pattern=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}},enable=true,value=v${{ needs.release.outputs.new_release_version }}
             type=semver,pattern={{major}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_major_version }}
             type=semver,pattern={{major}}.{{minor}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_major_version }}.${{ needs.release.outputs.new_release_minor_version }}
