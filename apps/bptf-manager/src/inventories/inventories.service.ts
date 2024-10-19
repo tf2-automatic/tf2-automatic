@@ -52,7 +52,7 @@ export class InventoriesService {
     const time = body?.time ?? Math.floor(Date.now() / 1000);
 
     await this.locker.using(
-      [`bptf-manager:inventories:${steamid64}`],
+      [`inventories:${steamid64}`],
       LockDuration.SHORT,
       async (signal) => {
         const refreshPoint = await this.getRefreshPoint(steamid);

@@ -862,6 +862,6 @@ export class CurrentListingsService {
   }
 
   private getResourceForListingId(steamid: SteamID, id: string): string {
-    return `bptf-manager:current:${steamid.getSteamID64()}:${id}`;
+    return `listings:current:${steamid.getSteamID64()}:${id}`;
   }
 }

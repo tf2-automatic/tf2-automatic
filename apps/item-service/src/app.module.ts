@@ -36,11 +36,8 @@ import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
         return {
           readyLog: true,
           config: {
-            host: redisConfig.host,
-            port: redisConfig.port,
-            password: redisConfig.password,
-            db: redisConfig.db,
-            keyPrefix: redisConfig.keyPrefix,
+            ...redisConfig,
+            keyPrefix: redisConfig.keyPrefix + 'data:',
           },
         };
       },
@@ -52,10 +49,8 @@ import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
         return {
           prefix: redisConfig.keyPrefix + 'bull',
           connection: {
-            host: redisConfig.host,
-            port: redisConfig.port,
-            password: redisConfig.password,
-            db: redisConfig.db,
+            ...redisConfig,
+            keyPrefix: undefined,
           },
         };
       },

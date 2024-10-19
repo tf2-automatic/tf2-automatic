@@ -17,7 +17,7 @@ import { getJobs, getRepeatableJob } from '../common/utils';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 
-const KEY = 'bptf-manager:data:agents';
+const KEY = 'agents';
 
 @Injectable()
 export class AgentsService {
@@ -80,7 +80,7 @@ export class AgentsService {
     const steamid64 = steamid.getSteamID64();
 
     return this.locker.using(
-      [`bptf-manager:agents:${steamid64}`],
+      [`agents:${steamid64}`],
       LockDuration.SHORT,
       async () => {
         const agent = await this.setAgent(steamid, dto);
@@ -122,7 +122,7 @@ export class AgentsService {
     const steamid64 = steamid.getSteamID64();
 
     await this.locker.using(
-      [`bptf-manager:agents:${steamid64}`],
+      [`agents:${steamid64}`],
       LockDuration.SHORT,
       async (signal) => {
         const agent = await this.getAgent(steamid);

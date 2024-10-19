@@ -22,7 +22,6 @@ export interface Config {
   password?: string;
   db?: number;
   keyPrefix: string;
-  persist: boolean;
 }
 
 export function getConfig(usePrefix = true): Config {
@@ -38,7 +37,6 @@ export function getConfig(usePrefix = true): Config {
       getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') +
       ':' +
       (usePrefix && prefix ? prefix + ':' : ''),
-    persist: getEnv('REDIS_PERSIST', 'boolean'),
   };
 }
 
@@ -49,6 +47,5 @@ export function getRules() {
     REDIS_PASSWORD: Joi.string().optional(),
     REDIS_DB: Joi.number().integer().optional(),
     REDIS_KEY_PREFIX: Joi.string().optional(),
-    REDIS_PERSIST: Joi.boolean().optional(),
   };
 }

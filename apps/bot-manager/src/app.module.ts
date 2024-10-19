@@ -34,11 +34,8 @@ import { RelayModule } from './relay/relay.module';
         return {
           readyLog: true,
           config: {
-            host: redisConfig.host,
-            port: redisConfig.port,
-            password: redisConfig.password,
-            db: redisConfig.db,
-            keyPrefix: redisConfig.keyPrefix,
+            ...redisConfig,
+            keyPrefix: redisConfig.keyPrefix + 'data:',
           },
         };
       },
@@ -51,10 +48,8 @@ import { RelayModule } from './relay/relay.module';
         return {
           prefix: redisConfig.keyPrefix + 'bull',
           connection: {
-            host: redisConfig.host,
-            port: redisConfig.port,
-            password: redisConfig.password,
-            db: redisConfig.db,
+            ...redisConfig,
+            keyPrefix: undefined,
           },
         };
       },
