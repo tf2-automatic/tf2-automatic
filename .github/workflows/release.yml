@@ -85,6 +85,9 @@ jobs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
       new_release_channel: ${{ steps.semantic.outputs.new_release_channel || 'latest' }}
+      new_release_major_version: ${{ steps.semantic.outputs.new_release_major_version }}
+      new_release_minor_version: ${{ steps.semantic.outputs.new_release_minor_version }}
+      new_release_patch_version: ${{ steps.semantic.outputs.new_release_patch_version }}
   publish_to_docker:
     runs-on: ubuntu-latest
     needs: [affected, release]
@@ -101,8 +104,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.projectName }}
+          flavor: |
+            latest=false
           tags: |
-            type=semver,pattern={{version}},value=v${{ needs.release.outputs.new_release_version }}
+            type=raw,pattern=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}},enable=true,value=v${{ needs.release.outputs.new_release_version }}
+            type=semver,pattern={{major}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_major_version }}
+            type=semver,pattern={{major}}.{{minor}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_major_version }}.${{ needs.release.outputs.new_release_minor_version }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
