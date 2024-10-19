@@ -172,20 +172,15 @@ export class HeartbeatsService {
           // Save bot
           .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
-        redisMultiEvent(
-          multi,
-          {
-            type: BOT_HEARTBEAT_EVENT,
-            data: bot,
-            metadata: {
-              id: uuidv4(),
-              steamid64: null,
-              time: Math.floor(Date.now() / 1000),
-            },
-          } satisfies BotHeartbeatEvent,
-          this.eventsService.getType(),
-          this.eventsService.getPersist(),
-        );
+        redisMultiEvent(multi, {
+          type: BOT_HEARTBEAT_EVENT,
+          data: bot,
+          metadata: {
+            id: uuidv4(),
+            steamid64: null,
+            time: Math.floor(Date.now() / 1000),
+          },
+        } satisfies BotHeartbeatEvent);
 
         await multi.exec();
 
@@ -224,20 +219,15 @@ export class HeartbeatsService {
           .multi()
           .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
-        redisMultiEvent(
-          multi,
-          {
-            type: BOT_STOPPED_EVENT,
-            data: bot,
-            metadata: {
-              id: uuidv4(),
-              steamid64: null,
-              time: Math.floor(Date.now() / 1000),
-            },
-          } satisfies BotStoppedEvent,
-          this.eventsService.getType(),
-          this.eventsService.getPersist(),
-        );
+        redisMultiEvent(multi, {
+          type: BOT_STOPPED_EVENT,
+          data: bot,
+          metadata: {
+            id: uuidv4(),
+            steamid64: null,
+            time: Math.floor(Date.now() / 1000),
+          },
+        } satisfies BotStoppedEvent);
 
         await multi.exec();
       },
@@ -265,20 +255,15 @@ export class HeartbeatsService {
           .multi()
           .del(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()));
 
-        redisMultiEvent(
-          multi,
-          {
-            type: BOT_DELETED_EVENT,
-            data: bot,
-            metadata: {
-              id: uuidv4(),
-              steamid64: null,
-              time: Math.floor(Date.now() / 1000),
-            },
-          } satisfies BotDeletedEvent,
-          this.eventsService.getType(),
-          this.eventsService.getPersist(),
-        );
+        redisMultiEvent(multi, {
+          type: BOT_DELETED_EVENT,
+          data: bot,
+          metadata: {
+            id: uuidv4(),
+            steamid64: null,
+            time: Math.floor(Date.now() / 1000),
+          },
+        } satisfies BotDeletedEvent);
 
         await multi.exec();
       },

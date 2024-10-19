@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import SteamID from 'steamid';
 import {
@@ -13,8 +13,6 @@ import { Subscriber } from './subscriber.class';
 
 @Injectable()
 export class NestEventsService implements OnModuleDestroy {
-  private readonly logger = new Logger(NestEventsService.name);
-
   private readonly subscribers: Map<string, Subscriber<any>> = new Map();
 
   constructor(
@@ -24,10 +22,6 @@ export class NestEventsService implements OnModuleDestroy {
 
   getType(): EventsConfigType {
     return this.options.config.type;
-  }
-
-  getPersist(): boolean {
-    return this.options.config.persist;
   }
 
   async publish(

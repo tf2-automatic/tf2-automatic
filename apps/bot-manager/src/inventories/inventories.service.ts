@@ -195,20 +195,15 @@ export class InventoriesService
 
         const multi = this.redis.multi().rename(tempKey, key);
 
-        redisMultiEvent(
-          multi,
-          {
-            type: INVENTORY_LOADED_EVENT,
-            data: event,
-            metadata: {
-              id: uuidv4(),
-              steamid64: null,
-              time: Math.floor(Date.now() / 1000),
-            },
-          } satisfies InventoryLoadedEvent,
-          this.eventsService.getType(),
-          this.eventsService.getPersist(),
-        );
+        redisMultiEvent(multi, {
+          type: INVENTORY_LOADED_EVENT,
+          data: event,
+          metadata: {
+            id: uuidv4(),
+            steamid64: null,
+            time: Math.floor(Date.now() / 1000),
+          },
+        } satisfies InventoryLoadedEvent);
 
         if (ttl > 0) {
           // and make it expire
@@ -600,20 +595,15 @@ export class InventoriesService
       for (let i = 0; i < changedEvents.length; i++) {
         const data = changedEvents[i];
 
-        redisMultiEvent(
-          multi,
-          {
-            type: INVENTORY_CHANGED_EVENT,
-            data,
-            metadata: {
-              id: uuidv4(),
-              steamid64: null,
-              time: Math.floor(Date.now() / 1000),
-            },
-          } satisfies InventoryChangedEvent,
-          this.eventsService.getType(),
-          this.eventsService.getPersist(),
-        );
+        redisMultiEvent(multi, {
+          type: INVENTORY_CHANGED_EVENT,
+          data,
+          metadata: {
+            id: uuidv4(),
+            steamid64: null,
+            time: Math.floor(Date.now() / 1000),
+          },
+        } satisfies InventoryChangedEvent);
       }
 
       await multi.exec();

@@ -11,7 +11,7 @@ const validation = Joi.object({
   PORT: Joi.number().required(),
   ...Redis.getRules(),
   ...getLockRules(),
-  ...getEventRules(['rabbitmq']),
+  ...getEventRules(),
   ...getStorageConfigRules(['s3']),
   BOT_MANAGER_URL: Joi.string().required(),
   SCHEMA_UPDATE_TIMEOUT: Joi.number().integer().min(0).optional(),
