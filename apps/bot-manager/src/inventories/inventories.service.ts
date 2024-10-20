@@ -6,6 +6,7 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
   RequestTimeoutException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
@@ -140,16 +141,13 @@ export class InventoriesService
     });
   }
 
-  async getInventoryFromBot(
+  private async fetchInventoryFromBot(
     bot: Bot,
     steamid: SteamID,
     appid: number,
     contextid: string,
-    ttl: number = INVENTORY_EXPIRE_TIME,
     tradableOnly = true,
-  ): Promise<InventoryResponse> {
-    const now = Math.floor(Date.now() / 1000);
-
+  ): Promise<Inventory> {
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
         `http://${bot.ip}:${bot.port}${INVENTORIES_BASE_URL}${INVENTORY_PATH}`
@@ -160,7 +158,26 @@ export class InventoriesService
       ),
     );
 
-    const items = response.data;
+    return response.data;
+  }
+
+  async getInventoryFromBot(
+    bot: Bot,
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+    ttl: number = INVENTORY_EXPIRE_TIME,
+    tradableOnly = true,
+  ): Promise<InventoryResponse> {
+    const now = Math.floor(Date.now() / 1000);
+
+    const items = await this.fetchInventoryFromBot(
+      bot,
+      steamid,
+      appid,
+      contextid,
+      tradableOnly,
+    );
 
     const object = items.reduce((acc, item) => {
       acc[`item:${item.assetid}`] = pack(item);
@@ -286,6 +303,8 @@ export class InventoriesService
           throw new RequestTimeoutException(
             'Inventory was not fetched in time',
           );
+        } else if (err.message === 'Inventory is private') {
+          throw new UnauthorizedException('Inventory is private');
         }
 
         throw err;
