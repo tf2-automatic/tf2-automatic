@@ -6,7 +6,7 @@ export interface InventoryQueue {
     appid: number;
     contextid: string;
   };
-  extra: Record<string, unknown>;
+  extra: { botsAttempted?: Record<string, number> };
   bot?: string;
   retry?: RetryOptions;
   ttl?: number;
