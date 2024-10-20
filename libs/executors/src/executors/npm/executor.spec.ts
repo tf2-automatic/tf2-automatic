@@ -35,6 +35,11 @@ const context: ExecutorContext = {
   },
   cwd: process.cwd(),
   isVerbose: false,
+  nxJsonConfiguration: {},
+  projectGraph: {
+    nodes: {},
+    dependencies: {},
+  },
 };
 
 jest.mock('fs');
