@@ -1,4 +1,4 @@
-# Benchmarks
+# tf2-format
 
 Benchmark for comparing the [@tf2-automatic/tf2-format](../../libs/tf2-format/) parser against the [node-tf2-item-format](https://github.com/danocmx/node-tf2-item-format) parser.
 
