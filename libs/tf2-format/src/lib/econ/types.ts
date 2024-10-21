@@ -1,0 +1,76 @@
+export interface EconItem {
+  appid: number;
+  contextid: string;
+  assetid: string;
+  classid: string;
+  instanceid: string;
+  amount: string | number;
+  pos: number;
+  id: string;
+  currency: number;
+  background_color: string;
+  icon_url: string;
+  icon_url_large: string;
+  tradable: boolean;
+  actions: Action[];
+  name: string;
+  name_color: string;
+  type: string;
+  market_name: string;
+  market_hash_name: string;
+  commodity: boolean;
+  market_tradable_restriction: number;
+  market_marketable_restriction: number;
+  marketable: boolean;
+  tags: Tag[];
+  is_currency: boolean;
+  fraudwarnings: string[];
+  descriptions: Description[];
+  market_actions?: MarketAction[];
+}
+
+export interface Action {
+  link: string;
+  name: string;
+}
+
+export interface Tag {
+  internal_name: string;
+  name: string;
+  category: string;
+  color: string;
+  category_name: string;
+}
+
+export interface Description {
+  value: string;
+  color?: string;
+  type?: string;
+}
+
+export interface MarketAction {
+  link: string;
+  name: string;
+}
+
+export interface RecipeInput {
+  name: string;
+  amount: number;
+}
+
+export interface DescriptionAttributes {
+  craftable: boolean;
+  effect: string | null;
+  killstreak: boolean;
+  sheen: string | null;
+  killstreaker: string | null;
+  spells: string[];
+  parts: string[];
+  paint: string | null;
+  festivized: boolean;
+  paintkit: string | null;
+  uses: number | null;
+  input: RecipeInput[] | null;
+  output: string | null;
+  target: string | null;
+}
