@@ -442,8 +442,9 @@ export class EconParser extends Parser<EconItem> {
 
   /**
    * This function tries to extract as much useful information as possible from
-   * the descriptions of an item. It tries to be performant by skipping
+   * the descriptions of an item.
    * @param item The item to extract the information from
+   * @param tags The tags of the item
    * @param start The description to start from
    * @returns An object with the extracted information
    */
