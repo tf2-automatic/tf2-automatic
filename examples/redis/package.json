@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@tf2-automatic/bot-data": "latest",
-    "ioredis": "^5.4.1"
-  }
-}

@@ -11,5 +11,6 @@ export interface Bot {
   port: number;
   interval: number;
   version: string | null;
+  running: boolean;
   lastSeen: number;
 }

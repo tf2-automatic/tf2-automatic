@@ -57,11 +57,8 @@ export class ManageListingsProcessor
     this.batchGroup = new Bottleneck.Group({
       datastore: 'ioredis',
       clientOptions: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
-        db: redisConfig.db,
-        keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
+        ...redisConfig,
+        keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
       },
       id: 'listings:batch',
       maxConcurrent: 1,
@@ -78,11 +75,8 @@ export class ManageListingsProcessor
     this.deleteAllGroup = new Bottleneck.Group({
       datastore: 'ioredis',
       clientOptions: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
-        db: redisConfig.db,
-        keyPrefix: 'tf2-automatic:bptf-manager:bottleneck:',
+        ...redisConfig,
+        keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
       },
       id: 'listings:deleteAll',
       maxConcurrent: 1,
@@ -144,9 +138,7 @@ export class ManageListingsProcessor
 
   async onModuleInit(): Promise<void> {
     // Compare current version with old version
-    const oldVersion = await this.redis.get(
-      'tf2-automatic:bptf-manager:version',
-    );
+    const oldVersion = await this.redis.get('version');
 
     const packageJson = fs.readFileSync(
       path.join(__dirname, 'package.json'),
@@ -174,7 +166,7 @@ export class ManageListingsProcessor
 
     this.createBottlenecks(true);
 
-    await this.redis.set('tf2-automatic:bptf-manager:version', currentVersion);
+    await this.redis.set('version', currentVersion);
   }
 
   async process(job: CustomJob): Promise<JobResult> {

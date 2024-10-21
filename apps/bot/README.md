@@ -26,8 +26,7 @@ The bot is configured using environment variables. Below is a list of the enviro
 | TRADE_POLL_INTERVAL | Milliseconds between getting the current state of recent trades. Use `-1` to disable | No | 30 seconds |
 | TRADE_POLL_FULL_UPDATE_INTERVAL | Milliseconds between getting the current state of all trades. Disabled if no value | No | 2 minutes |
 | TRADE_POLL_DATA_FORGET_TIME | Milliseconds a trade has not seen during a full poll before removing it from the polldata | No | 14 days |
-| EVENTS_TYPE | How events should be published, either using "rabbitmq" or "redis" | Yes |  |
-| EVENTS_PERSIST | If events should be persisted to a list or not (only used for "redis" events type) | No | `false` |
+| EVENTS_TYPE | How events should be published, can only be "rabbitmq" right now | Yes |  |
 | RABBITMQ_HOST | Address of the RabbitMQ server | If "rabbitmq" events type |  |
 | RABBITMQ_PORT | Port of the RabbitMQ server | If "rabbitmq" events type |  |
 | RABBITMQ_USERNAME | Username to authenticate with the RabbitMQ server | If "rabbitmq" events type |  |

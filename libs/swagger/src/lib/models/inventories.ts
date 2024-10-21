@@ -195,5 +195,5 @@ export class CachedInventoryModel implements InventoryResponse {
     type: [ItemModel],
     description: 'The items in the inventory',
   })
-  inventory: Inventory;
+  items: Inventory;
 }

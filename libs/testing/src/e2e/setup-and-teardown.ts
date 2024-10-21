@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
-import { v2 as compose } from 'docker-compose';
+import compose from 'docker-compose';
 
 export async function setup(app: string, useCompose = false) {
   globalThis.__app = app;

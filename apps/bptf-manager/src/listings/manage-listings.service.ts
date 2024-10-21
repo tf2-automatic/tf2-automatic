@@ -36,8 +36,6 @@ enum ListingAction {
   Update,
 }
 
-const KEY_PREFIX = 'bptf-manager:data:';
-
 export class ManageListingsService {
   private readonly logger = new Logger(ManageListingsService.name);
 
@@ -838,18 +836,18 @@ export class ManageListingsService {
   }
 
   private static getCreateKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:create:${steamid.getSteamID64()}`;
+    return `listings:create:${steamid.getSteamID64()}`;
   }
 
   private static getUpdateKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:update:${steamid.getSteamID64()}`;
+    return `listings:update:${steamid.getSteamID64()}`;
   }
 
   private static getDeleteKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:delete:${steamid.getSteamID64()}`;
+    return `listings:delete:${steamid.getSteamID64()}`;
   }
 
   private static getArchivedDeleteKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:delete:archived:${steamid.getSteamID64()}`;
+    return `listings:delete:archived:${steamid.getSteamID64()}`;
   }
 }

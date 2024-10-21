@@ -4,7 +4,7 @@
   "dependencies": {
     "@tf2-automatic/bot-data": "*",
     "steam-user": "^5.2.0",
-    "steamcommunity": "3.48.3",
+    "steamcommunity": "^3.48.4",
     "steam-tradeoffer-manager": "^2.11.5",
     "tslib": "^2.7.0"
   }

@@ -3,7 +3,6 @@ import { DynamicModule, Global, Logger, Module } from '@nestjs/common';
 import { EventsConfig, RabbitMQ } from '@tf2-automatic/config';
 import { NestEventsService } from './nestjs-events.service';
 import { RabbitMQEventsService } from './custom/rabbitmq.service';
-import { RedisEventsService } from './custom/redis.service';
 
 export interface EventsModuleOptions<T extends EventsConfig = EventsConfig> {
   publishingExchange: string;
@@ -22,8 +21,6 @@ export class NestEventsModule {
 
     if (options.config.type === 'rabbitmq') {
       dynamicModule = rabbitmq(options);
-    } else if (options.config.type === 'redis') {
-      dynamicModule = redis(options);
     } else {
       throw new Error('Invalid EVENTS_TYPE value');
     }
@@ -35,7 +32,10 @@ export class NestEventsModule {
       useValue: options,
     });
 
-    Logger.log('Using events type "' + options.config.type + '"', NestEventsModule.name);
+    Logger.log(
+      'Using events type "' + options.config.type + '"',
+      NestEventsModule.name,
+    );
 
     return dynamicModule;
   }
@@ -71,20 +71,6 @@ function rabbitmq(options: EventsModuleOptions): DynamicModule {
       {
         provide: 'EVENTS_ENGINE',
         useClass: RabbitMQEventsService,
-      },
-    ],
-    exports: [NestEventsService],
-  };
-}
-
-function redis(options: EventsModuleOptions): DynamicModule {
-  return {
-    module: NestEventsModule,
-    providers: [
-      NestEventsService,
-      {
-        provide: 'EVENTS_ENGINE',
-        useClass: RedisEventsService,
       },
     ],
     exports: [NestEventsService],

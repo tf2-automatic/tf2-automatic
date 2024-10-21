@@ -8,8 +8,6 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { ListingLimits } from '@tf2-automatic/bptf-manager-data';
 import { setTimeout } from 'timers/promises';
 
-const KEY_PREFIX = 'bptf-manager:data:';
-
 @Injectable()
 export class ListingLimitsService {
   private readonly logger = new Logger(ListingLimitsService.name);
@@ -127,6 +125,6 @@ export class ListingLimitsService {
   }
 
   private getLimitsKey(steamid: SteamID): string {
-    return `${KEY_PREFIX}listings:limits:${steamid.getSteamID64()}`;
+    return `listings:limits:${steamid.getSteamID64()}`;
   }
 }
