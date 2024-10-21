@@ -19,6 +19,11 @@ export interface PaintKit {
   name: string;
 }
 
+export interface Spell {
+  id: number;
+  name: string;
+}
+
 export class QualityModel implements Quality {
   @ApiProperty({
     example: 6,
@@ -58,7 +63,7 @@ export class AttachedParticleModel {
   name!: string;
 }
 
-export class PaintKitModel {
+export class PaintKitModel implements PaintKit {
   @ApiProperty({
     example: 14,
   })
@@ -66,6 +71,18 @@ export class PaintKitModel {
 
   @ApiProperty({
     example: 'Night Owl',
+  })
+  name!: string;
+}
+
+export class SpellModel implements Spell {
+  @ApiProperty({
+    example: 1009,
+  })
+  id!: number;
+
+  @ApiProperty({
+    example: 'Exorcism',
   })
   name!: string;
 }

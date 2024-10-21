@@ -29,6 +29,7 @@ import {
   SchemaItemsResponse,
   SchemaMetadataResponse,
   SchemaOverviewResponse,
+  Spell,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
@@ -55,6 +56,10 @@ const SCHEMA_EFFECTS_NAME_KEY = 'schema:effects:name:<name>';
 const PAINTKIT_ID_KEY = 'schema:paintkit:id:<id>';
 // A hash set that stores all paintkits with the name as the key
 const PAINTKIT_NAME_KEY = 'schema:paintkit:name:<name>';
+// A hash set that stores all spells with the id as the key
+const SPELLS_ID_KEY = 'schema:spells:id:<id>';
+// A hash set that stores all spells with the name as the key
+const SPELLS_NAME_KEY = 'schema:spells:name:<name>';
 
 // The name of the schema overview file
 const OVERVIEW_FILE = 'schema-overview.json';
@@ -250,6 +255,97 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(paintkit);
   }
 
+  async getSpellById(id: string): Promise<Spell> {
+    const spellFromAttribute = await this.getSpellByIdFromAttributes(id).catch(
+      (err) => {
+        if (err instanceof NotFoundException) {
+          return null;
+        }
+
+        throw err;
+      },
+    );
+
+    if (spellFromAttribute) {
+      return spellFromAttribute;
+    }
+
+    const spellFromItems = await this.getItemByDefindex(id).catch((err) => {
+      if (err instanceof NotFoundException) {
+        return null;
+      }
+
+      throw err;
+    });
+
+    if (
+      spellFromItems &&
+      spellFromItems.item_name.startsWith('Halloween Spell: ')
+    ) {
+      return spellFromItems;
+    }
+
+    throw new NotFoundException('Spell not found');
+  }
+
+  private async getSpellByIdFromAttributes(id: string): Promise<Spell> {
+    const spell = await this.redis.hgetBuffer(SPELLS_ID_KEY, id);
+
+    if (!spell) {
+      throw new NotFoundException('Spell not found');
+    }
+
+    return unpack(spell);
+  }
+
+  async getSpellByName(name: string): Promise<Spell> {
+    const spellFromAttributes = await this.getSpellByNameFromAttributes(
+      name,
+    ).catch((err) => {
+      if (err instanceof NotFoundException) {
+        return null;
+      }
+
+      throw err;
+    });
+
+    if (spellFromAttributes) {
+      return spellFromAttributes;
+    }
+
+    const spellFromItems = await this.getItemsByName(
+      'Halloween Spell: ' + name,
+    ).catch((err) => {
+      if (err instanceof NotFoundException) {
+        return [];
+      }
+
+      throw err;
+    });
+
+    if (spellFromItems.length !== 0) {
+      return {
+        id: spellFromItems[0].defindex,
+        name,
+      };
+    }
+
+    throw new NotFoundException('Spell not found');
+  }
+
+  private async getSpellByNameFromAttributes(name: string): Promise<Spell> {
+    const spell = await this.redis.hgetBuffer(
+      SPELLS_NAME_KEY,
+      Buffer.from(name).toString('base64'),
+    );
+
+    if (!spell) {
+      throw new NotFoundException('Spell not found');
+    }
+
+    return unpack(spell);
+  }
+
   private async getCurrentKey(): Promise<string | null> {
     return this.redis.get(CURRENT_SCHEMA_KEY);
   }
@@ -386,6 +482,23 @@ export class SchemaService implements OnApplicationBootstrap {
       effectsById[effect.id.toString()] = packed;
     }
 
+    const spellsByName: Record<string, Buffer> = {};
+    const spellsById: Record<string, Buffer> = {};
+
+    for (const attribute of result.attributes) {
+      if (attribute.name.startsWith('SPELL: ')) {
+        const spell = {
+          id: attribute.defindex,
+          name: attribute.description_string!,
+        };
+
+        const packed = pack(spell);
+
+        spellsByName[Buffer.from(spell.name).toString('base64')] = packed;
+        spellsById[spell.id.toString()] = packed;
+      }
+    }
+
     // Wait for the overview to be saved
     await savingOverview;
 
@@ -399,6 +512,10 @@ export class SchemaService implements OnApplicationBootstrap {
       .hmset(SCHEMA_EFFECTS_NAME_KEY, effectsByName)
       .del(SCHEMA_EFFECTS_ID_KEY)
       .hmset(SCHEMA_EFFECTS_ID_KEY, effectsById)
+      .del(SPELLS_NAME_KEY)
+      .hmset(SPELLS_NAME_KEY, spellsByName)
+      .del(SPELLS_ID_KEY)
+      .hmset(SPELLS_ID_KEY, spellsById)
       .exec();
 
     await this.createItemJobs(job.data.time, result.items_game_url);

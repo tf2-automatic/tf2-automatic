@@ -30,9 +30,13 @@ import {
   SCHEMA_QUALITY_ID_PATH,
   SCHEMA_QUALITY_NAME_PATH,
   SCHEMA_REFRESH_PATH,
+  SCHEMA_SPELL_ID_PATH,
+  SCHEMA_SPELL_NAME_PATH,
   SchemaItem,
   SchemaItemModel,
   SchemaItemsResponse,
+  Spell,
+  SpellModel,
   UpdateSchemaResponse,
 } from '@tf2-automatic/item-service-data';
 import {
@@ -260,5 +264,39 @@ export class SchemaController {
   })
   async getSchemaPaintkitsById(@Param('id') id: string): Promise<PaintKit> {
     return this.schemaService.getPaintKitById(id);
+  }
+
+  @Get(SCHEMA_SPELL_NAME_PATH)
+  @ApiOperation({
+    summary: 'Get spell by name',
+    description: 'Returns a spell',
+  })
+  @ApiParam({
+    name: 'name',
+    description: 'The name of the spell',
+    example: 'Exorcism',
+  })
+  @ApiResponse({
+    type: SpellModel,
+  })
+  getSpellByName(@Param('name') name: string): Promise<Spell> {
+    return this.schemaService.getSpellByName(name);
+  }
+
+  @Get(SCHEMA_SPELL_ID_PATH)
+  @ApiOperation({
+    summary: 'Get spell by id',
+    description: 'Returns a spell',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'The id of the spell',
+    example: '1',
+  })
+  @ApiResponse({
+    type: PaintKitModel,
+  })
+  getSpellById(@Param('id') id: string): Promise<Spell> {
+    return this.schemaService.getSpellById(id);
   }
 }
