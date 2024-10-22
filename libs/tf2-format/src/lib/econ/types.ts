@@ -58,6 +58,13 @@ export interface RecipeInput {
   amount: number;
 }
 
+export interface TagAttributes {
+  Quality?: string;
+  Exterior?: string;
+  Rarity?: string;
+  Type?: string;
+}
+
 export interface DescriptionAttributes {
   craftable: boolean;
   effect: string | null;
@@ -72,5 +79,33 @@ export interface DescriptionAttributes {
   uses: number | null;
   input: RecipeInput[] | null;
   output: string | null;
+  target: string | null;
+}
+
+/**
+ * The result of extracting information from an EconItem
+ */
+export interface ExtractedEconItem {
+  assetid: string;
+  defindex: number | null;
+  quality: string | null;
+  elevated: boolean;
+  craftable: boolean;
+  tradable: boolean;
+  australium: boolean;
+  festivized: boolean;
+  effect: string | null;
+  wear: string | null;
+  paint: string | null;
+  killstreak: number;
+  sheen: string | null;
+  killstreaker: string | null;
+  spells: string[];
+  parts: string[];
+  paintkit: string | null;
+  uses: number | null;
+  input: RecipeInput[] | null;
+  output: string | null;
+  outputQuality: string | null;
   target: string | null;
 }

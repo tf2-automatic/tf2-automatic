@@ -1,6 +1,7 @@
 import { EconParser } from './parser';
 import { EconItem, Tag } from './types';
 import * as TestData from './test-data';
+import { Schema } from '../types';
 
 describe('EconParser', () => {
   describe('#getDefindex', () => {
@@ -144,24 +145,43 @@ describe('EconParser', () => {
     });
   });
 
-  describe('#prepare', () => {
+  describe('#extract', () => {
+    let parser: EconParser;
+
+    beforeEach(() => {
+      const schema: Schema = {
+        getDefindexByName: jest.fn(),
+        fetchDefindexByName: jest.fn(),
+        getQualityByName: jest.fn(),
+        fetchQualityByName: jest.fn(),
+        getEffectByName: jest.fn(),
+        fetchEffectByName: jest.fn(),
+        getSpellByName: jest.fn(),
+        fetchSpellByName: jest.fn(),
+        getTextureByName: jest.fn(),
+        fetchTextureByName: jest.fn(),
+      };
+
+      parser = new EconParser(schema);
+    });
+
     it('will parse basic attributes', () => {
       const item = TestData.getBasicItem();
 
-      const prepared = EconParser.prepare(item);
+      const extracted = parser.extract(item);
 
-      expect(prepared.assetid).toEqual('13658582638');
-      expect(prepared.defindex).toEqual(5021);
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
+      expect(extracted.assetid).toEqual('13658582638');
+      expect(extracted.defindex).toEqual(5021);
+      expect(extracted.quality).toEqual('Unique');
+      expect(extracted.craftable).toEqual(true);
+      expect(extracted.tradable).toEqual(true);
     });
 
     it('will parse Strangifier Chemistry Sets', () => {
       const item = TestData.getStrangifierChemistrySet();
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.input).toEqual([
+      expect(extractd.input).toEqual([
         {
           name: 'The Righteous Bison',
           amount: 5,
@@ -188,32 +208,32 @@ describe('EconParser', () => {
         },
       ]);
 
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.output).toEqual('Professor Speks');
-      expect(prepared.outputQuality).toEqual('Strange');
-      expect(prepared.target).toEqual(null);
-      expect(prepared.uses).toEqual(1);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.output).toEqual('Professor Speks');
+      expect(extractd.outputQuality).toEqual('Strange');
+      expect(extractd.target).toEqual(null);
+      expect(extractd.uses).toEqual(1);
     });
 
     it('will parse Strangifiers', () => {
       const item = TestData.getStrangifier();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.target).toEqual("Cleaner's Carbine");
-      expect(prepared.output).toEqual(null);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.target).toEqual("Cleaner's Carbine");
+      expect(extractd.output).toEqual(null);
     });
 
     it("will parse Collector's Chemistry Sets", () => {
       const item = TestData.getCollectorsChemistrySet();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.output).toEqual('Sharpened Volcano Fragment');
-      expect(prepared.outputQuality).toEqual("Collector's");
-      expect(prepared.target).toEqual(null);
-      expect(prepared.input).toEqual([
+      expect(extractd.output).toEqual('Sharpened Volcano Fragment');
+      expect(extractd.outputQuality).toEqual("Collector's");
+      expect(extractd.target).toEqual(null);
+      expect(extractd.input).toEqual([
         {
           name: 'Sharpened Volcano Fragment',
           amount: 1,
@@ -224,44 +244,44 @@ describe('EconParser', () => {
     it('will parse Unusualifiers', () => {
       const item = TestData.getUnusualifier();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.target).toEqual('Taunt: Spin-to-Win');
-      expect(prepared.output).toEqual(null);
+      expect(extractd.target).toEqual('Taunt: Spin-to-Win');
+      expect(extractd.output).toEqual(null);
     });
 
     it('will parse Professional Killstreak Kit Fabricators', () => {
       const item = TestData.getKillstreakKitFabricator();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.output).toEqual('Kit');
-      expect(prepared.outputQuality).toEqual('Unique');
-      expect(prepared.target).toEqual('Splendid Screen');
-      expect(prepared.killstreaker).toEqual('Tornado');
-      expect(prepared.sheen).toEqual('Hot Rod');
-      expect(prepared.killstreak).toEqual(3);
+      expect(extractd.output).toEqual('Kit');
+      expect(extractd.outputQuality).toEqual('Unique');
+      expect(extractd.target).toEqual('Splendid Screen');
+      expect(extractd.killstreaker).toEqual('Tornado');
+      expect(extractd.sheen).toEqual('Hot Rod');
+      expect(extractd.killstreak).toEqual(3);
     });
 
     it('will parse Professional Kilstreak Kits', () => {
       const item = TestData.getKillstreakKit();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.killstreaker).toEqual('Hypno-Beam');
-      expect(prepared.sheen).toEqual('Villainous Violet');
-      expect(prepared.killstreak).toEqual(3);
-      expect(prepared.target).toEqual("Hitman's Heatmaker");
+      expect(extractd.killstreaker).toEqual('Hypno-Beam');
+      expect(extractd.sheen).toEqual('Villainous Violet');
+      expect(extractd.killstreak).toEqual(3);
+      expect(extractd.target).toEqual("Hitman's Heatmaker");
     });
 
     it('will detect elevated qualities for haunted items', () => {
       const item = TestData.getHauntedElevatedQualityItem();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.quality).toEqual('Haunted');
-      expect(prepared.elevated).toEqual(true);
-      expect(prepared.parts).toEqual([
+      expect(extractd.quality).toEqual('Haunted');
+      expect(extractd.elevated).toEqual(true);
+      expect(extractd.parts).toEqual([
         'Carnival Underworld Kills',
         'Carnival Games Won',
       ]);
@@ -270,129 +290,129 @@ describe('EconParser', () => {
     it('will detect elevated qualities for unusual items', () => {
       const item = TestData.getUnusualElevatedQualityItem();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.quality).toEqual('Unusual');
-      expect(prepared.elevated).toEqual(true);
+      expect(extractd.quality).toEqual('Unusual');
+      expect(extractd.elevated).toEqual(true);
     });
 
     it('will parse decorated weapons', () => {
       const item = TestData.getDecoratedWeapon();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.wear).toEqual('Factory New');
-      expect(prepared.paintkit).toEqual('Civil Servant Mk.II');
-      expect(prepared.quality).toEqual('Decorated Weapon');
+      expect(extractd.wear).toEqual('Factory New');
+      expect(extractd.paintkit).toEqual('Civil Servant Mk.II');
+      expect(extractd.quality).toEqual('Decorated Weapon');
     });
 
     it('will parse War Paints', () => {
       const item = TestData.getWarPaint();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.wear).toEqual('Field-Tested');
-      expect(prepared.paintkit).toEqual('Sweet Toothed');
-      expect(prepared.quality).toEqual('Decorated Weapon');
+      expect(extractd.wear).toEqual('Field-Tested');
+      expect(extractd.paintkit).toEqual('Sweet Toothed');
+      expect(extractd.quality).toEqual('Decorated Weapon');
     });
 
     it('will parse painted cosmetic items', () => {
       const item = TestData.getPaintedCosmetic();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(30367);
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
-      expect(prepared.paint).toEqual('Team Spirit');
+      expect(extractd.defindex).toEqual(30367);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(true);
+      expect(extractd.paint).toEqual('Team Spirit');
     });
 
     it('will parse dueling mini-games', () => {
       const item = TestData.getDuelingMiniGame();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(241);
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
-      expect(prepared.uses).toEqual(5);
+      expect(extractd.defindex).toEqual(241);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(true);
+      expect(extractd.uses).toEqual(5);
     });
 
     it('will parse giftapults', () => {
       const item = TestData.getGiftapult();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(5083);
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(false);
-      expect(prepared.uses).toEqual(1);
+      expect(extractd.defindex).toEqual(5083);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(false);
+      expect(extractd.uses).toEqual(1);
     });
 
     it('will parse strange parts', () => {
       const item = TestData.getStrangePart();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(6012);
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
+      expect(extractd.defindex).toEqual(6012);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(true);
     });
 
     it('will parse Australium Gold', () => {
       const item = TestData.getAustraliumGold();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(5037);
-      expect(prepared.quality).toEqual('Unique');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
-      expect(prepared.australium).toEqual(false);
+      expect(extractd.defindex).toEqual(5037);
+      expect(extractd.quality).toEqual('Unique');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(true);
+      expect(extractd.australium).toEqual(false);
     });
 
     it('will parse australium weapons', () => {
       const item = TestData.getAustraliumWeapon();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(205);
-      expect(prepared.quality).toEqual('Strange');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
-      expect(prepared.australium).toEqual(true);
+      expect(extractd.defindex).toEqual(205);
+      expect(extractd.quality).toEqual('Strange');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(true);
+      expect(extractd.australium).toEqual(true);
     });
 
     it('will parse festivized items', () => {
       const item = TestData.getFestivizedItem();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.defindex).toEqual(200);
-      expect(prepared.quality).toEqual('Strange');
-      expect(prepared.craftable).toEqual(true);
-      expect(prepared.tradable).toEqual(true);
-      expect(prepared.festivized).toEqual(true);
+      expect(extractd.defindex).toEqual(200);
+      expect(extractd.quality).toEqual('Strange');
+      expect(extractd.craftable).toEqual(true);
+      expect(extractd.tradable).toEqual(true);
+      expect(extractd.festivized).toEqual(true);
     });
 
     it('will not parse effects from crates', () => {
       const item = TestData.getCrateWithEffects();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.effect).toBeNull();
+      expect(extractd.effect).toBeNull();
     });
 
     it('will not parse texture when missing exterior tag', () => {
       const item = TestData.getCosmeticWithGrade();
 
-      const prepared = EconParser.prepare(item);
+      const extractd = parser.extract(item);
 
-      expect(prepared.paintkit).toBeNull();
+      expect(extractd.paintkit).toBeNull();
     });
   });
 });

@@ -1,40 +1,11 @@
-import { InventoryItem, Parser } from '../parser';
-import { DescriptionAttributes, EconItem, RecipeInput } from './types';
-
-interface TagAttributes {
-  Quality?: string;
-  Exterior?: string;
-  Rarity?: string;
-  Type?: string;
-}
-
-/**
- * The result of shallow parsing of an EconItem
- */
-export interface PreparedEconItem {
-  assetid: string;
-  defindex: number | null;
-  quality: string | null;
-  elevated: boolean;
-  craftable: boolean;
-  tradable: boolean;
-  australium: boolean;
-  festivized: boolean;
-  effect: string | null;
-  wear: string | null;
-  paint: string | null;
-  killstreak: number;
-  sheen: string | null;
-  killstreaker: string | null;
-  spells: string[];
-  parts: string[];
-  paintkit: string | null;
-  uses: number | null;
-  input: RecipeInput[] | null;
-  output: string | null;
-  outputQuality: string | null;
-  target: string | null;
-}
+import { Parser } from '../parser';
+import { InventoryItem } from '../types';
+import {
+  DescriptionAttributes,
+  EconItem,
+  ExtractedEconItem,
+  TagAttributes,
+} from './types';
 
 const TAGS_OF_INTEREST = new Set<string>([
   'Quality',
@@ -136,8 +107,8 @@ const WEAPON_TYPES = new Set([
   'Secondary PDA',
 ]);
 
-export class EconParser extends Parser<EconItem> {
-  static prepare(item: EconItem): PreparedEconItem {
+export class EconParser extends Parser<EconItem, ExtractedEconItem> {
+  extract(item: EconItem): ExtractedEconItem {
     const tags = EconParser.getTagAttributes(item);
 
     let start: IdentifiableDescription | undefined;
@@ -155,7 +126,7 @@ export class EconParser extends Parser<EconItem> {
 
     const descriptions = EconParser.getDescriptionAttributes(item, tags, start);
 
-    const raw: PreparedEconItem = {
+    const raw: ExtractedEconItem = {
       assetid: item.assetid,
       defindex: EconParser.getDefindex(item),
       quality: tags.Quality ?? null,
@@ -249,9 +220,7 @@ export class EconParser extends Parser<EconItem> {
     return raw;
   }
 
-  async parse(item: EconItem): Promise<InventoryItem> {
-    const raw = EconParser.prepare(item);
-
+  async parse(raw: ExtractedEconItem): Promise<InventoryItem> {
     if (raw.defindex === null) {
       throw new Error('Defindex is null');
     }
@@ -720,3 +689,5 @@ export class EconParser extends Parser<EconItem> {
     return attributes;
   }
 }
+
+export * from './types';

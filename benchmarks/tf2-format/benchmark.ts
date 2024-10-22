@@ -80,9 +80,7 @@ const itemLoader = new DataLoader<string, number | null>(
 const spellLoader = new DataLoader<string, number | null>(
   ([spell]) => {
     return axios
-      .get(
-        'http://localhost:3003/schema/spells/name/' + spell,
-      )
+      .get('http://localhost:3003/schema/spells/name/' + spell)
       .then((res) => [res.data.id]);
   },
   {
@@ -119,7 +117,7 @@ suite
     const parsed = new Array(items.length);
 
     for (let i = 0; i < items.length; i++) {
-      parsed[i] = EconParser.prepare(items[i]);
+      parsed[i] = parser.extract(items[i]);
     }
   })
   .add('tf2-item-format (strings)', () => {
@@ -133,7 +131,8 @@ suite
     const parsed = new Array(items.length);
 
     for (let i = 0; i < items.length; i++) {
-      parsed[i] = parser.parse(items[i]);
+      const extracted = parser.extract(items[i]);
+      parsed[i] = parser.parse(extracted);
     }
 
     await Promise.all(parsed);

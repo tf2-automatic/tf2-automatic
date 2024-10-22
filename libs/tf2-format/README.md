@@ -7,11 +7,11 @@ This library is used to parse Team Fortress 2 items into a common format. It is 
 See the example below:
 
 ```ts
-import { EconParser, Schema, EconItem, Item } from '@tf2-automatic/tf2-format';
+import { EconParser, Schema, EconItem, ExtractedEconItem, Item } from '@tf2-automatic/tf2-format';
 
 // Define getters for various schema values
 const schema: Schema = {
-  getQualityByName: (name) => 0, 
+  getQualityByName: (name) => 0,
   fetchQualityByName: (name) => Promise.resolve(0),
   getEffectByName: (name) => 0,
   fetchEffectByName: (name) => Promise.resolve(0),
@@ -30,10 +30,10 @@ const econItem: EconItem = {
 };
 
 // 1. Very fast but only extracts values as strings.
-const raw: RawItem = EconParser.prepare(econitem);
+const extracted: ExtractedEconItem = parser.extract(econitem);
 
 // 2. Not as fast but converts the values to ids based on the schema.
-const item: Item = await parser.parse(econItem);
+const item: Item = await parser.parse(raw);
 ```
 
 Parsing can be accomplished in two ways. Method 1 is designed to be fast, extracting raw values from the econ item as strings. Method 2 builds on this by converting the values into IDs using the provided schema.
@@ -54,16 +54,14 @@ const cache = new Map<string, number>();
 const schema: Schema = {
   getQualityByName: (name) => cache.get('quality:' + name),
   fetchQualityByName: (name) => {
-    return axios
-      .get('http://localhost:3000/schema/qualities/name/' + name)
-      .then((response) => {
-        const result = response.data.id;
+    return axios.get('http://localhost:3000/schema/qualities/name/' + name).then((response) => {
+      const result = response.data.id;
 
-        // Save the value in the cache
-        cache.set('quality:' + result);
+      // Save the value in the cache
+      cache.set('quality:' + result);
 
-        return result;
-      });
+      return result;
+    });
   },
   getEffectByName: (name) => 0,
   fetchEffectByName: (name) => Promise.resolve(0),
