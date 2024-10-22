@@ -146,7 +146,7 @@ export class InventoriesService
     steamid: SteamID,
     appid: number,
     contextid: string,
-    tradableOnly = true,
+    tradableOnly: boolean,
   ): Promise<Inventory> {
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
@@ -266,6 +266,7 @@ export class InventoriesService
     appid: number,
     contextid: string,
     useCache = true,
+    tradableOnly?: boolean,
   ): Promise<InventoryResponse> {
     if (useCache) {
       try {
@@ -289,6 +290,7 @@ export class InventoriesService
     // then it will not be replaced
     const job = await this.addToQueue(steamid, appid, contextid, {
       ttl: INVENTORY_EXPIRE_TIME,
+      tradableOnly,
     });
 
     // Wait for it to finish

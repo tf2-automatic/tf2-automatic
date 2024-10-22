@@ -118,18 +118,27 @@ export class InventoriesController {
     example: true,
     required: false,
   })
+  @ApiQuery({
+    name: 'tradableOnly',
+    description: 'Only get tradable items.',
+    example: true,
+    required: false,
+  })
   async waitForInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
     @Query('cache', new ParseBoolPipe({ optional: true }))
     useCache = true,
+    @Query('tradableOnly', new ParseBoolPipe({ optional: true }))
+    tradableOnly: boolean | undefined,
   ): Promise<InventoryResponse> {
     return this.inventoriesService.fetchInventory(
       steamid,
       appid,
       contextid,
       useCache,
+      tradableOnly,
     );
   }
 
