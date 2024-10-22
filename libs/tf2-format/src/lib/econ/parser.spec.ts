@@ -414,6 +414,21 @@ describe('EconParser', () => {
 
       expect(extracted.paintkit).toBeNull();
     });
+
+    it('will parse unusual decorated weapons', () => {
+      const item = TestData.getUnusualDecoratedWeapon();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Unusual');
+      expect(extracted.effect).toEqual('Cool');
+      expect(extracted.paintkit).toEqual('Candy Coated');
+      expect(extracted.wear).toEqual('Field-Tested');
+      expect(extracted.festivized).toEqual(true);
+      expect(extracted.killstreak).toEqual(3);
+      expect(extracted.killstreaker).toEqual('Incinerator');
+      expect(extracted.sheen).toEqual('Deadly Daffodil');
+    });
   });
 
   describe('#parse', () => {

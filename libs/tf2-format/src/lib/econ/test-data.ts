@@ -2308,3 +2308,217 @@ export function getCosmeticWithGrade() {
     fraudwarnings: [],
   };
 }
+
+export function getUnusualDecoratedWeapon() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14540831300',
+    classid: '5835153000',
+    instanceid: '4581938101',
+    amount: 1,
+    pos: 1618,
+    id: '14540831300',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZW9YexDHDPIMDcot8Qn-Whg07dR3XcGzuegALAnovdCTNrkrNd0ZH5GGXP-GZwn46R9t1KRdJsfaoH_r1HvhM2wUG028YyhQh_0',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZW9YexDHDPIMDcot8Qn-Whg07dR3XcGzuegALAnovdCTNrkrNd0ZH5GGXP-GZwn46R9t1KRdJsfaoH_r1HvhM2wUG028YyhQh_0',
+    descriptions: [
+      {
+        value: 'Mercenary Grade Fish (Field-Tested)',
+        color: '4b69ff',
+      },
+      {
+        value: '★ Unusual Effect: Cool',
+        color: 'ffd700',
+      },
+      {
+        value: 'Festivized',
+        color: 'ffd700',
+      },
+      {
+        value: 'Killstreaker: Incinerator',
+        color: '7ea9d1',
+      },
+      {
+        value: 'Sheen: Deadly Daffodil',
+        color: '7ea9d1',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+      },
+      {
+        value: 'Getting hit by a fish has got to be humiliating.',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'The Special Delivery',
+        color: 'e1e10f',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'The Shortstop',
+        color: '8b8989',
+      },
+      {
+        value: 'Mad Milk',
+        color: '8b8989',
+      },
+      {
+        value: 'The Holy Mackerel',
+        color: '8b8989',
+      },
+      {
+        value: 'The Milkman',
+        color: '8b8989',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'Item Set Bonus:',
+        color: 'e1e10f',
+      },
+      {
+        value: 'Leave a Calling Card on your victims',
+        color: '8b8989',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'Scream Fortress XII Collection',
+      },
+      {
+        value: '    Spectrum Splattered War Paint',
+        color: 'eb4b4b',
+      },
+      {
+        value: '    Pumpkin Pied War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Mummified Mimic War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Helldriver War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Sweet Toothed War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Crawlspace Critters War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Raving Dead War Paint',
+        color: '8847ff',
+      },
+      {
+        value: "    Spider's Cluster War Paint",
+        color: '8847ff',
+      },
+      {
+        value: '★ Candy Coated War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Portal Plastered War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Death Deluxe War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Eyestalker War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Gourdy Green War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Spider Season War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Organ-ically Hellraised War Paint',
+        color: '4b69ff',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=221&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D3183068993804153769',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Festivized Candy Coated Holy Mackerel',
+    name_color: '8650AC',
+    type: '',
+    market_name:
+      'Unusual Festivized Professional Killstreak Candy Coated Holy Mackerel (Field-Tested)',
+    market_hash_name:
+      'Unusual Festivized Professional Killstreak Candy Coated Holy Mackerel (Field-Tested)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D3183068993804153769',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'melee',
+        name: 'Melee weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Scout',
+        name: 'Scout',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FieldTested',
+        name: 'Field-Tested',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
