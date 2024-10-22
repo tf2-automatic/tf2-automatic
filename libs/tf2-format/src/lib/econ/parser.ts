@@ -166,7 +166,10 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       } else {
         // Some items with a paintkit does not have a rarity, so we remove
         // the " War Paint" from the paintkit name manually
-        raw.paintkit = raw.paintkit.replace(' War Paint', '');
+        const index = raw.paintkit.indexOf(' War Paint');
+        if (index !== -1) {
+          raw.paintkit = raw.paintkit.slice(0, index);
+        }
       }
     }
 
@@ -544,19 +547,17 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
             i++;
           }
         case IdentifiableDescription.Texture: {
-          let extract = true;
+          let extract = false;
 
           if (descriptions[i].value.endsWith('Collection')) {
-            if (tags.Exterior === undefined) {
-              extract = false;
-            } else {
+            if (tags.Exterior !== undefined) {
               next = IdentifiableDescription.Texture;
+              extract = true;
             }
-
             i++;
 
             // Might be a little "dangerous" to use these while loops
-            while (descriptions[i].value.charAt(3) === ' ') {
+            while (descriptions[i].value.charAt(0) === ' ') {
               i++;
             }
           }
@@ -585,15 +586,16 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
             i++;
 
             // Skip all the other stuff if any
-            while (descriptions[i].value.charAt(3) === ' ') {
+            while (descriptions[i].value.charAt(0) === ' ') {
               i++;
             }
 
             if (extract) {
               attributes.paintkit = paintkit;
               next = IdentifiableDescription.Uses;
-              // We break so that we skip to the next checks
             }
+
+            // We continue the loop so that we skip to the next checks
             continue loop;
           }
         }
