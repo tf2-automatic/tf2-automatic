@@ -34,14 +34,14 @@ export interface InventoryItem extends Item {
  * This schema is used to define the getters for this information.
  */
 export interface Schema {
-  getQualityByName(name: string): number | null | undefined;
-  fetchQualityByName(name: string): Promise<number | null>;
-  getEffectByName(name: string): number | null | undefined;
-  fetchEffectByName(name: string): Promise<number | null>;
-  getTextureByName(name: string): number | null | undefined;
-  fetchTextureByName(name: string): Promise<number | null>;
-  getDefindexByName(name: string): number | null | undefined;
-  fetchDefindexByName(name: string): Promise<number | null>;
-  getSpellByName(name: string): number | null | undefined;
-  fetchSpellByName(name: string): Promise<number | null>;
+  getQualityByName(name: string): number | undefined;
+  fetchQualityByName(name: string): Promise<number>;
+  getEffectByName(name: string): number | undefined;
+  fetchEffectByName(name: string): Promise<number>;
+  getTextureByName(name: string): number | undefined;
+  fetchTextureByName(name: string): Promise<number>;
+  getDefindexByName(name: string): number | undefined;
+  fetchDefindexByName(name: string): Promise<number>;
+  getSpellByName(name: string): number | undefined;
+  fetchSpellByName(name: string): Promise<number>;
 }
