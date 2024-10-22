@@ -415,4 +415,69 @@ describe('EconParser', () => {
       expect(extracted.paintkit).toBeNull();
     });
   });
+
+  describe('#parse', () => {
+    let parser: EconParser;
+    let schema: Record<keyof Schema, jest.Mock>;
+
+    beforeEach(() => {
+      schema = {
+        getDefindexByName: jest.fn(),
+        fetchDefindexByName: jest.fn(),
+        getQualityByName: jest.fn(),
+        fetchQualityByName: jest.fn(),
+        getEffectByName: jest.fn(),
+        fetchEffectByName: jest.fn(),
+        getSpellByName: jest.fn(),
+        fetchSpellByName: jest.fn(),
+        getTextureByName: jest.fn(),
+        fetchTextureByName: jest.fn(),
+      };
+
+      parser = new EconParser(schema);
+    });
+
+    it('will only use `get` method if it returned data', async () => {
+      schema.getQualityByName.mockReturnValue(6);
+
+      const item = TestData.getBasicItem();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Unique');
+
+      expect(parsed.quality).toEqual(6);
+    });
+
+    it('will use `fetch` method if `get` returned no data', async () => {
+      schema.getQualityByName.mockReturnValue(undefined);
+      schema.fetchQualityByName.mockResolvedValue(6);
+
+      const item = TestData.getBasicItem();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Unique');
+
+      expect(parsed.quality).toEqual(6);
+    });
+
+    it('will throw if `fetch` throws', async () => {
+      schema.getQualityByName.mockReturnValue(undefined);
+      schema.fetchQualityByName.mockRejectedValue(
+        new Error('Failed to fetch quality'),
+      );
+
+      const item = TestData.getBasicItem();
+
+      const extracted = parser.extract(item);
+      const parse = parser.parse(extracted);
+
+      await expect(parse).rejects.toThrow('Failed to fetch quality');
+    });
+  });
 });
