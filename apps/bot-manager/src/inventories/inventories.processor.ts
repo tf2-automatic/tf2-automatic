@@ -23,7 +23,7 @@ import {
   CustomUnrecoverableError,
 } from '../common/utils/custom-queue-errors';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { assert } from 'console';
+import assert from 'node:assert';
 
 @Processor('inventories', {
   settings: bullWorkerSettings,
