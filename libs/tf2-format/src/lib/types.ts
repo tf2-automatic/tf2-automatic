@@ -16,6 +16,7 @@ export interface Item {
   killstreaker: string | null;
   effect: number | null;
   paintkit: number | null;
+  paint: number | null;
   wear: number | null;
   target: number | null;
   output: number | null;

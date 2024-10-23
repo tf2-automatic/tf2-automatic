@@ -310,6 +310,12 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       }
     }
 
+    let paint =
+      raw.paint !== null ? this.schema.getDefindexByName(raw.paint) : null;
+    if (paint === undefined) {
+      paint = await this.schema.fetchDefindexByName(raw.paint!);
+    }
+
     const parsed: InventoryItem = {
       assetid: raw.assetid,
       defindex: raw.defindex,
@@ -322,14 +328,15 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       wear,
       paintkit,
       killstreak: raw.killstreak,
-      sheen: raw.sheen,
-      killstreaker: raw.killstreaker,
       target,
       output,
       outputQuality,
       elevated: raw.elevated,
+      paint,
       parts,
       spells,
+      sheen: raw.sheen,
+      killstreaker: raw.killstreaker,
     };
 
     return parsed;
