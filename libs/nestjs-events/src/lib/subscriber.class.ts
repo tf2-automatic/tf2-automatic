@@ -7,26 +7,24 @@ import {
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import CircuitBreaker from 'opossum';
 import promiseRetry from 'promise-retry';
-
-export interface SubscriberOptions<T extends BaseEvent<unknown>> {
-  name: string;
-  exchange: string;
-  events: string[];
-  handler: Handler<T>;
-  settings?: SubscriberSettings;
-}
+import { v4 as uuid } from 'uuid';
 
 export class Subscriber<T extends BaseEvent<string>> {
-  private readonly logger = new Logger(
-    Subscriber.name + '<' + this.options.name + '>',
-  );
+  private readonly logger: Logger;
 
   private identifier: any = null;
+
+  private name: string;
+  private exchange: string;
+  private events: string[];
+  private handler: Handler<T>;
+  private settings: SubscriberSettings;
+
   private subscribePromise: Promise<any> | null = null;
   private unsubscribePromise: Promise<void> | null = null;
 
   private readonly breaker = new CircuitBreaker((...args: [T]) => {
-    return this.options.handler(...args).catch((err) => {
+    return this.handler(...args).catch((err) => {
       this.logger.error('Error in handler');
       console.error(err);
       throw err;
@@ -36,8 +34,28 @@ export class Subscriber<T extends BaseEvent<string>> {
 
   constructor(
     private readonly engine: CustomEventsService,
-    private readonly options: SubscriberOptions<T>,
+    name: string,
+    exchange: string,
+    events: string[],
+    handler: Handler<T>,
+    settings: SubscriberSettings,
   ) {
+    this.name = name;
+
+    if (settings.broadcast) {
+      // Add random string to name
+      this.name += `-${uuid().replace(/-/g, '')}`;
+    }
+
+    this.exchange = exchange;
+    this.events = events;
+    this.handler = handler;
+    this.settings = settings;
+
+    this.logger = new Logger(
+      Subscriber.name + '<' + name + '>',
+    );
+
     this.breaker.on('open', () => {
       this.logger.warn('Circuit breaker opened');
 
@@ -117,18 +135,18 @@ export class Subscriber<T extends BaseEvent<string>> {
     this.subscribePromise = new Promise(async (resolve) => {
       this.logger.debug(
         `Subscribing to "${
-          this.options.exchange
-        }" with events [${this.options.events
+          this.exchange
+        }" with events [${this.events
           .map((event) => `"${event}"`)
           .join(',')}]`,
       );
 
       this.identifier = await this.engine.subscribe<T>(
-        this.options.name,
-        this.options.exchange,
-        this.options.events,
+        this.name,
+        this.exchange,
+        this.events,
         this.breaker.fire.bind(this.breaker),
-        this.options.settings,
+        this.settings,
       );
 
       resolve(this.identifier);
@@ -149,7 +167,7 @@ export class Subscriber<T extends BaseEvent<string>> {
     }
 
     await new Promise(async (resolve) => {
-      this.logger.debug(`Unsubscribing from "${this.options.exchange}"`);
+      this.logger.debug(`Unsubscribing from "${this.exchange}"`);
 
       await this.engine.unsubscribe(this.identifier);
 
@@ -161,11 +179,11 @@ export class Subscriber<T extends BaseEvent<string>> {
 
   async attempt(): Promise<boolean> {
     return this.engine.attempt<T>(
-      this.options.name,
-      this.options.exchange,
-      this.options.events,
+      this.name,
+      this.exchange,
+      this.events,
       this.breaker.fire.bind(this.breaker),
-      this.options.settings,
+      this.settings,
     );
   }
 }

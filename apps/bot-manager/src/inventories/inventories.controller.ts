@@ -113,8 +113,14 @@ export class InventoriesController {
     example: 2,
   })
   @ApiQuery({
-    name: 'cache',
-    description: 'Use cache or not. Default is true.',
+    name: 'useCache',
+    description: 'Get inventory from cache if available. Default is true.',
+    example: true,
+    required: false,
+  })
+  @ApiQuery({
+    name: 'tradableOnly',
+    description: 'Only get tradable items.',
     example: true,
     required: false,
   })
@@ -122,14 +128,17 @@ export class InventoriesController {
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
-    @Query('cache', new ParseBoolPipe({ optional: true }))
+    @Query('useCache', new ParseBoolPipe({ optional: true }))
     useCache = true,
+    @Query('tradableOnly', new ParseBoolPipe({ optional: true }))
+    tradableOnly: boolean | undefined,
   ): Promise<InventoryResponse> {
     return this.inventoriesService.fetchInventory(
       steamid,
       appid,
       contextid,
       useCache,
+      tradableOnly,
     );
   }
 

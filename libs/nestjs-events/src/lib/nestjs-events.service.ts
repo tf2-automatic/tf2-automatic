@@ -79,12 +79,9 @@ export class NestEventsService implements OnModuleDestroy {
       throw new Error('Invalid exchange');
     }
 
-    const subscriber = new Subscriber<T>(this.engine, {
-      name,
-      exchange,
-      events,
-      handler,
-      settings,
+    const subscriber = new Subscriber<T>(this.engine, name, exchange, events, handler, {
+      broadcast: settings?.broadcast ?? false,
+      retry: settings?.retry ?? false,
     });
 
     this.subscribers.set(name, subscriber);

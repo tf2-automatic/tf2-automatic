@@ -2,6 +2,7 @@ import {
   AmqpConnection,
   defaultNackErrorHandler,
   MessageHandlerOptions,
+  QueueOptions,
   requeueErrorHandler,
 } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
@@ -49,11 +50,19 @@ export class RabbitMQEventsService
     handler: Handler<T>,
     settings?: SubscriberSettings,
   ): Promise<Identifier> {
+    const queueOptions: QueueOptions = {};
+
+    if (settings?.broadcast) {
+      queueOptions.exclusive = true;
+      queueOptions.autoDelete = true;
+    }
+
     const messageOptions: MessageHandlerOptions = {
       queue: name,
       exchange,
       routingKey: events,
       allowNonJsonMessages: false,
+      queueOptions,
     };
 
     messageOptions.errorHandler = (channel, message, error) => {
@@ -85,7 +94,7 @@ export class RabbitMQEventsService
     settings: SubscriberSettings,
   ): Promise<boolean> {
     const getMessage = async () => {
-      const message = await this.amqpConnection.channel.get(name, {
+      const message = await this.amqpConnection.managedChannel.get(name, {
         noAck: false,
       });
 
@@ -116,11 +125,11 @@ export class RabbitMQEventsService
 
     return await handler(JSON.parse(message.content.toString()))
       .then(() => {
-        this.amqpConnection.channel.ack(message);
+        this.amqpConnection.managedChannel.ack(message);
         return true;
       })
       .catch((err) => {
-        this.amqpConnection.channel.nack(
+        this.amqpConnection.managedChannel.nack(
           message,
           false,
           settings.retry ?? false,

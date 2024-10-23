@@ -5,7 +5,15 @@ export type Handler<MessageType extends BaseEvent<unknown>> = (
 ) => Promise<void>;
 
 export interface SubscriberSettings {
+  /**
+   * If the subscriber should requeue messages on error
+   */
   retry?: boolean;
+
+  /**
+   * If all subscribers listening to messages from the exchange should receive the messages
+   */
+  broadcast?: boolean;
 }
 
 export abstract class CustomEventsService {
