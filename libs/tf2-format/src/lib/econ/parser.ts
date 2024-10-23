@@ -133,7 +133,6 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       elevated: false,
       craftable: descriptions.craftable,
       tradable: item.tradable,
-      // This check is garbage
       australium: EconParser.isAustralium(item, tags),
       festivized: descriptions.festivized,
       effect: descriptions.effect,
