@@ -2,6 +2,7 @@ import {
   AmqpConnection,
   defaultNackErrorHandler,
   MessageHandlerOptions,
+  QueueOptions,
   requeueErrorHandler,
 } from '@golevelup/nestjs-rabbitmq';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
@@ -49,11 +50,19 @@ export class RabbitMQEventsService
     handler: Handler<T>,
     settings?: SubscriberSettings,
   ): Promise<Identifier> {
+    const queueOptions: QueueOptions = {};
+
+    if (settings?.broadcast) {
+      queueOptions.exclusive = true;
+      queueOptions.autoDelete = true;
+    }
+
     const messageOptions: MessageHandlerOptions = {
       queue: name,
       exchange,
       routingKey: events,
       allowNonJsonMessages: false,
+      queueOptions,
     };
 
     messageOptions.errorHandler = (channel, message, error) => {
