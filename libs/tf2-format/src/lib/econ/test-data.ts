@@ -2522,3 +2522,382 @@ export function getUnusualDecoratedWeapon() {
     fraudwarnings: [],
   };
 }
+
+export function getUnusualDecoratedWarPaint() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '13681204843',
+    classid: '4019405128',
+    instanceid: '11040671',
+    amount: 1,
+    pos: 1229,
+    id: '13681204843',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZmRYexDHDPkLD6MF4w3tG3N8usIzBNOy9OlUK1q8vdfAOuF5NdEZHsPTXKSEZwuvuB0xg6hUfpOIoDSvg3oqaoXk5g',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZmRYexDHDPkLD6MF4w3tG3N8usIzBNOy9OlUK1q8vdfAOuF5NdEZHsPTXKSEZwuvuB0xg6hUfpOIoDSvg3oqaoXk5g',
+    descriptions: [
+      {
+        value: 'Mercenary Grade War Paint (Well-Worn)',
+        color: '4b69ff',
+      },
+      {
+        value: '★ Unusual Effect: Cool',
+        color: 'ffd700',
+      },
+      {
+        value: 'Can be redeemed for an item with the same pattern.',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'Scream Fortress XII Collection',
+      },
+      {
+        value: '    Spectrum Splattered War Paint',
+        color: 'eb4b4b',
+      },
+      {
+        value: '    Pumpkin Pied War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Mummified Mimic War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Helldriver War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Sweet Toothed War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Crawlspace Critters War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Raving Dead War Paint',
+        color: '8847ff',
+      },
+      {
+        value: "    Spider's Cluster War Paint",
+        color: '8847ff',
+      },
+      {
+        value: '    Candy Coated War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Portal Plastered War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '★ Death Deluxe War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Eyestalker War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Gourdy Green War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Spider Season War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Organ-ically Hellraised War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'This is a limited use item. Uses: 1',
+        color: '00a000',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=17263&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D17241653731245823321',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Death Deluxe War Paint',
+    name_color: '8650AC',
+    type: '',
+    market_name: 'Unusual Death Deluxe War Paint (Well-Worn)',
+    market_hash_name: 'Unusual Death Deluxe War Paint (Well-Worn)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D17241653731245823321',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'TF_PaintKitTool',
+        name: 'War Paint',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Rarity_Rare',
+        name: 'Mercenary',
+        category: 'Rarity',
+        color: '4b69ff',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'Halloween2020Paintkits_collection',
+        name: 'Scream Fortress XII Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_WellWorn',
+        name: 'Well-Worn',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getDecoratedWeaponWithoutEffect() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14943930392',
+    classid: '4589569431',
+    instanceid: '45747668',
+    amount: 1,
+    pos: 1199,
+    id: '14943930392',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffhaQhuZgHPUPUOCKwF4w3tG3Z8sZ8yUo7voukAfgW-tdbEZ7EkMtxNHsOFWKOAYQH670o8ifVefZKPpDSvg3pXcRgnxg',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffhaQhuZgHPUPUOCKwF4w3tG3Z8sZ8yUo7voukAfgW-tdbEZ7EkMtxNHsOFWKOAYQH670o8ifVefZKPpDSvg3pXcRgnxg',
+    descriptions: [
+      {
+        value: 'Commando Grade Flame Thrower (Factory New)',
+        color: '8847ff',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+      },
+      {
+        value: '     Kills: 0',
+        color: '756b5e',
+      },
+      {
+        value: '     Teammates Extinguished: 0',
+        color: '756b5e',
+      },
+      {
+        value: '     Projectiles Reflected: 0',
+        color: '756b5e',
+      },
+      {
+        value: 'Extinguishing teammates restores 20 health',
+        color: '7ea9d1',
+      },
+      {
+        value: 'Killstreaker: Fire Horns',
+        color: '7ea9d1',
+      },
+      {
+        value: 'Sheen: Hot Rod',
+        color: '7ea9d1',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+      },
+      {
+        type: 'usertext',
+        value: "''Straight Outta Suban''",
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'Powerhouse Collection',
+      },
+      {
+        value: '    Liquid Asset Stickybomb Launcher',
+        color: 'eb4b4b',
+      },
+      {
+        value: '    Thunderbolt Sniper Rifle',
+        color: 'eb4b4b',
+      },
+      {
+        value: '    Current Event Scattergun',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Pink Elephant Stickybomb Launcher',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Shell Shocker Rocket Launcher',
+        color: 'd32ce6',
+      },
+      {
+        value: '✔ Flash Fryer Flame Thrower',
+        color: '8847ff',
+      },
+      {
+        value: '    Spark of Life Medi Gun',
+        color: '8847ff',
+      },
+      {
+        value: '    Dead Reckoner Revolver',
+        color: '8847ff',
+      },
+      {
+        value: '    Black Dahlia Pistol',
+        color: '8847ff',
+      },
+      {
+        value: '    Sandstone Special Pistol',
+        color: '8847ff',
+      },
+      {
+        value: '    Brick House Minigun',
+        color: '4b69ff',
+      },
+      {
+        value: '    Aqua Marine Rocket Launcher',
+        color: '4b69ff',
+      },
+      {
+        value: '    Low Profile SMG',
+        color: '4b69ff',
+      },
+      {
+        value: '    Turbine Torcher Flame Thrower',
+        color: '4b69ff',
+      },
+      {
+        value: '    Lightning Rod Shotgun',
+        color: '4b69ff',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=15049&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D7130166041670096589',
+        name: 'Inspect in Game...',
+      },
+    ],
+    fraudwarnings: [
+      'This item has been renamed.\nOriginal name: "Flame Thrower"',
+    ],
+    name: "''Fear the Pink Mist''",
+    name_color: 'CF6A32',
+    type: '',
+    market_name:
+      'Strange Professional Killstreak Flash Fryer Flame Thrower (Factory New)',
+    market_hash_name:
+      'Strange Professional Killstreak Flash Fryer Flame Thrower (Factory New)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D7130166041670096589',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'strange',
+        name: 'Strange',
+        category: 'Quality',
+        color: 'CF6A32',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Pyro',
+        name: 'Pyro',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Rarity_Mythical',
+        name: 'Commando',
+        category: 'Rarity',
+        color: '8847ff',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'Powerhouse_collection',
+        name: 'Powerhouse Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FactoryNew',
+        name: 'Factory New',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+  };
+}

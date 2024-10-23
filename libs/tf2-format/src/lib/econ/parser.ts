@@ -569,16 +569,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
             found = true;
           } else if (descriptions[i].value.startsWith('\u2605 ')) {
             found = true;
-
-            let test = descriptions[i].value.slice(2);
-            if (test.endsWith(' War Paint')) {
-              test = test.slice(0, test.length - 10);
-            }
-            const index = item.name.indexOf(test);
-
-            if (index !== -1) {
-              paintkit = test;
-            }
+            paintkit = descriptions[i].value.slice(2);
           }
 
           if (found) {

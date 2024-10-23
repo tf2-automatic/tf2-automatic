@@ -429,6 +429,28 @@ describe('EconParser', () => {
       expect(extracted.killstreaker).toEqual('Incinerator');
       expect(extracted.sheen).toEqual('Deadly Daffodil');
     });
+
+    it('will parse unusual decorated war paints', () => {
+      const item = TestData.getUnusualDecoratedWarPaint();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Unusual');
+      expect(extracted.effect).toEqual('Cool');
+      expect(extracted.paintkit).toEqual('Death Deluxe');
+      expect(extracted.wear).toEqual('Well-Worn');
+    });
+
+    it('will parse decorated weapons without an effect', () => {
+      const item = TestData.getDecoratedWeaponWithoutEffect();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Strange');
+      expect(extracted.paintkit).toEqual('Flash Fryer');
+      expect(extracted.wear).toEqual('Factory New');
+      expect(extracted.effect).toEqual(null);
+    });
   });
 
   describe('#parse', () => {
