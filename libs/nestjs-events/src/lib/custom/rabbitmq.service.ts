@@ -85,7 +85,7 @@ export class RabbitMQEventsService
     settings: SubscriberSettings,
   ): Promise<boolean> {
     const getMessage = async () => {
-      const message = await this.amqpConnection.channel.get(name, {
+      const message = await this.amqpConnection.managedChannel.get(name, {
         noAck: false,
       });
 
@@ -116,11 +116,11 @@ export class RabbitMQEventsService
 
     return await handler(JSON.parse(message.content.toString()))
       .then(() => {
-        this.amqpConnection.channel.ack(message);
+        this.amqpConnection.managedChannel.ack(message);
         return true;
       })
       .catch((err) => {
-        this.amqpConnection.channel.nack(
+        this.amqpConnection.managedChannel.nack(
           message,
           false,
           settings.retry ?? false,
