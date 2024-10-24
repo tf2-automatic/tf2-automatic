@@ -80,6 +80,8 @@ export interface DescriptionAttributes {
   input: RecipeInput[] | null;
   output: string | null;
   target: string | null;
+  grade: string | null;
+  statclock: boolean;
 }
 
 /**

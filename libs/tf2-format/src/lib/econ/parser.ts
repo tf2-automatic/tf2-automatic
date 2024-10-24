@@ -152,7 +152,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       crateSeries: EconParser.getCrateSeries(tags, item),
     };
 
-    // Clean up the painkit name
+    // Clean up the painkit name and overwrite the quality in certain cases
     if (raw.paintkit !== null) {
       if (tags.Rarity !== undefined && tags.Exterior !== undefined) {
         // The length is the length of the description minus the length of the
@@ -170,6 +170,19 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
         if (index !== -1) {
           raw.paintkit = raw.paintkit.slice(0, index);
         }
+      }
+
+      const isWarPaint = tags.Type === 'War Paint';
+      // Set the quality of the item based on certain conditions to better match
+      // how the TF2 GC stores the quality of items with a paint kit.
+      if (raw.effect !== null && !isWarPaint) {
+        // The quality of unusual war paints is still "Unusual", hence the check
+        // for the type.
+        raw.quality = 'Decorated Weapon';
+      } else if (isWarPaint && descriptions.statclock) {
+        // If the item is a war paint and it has a statclock attatched then we
+        // know that the quality is strange.
+        raw.quality = 'Strange';
       }
     }
 
@@ -491,6 +504,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       input: null,
       output: null,
       target: null,
+      grade: null,
+      statclock: false,
     };
 
     if (start === IdentifiableDescription.Skip) {
@@ -505,6 +520,24 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     descriptions.push({ value: '' });
 
     let i = 0;
+
+    // I don't like that this is outside the switch statement but it is the most
+    // efficient way to do it.
+    if (tags.Rarity !== undefined) {
+      if (
+        tags.Exterior !== undefined &&
+        descriptions[i].value.startsWith(tags.Rarity + ' Grade ') &&
+        descriptions[i].value.endsWith(' (' + tags.Exterior + ')')
+      ) {
+        attributes.grade = descriptions[i].value;
+        i++;
+      }
+
+      if (descriptions[i].value === 'Strange Stat Clock Attached') {
+        attributes.statclock = true;
+        i++;
+      }
+    }
 
     loop: while (i < descriptions.length - 1) {
       // Skip descriptions that are too short/long to contain any useful information
