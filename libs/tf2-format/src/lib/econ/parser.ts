@@ -149,6 +149,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       output: descriptions.output,
       outputQuality: null,
       target: descriptions.target,
+      crateSeries: EconParser.getCrateSeries(tags, item),
     };
 
     // Clean up the painkit name
@@ -332,6 +333,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       output,
       outputQuality,
       elevated: raw.elevated,
+      crateSeries: raw.crateSeries,
       paint,
       parts,
       spells,
@@ -387,6 +389,49 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     } else {
       return 0;
     }
+  }
+
+  static getCrateSeries(tags: TagAttributes, item: EconItem): number | null {
+    if (tags.Type !== 'Crate') {
+      return null;
+    }
+
+    // We can get the crate series from the description of the item, but that
+    // would add more description checks.
+
+    const lastChar = item.market_hash_name.charCodeAt(
+      item.market_hash_name.length - 1,
+    );
+
+    if (!(lastChar >= 48 && lastChar <= 57)) {
+      return null;
+    }
+
+    // TODO: Can probably speed this up by hardcoding checks for the last few characters
+    // There is no real reason to check for n numbers when we know there are at
+    // max 3. We can save time by not having the overhead of a loop.
+
+    // We know there is atleast one number in the name
+    let numbers = 1;
+
+    // We start from the end of the string and go backwards (skipping one char)
+    for (let i = item.market_hash_name.length - 2; i >= 0; i--) {
+      // Get the char code of the current character
+      const charCode = item.market_hash_name.charCodeAt(i);
+
+      if (charCode >= 48 && charCode <= 57) {
+        // The character is a number
+        numbers++;
+      } else if (charCode === 35) {
+        // The character is a number sign
+        return parseInt(item.market_hash_name.slice(i + 1), 10);
+      } else {
+        // The character is not a number or a number sign
+        break;
+      }
+    }
+
+    return null;
   }
 
   static getTagAttributes(item: EconItem): TagAttributes {

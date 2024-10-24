@@ -108,4 +108,5 @@ export interface ExtractedEconItem {
   output: string | null;
   outputQuality: string | null;
   target: string | null;
+  crateSeries: number | null;
 }

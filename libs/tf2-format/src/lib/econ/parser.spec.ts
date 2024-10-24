@@ -451,6 +451,14 @@ describe('EconParser', () => {
       expect(extracted.wear).toEqual('Factory New');
       expect(extracted.effect).toEqual(null);
     });
+
+    it('will parse crate series', () => {
+      const item = TestData.getCrateWithSeries();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.crateSeries).toEqual(57);
+    });
   });
 
   describe('#parse', () => {

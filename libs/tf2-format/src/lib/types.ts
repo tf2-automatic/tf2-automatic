@@ -21,6 +21,7 @@ export interface Item {
   target: number | null;
   output: number | null;
   outputQuality: number | null;
+  crateSeries: number | null;
 }
 
 /**

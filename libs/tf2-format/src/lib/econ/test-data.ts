@@ -2901,3 +2901,101 @@ export function getDecoratedWeaponWithoutEffect() {
     is_currency: false,
   };
 }
+
+export function getCrateWithSeries() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14894048871',
+    classid: '170947906',
+    instanceid: '0',
+    amount: 1,
+    pos: 633,
+    id: '14894048871',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEIfgYFWCTuuSpEjYayDvPUXbEDyok2tskFjjVqwlYjY7XgNjVlK1XDU_JcCvZtrQy_DX9lptdtU6An3zLb',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEIfgYFWCTuuSpEjYayDvPUXbEDyok2tskFjjVqwlYjY7XgNjVlK1XDU_JcCvZtrQy_DX9lptdtU6An3zLb',
+    descriptions: [
+      {
+        value: 'Crate Series #57',
+        color: '7ea9d1',
+      },
+      {
+        value:
+          'You need a Mann Co. Supply Crate Key to open this.\nYou can pick one up at the Mann Co. Store.',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value:
+          'This crate contains one of the following items.\nWeapons will be Strange quality.',
+      },
+      {
+        value: '    The Fists of Steel',
+        color: '6F6A63',
+      },
+      {
+        value: '    The Neon Annihilator',
+        color: '6F6A63',
+      },
+      {
+        value: '    Jarate',
+        color: '6F6A63',
+      },
+      {
+        value: '    Mann Co. Painting Set',
+        color: '6F6A63',
+      },
+      {
+        value: "    Tam O' Shanter",
+        color: '6F6A63',
+      },
+      {
+        value: '    Détective Noir',
+        color: '6F6A63',
+      },
+      {
+        value: 'or an Exceedingly Rare Series #2 Unusual Hat!',
+        color: '7ea9d1',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=5022&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+    ],
+    name: 'Mann Co. Supply Crate Series #57',
+    name_color: '7D6D00',
+    type: 'Level 10 Supply Crate',
+    market_name: 'Mann Co. Supply Crate Series #57',
+    market_hash_name: 'Mann Co. Supply Crate Series #57',
+    commodity: true,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'Unique',
+        name: 'Unique',
+        category: 'Quality',
+        color: '7D6D00',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'Supply Crate',
+        name: 'Crate',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
