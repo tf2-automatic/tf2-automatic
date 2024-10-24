@@ -2999,3 +2999,176 @@ export function getCrateWithSeries() {
     fraudwarnings: [],
   };
 }
+
+export function getStrangeWarPaintWithEffect() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14665664455',
+    classid: '4299936041',
+    instanceid: '1363835678',
+    amount: 1,
+    pos: 1854,
+    id: '14665664455',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZ25YexDHDPkLD6MF4w3tG3V8vcZhAoDloexWeAnuvIbGYuUuMo1IHcjTXfLVZwCv4049gKdfecGI8TSvg3peMUjUog',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZ25YexDHDPkLD6MF4w3tG3V8vcZhAoDloexWeAnuvIbGYuUuMo1IHcjTXfLVZwCv4049gKdfecGI8TSvg3peMUjUog',
+    descriptions: [
+      {
+        value: 'Commando Grade War Paint (Minimal Wear)',
+        color: '8847ff',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+      },
+      {
+        value: '     Kills: 0',
+        color: '756b5e',
+      },
+      {
+        value: '★ Unusual Effect: Hot',
+        color: 'ffd700',
+      },
+      {
+        value: 'Can be redeemed for an item with the same pattern.',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'Winter 2020 Collection',
+      },
+      {
+        value: '    Starlight Serenity War Paint',
+        color: 'eb4b4b',
+      },
+      {
+        value: '    Saccharine Striped War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Frosty Delivery War Paint',
+        color: 'd32ce6',
+      },
+      {
+        value: '    Cookie Fortress War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '★ Frozen Aurora War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Elfin Enamel War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Smissmas Spycrabs War Paint',
+        color: '8847ff',
+      },
+      {
+        value: '    Gingerbread Winner War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Peppermint Swirl War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: "    Gifting Mann's Wrapping Paper War Paint",
+        color: '4b69ff',
+      },
+      {
+        value: '    Glacial Glazed War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Snow Globalization War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: '    Snowflake Swirled War Paint',
+        color: '4b69ff',
+      },
+      {
+        value: ' ',
+      },
+      {
+        value: 'This is a limited use item. Uses: 1',
+        color: '00a000',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=17279&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D11757280686060444117',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Frozen Aurora War Paint',
+    name_color: '8650AC',
+    type: '',
+    market_name: 'Strange Unusual Frozen Aurora War Paint (Minimal Wear)',
+    market_hash_name: 'Strange Unusual Frozen Aurora War Paint (Minimal Wear)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D11757280686060444117',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'TF_PaintKitTool',
+        name: 'War Paint',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Rarity_Mythical',
+        name: 'Commando',
+        category: 'Rarity',
+        color: '8847ff',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'Winter2020Paintkits_collection',
+        name: 'Winter 2020 Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_MinimalWear',
+        name: 'Minimal Wear',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}

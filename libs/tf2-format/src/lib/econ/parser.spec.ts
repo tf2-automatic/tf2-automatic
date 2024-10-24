@@ -420,7 +420,7 @@ describe('EconParser', () => {
 
       const extracted = parser.extract(item);
 
-      expect(extracted.quality).toEqual('Unusual');
+      expect(extracted.quality).toEqual('Decorated Weapon');
       expect(extracted.effect).toEqual('Cool');
       expect(extracted.paintkit).toEqual('Candy Coated');
       expect(extracted.wear).toEqual('Field-Tested');
@@ -458,6 +458,17 @@ describe('EconParser', () => {
       const extracted = parser.extract(item);
 
       expect(extracted.crateSeries).toEqual(57);
+    });
+
+    it('will parse strange war paint with effect', () => {
+      const item = TestData.getStrangeWarPaintWithEffect();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Strange');
+      expect(extracted.effect).toEqual('Hot');
+      expect(extracted.paintkit).toEqual('Frozen Aurora');
+      expect(extracted.wear).toEqual('Minimal Wear');
     });
   });
 
