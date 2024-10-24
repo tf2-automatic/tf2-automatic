@@ -1,0 +1,7 @@
+{
+  "name": "@tf2-automatic/tf2-format",
+  "version": "latest",
+  "dependencies": {
+    "tslib": "^2.7.0"
+  }
+}
