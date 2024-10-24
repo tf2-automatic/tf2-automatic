@@ -593,6 +593,8 @@ export class SchemaService implements OnApplicationBootstrap {
     const paintkitsById: Record<string, Buffer> = {};
     const paintkitsByName: Record<string, Buffer> = {};
 
+    const paintkits: PaintKit[] = [];
+
     for (const protodef in protodefs) {
       const parts = protodef.slice(0, protodef.indexOf(' ')).split('_');
       if (parts.length !== 3) {
@@ -614,10 +616,17 @@ export class SchemaService implements OnApplicationBootstrap {
         continue;
       }
 
-      const packed = pack({ id, name });
+      paintkits.push({ id, name });
+    }
 
-      paintkitsById[id.toString()] = packed;
-      paintkitsByName[Buffer.from(name).toString('base64')] = packed;
+    paintkits.sort((a, b) => a.id - b.id);
+
+    for (let i = paintkits.length - 1; i >= 0; i--) {
+      const paintkit = paintkits[i];
+      const packed = pack(paintkit);
+
+      paintkitsById[paintkit.id.toString()] = packed;
+      paintkitsByName[Buffer.from(paintkit.name).toString('base64')] = packed;
     }
 
     await this.redis
