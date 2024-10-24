@@ -1,0 +1,53 @@
+@startuml Loading inventory
+
+actor User as user
+
+participant "bot-manager" as bot_manager
+participant "bot" as bot
+participant "Message broker" as message_broker
+
+group Connect to message broker
+  activate user
+  user -> message_broker: Subscribe to inventory events
+  activate message_broker
+  message_broker --> user: Acknowledge
+  deactivate message_broker
+  deactivate user
+end
+
+group Request inventory to be loaded
+  user -> bot_manager: Request to load inventory
+  activate user
+  activate bot_manager
+  bot_manager -> bot_manager: Queue load
+  bot_manager --> user: Acknowledge
+  deactivate bot_manager
+  deactivate user
+end
+
+group Load inventory
+  bot_manager -> bot: Load inventory
+  activate bot
+  activate bot_manager
+  bot --> bot_manager: Inventory
+  deactivate bot
+  bot_manager -> bot_manager: Cache inventory
+  bot_manager -> message_broker: Publish inventory
+  activate message_broker
+  message_broker --> bot_manager: Acknowledge
+  deactivate bot_manager
+end
+
+group React to inventory loaded
+  message_broker -> user: Inventory loaded
+  activate user
+  user -> bot_manager: Request inventory
+  activate bot_manager
+  bot_manager --> user: Cached inventory
+  deactivate bot_manager
+  user --> message_broker: Acknowledge
+  deactivate message_broker
+  deactivate user
+end
+
+@enduml

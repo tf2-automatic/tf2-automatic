@@ -17,11 +17,8 @@ import {
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';
-import Redlock from 'redlock';
-import { getLockConfig } from '@tf2-automatic/config';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
-
-const KEY_PREFIX = 'bptf-manager:data:';
+import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class InventoriesService {
@@ -55,7 +52,7 @@ export class InventoriesService {
     const time = body?.time ?? Math.floor(Date.now() / 1000);
 
     await this.locker.using(
-      [`bptf-manager:inventories:${steamid64}`],
+      [`inventories:${steamid64}`],
       LockDuration.SHORT,
       async (signal) => {
         const refreshPoint = await this.getRefreshPoint(steamid);
@@ -168,11 +165,11 @@ export class InventoriesService {
   }
 
   private getInventoryKey(steamid64: string) {
-    return KEY_PREFIX + 'inventories:' + steamid64;
+    return 'inventories:' + steamid64;
   }
 
   private getInventoryRefreshPointKey(steamid64: string) {
-    return KEY_PREFIX + 'inventories:refresh:' + steamid64;
+    return 'inventories:refresh:' + steamid64;
   }
 
   async getInventoryStatus(
@@ -234,13 +231,13 @@ export class InventoriesService {
 
     await this.redis
       .pipeline()
-      .set(key, JSON.stringify(data))
+      .set(key, pack(data))
       .expire(key, 24 * 60 * 60)
       .exec();
   }
 
   async getInventory(steamid: SteamID): Promise<Inventory | null> {
-    const data = await this.redis.get(
+    const data = await this.redis.getBuffer(
       this.getInventoryKey(steamid.getSteamID64()),
     );
 
@@ -248,7 +245,7 @@ export class InventoriesService {
       return null;
     }
 
-    return JSON.parse(data);
+    return unpack(data);
   }
 
   async setRefreshPoint(steamid: SteamID, time: number): Promise<void> {

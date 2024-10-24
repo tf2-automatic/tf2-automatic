@@ -1,0 +1,33 @@
+diff --git a/handlers.js b/handlers.js
+index 1d57bbfc74001aa5c4e3e4968a64d56ad65ef234..8fb9ab3734e4bf3911974e208f970fa1e4dbfad3 100644
+--- a/handlers.js
++++ b/handlers.js
+@@ -46,26 +46,8 @@ handlers[Language.ServerGoodbye] = function(body) {
+ 
+ // Item schema
+ handlers[Language.UpdateItemSchema] = async function(body) {
+-	try {
+-		let proto = decodeProto(Schema.CMsgUpdateItemSchema, body);
+-		this.emit('itemSchema', proto.item_schema_version.toString(16).toUpperCase(), proto.items_game_url);
+-
+-		let client = new HttpClient();
+-		let result = await client.request({
+-			method: 'get',
+-			url: proto.items_game_url
+-		});
+-
+-		if (result.statusCode != 200) {
+-			throw new Error(`HTTP error ${result.statusCode}`);
+-		}
+-
+-		this.itemSchema = VDF.parse(result.textBody).items_game;
+-		this.emit('itemSchemaLoaded');
+-	} catch (err) {
+-		this.emit('debug', `Unable to download items_game.txt: ${err.message}`);
+-		this.emit('itemSchemaError', err);
+-	}
++	let proto = decodeProto(Schema.CMsgUpdateItemSchema, body);
++	this.emit('itemSchema', proto.item_schema_version.toString(16).toUpperCase(), proto.items_game_url);
+ };
+ 
+ // Various notifications (why do we need three distinct interfaces??)

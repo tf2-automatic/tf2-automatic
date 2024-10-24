@@ -29,25 +29,26 @@ export class GarbageCollectorService {
 
     const missing: string[] = [];
 
-    sent.forEach((offer) => {
-      delete this.manager.pollData.offerData[offer.id!].missing;
-    });
-
-    received.forEach((offer) => {
-      delete this.manager.pollData.offerData[offer.id!].missing;
-    });
-
-    for (const id in this.manager.pollData.sent) {
-      if (!sent.some((offer) => offer.id === id)) {
-        missing.push(id);
+    const deleteMissingKey = (offer: TradeOffer) => {
+      const offerData = this.manager.pollData.offerData[offer.id!];
+      if (offerData) {
+        delete offerData.missing;
       }
-    }
+    };
 
-    for (const id in this.manager.pollData.received) {
-      if (!received.some((offer) => offer.id === id)) {
-        missing.push(id);
-      }
-    }
+    sent.forEach(deleteMissingKey);
+    received.forEach(deleteMissingKey);
+
+    const findMissing = (ids: string[], list: TradeOffer[]) => {
+      ids.forEach((id) => {
+        if (!list.some((offer) => offer.id === id)) {
+          missing.push(id);
+        }
+      });
+    };
+
+    findMissing(Object.keys(this.manager.pollData.sent), sent);
+    findMissing(Object.keys(this.manager.pollData.received), received);
 
     const now = Date.now();
     let changed = false,

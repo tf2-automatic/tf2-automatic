@@ -14,4 +14,8 @@ export class BotsService {
   getBots(): Promise<Bot[]> {
     return this.heartbeatsService.getBots();
   }
+
+  deleteBot(steamid: SteamID): Promise<void> {
+    return this.heartbeatsService.deleteBot(steamid);
+  }
 }

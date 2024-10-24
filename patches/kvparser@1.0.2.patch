@@ -1,0 +1,48 @@
+diff --git a/test/test.js b/test/test.js
+deleted file mode 100644
+index 329e48d5a385e6060f43895d893d1a4a2ddae656..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test01.eol-crlf.vdf b/test/test_data/test01.eol-crlf.vdf
+deleted file mode 100644
+index 6805f140f95e8d4f3637e961d18cccdd8a4e2a8e..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test01.eol-lf.vdf b/test/test_data/test01.eol-lf.vdf
+deleted file mode 100644
+index 6805f140f95e8d4f3637e961d18cccdd8a4e2a8e..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test02.vdf b/test/test_data/test02.vdf
+deleted file mode 100644
+index f68062fd3941dcdfc43276b067bfc601cdf23edf..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test03.vdf b/test/test_data/test03.vdf
+deleted file mode 100644
+index fc0a40ee631d66ba8e5deabefa2c5031e2a4f62c..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test04.vdf b/test/test_data/test04.vdf
+deleted file mode 100644
+index 7e3dcfe267c8619a75b81ced5b96d9f3c6d3a25c..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test05.vdf b/test/test_data/test05.vdf
+deleted file mode 100644
+index 524493d6c3aadee37982ebfc88323172f5960a15..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test06.vdf b/test/test_data/test06.vdf
+deleted file mode 100644
+index 613eb7bd20f72ce5cbc2a174a74b9c5767586be6..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test210770.json b/test/test_data/test210770.json
+deleted file mode 100644
+index d5c7b182d1c73b15a21f50c85798da74cbabfebc..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test210770.vdf b/test/test_data/test210770.vdf
+deleted file mode 100644
+index c50de939c47c78a516a7a59cda9b320a88d5d843..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test230290.eol-lf.vdf b/test/test_data/test230290.eol-lf.vdf
+deleted file mode 100644
+index 9c69e5ec3fcc9b7d5fb5ba83f52c4e2c0a658561..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test230290.json b/test/test_data/test230290.json
+deleted file mode 100644
+index 063c52cfb381c2757e2d9ed58bc1ef146d0b020a..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test440.json b/test/test_data/test440.json
+deleted file mode 100644
+index 26460c02f50a5c17c2e63113aa90630805d54da8..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test440.vdf b/test/test_data/test440.vdf
+deleted file mode 100644
+index d1c1c972f39b469463999c81407ee45a238e59f8..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test730.json b/test/test_data/test730.json
+deleted file mode 100644
+index 1ad3acc6e1c0981f011c06ee9226cdde2852198b..0000000000000000000000000000000000000000
+diff --git a/test/test_data/test730.vdf b/test/test_data/test730.vdf
+deleted file mode 100644
+index 8ad37abaf9cf3658c6e253706b001ddcbfc1d383..0000000000000000000000000000000000000000

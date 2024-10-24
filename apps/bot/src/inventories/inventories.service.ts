@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import { InventoryCallback } from 'steam-tradeoffer-manager';
 import SteamID from 'steamid';
@@ -27,14 +27,21 @@ export class InventoriesService {
         const inventory = items as unknown as Inventory;
 
         if (err) {
+          if (err.message === 'HTTP error 401') {
+            this.logger.warn(
+              `Error getting inventory: ${err.message} (inventory is private)`,
+            );
+            return reject(new UnauthorizedException('Inventory is private'));
+          }
+
           this.logger.warn(`Error getting inventory: ${err.message}`);
-          reject(err);
-        } else {
-          this.logger.debug(
-            `Got inventory ${steamid}/${appid}/${contextid} with ${inventory.length} items`,
-          );
-          resolve(inventory);
+          return reject(err);
         }
+
+        this.logger.debug(
+          `Got inventory ${steamid}/${appid}/${contextid} with ${inventory.length} items`,
+        );
+        resolve(inventory);
       };
 
       if (steamid.getSteamID64() === this.botService.getSteamID64()) {

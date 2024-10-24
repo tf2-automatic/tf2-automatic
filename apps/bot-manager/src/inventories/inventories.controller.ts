@@ -4,20 +4,24 @@ import {
   Delete,
   Get,
   Param,
+  ParseBoolPipe,
   ParseIntPipe,
   Post,
+  Query,
   ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import {
   INVENTORIES_BASE_URL,
   InventoryResponse,
   INVENTORY_PATH,
+  INVENTORY_FETCH_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
@@ -46,13 +50,13 @@ export class InventoriesController {
     description: 'The contextid of the inventory',
     example: 2,
   })
-  addInventoryToQueue(
+  async addInventoryToQueue(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
     @Body(new ValidationPipe()) body: EnqueueInventoryDto,
   ): Promise<void> {
-    return this.inventoriesService.addToQueue(steamid, appid, contextid, body);
+    await this.inventoriesService.addToQueue(steamid, appid, contextid, body);
   }
 
   @Get(INVENTORY_PATH)
@@ -85,6 +89,56 @@ export class InventoriesController {
       steamid,
       appid,
       contextid,
+    );
+  }
+
+  @Get(INVENTORY_FETCH_PATH)
+  @ApiOperation({
+    summary: 'Fetch inventory',
+    description: 'Gets the inventory from the cache or waits for it to load.',
+  })
+  @ApiOkResponse({
+    description: 'Inventory',
+    type: CachedInventoryModel,
+  })
+  @ApiParamSteamID()
+  @ApiParam({
+    name: 'appid',
+    description: 'The appid of the game',
+    example: 440,
+  })
+  @ApiParam({
+    name: 'contextid',
+    description: 'The contextid of the inventory',
+    example: 2,
+  })
+  @ApiQuery({
+    name: 'useCache',
+    description: 'Get inventory from cache if available. Default is true.',
+    example: true,
+    required: false,
+  })
+  @ApiQuery({
+    name: 'tradableOnly',
+    description: 'Only get tradable items.',
+    example: true,
+    required: false,
+  })
+  async waitForInventory(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Param('appid', ParseIntPipe) appid: number,
+    @Param('contextid') contextid: string,
+    @Query('useCache', new ParseBoolPipe({ optional: true }))
+    useCache = true,
+    @Query('tradableOnly', new ParseBoolPipe({ optional: true }))
+    tradableOnly: boolean | undefined,
+  ): Promise<InventoryResponse> {
+    return this.inventoriesService.fetchInventory(
+      steamid,
+      appid,
+      contextid,
+      useCache,
+      tradableOnly,
     );
   }
 

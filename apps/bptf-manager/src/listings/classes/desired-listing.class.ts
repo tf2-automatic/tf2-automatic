@@ -86,7 +86,7 @@ export class DesiredListing {
   }
 
   toJSON(): DesiredListingInterface {
-    return {
+    const listing: DesiredListingInterface = {
       hash: this.hash,
       id: this.id ?? null,
       steamid64: this.steamid.getSteamID64(),
@@ -96,5 +96,19 @@ export class DesiredListing {
       lastAttemptedAt: this.lastAttemptedAt,
       updatedAt: this.updatedAt,
     };
+
+    if (this.priority === undefined) {
+      delete listing.priority;
+    }
+
+    if (this.error === undefined) {
+      delete listing.error;
+    }
+
+    if (this.lastAttemptedAt === undefined) {
+      delete listing.lastAttemptedAt;
+    }
+
+    return listing;
   }
 }

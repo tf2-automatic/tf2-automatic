@@ -10,15 +10,14 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Redis } from 'ioredis';
 import { AgentJobData } from './interfaces/queue.interface';
 import { TokensService } from '../tokens/tokens.service';
-import Redlock from 'redlock';
 import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getJobs, getRepeatableJob } from '../common/utils';
-import { getLockConfig } from '@tf2-automatic/config';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
+import { pack, unpack } from 'msgpackr';
 
-const KEY = 'bptf-manager:data:agents';
+const KEY = 'agents';
 
 @Injectable()
 export class AgentsService {
@@ -39,9 +38,9 @@ export class AgentsService {
   }
 
   async getAgents(): Promise<Agent[]> {
-    const agents = await this.redis.hvals(KEY);
+    const agents = await this.redis.hvalsBuffer(KEY);
 
-    return agents.map((key) => JSON.parse(key));
+    return agents.map((key) => unpack(key));
   }
 
   private async setAgent(
@@ -56,7 +55,7 @@ export class AgentsService {
       updatedAt: Math.floor(Date.now() / 1000),
     };
 
-    await this.redis.hset(KEY, steamid64, JSON.stringify(agent));
+    await this.redis.hset(KEY, steamid64, pack(agent));
 
     return agent;
   }
@@ -68,20 +67,20 @@ export class AgentsService {
   async getAgent(steamid: SteamID): Promise<Agent | null> {
     const steamid64 = steamid.getSteamID64();
 
-    const value = await this.redis.hget(KEY, steamid64);
+    const value = await this.redis.hgetBuffer(KEY, steamid64);
 
     if (value === null) {
       return null;
     }
 
-    return JSON.parse(value);
+    return unpack(value);
   }
 
   enqueueRegisterAgent(steamid: SteamID, dto: CreateAgentDto): Promise<Agent> {
     const steamid64 = steamid.getSteamID64();
 
     return this.locker.using(
-      [`bptf-manager:agents:${steamid64}`],
+      [`agents:${steamid64}`],
       LockDuration.SHORT,
       async () => {
         const agent = await this.setAgent(steamid, dto);
@@ -123,7 +122,7 @@ export class AgentsService {
     const steamid64 = steamid.getSteamID64();
 
     await this.locker.using(
-      [`bptf-manager:agents:${steamid64}`],
+      [`agents:${steamid64}`],
       LockDuration.SHORT,
       async (signal) => {
         const agent = await this.getAgent(steamid);
