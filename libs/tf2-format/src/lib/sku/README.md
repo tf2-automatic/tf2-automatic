@@ -20,7 +20,7 @@ const item: PrimaryItemAttributes = SKU.fromString(sku);
 assert(sku === SKU.fromObject(item));
 ```
 
-The `fromString` method is incredibly fast. With even the shortest valid strings it is more than 3 times as fast as alternatives. And the performance benefit is even more noticable at longer strings, which as high as 5 times better performance.
+The `fromString` method is incredibly fast. With even the shortest valid strings it is more than 3 times as fast as alternatives. And the performance benefit is even more noticable at the longer the strings are, with as high as 5 times better performance.
 
 No validations are made by the `SKU` class. But this is not a problem because the `fromString` method properly handles any string inputs. This makes it perfectly fine to use the method to parse user inputs. Additionally, the different parts of the SKU does not need to be in any specific order. The attributes can be in any order and it would not affect the parsing performance.
 
