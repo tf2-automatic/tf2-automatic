@@ -18,13 +18,14 @@ const qualityLoader = new DataLoader<string, number | null>(
   ([quality]) => {
     return axios
       .get(itemServiceUrl + '/schema/qualities/name/' + quality)
-      .then((res) => [res.data.id]);
+      .then((res) => {
+        const result = res.data.id;
+        cache.set('quality:' + quality, result);
+        return [result];
+      });
   },
   {
     batch: false,
-    cache: true,
-    cacheMap: cache,
-    cacheKeyFn: (key) => 'quality:' + key,
   },
 );
 
@@ -32,13 +33,14 @@ const effectLoader = new DataLoader<string, number | null>(
   ([effect]) => {
     return axios
       .get(itemServiceUrl + '/schema/effects/name/' + effect)
-      .then((res) => [res.data.id]);
+      .then((res) => {
+        const result = res.data.id;
+        cache.set('effect:' + effect, result);
+        return [result];
+      });
   },
   {
     batch: false,
-    cache: true,
-    cacheMap: cache,
-    cacheKeyFn: (key) => 'effect:' + key,
   },
 );
 
@@ -46,13 +48,14 @@ const textureLoader = new DataLoader<string, number | null>(
   ([texture]) => {
     return axios
       .get(itemServiceUrl + '/schema/paintkits/name/' + texture)
-      .then((res) => [res.data.id]);
+      .then((res) => {
+        const result = res.data.id;
+        cache.set('texture:' + texture, result);
+        return [result];
+      });
   },
   {
     batch: false,
-    cache: true,
-    cacheMap: cache,
-    cacheKeyFn: (key) => 'texture:' + key,
   },
 );
 
@@ -60,9 +63,14 @@ const itemLoader = new DataLoader<string, number | null>(
   ([item]) => {
     return axios
       .get(itemServiceUrl + '/schema/items/name/' + item)
-      .then((res) => [res.data[0].defindex])
+      .then((res) => {
+        const result = res.data[0].defindex;
+        cache.set('item:' + item, result);
+        return [result];
+      })
       .catch((err) => {
         if (err.response.status === 404) {
+          cache.set('item:' + item, null);
           return [null];
         }
 
@@ -71,9 +79,6 @@ const itemLoader = new DataLoader<string, number | null>(
   },
   {
     batch: false,
-    cache: true,
-    cacheMap: cache,
-    cacheKeyFn: (key) => 'item:' + key,
   },
 );
 
@@ -81,13 +86,14 @@ const spellLoader = new DataLoader<string, number | null>(
   ([spell]) => {
     return axios
       .get('http://localhost:3003/schema/spells/name/' + spell)
-      .then((res) => [res.data.id]);
+      .then((res) => {
+        const result = res.data.id;
+        cache.set('spell:' + spell, result);
+        return [result];
+      });
   },
   {
     batch: false,
-    cache: true,
-    cacheMap: cache,
-    cacheKeyFn: (key) => 'spell:' + key,
   },
 );
 

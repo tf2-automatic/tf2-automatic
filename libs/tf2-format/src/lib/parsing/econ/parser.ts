@@ -1,5 +1,5 @@
 import { Parser } from '../parser';
-import { InventoryItem } from '../types';
+import { InventoryItem } from '../../types';
 import {
   DescriptionAttributes,
   EconItem,

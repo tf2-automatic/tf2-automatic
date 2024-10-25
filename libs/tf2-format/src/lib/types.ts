@@ -1,28 +1,7 @@
 /**
  * A common representation of a TF2 item.
  */
-export interface Item {
-  defindex: number;
-  quality: number;
-  elevated: boolean;
-  craftable: boolean;
-  tradable: boolean;
-  australium: boolean;
-  festivized: boolean;
-  spells: number[];
-  parts: number[];
-  killstreak: number | null;
-  sheen: string | null;
-  killstreaker: string | null;
-  effect: number | null;
-  paintkit: number | null;
-  paint: number | null;
-  wear: number | null;
-  target: number | null;
-  output: number | null;
-  outputQuality: number | null;
-  crateSeries: number | null;
-}
+export type Item = PrimaryItemAttributes & ExtraItemAttributes;
 
 /**
  * A TF2 item from an inventory.
@@ -30,6 +9,49 @@ export interface Item {
 export interface InventoryItem extends Item {
   assetid: string;
 }
+
+/**
+ * The primary attributes of a TF2 item that are used to identify it.
+ */
+export interface PrimaryItemAttributes {
+  defindex: number;
+  quality: number;
+  craftable: boolean;
+  tradable: boolean;
+  australium: boolean;
+  festivized: boolean;
+  killstreak: number;
+  effect: number | null;
+  paintkit: number | null;
+  wear: number | null;
+  target: number | null;
+  output: number | null;
+  outputQuality: number | null;
+  elevated: boolean;
+  crateSeries: number | null;
+}
+
+/**
+ * Extra attributes of a TF2 item.
+ */
+export interface ExtraItemAttributes {
+  paint: number | null;
+  spells: number[];
+  parts: number[];
+  sheen: string | null;
+  killstreaker: string | null;
+}
+
+type RequiredKeys<T extends keyof U, U> = {
+  [K in T]-?: K extends keyof U ? U[K] : never; // Required keys
+} & {
+  [K in Exclude<keyof U, T>]?: U[K]; // Optional keys
+};
+
+export type RequiredItemAttributes = RequiredKeys<
+  'defindex' | 'quality',
+  PrimaryItemAttributes
+>;
 
 /**
  * Various information needs to be retrieved externally to format the items.

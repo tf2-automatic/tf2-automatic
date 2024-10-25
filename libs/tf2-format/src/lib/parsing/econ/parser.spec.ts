@@ -1,7 +1,7 @@
 import { EconParser } from './parser';
 import { EconItem, Tag } from './types';
 import * as TestData from './test-data';
-import { Schema } from '../types';
+import { Schema } from '../../types';
 
 describe('EconParser', () => {
   describe('#getDefindex', () => {

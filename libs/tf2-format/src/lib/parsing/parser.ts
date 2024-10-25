@@ -1,4 +1,4 @@
-import { Schema, InventoryItem } from './types';
+import { Schema, InventoryItem } from '../types';
 
 /**
  * A parser that extracts information from an item and parses it into a common format
