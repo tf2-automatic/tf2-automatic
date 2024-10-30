@@ -72,7 +72,7 @@
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^5.5.0",
-    "@nestjs/axios": "^3.0.3",
+    "@nestjs/axios": "^3.1.1",
     "@nestjs/bullmq": "^10.2.1",
     "@nestjs/common": "^10.4.5",
     "@nestjs/config": "^3.2.3",
