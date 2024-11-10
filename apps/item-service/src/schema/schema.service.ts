@@ -9,7 +9,7 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import {
   BOT_EXCHANGE_NAME,
   TF2_SCHEMA_EVENT,
-  TF2SchemaEvent,
+  TF2SchemaEvent as BotSchemaEvent,
 } from '@tf2-automatic/bot-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { FlowProducer, Queue } from 'bullmq';
@@ -31,6 +31,8 @@ import {
   SchemaItemsResponse,
   SchemaOverviewResponse,
   Spell,
+  SchemaEvent,
+  SCHEMA_EVENT,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
@@ -89,10 +91,10 @@ export class SchemaService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     await this.eventsService.subscribe(
-      'item-service.schema-updated',
+      'item-service.bot-schema',
       BOT_EXCHANGE_NAME,
       [TF2_SCHEMA_EVENT],
-      async (event: TF2SchemaEvent) => {
+      async (event: BotSchemaEvent) => {
         return this.createJobsIfNewUrl(event.data.itemsGameUrl);
       },
       {
@@ -541,6 +543,12 @@ export class SchemaService implements OnApplicationBootstrap {
       job.data.time.toString(),
     );
 
+    const metadata = await this.getSchema();
+
+    await this.eventsService.publish(
+      SCHEMA_EVENT,
+      metadata satisfies SchemaEvent['data'],
+    );
 
     this.logger.log('Schema updated');
   }
