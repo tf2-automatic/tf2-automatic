@@ -58,8 +58,8 @@ export class SchemaController {
     summary: 'Get schema metadata',
     description: 'Returns the schema metadata',
   })
-  async getSchemaMetadata() {
-    return this.schemaService.getSchemaMetadata();
+  async getSchema() {
+    return this.schemaService.getSchema();
   }
 
   @Post(SCHEMA_REFRESH_PATH)

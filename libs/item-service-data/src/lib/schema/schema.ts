@@ -65,10 +65,10 @@ export interface UpdateSchemaResponse {
   enqueued: boolean;
 }
 
-export interface SchemaMetadataResponse {
+export interface Schema {
   itemsGameUrl: string;
-  itemsCount: number;
-  lastUpdated: number;
+  checkedAt: number;
+  updatedAt: number;
 }
 
 interface OriginName {

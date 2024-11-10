@@ -26,9 +26,9 @@ import {
   AttachedParticle,
   PaintKit,
   Quality,
+  Schema,
   SchemaItem,
   SchemaItemsResponse,
-  SchemaMetadataResponse,
   SchemaOverviewResponse,
   Spell,
 } from '@tf2-automatic/item-service-data';
@@ -37,6 +37,8 @@ import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 
 // Keeps track of the current version of the schema
 const ITEMS_GAME_URL_KEY = 'schema:items-game-url';
+// The last time the schema was checked
+const LAST_CHECKED_KEY = 'schema:last-checked';
 // The last time the schema was updated
 const LAST_UPDATED_KEY = 'schema:last-updated';
 // All schema items are stored in a hash set with the defindex as the key
@@ -99,29 +101,24 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
-  async getSchemaMetadata(): Promise<SchemaMetadataResponse> {
-    const currentKey = await this.getCurrentKey();
+  async getSchema(): Promise<Schema> {
+    const [itemsGameUrl, lastChecked, lastUpdated] = await Promise.all([
+      this.getItemsGameUrl(),
+      this.redis.get(LAST_CHECKED_KEY),
+      this.redis.get(LAST_UPDATED_KEY),
+    ]);
 
-    const itemsGameUrl = await this.getItemsGameUrl();
-    if (!itemsGameUrl) {
+    if (!itemsGameUrl || !lastChecked || !lastUpdated) {
       throw new NotFoundException('Schema not found');
     }
 
-    const lastUpdated = await this.redis.get(LAST_UPDATED_KEY);
-    if (!lastUpdated) {
-      throw new NotFoundException('Schema not found');
-    }
-
+    const lastCheckedParsed = Math.floor(parseInt(lastChecked, 10) / 1000);
     const lastUpdatedParsed = Math.floor(parseInt(lastUpdated, 10) / 1000);
-
-    const itemsCount = await this.redis.hlen(
-      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
-    );
 
     return {
       itemsGameUrl,
-      itemsCount,
-      lastUpdated: lastUpdatedParsed,
+      checkedAt: lastCheckedParsed,
+      updatedAt: lastUpdatedParsed,
     };
   }
 
@@ -414,29 +411,28 @@ export class SchemaService implements OnApplicationBootstrap {
     await this.createJobs();
   }
 
-  async createJobs(force = false): Promise<boolean> {
-    if (!force) {
-      // Check if we are already updating the schema or if it was recently updated
-      const lastUpdated = await this.getLastUpdated();
-      if (lastUpdated && Date.now() - lastUpdated < this.updateTimeout) {
+  async createJobs(check = false, force = false): Promise<boolean> {
+    if (!force && !check) {
+      // Check if the schema was recently queued to be checked
+      const last = await this.redis.get(LAST_CHECKED_KEY);
+      if (last) {
+        // It has been checked earlier
+        const time = parseInt(last, 10);
+        if (Date.now() - time < this.updateTimeout) {
         return false;
+      }
+
+        // Check happened a while ago, we will check again
       }
     }
 
-    await this.createSchemaJob();
-    await this.setLastUpdated();
+    const time = Date.now();
+
+    await this.redis.set(LAST_CHECKED_KEY, time);
+
+    await this.createSchemaJob(time, force);
 
     return true;
-  }
-
-  private setLastUpdated() {
-    return this.redis.set(LAST_UPDATED_KEY, Date.now());
-  }
-
-  private getLastUpdated(): Promise<number | null> {
-    return this.redis
-      .get(LAST_UPDATED_KEY)
-      .then((value) => (value ? parseInt(value, 10) : null));
   }
 
   private async getItemsGameUrl(): Promise<string | null> {
@@ -529,7 +525,11 @@ export class SchemaService implements OnApplicationBootstrap {
    * @param job
    */
   async updateSchema(job: Job) {
-    await this.redis.set(CURRENT_SCHEMA_KEY, job.data.time);
+    await this.redis
+      .multi()
+      .set(LAST_UPDATED_KEY, job.data.time)
+      .set(CURRENT_SCHEMA_KEY, job.data.time)
+      .exec();
 
     // Delete schema keys with the old suffix
     await this.deleteKeysByPattern(
