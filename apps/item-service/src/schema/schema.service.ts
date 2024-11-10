@@ -421,8 +421,8 @@ export class SchemaService implements OnApplicationBootstrap {
         // It has been checked earlier
         const time = parseInt(last, 10);
         if (Date.now() - time < this.updateTimeout) {
-        return false;
-      }
+          return false;
+        }
 
         // Check happened a while ago, we will check again
       }
@@ -528,6 +528,17 @@ export class SchemaService implements OnApplicationBootstrap {
    * @param job
    */
   async updateSchema(job: Job) {
+    const currentKey = await this.getCurrentKey();
+    if (currentKey) {
+      // We have a schema stored, check if the schema is newer than this one
+      const currentTime = parseInt(currentKey, 10);
+      if (currentTime > job.data.time) {
+        // The schema has already been updated
+        this.logger.debug('Schema has been updated more recently');
+        return;
+      }
+    }
+
     await this.redis
       .multi()
       .set(LAST_UPDATED_KEY, job.data.time)
@@ -558,10 +569,10 @@ export class SchemaService implements OnApplicationBootstrap {
    */
   async updateUrl(job: Job, url: string) {
     if (job.data.force !== true) {
-    if (await this.isSameItemsGameUrl(url)) {
-      // The schema is already up to date
-      this.logger.debug('Schema is already up to date');
-      return;
+      if (await this.isSameItemsGameUrl(url)) {
+        // The schema is already up to date
+        this.logger.debug('Schema is already up to date');
+        return;
       }
     }
 
