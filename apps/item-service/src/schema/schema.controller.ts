@@ -69,16 +69,23 @@ export class SchemaController {
       'Enqueues a job to check if the schema needs to be updated and updates the schema if it does.',
   })
   @ApiQuery({
+    name: 'check',
+    description: 'Force a check to be made even if one was recently made',
+    example: false,
+    required: false,
+  })
+  @ApiQuery({
     name: 'force',
-    description: 'Force the check to be made even if one was recently made',
+    description: 'Force the schema to be updated',
     example: false,
     required: false,
   })
   @HttpCode(HttpStatus.OK)
   async updateSchema(
+    @Query('check', new ParseBoolPipe({ optional: true })) check?: boolean,
     @Query('force', new ParseBoolPipe({ optional: true })) force?: boolean,
   ): Promise<UpdateSchemaResponse> {
-    const enqueued = await this.schemaService.createJobs(force);
+    const enqueued = await this.schemaService.createJobs(check, force);
     return {
       enqueued,
     };

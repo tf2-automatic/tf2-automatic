@@ -446,9 +446,10 @@ export class SchemaService implements OnApplicationBootstrap {
     return currentItemsGameUrl === url;
   }
 
-  private createSchemaJob() {
+  private createSchemaJob(time: number, force = false) {
     return this.queue.add('url', {
-      time: Date.now(),
+      time,
+      force,
     });
   }
 
@@ -548,10 +549,12 @@ export class SchemaService implements OnApplicationBootstrap {
    * This method is called when the current schema url is fetched from Steam
    */
   async updateUrl(job: Job, url: string) {
+    if (job.data.force !== true) {
     if (await this.isSameItemsGameUrl(url)) {
       // The schema is already up to date
       this.logger.debug('Schema is already up to date');
       return;
+      }
     }
 
     await this.redis.set(

@@ -13,6 +13,7 @@ export type JobWithTypes = Job<JobData, unknown, JobName>;
 
 export interface JobData {
   time: number;
+  force?: boolean;
   start?: number;
   items_game_url?: string;
 }
