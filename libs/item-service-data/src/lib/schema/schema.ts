@@ -68,7 +68,6 @@ export interface UpdateSchemaResponse {
 export interface SchemaMetadataResponse {
   itemsGameUrl: string;
   itemsCount: number;
-  updating: boolean;
   lastUpdated: number;
 }
 

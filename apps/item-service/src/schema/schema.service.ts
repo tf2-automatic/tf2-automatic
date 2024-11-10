@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   Injectable,
+  Logger,
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
@@ -11,7 +12,7 @@ import {
   TF2SchemaEvent,
 } from '@tf2-automatic/bot-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { Queue } from 'bullmq';
+import { FlowProducer, Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { Config, SchemaConfig } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
@@ -45,29 +46,35 @@ const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name:<name>';
 // A key that stores the suffix of the current schema keys
 const CURRENT_SCHEMA_KEY = 'schema:current';
 // A hash set that stores all schema qualities with the id as the key
-const SCHEMA_QUALITIES_ID_KEY = 'schema:qualities:id:<id>';
+const SCHEMA_QUALITIES_ID_KEY = 'schema:qualities:id';
 // A hash set that stores all schema qualities with the name as the key
-const SCHEMA_QUALITIES_NAME_KEY = 'schema:qualities:name:<name>';
+const SCHEMA_QUALITIES_NAME_KEY = 'schema:qualities:name';
 // A hash set that stores all schema effects with the id as the key
-const SCHEMA_EFFECTS_ID_KEY = 'schema:effects:id:<id>';
+const SCHEMA_EFFECTS_ID_KEY = 'schema:effects:id';
 // A hash set that stores all schema effects with the name as the key
-const SCHEMA_EFFECTS_NAME_KEY = 'schema:effects:name:<name>';
+const SCHEMA_EFFECTS_NAME_KEY = 'schema:effects:name';
 // A hash set that stores all paintkits with the id as the key
-const PAINTKIT_ID_KEY = 'schema:paintkit:id:<id>';
+const PAINTKIT_ID_KEY = 'schema:paintkit:id';
 // A hash set that stores all paintkits with the name as the key
-const PAINTKIT_NAME_KEY = 'schema:paintkit:name:<name>';
+const PAINTKIT_NAME_KEY = 'schema:paintkit:name';
 // A hash set that stores all spells with the id as the key
-const SPELLS_ID_KEY = 'schema:spells:id:<id>';
+const SPELLS_ID_KEY = 'schema:spells:id';
 // A hash set that stores all spells with the name as the key
-const SPELLS_NAME_KEY = 'schema:spells:name:<name>';
+const SPELLS_NAME_KEY = 'schema:spells:name';
 
 // The name of the schema overview file
-const OVERVIEW_FILE = 'schema-overview.json';
+const OVERVIEW_FILE = 'schema-overview-<time>.json';
+// The name of the items game file
+const ITEMS_GAME_FILE = 'items_game-<time>.txt';
 
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(SchemaService.name);
+
   private readonly updateTimeout =
     this.configService.getOrThrow<SchemaConfig>('schema').updateTimeout;
+
+  private readonly producer: FlowProducer = new FlowProducer(this.queue.opts);
 
   constructor(
     @InjectQueue('schema')
@@ -84,8 +91,7 @@ export class SchemaService implements OnApplicationBootstrap {
       BOT_EXCHANGE_NAME,
       [TF2_SCHEMA_EVENT],
       async (event: TF2SchemaEvent) => {
-        const url = event.data.itemsGameUrl;
-        return this.createJobsIfNotRecentlyUpdated(url).then(() => undefined);
+        return this.createJobsIfNewUrl(event.data.itemsGameUrl);
       },
       {
         retry: true,
@@ -94,6 +100,8 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getSchemaMetadata(): Promise<SchemaMetadataResponse> {
+    const currentKey = await this.getCurrentKey();
+
     const itemsGameUrl = await this.getItemsGameUrl();
     if (!itemsGameUrl) {
       throw new NotFoundException('Schema not found');
@@ -106,22 +114,22 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const lastUpdatedParsed = Math.floor(parseInt(lastUpdated, 10) / 1000);
 
-    const itemsCount = await this.redis.hlen(SCHEMA_ITEMS_KEY);
-
-    const counts = await this.queue.getJobCounts();
-    const updating = counts.waiting + counts.active > 0;
+    const itemsCount = await this.redis.hlen(
+      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
+    );
 
     return {
       itemsGameUrl,
       itemsCount,
-      updating,
       lastUpdated: lastUpdatedParsed,
     };
   }
 
   async getItems(cursor: number, count: number): Promise<SchemaItemsResponse> {
+    const currentKey = await this.getCurrentKeyAndError();
+
     const [newCursor, elements] = await this.redis.hscanBuffer(
-      SCHEMA_ITEMS_KEY,
+      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
       cursor,
       'COUNT',
       count,
@@ -172,7 +180,12 @@ export class SchemaService implements OnApplicationBootstrap {
   private async getItemsByDefindexes(
     defindexes: string[],
   ): Promise<Record<string, SchemaItem>> {
-    const match = await this.redis.hmgetBuffer(SCHEMA_ITEMS_KEY, ...defindexes);
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const match = await this.redis.hmgetBuffer(
+      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
+      ...defindexes,
+    );
 
     const items: Record<string, SchemaItem> = {};
 
@@ -187,7 +200,12 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getQualityById(id: string): Promise<Quality> {
-    const quality = await this.redis.hgetBuffer(SCHEMA_QUALITIES_ID_KEY, id);
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const quality = await this.redis.hgetBuffer(
+      this.getSuffixedKey(SCHEMA_QUALITIES_ID_KEY, currentKey),
+      id,
+    );
 
     if (!quality) {
       throw new NotFoundException('Quality not found');
@@ -197,8 +215,10 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getQualityByName(name: string): Promise<Quality> {
+    const currentKey = await this.getCurrentKeyAndError();
+
     const quality = await this.redis.hgetBuffer(
-      SCHEMA_QUALITIES_NAME_KEY,
+      this.getSuffixedKey(SCHEMA_QUALITIES_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -210,7 +230,12 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getEffectById(id: string): Promise<AttachedParticle> {
-    const effect = await this.redis.hgetBuffer(SCHEMA_EFFECTS_ID_KEY, id);
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const effect = await this.redis.hgetBuffer(
+      this.getSuffixedKey(SCHEMA_EFFECTS_ID_KEY, currentKey),
+      id,
+    );
 
     if (!effect) {
       throw new NotFoundException('Effect not found');
@@ -220,8 +245,10 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getEffectByName(name: string): Promise<AttachedParticle> {
+    const currentKey = await this.getCurrentKeyAndError();
+
     const effect = await this.redis.hgetBuffer(
-      SCHEMA_EFFECTS_NAME_KEY,
+      this.getSuffixedKey(SCHEMA_EFFECTS_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -233,7 +260,12 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getPaintKitById(id: string): Promise<PaintKit> {
-    const paintkit = await this.redis.hgetBuffer(PAINTKIT_ID_KEY, id);
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const paintkit = await this.redis.hgetBuffer(
+      this.getSuffixedKey(PAINTKIT_ID_KEY, currentKey),
+      id,
+    );
 
     if (!paintkit) {
       throw new NotFoundException('Paintkit not found');
@@ -243,8 +275,10 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getPaintKitByName(name: string): Promise<PaintKit> {
+    const currentKey = await this.getCurrentKeyAndError();
+
     const paintkit = await this.redis.hgetBuffer(
-      PAINTKIT_NAME_KEY,
+      this.getSuffixedKey(PAINTKIT_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -258,7 +292,10 @@ export class SchemaService implements OnApplicationBootstrap {
   async getSpellById(id: string): Promise<Spell> {
     const spellFromAttribute = await this.getSpellByIdFromAttributes(id).catch(
       (err) => {
-        if (err instanceof NotFoundException) {
+        if (
+          err instanceof NotFoundException &&
+          err.message === 'Spell not found'
+        ) {
           return null;
         }
 
@@ -271,7 +308,10 @@ export class SchemaService implements OnApplicationBootstrap {
     }
 
     const spellFromItems = await this.getItemByDefindex(id).catch((err) => {
-      if (err instanceof NotFoundException) {
+      if (
+        err instanceof NotFoundException &&
+        err.message === 'Spell not found'
+      ) {
         return null;
       }
 
@@ -289,7 +329,12 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   private async getSpellByIdFromAttributes(id: string): Promise<Spell> {
-    const spell = await this.redis.hgetBuffer(SPELLS_ID_KEY, id);
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const spell = await this.redis.hgetBuffer(
+      this.getSuffixedKey(SPELLS_ID_KEY, currentKey),
+      id,
+    );
 
     if (!spell) {
       throw new NotFoundException('Spell not found');
@@ -334,8 +379,10 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   private async getSpellByNameFromAttributes(name: string): Promise<Spell> {
+    const currentKey = await this.getCurrentKeyAndError();
+
     const spell = await this.redis.hgetBuffer(
-      SPELLS_NAME_KEY,
+      this.getSuffixedKey(SPELLS_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -359,20 +406,24 @@ export class SchemaService implements OnApplicationBootstrap {
     return current;
   }
 
-  async createJobsIfNotRecentlyUpdated(url?: string): Promise<boolean> {
-    // Check if the url is the same as the current one
-    if (url && (await this.isSameItemsGameUrl(url))) {
-      return false;
+  async createJobsIfNewUrl(url: string): Promise<void> {
+    if (await this.isSameItemsGameUrl(url)) {
+      return;
     }
 
-    // Check if we are already updating the schema or if it was recently updated
-    const lastUpdated = await this.redis.get(LAST_UPDATED_KEY);
-    if (lastUpdated && Date.now() - Number(lastUpdated) < this.updateTimeout) {
-      return false;
+    await this.createJobs();
+  }
+
+  async createJobs(force = false): Promise<boolean> {
+    if (!force) {
+      // Check if we are already updating the schema or if it was recently updated
+      const lastUpdated = await this.getLastUpdated();
+      if (lastUpdated && Date.now() - lastUpdated < this.updateTimeout) {
+        return false;
+      }
     }
 
-    await this.createSchemaJob().then(() => this.setLastUpdated());
-
+    await this.createSchemaJob();
     await this.setLastUpdated();
 
     return true;
@@ -382,12 +433,16 @@ export class SchemaService implements OnApplicationBootstrap {
     return this.redis.set(LAST_UPDATED_KEY, Date.now());
   }
 
-  private getItemsGameUrl(): Promise<string | null> {
-    return this.redis.get(ITEMS_GAME_URL_KEY);
+  private getLastUpdated(): Promise<number | null> {
+    return this.redis
+      .get(LAST_UPDATED_KEY)
+      .then((value) => (value ? parseInt(value, 10) : null));
   }
 
-  private setItemsGameUrl(url: string) {
-    return this.redis.set(ITEMS_GAME_URL_KEY, url);
+  private async getItemsGameUrl(): Promise<string | null> {
+    const currentKey = await this.getCurrentKey();
+
+    return this.redis.get(this.getSuffixedKey(ITEMS_GAME_URL_KEY, currentKey));
   }
 
   private async isSameItemsGameUrl(url: string): Promise<boolean> {
@@ -395,63 +450,121 @@ export class SchemaService implements OnApplicationBootstrap {
     return currentItemsGameUrl === url;
   }
 
-  private async isOlderThanCurrentSchema(time: number): Promise<boolean> {
-    const currentKey = await this.getCurrentKey();
-    if (!currentKey) {
-      return false;
-    }
-
-    return Number(currentKey) > time;
-  }
-
   private createSchemaJob() {
-    return this.queue.add('schema', {
+    return this.queue.add('url', {
       time: Date.now(),
     });
   }
 
-  private createItemsJob(time: number, start: number) {
-    return this.queue.add('items', {
-      time,
-      start,
-    });
+  private createItemsJob(job: Job, start: number) {
+    return this.queue.add(
+      'items',
+      {
+        time: job.data.time,
+        start,
+      },
+      {
+        parent: {
+          id: job.parent!.id,
+          queue: job.queueQualifiedName!,
+        },
+      },
+    );
   }
 
-  private createItemJobs(time: number, itemsGameUrl: string) {
-    return this.queue.addBulk([
+  private createSchemaJobs(time: number, itemsGameUrl: string) {
+    return this.producer.add(
       {
-        name: 'items_game',
+        name: 'schema',
+        queueName: 'schema',
         data: {
           time,
           items_game_url: itemsGameUrl,
         },
+        children: [
+          {
+            name: 'overview',
+            queueName: 'schema',
+            data: {
+              time,
+            },
+          },
+          {
+            name: 'items_game',
+            queueName: 'schema',
+            data: {
+              time,
+              items_game_url: itemsGameUrl,
+            },
+          },
+          {
+            name: 'proto_obj_defs',
+            queueName: 'schema',
+            data: {
+              time,
+            },
+          },
+          {
+            name: 'items',
+            queueName: 'schema',
+            data: {
+              time,
+              start: 0,
+            },
+          },
+        ],
       },
       {
-        name: 'proto_obj_defs',
-        data: {
-          time,
+        queuesOptions: {
+          [this.queue.name]: {
+            defaultJobOptions: this.queue.defaultJobOptions,
+          },
         },
       },
-      {
-        name: 'items',
-        data: {
-          time,
-          start: 0,
-        },
-      },
-    ]);
+    );
   }
 
-  async updateOverview(job: Job, result: SchemaOverviewResponse) {
-    // Check if the items game url is the same as the current one
-    if (await this.isSameItemsGameUrl(result.items_game_url)) {
-      return;
-    } else if (await this.isOlderThanCurrentSchema(job.data.time)) {
+  /**
+   * This method is called when all schema jobs have finished
+   * @param job
+   */
+  async updateSchema(job: Job) {
+    await this.redis.set(CURRENT_SCHEMA_KEY, job.data.time);
+
+    // Delete schema keys with the old suffix
+    await this.deleteKeysByPattern(
+      // TODO: Fix this. Very dangerous, could delete all keys
+      // We use "schema:*:*" to make sure that we do not get the current schema
+      // or last updated keys. They would only match the pattern "schema:*".
+      'schema:*:*',
+      job.data.time.toString(),
+    );
+
+    console.log('Schema updated');
+  }
+
+  /**
+   * This method is called when the current schema url is fetched from Steam
+   */
+  async updateUrl(job: Job, url: string) {
+    if (await this.isSameItemsGameUrl(url)) {
+      // The schema is already up to date
+      this.logger.debug('Schema is already up to date');
       return;
     }
 
+    await this.redis.set(
+      this.getSuffixedKey(ITEMS_GAME_URL_KEY, job.data.time),
+      url,
+    );
+
+    // Start the other schema jobs
+    await this.createSchemaJobs(job.data.time, url);
+  }
+
+  async updateOverview(job: Job, result: SchemaOverviewResponse) {
     // Start saving the overview
-    const savingOverview = this.saveSchemaOverviewFile(result);
+    const savingOverview = this.saveSchemaOverviewFile(result, job.data.time);
 
     // Store schema stuff
     const qualitiesByName: Record<string, Buffer> = {};
@@ -502,42 +615,26 @@ export class SchemaService implements OnApplicationBootstrap {
     // Wait for the overview to be saved
     await savingOverview;
 
+    const time = job.data.time;
+
     await this.redis
       .multi()
-      .del(SCHEMA_QUALITIES_NAME_KEY)
-      .hmset(SCHEMA_QUALITIES_NAME_KEY, qualitiesByName)
-      .del(SCHEMA_QUALITIES_ID_KEY)
-      .hmset(SCHEMA_QUALITIES_ID_KEY, qualitiesById)
-      .del(SCHEMA_EFFECTS_NAME_KEY)
-      .hmset(SCHEMA_EFFECTS_NAME_KEY, effectsByName)
-      .del(SCHEMA_EFFECTS_ID_KEY)
-      .hmset(SCHEMA_EFFECTS_ID_KEY, effectsById)
-      .del(SPELLS_NAME_KEY)
-      .hmset(SPELLS_NAME_KEY, spellsByName)
-      .del(SPELLS_ID_KEY)
-      .hmset(SPELLS_ID_KEY, spellsById)
+      .hmset(
+        this.getSuffixedKey(SCHEMA_QUALITIES_NAME_KEY, time),
+        qualitiesByName,
+      )
+      .hmset(this.getSuffixedKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
+      .hmset(this.getSuffixedKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
+      .hmset(this.getSuffixedKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
+      .hmset(this.getSuffixedKey(SPELLS_NAME_KEY, time), spellsByName)
+      .hmset(this.getSuffixedKey(SPELLS_ID_KEY, time), spellsById)
       .exec();
-
-    await this.createItemJobs(job.data.time, result.items_game_url);
-
-    await Promise.all([
-      this.setLastUpdated(),
-      this.setItemsGameUrl(result.items_game_url),
-    ]);
   }
 
   async updateItems(job: Job, result: GetSchemaItemsResponse) {
-    // Check if the current schema key is newer than the job time
-    if (await this.isOlderThanCurrentSchema(job.data.time)) {
-      return;
-    }
-
-    if (!(await this.isSameItemsGameUrl(result.items_game_url))) {
-      // The items game url has changed while we were updating the items
-      return this.createSchemaJob();
-    } else if (result.next) {
+    if (result.next) {
       // There are more items to fetch
-      await this.createItemsJob(job.data.time, result.next);
+      await this.createItemsJob(job, result.next);
     }
 
     const defindexToItem: Record<string, Buffer> = {};
@@ -565,24 +662,6 @@ export class SchemaService implements OnApplicationBootstrap {
 
     // Save the schema items to a temporary key
     await this.redis.multi().hmset(tempSchemaItemsKey, defindexToItem).exec();
-
-    if (result.next) {
-      return;
-    }
-
-    await this.redis
-      .multi()
-      // Save the current schema key for future reference
-      .set(CURRENT_SCHEMA_KEY, job.data.time)
-      // Move the temporary schema items to the main key
-      .rename(tempSchemaItemsKey, SCHEMA_ITEMS_KEY)
-      .exec();
-
-    // Delete old schema items
-    await this.deleteKeysByPattern(
-      this.getKey(SCHEMA_ITEMS_NAME_KEY, { name: '*' }),
-      job.data.time.toString(),
-    );
   }
 
   async updateProtoObjDefs(job: Job, result: string) {
@@ -631,28 +710,34 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .del(PAINTKIT_ID_KEY)
-      .hmset(PAINTKIT_ID_KEY, paintkitsById)
-      .del(PAINTKIT_NAME_KEY)
-      .hmset(PAINTKIT_NAME_KEY, paintkitsByName)
+      .hmset(this.getSuffixedKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
+      .hmset(
+        this.getSuffixedKey(PAINTKIT_NAME_KEY, job.data.time),
+        paintkitsByName,
+      )
       .exec();
   }
 
   async updateItemsGame(job: Job, result: string) {
-    await this.saveSchemaItemsGameFile(result);
+    await this.saveSchemaItemsGameFile(result, job.data.time);
   }
 
   private async saveSchemaOverviewFile(
     result: SchemaOverviewResponse,
+    time: number,
   ): Promise<void> {
     await this.storageService.write(
-      OVERVIEW_FILE,
+      this.getKey(OVERVIEW_FILE, { time }),
       pack(result).toString('base64'),
     );
   }
 
   async getSchemaOverview(): Promise<SchemaOverviewResponse> {
-    const overview = await this.storageService.read(OVERVIEW_FILE);
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const overview = await this.storageService.read(
+      this.getKey(OVERVIEW_FILE, { time: currentKey }),
+    );
     if (!overview) {
       throw new NotFoundException('Schema overview not found');
     }
@@ -660,12 +745,22 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(Buffer.from(overview, 'base64'));
   }
 
-  private async saveSchemaItemsGameFile(result: string): Promise<void> {
-    await this.storageService.write('items_game.txt', result);
+  private async saveSchemaItemsGameFile(
+    result: string,
+    time: number,
+  ): Promise<void> {
+    await this.storageService.write(
+      this.getKey(ITEMS_GAME_FILE, { time }),
+      result,
+    );
   }
 
   async getSchemaItemsGame(): Promise<string> {
-    const items = await this.storageService.read('items_game.txt');
+    const currentKey = await this.getCurrentKeyAndError();
+
+    const items = await this.storageService.read(
+      this.getKey(ITEMS_GAME_FILE, { time: currentKey }),
+    );
     if (!items) {
       throw new NotFoundException('Schema items not found');
     }

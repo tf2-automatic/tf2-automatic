@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseBoolPipe,
   ParseIntPipe,
   Post,
   Query,
@@ -64,11 +65,20 @@ export class SchemaController {
   @Post(SCHEMA_REFRESH_PATH)
   @ApiOperation({
     summary: 'Update schema',
-    description: 'Enqueues a job to update the schema',
+    description:
+      'Enqueues a job to check if the schema needs to be updated and updates the schema if it does.',
+  })
+  @ApiQuery({
+    name: 'force',
+    description: 'Force the check to be made even if one was recently made',
+    example: false,
+    required: false,
   })
   @HttpCode(HttpStatus.OK)
-  async updateSchema(): Promise<UpdateSchemaResponse> {
-    const enqueued = await this.schemaService.createJobsIfNotRecentlyUpdated();
+  async updateSchema(
+    @Query('force', new ParseBoolPipe({ optional: true })) force?: boolean,
+  ): Promise<UpdateSchemaResponse> {
+    const enqueued = await this.schemaService.createJobs(force);
     return {
       enqueued,
     };
