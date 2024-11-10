@@ -291,10 +291,10 @@ export class SchemaController {
   @ApiParam({
     name: 'id',
     description: 'The id of the spell',
-    example: '1',
+    example: '1009',
   })
   @ApiResponse({
-    type: PaintKitModel,
+    type: SpellModel,
   })
   getSpellById(@Param('id') id: string): Promise<Spell> {
     return this.schemaService.getSpellById(id);
