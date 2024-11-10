@@ -63,9 +63,9 @@ const SPELLS_ID_KEY = 'schema:spells:id';
 const SPELLS_NAME_KEY = 'schema:spells:name';
 
 // The name of the schema overview file
-const OVERVIEW_FILE = 'schema-overview-<time>.json';
+const OVERVIEW_FILE = 'schema-overview.json';
 // The name of the items game file
-const ITEMS_GAME_FILE = 'items_game-<time>.txt';
+const ITEMS_GAME_FILE = 'items_game.txt';
 
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
@@ -540,7 +540,8 @@ export class SchemaService implements OnApplicationBootstrap {
       job.data.time.toString(),
     );
 
-    console.log('Schema updated');
+
+    this.logger.log('Schema updated');
   }
 
   /**
@@ -727,17 +728,13 @@ export class SchemaService implements OnApplicationBootstrap {
     time: number,
   ): Promise<void> {
     await this.storageService.write(
-      this.getKey(OVERVIEW_FILE, { time }),
+      OVERVIEW_FILE,
       pack(result).toString('base64'),
     );
   }
 
   async getSchemaOverview(): Promise<SchemaOverviewResponse> {
-    const currentKey = await this.getCurrentKeyAndError();
-
-    const overview = await this.storageService.read(
-      this.getKey(OVERVIEW_FILE, { time: currentKey }),
-    );
+    const overview = await this.storageService.read(OVERVIEW_FILE);
     if (!overview) {
       throw new NotFoundException('Schema overview not found');
     }
@@ -749,18 +746,11 @@ export class SchemaService implements OnApplicationBootstrap {
     result: string,
     time: number,
   ): Promise<void> {
-    await this.storageService.write(
-      this.getKey(ITEMS_GAME_FILE, { time }),
-      result,
-    );
+    await this.storageService.write(ITEMS_GAME_FILE, result);
   }
 
   async getSchemaItemsGame(): Promise<string> {
-    const currentKey = await this.getCurrentKeyAndError();
-
-    const items = await this.storageService.read(
-      this.getKey(ITEMS_GAME_FILE, { time: currentKey }),
-    );
+    const items = await this.storageService.read(ITEMS_GAME_FILE);
     if (!items) {
       throw new NotFoundException('Schema items not found');
     }
