@@ -1,3 +1,4 @@
+import { BaseEvent } from '../events';
 import { AttachedParticle } from './misc';
 
 export const SCHEMA_BASE_PATH = '/schema';
@@ -65,11 +66,10 @@ export interface UpdateSchemaResponse {
   enqueued: boolean;
 }
 
-export interface SchemaMetadataResponse {
+export interface Schema {
   itemsGameUrl: string;
-  itemsCount: number;
-  updating: boolean;
-  lastUpdated: number;
+  checkedAt: number;
+  updatedAt: number;
 }
 
 interface OriginName {
@@ -142,3 +142,8 @@ export interface SchemaOverviewResponse {
   kill_eater_score_types: KillEaterTypeScore[];
   string_lookups: StringLookup[];
 }
+
+export type SchemaEventType = 'schema.updated';
+export const SCHEMA_EVENT: SchemaEventType = `schema.updated`;
+
+export type SchemaEvent = BaseEvent<SchemaEventType, Schema>;

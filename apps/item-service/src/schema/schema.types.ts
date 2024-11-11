@@ -1,12 +1,19 @@
 import { SchemaItem } from '@tf2-automatic/item-service-data';
 import { Job } from 'bullmq';
 
-export type JobName = 'schema' | 'items' | 'proto_obj_defs' | 'items_game';
+export type JobName =
+  | 'schema'
+  | 'url'
+  | 'overview'
+  | 'items'
+  | 'proto_obj_defs'
+  | 'items_game';
 
 export type JobWithTypes = Job<JobData, unknown, JobName>;
 
 export interface JobData {
   time: number;
+  force?: boolean;
   start?: number;
   items_game_url?: string;
 }

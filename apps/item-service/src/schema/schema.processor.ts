@@ -35,6 +35,12 @@ export class SchemaProcessor extends WorkerHost {
       case 'schema':
         processor = this.updateSchema.bind(this);
         break;
+      case 'url':
+        processor = this.updateUrl.bind(this);
+        break;
+      case 'overview':
+        processor = this.updateSchemaOverview.bind(this);
+        break;
       case 'items':
         processor = this.updateItems.bind(this);
         break;
@@ -55,6 +61,16 @@ export class SchemaProcessor extends WorkerHost {
   }
 
   private async updateSchema(job: Job) {
+    await this.schemaService.updateSchema(job);
+  }
+
+  private async updateUrl(job: Job) {
+    const apiKey = await this.botsService.getApiKey();
+    const url = await this.getSchemaUrl(apiKey);
+    await this.schemaService.updateUrl(job, url);
+  }
+
+  private async updateSchemaOverview(job: Job) {
     const apiKey = await this.botsService.getApiKey();
     const result = await this.getSchemaOverview(apiKey);
     await this.schemaService.updateOverview(job, result);
@@ -76,6 +92,22 @@ export class SchemaProcessor extends WorkerHost {
   private async updateItemsGame(job: Job) {
     const result = await this.getVDFFromUrl(job.data.items_game_url!);
     await this.schemaService.updateItemsGame(job, result);
+  }
+
+  private async getSchemaUrl(apiKey: string): Promise<string> {
+    const response = await firstValueFrom(
+      this.httpService.get(
+        'https://api.steampowered.com/IEconItems_440/GetSchemaURL/v0001/',
+        {
+          params: {
+            key: apiKey,
+          },
+          responseType: 'json',
+        },
+      ),
+    );
+
+    return response.data.result.items_game_url;
   }
 
   private async getSchemaOverview(
