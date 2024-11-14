@@ -61,37 +61,37 @@ export class CurrentListingsService {
 
     await this.producer.add(
       {
-      name: JobType.Done,
-      queueName: this.queue.name,
-      data: {
-        steamid64: steamid.getSteamID64(),
-        start: time,
-      },
+        name: JobType.Done,
+        queueName: this.queue.name,
+        data: {
+          steamid64: steamid.getSteamID64(),
+          start: time,
+        },
         children: [
           {
-        name: JobType.Active,
-        queueName: this.queue.name,
-        data: {
-          steamid64: steamid.getSteamID64(),
-          start: time,
-        },
+            name: JobType.Active,
+            queueName: this.queue.name,
+            data: {
+              steamid64: steamid.getSteamID64(),
+              start: time,
+            },
           },
           {
-        name: JobType.Archived,
-        queueName: this.queue.name,
-        data: {
-          steamid64: steamid.getSteamID64(),
-          start: time,
-        },
+            name: JobType.Archived,
+            queueName: this.queue.name,
+            data: {
+              steamid64: steamid.getSteamID64(),
+              start: time,
+            },
           },
         ],
       },
       {
-      queuesOptions: {
-        [this.queue.name]: {
-          defaultJobOptions: this.queue.defaultJobOptions,
+        queuesOptions: {
+          [this.queue.name]: {
+            defaultJobOptions: this.queue.defaultJobOptions,
+          },
         },
-      },
       },
     );
   }
@@ -125,7 +125,7 @@ export class CurrentListingsService {
         parent: {
           id: job.parent!.id,
           queue: job.queueQualifiedName!,
-      },
+        },
       },
     );
   }
@@ -236,9 +236,6 @@ export class CurrentListingsService {
         '...',
     );
 
-    const resources = ids.map((id) =>
-      this.getResourceForListingId(steamid, id),
-    );
     const result = await this._deleteArchivedListings(token, ids);
 
     this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
@@ -840,9 +837,5 @@ export class CurrentListingsService {
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
     return `listings:current:keep:${steamid.getSteamID64()}`;
-  }
-
-  private getResourceForListingId(steamid: SteamID, id: string): string {
-    return `listings:current:${steamid.getSteamID64()}:${id}`;
   }
 }
