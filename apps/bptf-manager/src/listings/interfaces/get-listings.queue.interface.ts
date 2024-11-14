@@ -8,6 +8,7 @@ export interface JobData {
 export type JobName = JobType;
 
 export enum JobType {
+  Done = 'done',
   Active = 'active',
   Archived = 'archived',
 }
