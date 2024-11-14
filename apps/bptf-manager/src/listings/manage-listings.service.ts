@@ -589,7 +589,7 @@ export class ManageListingsService {
 
     const result = await this.currentListingsService.updateListings(
       token,
-      Object.values(update),
+      Array.from(update.values()),
     );
 
     // List of hashes of listings that were successfully updated
