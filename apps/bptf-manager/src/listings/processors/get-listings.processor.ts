@@ -35,7 +35,9 @@ export class GetListingsProcessor extends WorkerHost {
     }
   }
 
-  private async doneGettingListings(job: Job<JobData, unknown, JobType>): Promise<void> {
+  private async doneGettingListings(
+    job: Job<JobData, unknown, JobType>,
+  ): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
     await this.currentListingsService.handleListingsFetched(
@@ -46,7 +48,9 @@ export class GetListingsProcessor extends WorkerHost {
     this.logger.debug('Refreshed listings for ' + steamid);
   }
 
-  private async getListings(job: Job<JobData, unknown, JobType>): Promise<void> {
+  private async getListings(
+    job: Job<JobData, unknown, JobType>,
+  ): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
@@ -57,9 +61,17 @@ export class GetListingsProcessor extends WorkerHost {
     let promise: Promise<GetListingsResponse>;
 
     if (job.name === JobType.Active) {
-      promise = this.currentListingsService.fetchActiveListings(token, skip, limit);
+      promise = this.currentListingsService.fetchActiveListings(
+        token,
+        skip,
+        limit,
+      );
     } else if (job.name === JobType.Archived) {
-      promise = this.currentListingsService.fetchArchivedListings(token, skip, limit);
+      promise = this.currentListingsService.fetchArchivedListings(
+        token,
+        skip,
+        limit,
+      );
     } else {
       return;
     }
@@ -92,9 +104,10 @@ export class GetListingsProcessor extends WorkerHost {
         ', total: ' +
         response.cursor.total +
         ', results: ' +
-        response.results.length + ')',
+        response.results.length +
+        ')',
     );
-    
+
     await this.currentListingsService.handleListingsResponse(job, response);
   }
 
