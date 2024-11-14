@@ -332,6 +332,11 @@ export class CurrentListingsService {
           const [, , capStr] = listingCapMatch;
           cap = parseInt(capStr);
         } else if (
+          errorMessage ===
+          'Listing cap reached; short-circuiting this attempt to create a listing.'
+        ) {
+          error = ListingError.CapExceeded;
+        } else if (
           errorMessage === 'Item is invalid.' ||
           errorMessage?.startsWith('Warning: ')
         ) {
