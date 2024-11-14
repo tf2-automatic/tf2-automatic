@@ -268,7 +268,14 @@ export class ManageListingsService {
   @OnEvent('current-listings.refreshed', {
     suppressErrors: false,
   })
-  private refreshedCurrentListings(steamid: SteamID) {
+  private async refreshedCurrentListings(steamid: SteamID) {
+    // Check if agent is running before planning listings
+    const agent = await this.agentsService.getAgent(steamid);
+    if (!agent) {
+      // No agent, don't plan listings
+      return;
+    }
+
     return this.createJob(steamid, ManageJobType.Plan);
   }
 
