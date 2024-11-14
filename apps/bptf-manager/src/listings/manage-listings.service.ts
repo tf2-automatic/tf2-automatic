@@ -301,7 +301,9 @@ export class ManageListingsService {
       queueName: this.queue.name,
       data,
       opts,
-      children: jobs.map((job) => {
+      children: jobs
+        .filter((job) => job.data.steamid64 === data.steamid64)
+        .map((job) => {
         return {
           name: job.name,
           queueName: this.queue.name,
