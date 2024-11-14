@@ -91,6 +91,16 @@ export class ManageListingsService {
     const update: DesiredListingClass[] = [];
 
     event.desired.forEach((d) => {
+      if (
+        d.getError() === ListingError.InvalidItem ||
+        d.getError() === ListingError.DuplicateListing ||
+        d.getError() === ListingError.ItemDoesNotExist
+      ) {
+        // Don't queue listings with these errors just because the desired
+        // listings were updated.
+        return;
+      }
+
       if (!d.getID() || d.isForced()) {
         create.push(d);
       } else {
@@ -697,11 +707,21 @@ export class ManageListingsService {
     const update = new Map<string, DesiredListingClass>();
     const create = new Map<string, DesiredListingClass>();
 
+    // Listing id -> hashes
+    const duplicates = new Map<string, DesiredListingClass[]>();
+
     // Go through all desired and check if the listing is still active
     desired.forEach((d) => {
       const id = d.getID();
       if (!id) {
         return;
+      }
+
+      // Keep track of duplicates
+      if (duplicates.has(id)) {
+        duplicates.get(id)!.push(d);
+      } else {
+        duplicates.set(id, [d]);
       }
 
       const match = currentMap.get(id);
@@ -720,6 +740,20 @@ export class ManageListingsService {
       }
     });
 
+    const remove = new Set<string>();
+    for (const [id, dupes] of duplicates.entries()) {
+      if (dupes.length === 1) {
+        continue;
+      }
+
+      // Mark duplicate desired listings with an error
+      dupes.forEach((d) => {
+        d.setError(ListingError.DuplicateListing);
+      });
+
+      remove.add(id);
+    }
+
     const inventory = await this.inventoriesService.getInventory(steamid);
 
     // Queue listings to be created if they don't have a listing id
@@ -729,6 +763,9 @@ export class ManageListingsService {
         return;
       } else if (d.getError() === undefined && d.getID()) {
         // If there is no error and the listing already has an id then don't queue it to be created
+        return;
+      } else if (d.getError() === ListingError.DuplicateListing) {
+        // Don't retry duplicate listing errors because they will never be fixed
         return;
       } else if (
         d.getError() === ListingError.ItemDoesNotExist &&
@@ -762,13 +799,11 @@ export class ManageListingsService {
       }
     });
 
-    const remove: string[] = [];
-
     // Queue listings to be deleted if they are not associated with a desired listing
     current.forEach((c) => {
       if (!desiredWithId.has(c.id)) {
         // Listing is not desired, add it to the delete queue
-        remove.push(c.id);
+        remove.add(c.id);
       }
     });
 
@@ -793,9 +828,13 @@ export class ManageListingsService {
       );
     }
 
-    if (remove.length > 0) {
+    if (remove.size > 0) {
       // Add listings to delete queues
-      ManageListingsService.chainableQueueDelete(transaction, steamid, remove);
+      ManageListingsService.chainableQueueDelete(
+        transaction,
+        steamid,
+        Array.from(remove.values()),
+      );
     }
 
     if (desired.length > 0) {
@@ -814,7 +853,7 @@ export class ManageListingsService {
         ' listing(s) to be created, ' +
         update.size +
         ' listing(s) to be updated and ' +
-        remove.length +
+        remove.size +
         ' listing(s) to be deleted',
     );
 
@@ -828,7 +867,7 @@ export class ManageListingsService {
       promises.push(this.createJob(steamid, ManageJobType.Update));
     }
 
-    if (remove.length > 0) {
+    if (remove.size > 0) {
       promises.push(this.createJob(steamid, ManageJobType.Delete));
       promises.push(this.createJob(steamid, ManageJobType.DeleteArchived));
     }
