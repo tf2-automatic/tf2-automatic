@@ -62,6 +62,15 @@ export class ManageListingsService {
   @OnEvent('agents.unregistering')
   private async agentsUnregistering(steamid: SteamID): Promise<void> {
     await this.createJob(steamid, ManageJobType.DeleteAll);
+
+    // Clear any queues that the agent might have
+    await this.redis
+      .multi()
+      .del(ManageListingsService.getCreateKey(steamid))
+      .del(ManageListingsService.getUpdateKey(steamid))
+      .del(ManageListingsService.getDeleteKey(steamid))
+      .del(ManageListingsService.getArchivedDeleteKey(steamid))
+      .exec();
   }
 
   @OnEvent('desired-listings.added')
