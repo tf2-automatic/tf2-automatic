@@ -280,48 +280,15 @@ export class ManageListingsService {
     }
 
     const data: JobData = {
-        steamid64: steamid.getSteamID64(),
+      steamid64: steamid.getSteamID64(),
     };
 
     const opts: JobsOptions = {
-        jobId: type + ':' + steamid.getSteamID64(),
-        priority,
+      jobId: type + ':' + steamid.getSteamID64(),
+      priority,
     };
 
-    if (type !== ManageJobType.Plan) {
-      await this.queue.add(type, data, opts);
-      return;
-    }
-
-    // When creating plan jobs, we want to make sure that the job only runs
-    // after the current jobs have finished.
-    const jobs = await this.queue.getJobs([
-      'active',
-      'delayed',
-      'prioritized',
-      'waiting',
-      'waiting-children',
-    ]);
-
-    // This method is not very "safe" because it may duplicate jobs. However, it
-    // should not be a problem because it will only be duplicating idempotent
-    // jobs (create, delete, update, plan, and not delete all).
-    await this.producer.add({
-      name: ManageJobType.Plan,
-      queueName: this.queue.name,
-      data,
-      opts,
-      children: jobs
-        .filter((job) => job.data.steamid64 === data.steamid64)
-        .map((job) => {
-        return {
-          name: job.name,
-          queueName: this.queue.name,
-          data: job.data,
-          opts: job.opts,
-        };
-      }),
-    });
+    await this.queue.add(type, data, opts);
   }
 
   @OnEvent('current-listings.refreshed', {
