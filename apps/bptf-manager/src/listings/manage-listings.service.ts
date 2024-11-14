@@ -234,7 +234,11 @@ export class ManageListingsService {
   }
 
   async createJob(steamid: SteamID, type: ManageJobType): Promise<void> {
-    if (type === ManageJobType.Create || type === ManageJobType.Update) {
+    if (
+      type === ManageJobType.Create ||
+      type === ManageJobType.Update ||
+      type === ManageJobType.Plan
+    ) {
       const agent = await this.agentsService.getAgent(steamid);
       if (!agent) {
         // Agent is not running, don't create the job for creating listings
@@ -278,13 +282,6 @@ export class ManageListingsService {
     suppressErrors: false,
   })
   private async refreshedCurrentListings(steamid: SteamID) {
-    // Check if agent is running before planning listings
-    const agent = await this.agentsService.getAgent(steamid);
-    if (!agent) {
-      // No agent, don't plan listings
-      return;
-    }
-
     return this.createJob(steamid, ManageJobType.Plan);
   }
 
@@ -648,6 +645,11 @@ export class ManageListingsService {
   }
 
   async planListings(steamid: SteamID): Promise<void> {
+    const agent = await this.agentsService.getAgent(steamid);
+    if (!agent) {
+      return;
+    }
+
     const [current, desired] = await Promise.all([
       this.currentListingsService.getAllCurrent(steamid),
       this.desiredListingsService.getAllDesired(steamid),
