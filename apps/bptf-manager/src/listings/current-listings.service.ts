@@ -243,10 +243,15 @@ export class CurrentListingsService {
 
     const result = await this._createListings(token, listings);
 
-    const createdCount = result.filter((r) => r.result !== undefined).length;
+    const ids = new Set<string>();
+    for (const listing of result) {
+      if (listing.result !== undefined) {
+        ids.add(listing.result.id);
+      }
+    }
 
     this.logger.log(
-      'Created ' + createdCount + ' listing(s) for ' + token.steamid64,
+      'Created ' + ids.size + ' listing(s) for ' + token.steamid64,
     );
 
     const mapped = result.reduce(
