@@ -545,28 +545,26 @@ export class ManageListingsService {
       };
     }
 
-    const map = new Map<string, DesiredListingClass>();
+    const update = new Map<string, DesiredListingClass>();
     desired.forEach((d) => {
       // id should not be undefined but we check it anyway
       const id = d.getID();
       if (id) {
-        map.set(id, d);
+        update.set(id, d);
       }
     });
 
-    const update = desired.filter((d) => d.getID());
-
     const result = await this.currentListingsService.updateListings(
       token,
-      update,
+      Object.values(update),
     );
 
     // List of hashes of listings that were successfully updated
     const updated: string[] = [];
 
     // Go through all updated listings and get the hash of the desired listing
-    result.updated.forEach((_, i) => {
-      const match = map.get(result.updated[i].id);
+    result.updated.forEach((value) => {
+      const match = update.get(value.id);
       if (match) {
         updated.push(match.getHash());
       }
