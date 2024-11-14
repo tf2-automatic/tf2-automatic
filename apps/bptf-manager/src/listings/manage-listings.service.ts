@@ -10,6 +10,7 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { ChainableCommander, Redis } from 'ioredis';
 import SteamID from 'steamid';
 import {
+  JobData,
   JobData as ManageJobData,
   JobName as ManageJobName,
   JobResult as ManageJobResult,
@@ -17,7 +18,7 @@ import {
 } from './interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { FlowProducer, JobsOptions, Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
 import { Listing, ListingError, Token } from '@tf2-automatic/bptf-manager-data';
@@ -38,6 +39,8 @@ enum ListingAction {
 
 export class ManageListingsService {
   private readonly logger = new Logger(ManageListingsService.name);
+
+  private readonly producer = new FlowProducer(this.queue.opts);
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
@@ -266,16 +269,47 @@ export class ManageListingsService {
         break;
     }
 
-    await this.queue.add(
-      type,
-      {
+    const data: JobData = {
         steamid64: steamid.getSteamID64(),
-      },
-      {
+    };
+
+    const opts: JobsOptions = {
         jobId: type + ':' + steamid.getSteamID64(),
         priority,
-      },
-    );
+    };
+
+    if (type !== ManageJobType.Plan) {
+      await this.queue.add(type, data, opts);
+      return;
+    }
+
+    // When creating plan jobs, we want to make sure that the job only runs
+    // after the current jobs have finished.
+    const jobs = await this.queue.getJobs([
+      'active',
+      'delayed',
+      'prioritized',
+      'waiting',
+      'waiting-children',
+    ]);
+
+    // This method is not very "safe" because it may duplicate jobs. However, it
+    // should not be a problem because it will only be duplicating idempotent
+    // jobs (create, delete, update, plan, and not delete all).
+    await this.producer.add({
+      name: ManageJobType.Plan,
+      queueName: this.queue.name,
+      data,
+      opts,
+      children: jobs.map((job) => {
+        return {
+          name: job.name,
+          queueName: this.queue.name,
+          data: job.data,
+          opts: job.opts,
+        };
+      }),
+    });
   }
 
   @OnEvent('current-listings.refreshed', {
