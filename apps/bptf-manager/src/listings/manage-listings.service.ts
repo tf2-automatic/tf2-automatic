@@ -18,7 +18,7 @@ import {
 } from './interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { FlowProducer, JobsOptions, Queue } from 'bullmq';
+import { JobsOptions, Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
 import { Listing, ListingError, Token } from '@tf2-automatic/bptf-manager-data';
@@ -40,8 +40,6 @@ enum ListingAction {
 export class ManageListingsService {
   private readonly logger = new Logger(ManageListingsService.name);
 
-  private readonly producer = new FlowProducer(this.queue.opts);
-
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly agentsService: AgentsService,
@@ -57,10 +55,16 @@ export class ManageListingsService {
     >,
   ) {}
 
+  /*
+  We cannot do this because it results in a concurrency issue where the listings
+  are refreshed while listings are being created, resulting in the listings
+  being removed because they are not associated with a desired listing yet.
+
   @OnEvent('agents.registering')
   private async agentsRegistering(steamid: SteamID): Promise<void> {
     await this.createJob(steamid, ManageJobType.Plan);
   }
+  */
 
   @OnEvent('agents.unregistering')
   private async agentsUnregistering(steamid: SteamID): Promise<void> {
