@@ -464,6 +464,11 @@ export class ManageListingsService {
         remove.push(event.listings[hash].id);
       } else if (!match.getID()) {
         create.push(match);
+      } else if (match.getError() === ListingError.DuplicateListing) {
+        const id = match.getID();
+        if (id) {
+          remove.push(id);
+        }
       } else {
         const action = ManageListingsService.compareCurrentAndDesired(
           match,
@@ -681,6 +686,8 @@ export class ManageListingsService {
     // Listing id -> hashes
     const duplicates = new Map<string, DesiredListingClass[]>();
 
+    const remove = new Set<string>();
+
     // Go through all desired and check if the listing is still active
     desired.forEach((d) => {
       const id = d.getID();
@@ -693,6 +700,13 @@ export class ManageListingsService {
         duplicates.get(id)!.push(d);
       } else {
         duplicates.set(id, [d]);
+      }
+
+      if (d.getError() === ListingError.DuplicateListing) {
+        const id = d.getID();
+        if (id) {
+          remove.add(id);
+        }
       }
 
       const match = currentMap.get(id);
@@ -711,7 +725,6 @@ export class ManageListingsService {
       }
     });
 
-    const remove = new Set<string>();
     for (const [id, dupes] of duplicates.entries()) {
       if (dupes.length === 1) {
         continue;

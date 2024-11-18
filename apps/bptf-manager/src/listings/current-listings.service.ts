@@ -287,14 +287,11 @@ export class CurrentListingsService {
       'Created ' + ids.size + ' listing(s) for ' + token.steamid64,
     );
 
-    const mapped = result.reduce(
-      (acc, cur, index) => {
-        const hash = hashes[index];
-        acc[hash] = cur;
-        return acc;
-      },
-      {} as Record<string, BatchCreateListingResponse>,
-    );
+    const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
+    for (const index in result) {
+      const hash = hashes[index];
+      mapped.push({ hash, response: result[index] });
+    }
 
     await this.handleCreatedListings(steamid, mapped, limits);
 
@@ -303,19 +300,38 @@ export class CurrentListingsService {
 
   private async handleCreatedListings(
     steamid: SteamID,
-    responses: Record<string, BatchCreateListingResponse>,
+    responses: { hash: string; response: BatchCreateListingResponse }[],
     limits: ListingLimits,
   ): Promise<void> {
+    // Hash -> Listing
     const created: Record<string, Listing> = {};
+    // Hash -> Error
     const failed: Record<string, ListingError> = {};
+
+    // Listing ID -> Hash
+    const ids: Record<string, string> = {};
 
     let cap: number | undefined = undefined;
 
-    for (const hash in responses) {
-      const response = responses[hash];
+    for (let i = 0; i < responses.length; i++) {
+      const hash = responses[i].hash;
+      const response = responses[i].response;
 
       if (response.result !== undefined) {
         const result = response.result;
+
+        const previousHash = ids[result.id];
+        const duplicate = previousHash !== undefined;
+        if (duplicate) {
+          // Listing ID already exists
+          // Set the id to point to the newest hash
+          ids[result.id] = hash;
+          // Remove the previous listing
+          delete created[previousHash];
+          // Add the previous listing to failed
+          failed[previousHash] = ListingError.DuplicateListing;
+        }
+
         created[hash] = result;
       } else {
         const errorMessage = response.error?.message ?? null;
