@@ -27,7 +27,7 @@ import {
 } from './interfaces/events.interface';
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
-import { Queue } from 'bullmq';
+import { FlowProducer, Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   JobData,
@@ -40,13 +40,15 @@ import { pack, unpack } from 'msgpackr';
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
+  private readonly producer: FlowProducer = new FlowProducer(this.queue.opts);
+
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
     private readonly listingLimitsService: ListingLimitsService,
     @InjectQueue('get-listings')
-    private readonly getListingsQueue: Queue<JobData, unknown, JobName>,
+    private readonly queue: Queue<JobData, unknown, JobName>,
   ) {}
 
   @OnEvent('agents.registered')
@@ -56,40 +58,74 @@ export class CurrentListingsService {
 
   async refreshListings(steamid: SteamID): Promise<void> {
     const time = Date.now();
-    await Promise.all([
-      this.createJob(steamid, JobType.Active, time),
-      this.createJob(steamid, JobType.Archived, time),
-    ]);
+
+    await this.producer.add(
+      {
+        name: JobType.Done,
+        queueName: this.queue.name,
+        data: {
+          steamid64: steamid.getSteamID64(),
+          start: time,
+        },
+        children: [
+          {
+            name: JobType.Active,
+            queueName: this.queue.name,
+            data: {
+              steamid64: steamid.getSteamID64(),
+              start: time,
+            },
+          },
+          {
+            name: JobType.Archived,
+            queueName: this.queue.name,
+            data: {
+              steamid64: steamid.getSteamID64(),
+              start: time,
+            },
+          },
+        ],
+      },
+      {
+        queuesOptions: {
+          [this.queue.name]: {
+            defaultJobOptions: this.queue.defaultJobOptions,
+          },
+        },
+      },
+    );
   }
 
-  async createJob(
-    steamid: SteamID,
-    type: JobType,
-    time: number = Date.now(),
+  private async createJob(
+    job: Job<JobData, unknown, JobType>,
     skip?: number,
     limit?: number,
     delay?: number,
   ): Promise<void> {
-    await this.getListingsQueue.add(
-      type,
+    await this.queue.add(
+      job.name,
       {
-        steamid64: steamid.getSteamID64(),
-        start: time,
+        steamid64: job.data.steamid64,
+        start: job.data.start,
         skip,
         limit,
       },
       {
         jobId:
-          steamid.getSteamID64() +
+          job.data.steamid64 +
           ':' +
-          type +
+          job.name +
           ':' +
-          time +
+          job.data.start +
           ':' +
           skip +
           ':' +
           limit,
         delay,
+        parent: {
+          id: job.parent!.id,
+          queue: job.queueQualifiedName!,
+        },
       },
     );
   }
@@ -200,9 +236,6 @@ export class CurrentListingsService {
         '...',
     );
 
-    const resources = ids.map((id) =>
-      this.getResourceForListingId(steamid, id),
-    );
     const result = await this._deleteArchivedListings(token, ids);
 
     this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
@@ -243,20 +276,22 @@ export class CurrentListingsService {
 
     const result = await this._createListings(token, listings);
 
-    const createdCount = result.filter((r) => r.result !== undefined).length;
+    const ids = new Set<string>();
+    for (const listing of result) {
+      if (listing.result !== undefined) {
+        ids.add(listing.result.id);
+      }
+    }
 
     this.logger.log(
-      'Created ' + createdCount + ' listing(s) for ' + token.steamid64,
+      'Created ' + ids.size + ' listing(s) for ' + token.steamid64,
     );
 
-    const mapped = result.reduce(
-      (acc, cur, index) => {
-        const hash = hashes[index];
-        acc[hash] = cur;
-        return acc;
-      },
-      {} as Record<string, BatchCreateListingResponse>,
-    );
+    const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
+    for (const index in result) {
+      const hash = hashes[index];
+      mapped.push({ hash, response: result[index] });
+    }
 
     await this.handleCreatedListings(steamid, mapped, limits);
 
@@ -265,19 +300,38 @@ export class CurrentListingsService {
 
   private async handleCreatedListings(
     steamid: SteamID,
-    responses: Record<string, BatchCreateListingResponse>,
+    responses: { hash: string; response: BatchCreateListingResponse }[],
     limits: ListingLimits,
   ): Promise<void> {
+    // Hash -> Listing
     const created: Record<string, Listing> = {};
+    // Hash -> Error
     const failed: Record<string, ListingError> = {};
+
+    // Listing ID -> Hash
+    const ids: Record<string, string> = {};
 
     let cap: number | undefined = undefined;
 
-    for (const hash in responses) {
-      const response = responses[hash];
+    for (let i = 0; i < responses.length; i++) {
+      const hash = responses[i].hash;
+      const response = responses[i].response;
 
       if (response.result !== undefined) {
         const result = response.result;
+
+        const previousHash = ids[result.id];
+        const duplicate = previousHash !== undefined;
+        if (duplicate) {
+          // Listing ID already exists
+          // Set the id to point to the newest hash
+          ids[result.id] = hash;
+          // Remove the previous listing
+          delete created[previousHash];
+          // Add the previous listing to failed
+          failed[previousHash] = ListingError.DuplicateListing;
+        }
+
         created[hash] = result;
       } else {
         const errorMessage = response.error?.message ?? null;
@@ -293,6 +347,11 @@ export class CurrentListingsService {
 
           const [, , capStr] = listingCapMatch;
           cap = parseInt(capStr);
+        } else if (
+          errorMessage ===
+          'Listing cap reached; short-circuiting this attempt to create a listing.'
+        ) {
+          error = ListingError.CapExceeded;
         } else if (
           errorMessage === 'Item is invalid.' ||
           errorMessage?.startsWith('Warning: ')
@@ -509,64 +568,20 @@ export class CurrentListingsService {
     return active.deleted + archived.deleted;
   }
 
-  async getListingsAndContinue(
-    token: Token,
-    type: JobType,
-    time: number,
-    skip?: number,
-    limit?: number,
+  async handleListingsResponse(
+    job: Job<JobData, unknown, JobType>,
+    response: GetListingsResponse,
   ): Promise<void> {
-    let promise: Promise<GetListingsResponse>;
+    const steamid = new SteamID(job.data.steamid64);
 
-    if (type === JobType.Active) {
-      promise = this._getActiveListings(token, skip, limit);
-    } else if (type === JobType.Archived) {
-      promise = this._getArchivedListings(token, skip, limit);
-    } else {
-      return;
-    }
-
-    let debugStr = 'Getting ' + type + ' listings for ' + token.steamid64;
-
-    if (skip && limit) {
-      debugStr += ' using skip ' + skip + ' and limit ' + limit;
-    } else if (skip) {
-      debugStr += ' using skip ' + skip;
-    } else if (limit) {
-      debugStr += ' using limit ' + limit;
-    }
-
-    debugStr += '...';
-
-    this.logger.debug(debugStr);
-
-    const response = await promise;
-
-    this.logger.debug(
-      'Got response for ' +
-        type +
-        ' listings for ' +
-        token.steamid64 +
-        ': skip: ' +
-        response.cursor.skip +
-        ', limit: ' +
-        response.cursor.limit +
-        ', total: ' +
-        response.cursor.total +
-        ', results: ' +
-        response.results.length,
-    );
-
-    const steamid = new SteamID(token.steamid64);
-
-    if (type === JobType.Active) {
+    if (job.name === JobType.Active) {
       // Update used listings using total returned in the response
       await this.listingLimitsService.saveLimits(steamid, {
         used: response.cursor.total,
       });
     }
 
-    const tempKey = this.getTempCurrentKey(steamid, time);
+    const tempKey = this.getTempCurrentKey(steamid, job.data.start);
 
     if (response.results.length > 0) {
       const mapped = this.mapListings(response.results);
@@ -584,25 +599,15 @@ export class CurrentListingsService {
     if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
       // Fetch more listings
       return this.createJob(
-        steamid,
-        type,
-        time,
+        job,
         response.cursor.skip + response.cursor.limit,
         response.cursor.limit,
       );
     }
+  }
 
-    // Save that we are done getting listings of type
-    await this.redis.set(tempKey + ':' + type + ':done', '1', 'EX', 5 * 60);
-
-    const done = await this.redis.keys(
-      this.redis.options.keyPrefix + tempKey + ':*:done',
-    );
-
-    if (done.length < 2) {
-      // Not yet done with getting all active and archived
-      return;
-    }
+  async handleListingsFetched(steamid: SteamID, time: number): Promise<void> {
+    const tempKey = this.getTempCurrentKey(steamid, time);
 
     // Check if a temp key exists
     const exists = await this.redis.exists(tempKey);
@@ -618,12 +623,6 @@ export class CurrentListingsService {
       // It does not exist, delete current key
       transaction.del(this.getCurrentKey(steamid));
     }
-
-    transaction.del(
-      done.map((key) =>
-        key.replace(this.redis.options.keyPrefix as string, ''),
-      ),
-    );
 
     await transaction.exec();
 
@@ -801,7 +800,7 @@ export class CurrentListingsService {
     });
   }
 
-  private _getActiveListings(
+  fetchActiveListings(
     token: Token,
     skip?: number,
     limit = 1000,
@@ -825,7 +824,7 @@ export class CurrentListingsService {
     });
   }
 
-  private _getArchivedListings(
+  fetchArchivedListings(
     token: Token,
     skip?: number,
     limit = 1000,
@@ -859,9 +858,5 @@ export class CurrentListingsService {
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
     return `listings:current:keep:${steamid.getSteamID64()}`;
-  }
-
-  private getResourceForListingId(steamid: SteamID, id: string): string {
-    return `listings:current:${steamid.getSteamID64()}:${id}`;
   }
 }

@@ -170,8 +170,6 @@ export class ManageListingsProcessor
   }
 
   async process(job: CustomJob): Promise<JobResult> {
-    this.logger.debug(`Processing job ${job.id}...`);
-
     switch (job.name) {
       case JobType.Create:
         return this.handleCreateAction(job);
@@ -409,8 +407,6 @@ export class ManageListingsProcessor
   @OnWorkerEvent('completed')
   onCompleted(job: CustomJob): void {
     const steamid = new SteamID(job.data.steamid64);
-
-    this.logger.debug('Completed job ' + job.id);
 
     if (job.returnvalue === true) {
       this.manageListingsService.createJob(steamid, job.name).catch((err) => {
