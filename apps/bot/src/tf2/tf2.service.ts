@@ -3,6 +3,7 @@ import {
   Injectable,
   OnApplicationShutdown,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
@@ -91,13 +92,17 @@ export class TF2Service implements OnApplicationShutdown {
       this.logger.debug('Disconnected from GC');
     });
 
-    this.client.on('appQuit', () => {
+    this.client.on('appQuit', (appid) => {
+      if (appid !== 440) {
+        return;
+      }
+
       if (this.manuallyDisconnectedFromGC) {
         this.manuallyDisconnectedFromGC = false;
 
         // Add timeout to give Steam some time before we open the app again
         setTimeout(() => {
-          this.botService.setGamePlayed(440);
+          this.botService.joinGame(440);
         }, 1000);
       }
     });
@@ -152,7 +157,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.reconnectTimeout = setTimeout(() => {
       this.logger.debug('Reconnecting to GC to refresh inventory');
       this.manuallyDisconnectedFromGC = true;
-      this.botService.setGamePlayed(null);
+      this.botService.exitGame(440);
       this.reconnectTimeout = null;
     }, 10000);
   }
@@ -319,7 +324,11 @@ export class TF2Service implements OnApplicationShutdown {
   async connectToGC(): Promise<void> {
     if (!this.isPlayingTF2()) {
       // Not playing TF2
-      this.botService.setGamePlayed(440);
+      const joining = this.botService.joinGame(440);
+
+      if (!joining) {
+        throw new ServiceUnavailableException('Not playing TF2');
+      }
     }
 
     if (this.tf2.haveGCSession) {

@@ -57,6 +57,8 @@ export class BotService implements OnModuleDestroy {
   private manager: SteamTradeOfferManager;
   private pollInterval: number;
   private customGamePlayed: string | null = null;
+  private gamesPlayed: number[] = [];
+  private gamesPlayedFilter = new Set<number>();
   private personaState: SteamUser.EPersonaState | null = null;
 
   private _startPromise: Promise<void> | null = null;
@@ -144,7 +146,7 @@ export class BotService implements OnModuleDestroy {
     this.client.on('loggedOn', () => {
       this.logger.log('Logged in to Steam!');
 
-      this.setGamePlayed(440);
+      this.setGamesPlayed();
       this.setPersonaState();
 
       this.metadataService.setSteamID(this.client.steamID as SteamID);
@@ -262,18 +264,37 @@ export class BotService implements OnModuleDestroy {
     return this.community;
   }
 
-  setGamePlayed(appid: number | null) {
+  private setGamesPlayed() {
     const gamesPlayed: (string | number)[] = [];
 
     if (this.customGamePlayed) {
       gamesPlayed.push(this.customGamePlayed);
     }
 
-    if (appid) {
-      gamesPlayed.push(appid);
-    }
+    this.gamesPlayed.forEach((appid) => {
+      if (!this.gamesPlayedFilter.has(appid)) {
+        gamesPlayed.push(appid);
+      }
+    });
 
     this.client.gamesPlayed(gamesPlayed);
+  }
+
+  exitGame(appid: number): void {
+    this.gamesPlayedFilter.add(appid);
+    this.setGamesPlayed();
+  }
+
+  joinGame(appid: number): boolean {
+    this.gamesPlayedFilter.delete(appid);
+
+    if (!this.gamesPlayed.includes(appid)) {
+      return false;
+    }
+
+    this.setGamesPlayed();
+
+    return true;
   }
 
   setCustomGame(gameName: string | null) {
@@ -282,12 +303,12 @@ export class BotService implements OnModuleDestroy {
     }
 
     this.customGamePlayed = gameName;
+    this.setGamesPlayed();
+  }
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error _playingAppIds is private
-    const gamesPlayed: number[] = this.client._playingAppIds;
-
-    this.setGamePlayed(gamesPlayed.length > 0 ? gamesPlayed[0] : null);
+  setGames(appids: number[]) {
+    this.gamesPlayed = appids;
+    this.setGamesPlayed();
   }
 
   setCustomPersonaState(state: SteamUser.EPersonaState | null) {

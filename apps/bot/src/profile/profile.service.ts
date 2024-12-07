@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import {
   UpdateCustomGameDto,
+  UpdateGamesDto,
   UpdateProfileAvatarDto,
   UpdateProfileDto,
   UpdateProfileSettingsDto,
@@ -23,12 +24,14 @@ export class ProfileService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const [customGame, customPersonaState] = await Promise.all([
+    const [customGame, games, customPersonaState] = await Promise.all([
       this.getCustomGame(),
+      this.getGames(),
       this.getCustomPersonaState(),
     ]);
 
     this.botService.setCustomGame(customGame);
+    this.botService.setGames(games);
     this.botService.setCustomPersonaState(customPersonaState);
   }
 
@@ -110,6 +113,12 @@ export class ProfileService implements OnModuleInit {
     }.txt`;
   }
 
+  private getGamesPath() {
+    return `games.${
+      this.configService.getOrThrow<SteamAccountConfig>('steam').username
+    }.txt`;
+  }
+
   private getCustomPersonaStatePath() {
     return `persona.${
       this.configService.getOrThrow<SteamAccountConfig>('steam').username
@@ -120,6 +129,10 @@ export class ProfileService implements OnModuleInit {
     return this.saveCustomGame(dto.name);
   }
 
+  setGames(dto: UpdateGamesDto): Promise<void> {
+    return this.saveGames(dto.appids);
+  }
+
   clearCustomGame(): Promise<void> {
     return this.saveCustomGame(null);
   }
@@ -128,6 +141,11 @@ export class ProfileService implements OnModuleInit {
     // Save the name, or empty string if null
     await this.storageService.write(this.getCustomGamePath(), name ?? '');
     this.botService.setCustomGame(name);
+  }
+
+  private async saveGames(appids: number[]) {
+    await this.storageService.write(this.getGamesPath(), appids.join(','));
+    this.botService.setGames(appids);
   }
 
   setCustomPersonaState(state: SteamUser.EPersonaState): Promise<void> {
@@ -156,6 +174,18 @@ export class ProfileService implements OnModuleInit {
     }
 
     return customGame;
+  }
+
+  private async getGames(): Promise<number[]> {
+    const games = await this.storageService
+      .read(this.getGamesPath())
+      .catch(null);
+
+    if (!games ) {
+      return [];
+    }
+
+    return games.split(',').map((game) => parseInt(game, 10));
   }
 
   private async getCustomPersonaState(): Promise<SteamUser.EPersonaState | null> {

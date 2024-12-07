@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   UpdateCustomGame,
   UpdateCustomPersonaState,
+  UpdateGames,
   UpdateProfile,
   UpdateProfileAvatar,
   UpdateProfileSettings,
@@ -9,6 +10,7 @@ import {
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
@@ -39,6 +41,16 @@ export class UpdateCustomGameDto implements UpdateCustomGame {
   @IsString()
   @IsNotEmpty()
   name: string;
+}
+
+export class UpdateGamesDto implements UpdateGames {
+  @ApiProperty({
+    description: 'A list of appids',
+    example: [440, 570, 730],
+  })
+  @IsArray()
+  @Type(() => String)
+  appids: number[];
 }
 
 export class UpdateCustomPersonaStateDto implements UpdateCustomPersonaState {
