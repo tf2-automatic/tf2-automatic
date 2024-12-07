@@ -181,7 +181,13 @@ export class ProfileService implements OnModuleInit {
       .read(this.getGamesPath())
       .catch(null);
 
-    if (!games ) {
+    if (!games) {
+      const defaultGame =
+        this.configService.getOrThrow<SteamAccountConfig>('steam').defaultGame;
+      if (defaultGame) {
+        return [defaultGame];
+      }
+
       return [];
     }
 
