@@ -294,7 +294,7 @@ export class TF2Service implements OnApplicationShutdown {
 
   getBackpack(): TF2Item[] {
     if (this.tf2.backpack === undefined) {
-      throw new BadRequestException('Backpack not loaded');
+      throw new ServiceUnavailableException('Backpack not loaded');
     }
 
     return this.tf2.backpack;
@@ -345,11 +345,7 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   private isItemInBackpack(assetid: string): boolean {
-    if (this.tf2.backpack === undefined) {
-      throw new Error('Backpack not loaded');
-    }
-
-    return this.tf2.backpack.some((item) => item.id === assetid);
+    return this.getBackpack().some((item) => item.id === assetid);
   }
 
   private async waitForBackpack(): Promise<void> {
