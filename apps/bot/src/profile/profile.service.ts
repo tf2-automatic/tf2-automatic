@@ -196,7 +196,7 @@ export class ProfileService implements OnModuleInit {
 
   private async getCustomPersonaState(): Promise<SteamUser.EPersonaState | null> {
     const persona = await this.storageService
-      .read(this.getCustomGamePath())
+      .read(this.getCustomPersonaStatePath())
       .catch(null);
 
     if (persona === null || persona === '') {
