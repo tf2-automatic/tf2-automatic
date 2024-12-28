@@ -252,6 +252,7 @@ export class TradesService implements OnApplicationBootstrap {
   async createTrade(
     bot: Bot,
     trade: CreateTrade,
+    idempotencyKey?: string,
   ): Promise<CreateTradeResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
 
@@ -263,8 +264,13 @@ export class TradesService implements OnApplicationBootstrap {
       token: trade.token,
     };
 
+    const headers = {};
+    if (idempotencyKey) {
+      headers['X-Idempotency-Key'] = idempotencyKey;
+    }
+
     return firstValueFrom(
-      this.httpService.post<CreateTradeResponse>(url, data),
+      this.httpService.post<CreateTradeResponse>(url, data, { headers }),
     ).then((res) => {
       return res.data;
     });
