@@ -57,6 +57,28 @@ export class LocalStorageEngine implements StorageEngine {
     });
   }
 
+  delete(relativePath: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (!this.config.directory) {
+        return resolve(false);
+      }
+
+      const fullPath = path.join(this.config.directory, relativePath);
+
+      if (!fs.existsSync(fullPath)) {
+        return resolve(false);
+      }
+
+      fs.unlink(fullPath, (err) => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve(true);
+      });
+    });
+  }
+
   private createDirectoryIfNotExists(dir: string) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
