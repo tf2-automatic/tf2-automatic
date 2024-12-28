@@ -5,6 +5,7 @@ export type StorageConfig = S3StorageConfig | LocalStorageConfig;
 
 interface BaseConfig {
   type: unknown;
+  directory: string;
 }
 
 export interface S3StorageConfig extends BaseConfig {
@@ -13,14 +14,12 @@ export interface S3StorageConfig extends BaseConfig {
   port: number;
   useSSL: boolean;
   bucket: string;
-  directory: string;
   accessKeyId: string;
   secretAccessKey: string;
 }
 
 export interface LocalStorageConfig extends BaseConfig {
   type: 'local';
-  directory: string;
 }
 
 export function getLocalStorageConfig(): LocalStorageConfig {
