@@ -33,8 +33,19 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Summary, register } from 'prom-client';
 import jwt from 'jsonwebtoken';
 import objectHash from 'object-hash';
+import path from 'path';
 
 type HistogramEndCallback = (labels?: unknown) => void;
+
+const FILE_PATHS = {
+  TOKEN: (username: string) => path.join(`bots/${username}`, 'token.txt'),
+  DISABLED: (username: string) => path.join(`bots/${username}`, 'disabled.txt'),
+  RATELIMITED: (username: string) =>
+    path.join(`bots/${username}`, 'ratelimited.txt'),
+  ASSETS: (filename: string) => path.join('assets', filename),
+  ACCOUNT_SPECIFIC: (username: string, filename: string) =>
+    path.join(`bots/${username}`, filename),
+};
 
 @Injectable()
 export class BotService implements OnModuleDestroy {
@@ -70,6 +81,9 @@ export class BotService implements OnModuleDestroy {
   private playing = false;
 
   private histogramEnds: Map<string, HistogramEndCallback> = new Map();
+
+  private readonly username =
+    this.configService.getOrThrow<SteamAccountConfig>('steam').username;
 
   constructor(
     private shutdownService: ShutdownService,
@@ -204,13 +218,11 @@ export class BotService implements OnModuleDestroy {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.client.on('refreshToken', (token: string) => {
-      const tokenPath = `token.${
-        this.configService.getOrThrow<SteamAccountConfig>('steam').username
-      }.txt`;
-
-      this.storageService.write(tokenPath, token).catch((err) => {
-        this.logger.warn('Failed to save refresh token: ' + err.message);
-      });
+      this.storageService
+        .write(FILE_PATHS.TOKEN(this.username), token)
+        .catch((err) => {
+          this.logger.warn('Failed to save refresh token: ' + err.message);
+        });
     });
 
     setInterval(
@@ -352,7 +364,7 @@ export class BotService implements OnModuleDestroy {
     callback: (err: Error | null, contents?: Buffer | null) => void,
   ): void {
     this.storageService
-      .read(filename)
+      .read(this.handleFileEventPath(filename))
       .then((contents) =>
         callback(null, contents ? Buffer.from(contents, 'utf8') : null),
       )
@@ -365,9 +377,17 @@ export class BotService implements OnModuleDestroy {
     callback: (err: Error | null) => void,
   ): void {
     this.storageService
-      .write(filename, contents.toString())
+      .write(this.handleFileEventPath(filename), contents.toString())
       .then(() => callback(null))
       .catch((err) => callback(err));
+  }
+
+  private handleFileEventPath(filename: string): string {
+    if (filename.startsWith('asset_')) {
+      return FILE_PATHS.ASSETS(filename);
+    } else {
+      return FILE_PATHS.ACCOUNT_SPECIFIC(this.username, filename);
+    }
   }
 
   async start(): Promise<void> {
@@ -391,9 +411,10 @@ export class BotService implements OnModuleDestroy {
       this.configService.getOrThrow<SteamAccountConfig>('steam');
 
     // Check for file to prevent logging in on fatal error
-    const path = `disabled.${steamDetails.username}.txt`;
 
-    const result = await this.storageService.read(path);
+    const result = await this.storageService.read(
+      FILE_PATHS.DISABLED(this.username),
+    );
     if (result === null) {
       return false;
     }
@@ -413,30 +434,26 @@ export class BotService implements OnModuleDestroy {
   private async setDisabled(reason: string | null): Promise<void> {
     this.logger.warn('Disabling bot, reason: ' + reason);
 
-    const steamDetails =
-      this.configService.getOrThrow<SteamAccountConfig>('steam');
-
-    const path = `disabled.${steamDetails.username}.txt`;
+    const filename = FILE_PATHS.DISABLED(this.username);
 
     if (reason === null) {
-      // TODO: Delete file
-      await this.storageService.write(path, '');
+      await this.storageService.delete(filename);
     } else {
       const data = {
         reason,
-        hash: objectHash(steamDetails),
+        hash: objectHash(
+          this.configService.getOrThrow<SteamAccountConfig>('steam'),
+        ),
       };
 
-      await this.storageService.write(path, JSON.stringify(data));
+      await this.storageService.write(filename, JSON.stringify(data));
     }
   }
 
   private async getLastRatelimited(): Promise<Date | null> {
-    const path = `ratelimited.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-
-    const ratelimited = await this.storageService.read(path);
+    const ratelimited = await this.storageService.read(
+      FILE_PATHS.RATELIMITED(this.username),
+    );
     if (ratelimited === null) {
       return null;
     }
@@ -449,11 +466,10 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async setRatelimited(time: Date): Promise<void> {
-    const path = `ratelimited.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-
-    await this.storageService.write(path, time.toISOString());
+    await this.storageService.write(
+      FILE_PATHS.RATELIMITED(this.username),
+      time.toISOString(),
+    );
   }
 
   private async _start(): Promise<void> {
@@ -906,12 +922,8 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async getRefreshToken(): Promise<string | null> {
-    const tokenPath = `token.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-
     const refreshToken = await this.storageService
-      .read(tokenPath)
+      .read(FILE_PATHS.TOKEN(this.username))
       .catch(() => null);
 
     if (!refreshToken) {
@@ -938,11 +950,9 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async deleteRefreshToken(): Promise<void> {
-    const tokenPath = `token.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
+    const filename = path.join(`bots/${this.username}`, 'token.txt');
 
-    await this.storageService.write(tokenPath, '').catch(() => {
+    await this.storageService.delete(filename).catch(() => {
       // Ignore error
     });
   }

@@ -12,10 +12,21 @@ import { ConfigService } from '@nestjs/config';
 import { Config, SteamAccountConfig } from '../common/config/configuration';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 import SteamUser from 'steam-user';
+import path from 'path';
+
+const FILE_PATHS = {
+  CUSTOM_GAME: (username: string) =>
+    path.join(`bots/${username}`, 'customgame.txt'),
+  GAMES: (username: string) => path.join(`bots/${username}`, 'games.txt'),
+  PERSONA: (username: string) => path.join(`bots/${username}`, 'persona.txt'),
+};
 
 @Injectable()
 export class ProfileService implements OnModuleInit {
   private readonly community = this.botService.getCommunity();
+
+  private readonly username =
+    this.configService.getOrThrow<SteamAccountConfig>('steam').username;
 
   constructor(
     private readonly botService: BotService,
@@ -107,24 +118,6 @@ export class ProfileService implements OnModuleInit {
     });
   }
 
-  private getCustomGamePath() {
-    return `customgame.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-  }
-
-  private getGamesPath() {
-    return `games.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-  }
-
-  private getCustomPersonaStatePath() {
-    return `persona.${
-      this.configService.getOrThrow<SteamAccountConfig>('steam').username
-    }.txt`;
-  }
-
   setCustomGame(dto: UpdateCustomGameDto): Promise<void> {
     return this.saveCustomGame(dto.name);
   }
@@ -138,13 +131,22 @@ export class ProfileService implements OnModuleInit {
   }
 
   private async saveCustomGame(name: string | null) {
-    // Save the name, or empty string if null
-    await this.storageService.write(this.getCustomGamePath(), name ?? '');
+    const filename = FILE_PATHS.CUSTOM_GAME(this.username);
+
+    if (name === null) {
+      await this.storageService.delete(filename);
+    } else {
+      await this.storageService.write(filename, name);
+    }
+
     this.botService.setCustomGame(name);
   }
 
   private async saveGames(appids: number[]) {
-    await this.storageService.write(this.getGamesPath(), appids.join(','));
+    await this.storageService.write(
+      FILE_PATHS.GAMES(this.username),
+      appids.join(','),
+    );
     this.botService.setGames(appids);
   }
 
@@ -157,16 +159,20 @@ export class ProfileService implements OnModuleInit {
   }
 
   private async saveCustomPersonaState(state: SteamUser.EPersonaState | null) {
-    await this.storageService.write(
-      this.getCustomPersonaStatePath(),
-      state !== null ? state.toString() : '',
-    );
+    const filename = FILE_PATHS.PERSONA(this.username);
+
+    if (state === null) {
+      await this.storageService.delete(filename);
+    } else {
+      await this.storageService.write(filename, state.toString());
+    }
+
     this.botService.setCustomPersonaState(state);
   }
 
   private async getCustomGame(): Promise<string | null> {
     const customGame = await this.storageService
-      .read(this.getCustomGamePath())
+      .read(FILE_PATHS.CUSTOM_GAME(this.username))
       .catch(null);
 
     if (!customGame) {
@@ -178,7 +184,7 @@ export class ProfileService implements OnModuleInit {
 
   private async getGames(): Promise<number[]> {
     const games = await this.storageService
-      .read(this.getGamesPath())
+      .read(FILE_PATHS.GAMES(this.username))
       .catch(null);
 
     if (!games) {
@@ -196,7 +202,7 @@ export class ProfileService implements OnModuleInit {
 
   private async getCustomPersonaState(): Promise<SteamUser.EPersonaState | null> {
     const persona = await this.storageService
-      .read(this.getCustomPersonaStatePath())
+      .read(FILE_PATHS.PERSONA(this.username))
       .catch(null);
 
     if (persona === null || persona === '') {
