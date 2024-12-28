@@ -67,6 +67,7 @@ export class BotService implements OnModuleDestroy {
   private running = false;
   private loggedAccountLimitations = false;
   private webSessionInterval: NodeJS.Timeout | null = null;
+  private playing = false;
 
   private histogramEnds: Map<string, HistogramEndCallback> = new Map();
 
@@ -146,8 +147,7 @@ export class BotService implements OnModuleDestroy {
     this.client.on('loggedOn', () => {
       this.logger.log('Logged in to Steam!');
 
-      this.setGamesPlayed();
-      this.setPersonaState();
+      this.setGamesAndState();
 
       this.metadataService.setSteamID(this.client.steamID as SteamID);
 
@@ -163,10 +163,28 @@ export class BotService implements OnModuleDestroy {
         });
     });
 
+    this.client.on('playingState', (_, playingApp) => {
+      if (playingApp === 0) {
+        return;
+      }
+
+      const wasPlaying = this.playing;
+      this.playing = true;
+
+      if (wasPlaying) {
+        const game = this.customGamePlayed;
+        this.setCustomGame(null);
+        this.setCustomGame(game);
+      }
+    });
+
     this.client.on('disconnected', (eresult, msg) => {
       this.logger.warn(
         `Disconnected from Steam, eresult: ${SteamUser.EResult[eresult]} (${eresult})`,
       );
+
+      // Bot is no longer playing a game
+      this.playing = false;
 
       // Disable polling
       this.manager.pollInterval = -1;
@@ -262,6 +280,11 @@ export class BotService implements OnModuleDestroy {
 
   getCommunity(): SteamCommunity {
     return this.community;
+  }
+
+  private setGamesAndState() {
+    this.setGamesPlayed();
+    this.setPersonaState();
   }
 
   private setGamesPlayed() {
@@ -511,7 +534,7 @@ export class BotService implements OnModuleDestroy {
 
     this.logger.log('Bot is ready');
 
-    this.setPersonaState();
+    this.setGamesAndState();
 
     this.manager.doPoll();
 
