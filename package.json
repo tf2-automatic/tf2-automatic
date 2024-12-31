@@ -52,7 +52,7 @@
     "@types/uuid": "^10.0.0",
     "@types/write-file-atomic": "^4.0.3",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
-    "@typescript-eslint/parser": "^8.10.0",
+    "@typescript-eslint/parser": "^8.19.0",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "docker-compose": "^1.1.0",
