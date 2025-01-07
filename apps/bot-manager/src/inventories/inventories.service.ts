@@ -217,7 +217,7 @@ export class InventoriesService
           data: event,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: event.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies InventoryLoadedEvent);
@@ -621,7 +621,7 @@ export class InventoriesService
           data,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: data.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies InventoryChangedEvent);

@@ -177,7 +177,7 @@ export class HeartbeatsService {
           data: bot,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: bot.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies BotHeartbeatEvent);
@@ -224,7 +224,7 @@ export class HeartbeatsService {
           data: bot,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: bot.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies BotStoppedEvent);
@@ -260,7 +260,7 @@ export class HeartbeatsService {
           data: bot,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: bot.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies BotDeletedEvent);
