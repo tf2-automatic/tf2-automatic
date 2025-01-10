@@ -55,7 +55,7 @@ interface InventoryIdentifier {
   contextid: string;
 }
 
-const INVENTORY_EXPIRE_TIME = 600;
+export const INVENTORY_EXPIRE_TIME = 600;
 
 @Injectable()
 export class InventoriesService
@@ -264,6 +264,7 @@ export class InventoriesService
     contextid: string,
     useCache = true,
     tradableOnly = true,
+    ttl?: number,
   ): Promise<InventoryResponse> {
     if (useCache) {
       try {
@@ -287,7 +288,7 @@ export class InventoriesService
     // Add the job to the queue. I believe that if it is already in the queue
     // then it will not be replaced
     const job = await this.addToQueue(steamid, appid, contextid, {
-      ttl: INVENTORY_EXPIRE_TIME,
+      ttl: ttl ?? INVENTORY_EXPIRE_TIME,
     });
 
     // Wait for it to finish

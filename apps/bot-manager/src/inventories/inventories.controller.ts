@@ -26,7 +26,10 @@ import {
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
-import { InventoriesService } from './inventories.service';
+import {
+  InventoriesService,
+  INVENTORY_EXPIRE_TIME,
+} from './inventories.service';
 import { ApiParamSteamID, CachedInventoryModel } from '@tf2-automatic/swagger';
 
 @ApiTags('Inventories')
@@ -134,6 +137,15 @@ export class InventoriesController {
     example: true,
     required: false,
   })
+  @ApiQuery({
+    name: 'ttl',
+    description:
+      'Time to live of the cache in seconds if the inventory is fetched from a bot. Default is ' +
+      INVENTORY_EXPIRE_TIME +
+      '.',
+    example: INVENTORY_EXPIRE_TIME,
+    required: false,
+  })
   async waitForInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
@@ -142,6 +154,8 @@ export class InventoriesController {
     useCache = true,
     @Query('tradableOnly', new ParseBoolPipe({ optional: true }))
     tradableOnly: boolean | undefined,
+    @Query('ttl', new ParseIntPipe({ optional: true }))
+    ttl: number | undefined,
   ): Promise<InventoryResponse> {
     return this.inventoriesService.fetchInventory(
       steamid,
@@ -149,6 +163,7 @@ export class InventoriesController {
       contextid,
       useCache,
       tradableOnly,
+      ttl,
     );
   }
 
