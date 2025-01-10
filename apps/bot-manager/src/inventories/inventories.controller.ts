@@ -80,15 +80,25 @@ export class InventoriesController {
     description: 'The contextid of the inventory',
     example: 2,
   })
+  @ApiQuery({
+    name: 'tradableOnly',
+    description:
+      'Set to false to include non-tradable items in the response. Defaults to true.',
+    example: true,
+    required: false,
+  })
   getInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
+    @Query('tradableOnly', new ParseBoolPipe({ optional: true }))
+    tradableOnly?: boolean,
   ): Promise<InventoryResponse> {
     return this.inventoriesService.getInventoryFromCache(
       steamid,
       appid,
       contextid,
+      tradableOnly,
     );
   }
 

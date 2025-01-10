@@ -128,7 +128,6 @@ export class InventoriesService
       bot: dto.bot,
       retry: dto.retry,
       ttl: dto.ttl,
-      tradableOnly: dto.tradableOnly,
     };
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
@@ -146,7 +145,6 @@ export class InventoriesService
     steamid: SteamID,
     appid: number,
     contextid: string,
-    tradableOnly: boolean,
   ): Promise<Inventory> {
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
@@ -154,7 +152,7 @@ export class InventoriesService
           .replace(':steamid', steamid.getSteamID64())
           .replace(':appid', appid.toString())
           .replace(':contextid', contextid),
-        { params: { tradableOnly: tradableOnly } },
+        { params: { tradableOnly: false } },
       ),
     );
 
@@ -167,7 +165,6 @@ export class InventoriesService
     appid: number,
     contextid: string,
     ttl: number = INVENTORY_EXPIRE_TIME,
-    tradableOnly = true,
   ): Promise<InventoryResponse> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -176,7 +173,6 @@ export class InventoriesService
       steamid,
       appid,
       contextid,
-      tradableOnly,
     );
 
     const object = items.reduce((acc, item) => {
@@ -266,7 +262,7 @@ export class InventoriesService
     appid: number,
     contextid: string,
     useCache = true,
-    tradableOnly?: boolean,
+    tradableOnly = true,
   ): Promise<InventoryResponse> {
     if (useCache) {
       try {
@@ -274,6 +270,7 @@ export class InventoriesService
           steamid,
           appid,
           contextid,
+          tradableOnly,
         );
 
         return inventory;
@@ -290,7 +287,6 @@ export class InventoriesService
     // then it will not be replaced
     const job = await this.addToQueue(steamid, appid, contextid, {
       ttl: INVENTORY_EXPIRE_TIME,
-      tradableOnly,
     });
 
     // Wait for it to finish
@@ -312,10 +308,32 @@ export class InventoriesService
         throw err;
       });
 
-    return this.getInventoryFromCache(steamid, appid, contextid);
+    return this.getInventoryFromCache(steamid, appid, contextid, tradableOnly);
   }
 
   async getInventoryFromCache(
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+    tradableOnly = true,
+  ): Promise<InventoryResponse> {
+    const inventory = await this.fetchInventoryFromCache(
+      steamid,
+      appid,
+      contextid,
+    );
+
+    const items = tradableOnly
+      ? inventory.items.filter((item) => item?.tradable === true)
+      : inventory.items;
+
+    return {
+      timestamp: inventory.timestamp,
+      items,
+    };
+  }
+
+  private async fetchInventoryFromCache(
     steamid: SteamID,
     appid: number,
     contextid: string,

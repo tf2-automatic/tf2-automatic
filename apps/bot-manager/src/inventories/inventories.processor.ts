@@ -187,7 +187,6 @@ export class InventoriesProcessor extends WorkerHost {
       job.data.raw.appid,
       job.data.raw.contextid,
       job.data.ttl,
-      job.data.tradableOnly,
     );
 
     return inventory.timestamp;
