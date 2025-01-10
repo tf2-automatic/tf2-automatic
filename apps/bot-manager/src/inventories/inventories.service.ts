@@ -229,6 +229,7 @@ export class InventoriesService
 
     return {
       timestamp: now,
+      ttl,
       items,
     };
   }
@@ -329,6 +330,7 @@ export class InventoriesService
 
     return {
       timestamp: inventory.timestamp,
+      ttl: inventory.ttl,
       items,
     };
   }
@@ -340,7 +342,7 @@ export class InventoriesService
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    const { timestamp, object } = await this.locker.using(
+    const { timestamp, ttl, object } = await this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -360,9 +362,12 @@ export class InventoriesService
           throw signal.error;
         }
 
-        const object = await this.redis.hgetallBuffer(key);
+        const [object, ttl] = await Promise.all([
+          this.redis.hgetallBuffer(key),
+          this.redis.ttl(key),
+        ]);
 
-        return { timestamp: parseInt(timestamp, 10), object };
+        return { timestamp: parseInt(timestamp, 10), ttl, object };
       },
     );
 
@@ -374,6 +379,7 @@ export class InventoriesService
 
     return {
       timestamp,
+      ttl,
       items,
     };
   }

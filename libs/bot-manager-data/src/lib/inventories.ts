@@ -18,6 +18,7 @@ export type InventoryItem =
 
 export interface InventoryResponse {
   timestamp: number;
+  ttl: number;
   items: InventoryItem[];
 }
 
