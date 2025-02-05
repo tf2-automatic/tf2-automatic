@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -42,6 +43,7 @@ import {
   Spell,
   SpellModel,
   UpdateSchemaResponse,
+  SCHEMA_BY_TIME_PATH,
 } from '@tf2-automatic/item-service-data';
 import {
   ApiOperation,
@@ -68,6 +70,20 @@ export class SchemaController {
   })
   async getSchema() {
     return this.schemaService.getSchemas();
+  }
+
+  @Delete(SCHEMA_BY_TIME_PATH)
+  @ApiOperation({
+    summary: 'Delete schema',
+    description: 'Deletes the schema',
+  })
+  @ApiParam({
+    name: 'time',
+    description: 'The time of the schema',
+    example: Math.floor(Date.now() / 1000),
+  })
+  async deleteSchema(@Param('time', ParseIntPipe) time: number): Promise<void> {
+    await this.schemaService.deleteSchema(time);
   }
 
   @Post(SCHEMA_REFRESH_PATH)

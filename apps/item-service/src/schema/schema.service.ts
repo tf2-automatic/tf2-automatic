@@ -132,6 +132,28 @@ export class SchemaService implements OnApplicationBootstrap {
     return schemas.sort((a, b) => b.time - a.time);
   }
 
+  async deleteSchema(time: number): Promise<void> {
+    const multi = this.redis.multi();
+
+    multi
+      .hdel(SCHEMAS_KEY, time.toString())
+      .del(this.getKey(PAINTKIT_ID_KEY, time))
+      .del(this.getKey(PAINTKIT_NAME_KEY, time))
+      .del(this.getKey(SCHEMA_EFFECTS_ID_KEY, time))
+      .del(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time))
+      .del(this.getKey(SCHEMA_ITEMS_KEY, time))
+      .del(this.getKey(SCHEMA_ITEMS_NAME_KEY, time))
+      .del(this.getKey(SCHEMA_QUALITIES_ID_KEY, time))
+      .del(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time))
+      .del(this.getKey(SPELLS_ID_KEY, time))
+      .del(this.getKey(SPELLS_NAME_KEY, time));
+
+    await multi.exec();
+
+    await this.storageService.delete(time + '.' + OVERVIEW_FILE);
+    await this.storageService.delete(time + '.' + ITEMS_GAME_FILE);
+  }
+
   async getItems(
     cursor: number,
     count: number,
