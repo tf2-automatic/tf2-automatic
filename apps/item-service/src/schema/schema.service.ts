@@ -163,15 +163,16 @@ export class SchemaService implements OnApplicationBootstrap {
   async getItemsByName(name: string): Promise<SchemaItem[]> {
     const currentKey = await this.getCurrentKeyAndError();
 
-    const defindexes = await this.redis.smembers(
-      this.getKey(SCHEMA_ITEMS_NAME_KEY, currentKey) +
-        ':' +
+    const result = await this.redis.hgetBuffer(
+      this.getKey(SCHEMA_ITEMS_NAME_KEY, currentKey),
         Buffer.from(name).toString('base64'),
     );
 
-    if (!defindexes.length) {
+    if (!result) {
       throw new NotFoundException('Item not found');
     }
+
+    const defindexes = unpack(result);
 
     return Object.values(await this.getItemsByDefindexes(defindexes));
   }
@@ -647,30 +648,60 @@ export class SchemaService implements OnApplicationBootstrap {
     }
 
     const defindexToItem: Record<string, Buffer> = {};
+    const nameToDefindex: Record<string, Set<number>> = {};
 
     for (const item of result.items) {
-      const serialized = pack(item);
-      const defindex = item.defindex.toString();
+      const defindex = item.defindex;
 
       // Save the item to the defindex key
-      defindexToItem[defindex] = serialized;
+      defindexToItem[defindex] = pack(item);
 
-      // Save the item to the name key
-      await this.redis.sadd(
-        this.getKey(SCHEMA_ITEMS_NAME_KEY, job.data.time) +
-          ':' +
-          Buffer.from(item.item_name).toString('base64'),
-        defindex,
-      );
+      const nameBuffer = Buffer.from(item.item_name).toString('base64');
+
+      // Keep track of the defindexes for each name
+      if (nameToDefindex[nameBuffer] === undefined) {
+        nameToDefindex[nameBuffer] = new Set<number>();
+      }
+      nameToDefindex[nameBuffer].add(defindex);
     }
 
-    const tempSchemaItemsKey = this.getSuffixedKey(
-      SCHEMA_ITEMS_KEY,
+    // Save the schema items
+    const multi = this.redis
+      .multi()
+      .hmset(this.getKey(SCHEMA_ITEMS_KEY, job.data.time), defindexToItem);
+
+    const keys = Object.keys(nameToDefindex);
+
+    // Save to a variable to reuse later
+    const schemaItemsNameKey = this.getKey(
+      SCHEMA_ITEMS_NAME_KEY,
       job.data.time,
     );
 
-    // Save the schema items to a temporary key
-    await this.redis.multi().hmset(tempSchemaItemsKey, defindexToItem).exec();
+    const existing = await this.redis.hmgetBuffer(schemaItemsNameKey, ...keys);
+
+    const nameToDefindexToSave: Record<string, Buffer> = {};
+
+    // Merge existing into current ones
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const previous = existing[key];
+
+      if (previous) {
+        const defindexes = unpack(previous);
+        for (const defindex of defindexes) {
+          nameToDefindex[key].add(defindex);
+        }
+      }
+
+      nameToDefindexToSave[key] = pack(Array.from(nameToDefindex[key]));
+    }
+
+    // Save the schema items to the name key
+    multi.hmset(schemaItemsNameKey, nameToDefindexToSave);
+
+    // Write the changes to the database
+    await multi.exec();
   }
 
   async updateProtoObjDefs(job: Job, result: string) {
