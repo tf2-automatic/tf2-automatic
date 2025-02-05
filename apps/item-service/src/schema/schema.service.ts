@@ -128,7 +128,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
-      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
+      this.getKey(SCHEMA_ITEMS_KEY, currentKey),
       cursor,
       'COUNT',
       count,
@@ -164,9 +164,9 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const defindexes = await this.redis.smembers(
-      this.getSuffixedKey(SCHEMA_ITEMS_NAME_KEY, currentKey, {
-        name: Buffer.from(name).toString('base64'),
-      }),
+      this.getKey(SCHEMA_ITEMS_NAME_KEY, currentKey) +
+        ':' +
+        Buffer.from(name).toString('base64'),
     );
 
     if (!defindexes.length) {
@@ -182,7 +182,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const match = await this.redis.hmgetBuffer(
-      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
+      this.getKey(SCHEMA_ITEMS_KEY, currentKey),
       ...defindexes,
     );
 
@@ -202,7 +202,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const quality = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_QUALITIES_ID_KEY, currentKey),
+      this.getKey(SCHEMA_QUALITIES_ID_KEY, currentKey),
       id,
     );
 
@@ -217,7 +217,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const quality = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_QUALITIES_NAME_KEY, currentKey),
+      this.getKey(SCHEMA_QUALITIES_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -232,7 +232,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const effect = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_EFFECTS_ID_KEY, currentKey),
+      this.getKey(SCHEMA_EFFECTS_ID_KEY, currentKey),
       id,
     );
 
@@ -247,7 +247,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const effect = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_EFFECTS_NAME_KEY, currentKey),
+      this.getKey(SCHEMA_EFFECTS_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -262,7 +262,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const paintkit = await this.redis.hgetBuffer(
-      this.getSuffixedKey(PAINTKIT_ID_KEY, currentKey),
+      this.getKey(PAINTKIT_ID_KEY, currentKey),
       id,
     );
 
@@ -277,7 +277,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const paintkit = await this.redis.hgetBuffer(
-      this.getSuffixedKey(PAINTKIT_NAME_KEY, currentKey),
+      this.getKey(PAINTKIT_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -331,7 +331,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const spell = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SPELLS_ID_KEY, currentKey),
+      this.getKey(SPELLS_ID_KEY, currentKey),
       id,
     );
 
@@ -381,7 +381,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const currentKey = await this.getCurrentKeyAndError();
 
     const spell = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SPELLS_NAME_KEY, currentKey),
+      this.getKey(SPELLS_NAME_KEY, currentKey),
       Buffer.from(name).toString('base64'),
     );
 
@@ -440,7 +440,7 @@ export class SchemaService implements OnApplicationBootstrap {
   private async getItemsGameUrl(): Promise<string | null> {
     const currentKey = await this.getCurrentKey();
 
-    return this.redis.get(this.getSuffixedKey(ITEMS_GAME_URL_KEY, currentKey));
+    return this.redis.get(this.getKey(ITEMS_GAME_URL_KEY, currentKey));
   }
 
   private async isSameItemsGameUrl(url: string): Promise<boolean> {
@@ -546,14 +546,6 @@ export class SchemaService implements OnApplicationBootstrap {
       .exec();
 
     // Delete schema keys with the old suffix
-    await this.deleteKeysByPattern(
-      // TODO: Fix this. Very dangerous, could delete all keys
-      // We use "schema:*:*" to make sure that we do not get the current schema
-      // or last updated keys. They would only match the pattern "schema:*".
-      'schema:*:*',
-      job.data.time.toString(),
-    );
-
     const metadata = await this.getSchema();
 
     await this.eventsService.publish(
@@ -576,10 +568,7 @@ export class SchemaService implements OnApplicationBootstrap {
       }
     }
 
-    await this.redis.set(
-      this.getSuffixedKey(ITEMS_GAME_URL_KEY, job.data.time),
-      url,
-    );
+    await this.redis.set(this.getKey(ITEMS_GAME_URL_KEY, job.data.time), url);
 
     // Start the other schema jobs
     await this.createSchemaJobs(job.data.time, url);
@@ -642,15 +631,12 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .hmset(
-        this.getSuffixedKey(SCHEMA_QUALITIES_NAME_KEY, time),
-        qualitiesByName,
-      )
-      .hmset(this.getSuffixedKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
-      .hmset(this.getSuffixedKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
-      .hmset(this.getSuffixedKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
-      .hmset(this.getSuffixedKey(SPELLS_NAME_KEY, time), spellsByName)
-      .hmset(this.getSuffixedKey(SPELLS_ID_KEY, time), spellsById)
+      .hmset(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time), qualitiesByName)
+      .hmset(this.getKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
+      .hmset(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
+      .hmset(this.getKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
+      .hmset(this.getKey(SPELLS_NAME_KEY, time), spellsByName)
+      .hmset(this.getKey(SPELLS_ID_KEY, time), spellsById)
       .exec();
   }
 
@@ -671,9 +657,9 @@ export class SchemaService implements OnApplicationBootstrap {
 
       // Save the item to the name key
       await this.redis.sadd(
-        this.getSuffixedKey(SCHEMA_ITEMS_NAME_KEY, job.data.time, {
-          name: Buffer.from(item.item_name).toString('base64'),
-        }),
+        this.getKey(SCHEMA_ITEMS_NAME_KEY, job.data.time) +
+          ':' +
+          Buffer.from(item.item_name).toString('base64'),
         defindex,
       );
     }
@@ -733,11 +719,8 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .hmset(this.getSuffixedKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
-      .hmset(
-        this.getSuffixedKey(PAINTKIT_NAME_KEY, job.data.time),
-        paintkitsByName,
-      )
+      .hmset(this.getKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
+      .hmset(this.getKey(PAINTKIT_NAME_KEY, job.data.time), paintkitsByName)
       .exec();
   }
 
@@ -780,59 +763,12 @@ export class SchemaService implements OnApplicationBootstrap {
     return items;
   }
 
-  private deleteKeysByPattern(pattern: string, excludeSuffix?: string) {
-    const prefix = this.redis.options.keyPrefix ?? '';
-
-    return new Promise((resolve, reject) => {
-      const stream = this.redis.scanStream({
-        match: prefix + pattern,
-        count: 100,
-      });
-
-      stream.on('data', (keys: string[]) => {
-        if (keys.length === 0) {
-          return;
-        }
-
-        let keysToDelete = keys.map((k) => k.substring(prefix.length));
-        if (excludeSuffix) {
-          keysToDelete = keysToDelete.filter((k) => !k.endsWith(excludeSuffix));
-        }
-
-        if (keysToDelete.length === 0) {
-          return;
-        }
-
-        stream.pause();
-
-        this.redis
-          .del(keysToDelete)
-          .then(() => stream.resume())
-          .catch((err) => {
-            stream.destroy(err);
-          });
-      });
-
-      stream.on('end', resolve);
-      stream.on('error', reject);
-    });
-  }
-
-  private getKey(key: string, properties?: Record<string, any>) {
+  private getKey(key: string, prefix: any, properties?: Record<string, any>) {
     if (properties) {
       for (const property in properties) {
         key = key.replace('<' + property + '>', properties[property]);
       }
     }
-
-    return key;
-  }
-
-  private getSuffixedKey(
-    key: string,
-    suffix: any,
-    properties?: Record<string, any>,
-  ) {
-    return this.getKey(key + ':' + suffix, properties);
+    return prefix + ':' + key;
   }
 }
