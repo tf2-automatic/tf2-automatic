@@ -86,6 +86,7 @@ export interface UpdateSchemaResponse {
 export interface Schema {
   version: string;
   time: number;
+  consistent: boolean;
 }
 
 interface OriginName {
@@ -177,4 +178,11 @@ export class SchemaModel {
     description: 'The time the schema started being fetched',
   })
   time!: number;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'Whether the versions before and after fetching the schema are consistent',
+  })
+  consistent!: boolean;
 }

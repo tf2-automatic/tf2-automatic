@@ -61,7 +61,10 @@ export class SchemaProcessor extends WorkerHost {
   }
 
   private async updateSchema(job: Job) {
-    await this.schemaService.updateSchema(job);
+    const apiKey = await this.botsService.getApiKey();
+    const url = await this.getSchemaUrl(apiKey);
+
+    await this.schemaService.updateSchema(job, url);
   }
 
   private async updateUrl(job: Job) {

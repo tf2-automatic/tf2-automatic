@@ -541,10 +541,11 @@ export class SchemaService implements OnApplicationBootstrap {
    * This method is called when all schema jobs have finished
    * @param job
    */
-  async updateSchema(job: Job) {
+  async updateSchema(job: Job, endUrl: string) {
     const current: Schema = {
       version: job.data.items_game_url!,
       time: job.data.time,
+      consistent: job.data.items_game_url! === endUrl,
     };
 
     const multi = this.redis
@@ -565,6 +566,14 @@ export class SchemaService implements OnApplicationBootstrap {
     );
 
     this.logger.log('Schema updated');
+
+    if (!current.consistent) {
+      // The schema has changed while we were processing it
+      this.logger.warn(
+        'Schema versions changed while updating it, retrying...',
+      );
+      await this.createJobs(SchemaRefreshAction.FORCE);
+    }
   }
 
   /**
