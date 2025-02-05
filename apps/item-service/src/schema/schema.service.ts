@@ -558,7 +558,7 @@ export class SchemaService implements OnApplicationBootstrap {
       multi.set(CURRENT_SCHEMA_KEY, current.time);
     }
 
-    // Delete schema keys with the old suffix
+    await multi.exec();
 
     await this.eventsService.publish(
       SCHEMA_EVENT,
