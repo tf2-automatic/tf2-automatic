@@ -774,13 +774,57 @@ export class SchemaService implements OnApplicationBootstrap {
     time: number,
   ): Promise<void> {
     await this.storageService.write(
-      OVERVIEW_FILE,
+      time + '.' + OVERVIEW_FILE,
       pack(result).toString('base64'),
     );
   }
 
+  private async getSchemaByTime(time?: number): Promise<Schema | null> {
+    const schemas = await this.getSchemas();
+
+    if (schemas.length === 0) {
+      return null;
+    }
+
+    if (time === undefined) {
+      return schemas[0];
+    }
+
+    const max = schemas[0].time;
+    const min = schemas[schemas.length - 1].time;
+
+    // If the time is out of bounds then use the closest
+    if (time >= max) {
+      return schemas[0];
+    } else if (time <= min) {
+      return schemas[schemas.length - 1];
+    }
+
+    for (let i = 0; i < schemas.length; i++) {
+      const schema = schemas[i];
+      if (schema.time <= time) {
+        return schema;
+      }
+    }
+
+    return null;
+  }
+
   async getSchemaOverview(): Promise<SchemaOverviewResponse> {
-    const overview = await this.storageService.read(OVERVIEW_FILE);
+    const schema = await this.getSchemaByTime();
+    if (!schema) {
+      throw new NotFoundException('Schema not found');
+    }
+
+    return this.getSchemaOverviewBySchema(schema);
+  }
+
+  private async getSchemaOverviewBySchema(
+    schema: Schema,
+  ): Promise<SchemaOverviewResponse> {
+    const overview = await this.storageService.read(
+      schema.time + '.' + OVERVIEW_FILE,
+    );
     if (!overview) {
       throw new NotFoundException('Schema overview not found');
     }
@@ -792,11 +836,21 @@ export class SchemaService implements OnApplicationBootstrap {
     result: string,
     time: number,
   ): Promise<void> {
-    await this.storageService.write(ITEMS_GAME_FILE, result);
+    await this.storageService.write(time + '.' + ITEMS_GAME_FILE, result);
   }
 
   async getSchemaItemsGame(): Promise<string> {
-    const items = await this.storageService.read(ITEMS_GAME_FILE);
+    const schema = await this.getSchemaByTime();
+    if (!schema) {
+      throw new NotFoundException('Schema not found');
+    }
+    return this.getSchemaItemsGameBySchema(schema);
+  }
+
+  private async getSchemaItemsGameBySchema(schema: Schema): Promise<string> {
+    const items = await this.storageService.read(
+      schema.time + '.' + ITEMS_GAME_FILE,
+    );
     if (!items) {
       throw new NotFoundException('Schema items not found');
     }
