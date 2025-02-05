@@ -46,7 +46,7 @@ const LAST_UPDATED_KEY = 'schema:last-updated';
 // All schema items are stored in a hash set with the defindex as the key
 const SCHEMA_ITEMS_KEY = 'schema:items';
 // All schema items are stored in a set with the name as the key and the defindex as the value(s)
-const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name:<name>';
+const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name';
 // A key that stores the suffix of the current schema keys
 const CURRENT_SCHEMA_KEY = 'schema:current';
 // A hash set that stores all schema qualities with the id as the key
