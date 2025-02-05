@@ -1,3 +1,4 @@
+import { IsEnum, IsOptional } from 'class-validator';
 import { BaseEvent } from '../events';
 import { AttachedParticle } from './misc';
 import { ApiProperty } from '@nestjs/swagger';
@@ -62,6 +63,21 @@ export const SCHEMA_PAINTKIT_NAME_FULL_PATH =
   SCHEMA_BASE_PATH + SCHEMA_PAINTKIT_NAME_PATH;
 export const SCHEMA_PAINTKIT_ID_FULL_PATH =
   SCHEMA_BASE_PATH + SCHEMA_PAINTKIT_ID_PATH;
+
+export enum SchemaRefreshAction {
+  // Only check for new schema version if not recently checked
+  DEFAULT = 'default',
+  // Force the schema version to be checked
+  CHECK = 'check',
+  // Force the schema to be updated
+  FORCE = 'force',
+}
+
+export class SchemaRefreshDto {
+  @IsEnum(SchemaRefreshAction)
+  @IsOptional()
+  action: SchemaRefreshAction = SchemaRefreshAction.DEFAULT;
+}
 
 export interface UpdateSchemaResponse {
   enqueued: boolean;

@@ -33,6 +33,7 @@ import {
   Spell,
   SchemaEvent,
   SCHEMA_EVENT,
+  SchemaRefreshAction,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
@@ -423,10 +424,13 @@ export class SchemaService implements OnApplicationBootstrap {
     await this.createJobs();
   }
 
-  async createJobs(check = false, force = false): Promise<boolean> {
+  async createJobs(
+    action: SchemaRefreshAction = SchemaRefreshAction.DEFAULT,
+  ): Promise<boolean> {
     // Store the time in seconds
     const now = Math.floor(Date.now() / 1000);
 
+    if (action === SchemaRefreshAction.DEFAULT) {
       // Check if the schema was recently queued to be checked
       const last = await this.redis.get(LAST_CHECKED_KEY);
       if (last) {
@@ -442,7 +446,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis.set(LAST_CHECKED_KEY, now);
 
-    await this.createSchemaJob(now, force);
+    await this.createSchemaJob(now, action === SchemaRefreshAction.FORCE);
 
     return true;
   }

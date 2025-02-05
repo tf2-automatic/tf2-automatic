@@ -4,10 +4,10 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseBoolPipe,
   ParseIntPipe,
   Post,
   Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { SchemaService } from './schema.service';
 import {
@@ -17,6 +17,7 @@ import {
   PaintKitModel,
   Quality,
   QualityModel,
+  SchemaRefreshDto,
   SCHEMA_BASE_PATH,
   SCHEMA_EFFECT_ID_PATH,
   SCHEMA_EFFECT_NAME_PATH,
@@ -36,6 +37,8 @@ import {
   SchemaItem,
   SchemaItemModel,
   SchemaItemsResponse,
+  SchemaModel,
+  SchemaRefreshAction,
   Spell,
   SpellModel,
   UpdateSchemaResponse,
@@ -73,23 +76,17 @@ export class SchemaController {
       'Enqueues a job to check if the schema needs to be updated and updates the schema if it does.',
   })
   @ApiQuery({
-    name: 'check',
-    description: 'Force a check to be made even if one was recently made',
-    example: false,
-    required: false,
-  })
-  @ApiQuery({
-    name: 'force',
-    description: 'Force the schema to be updated',
-    example: false,
+    name: 'action',
+    description: 'The action to take',
+    example: SchemaRefreshAction.CHECK,
+    enum: Object.values(SchemaRefreshAction),
     required: false,
   })
   @HttpCode(HttpStatus.OK)
   async updateSchema(
-    @Query('check', new ParseBoolPipe({ optional: true })) check?: boolean,
-    @Query('force', new ParseBoolPipe({ optional: true })) force?: boolean,
+    @Query(new ValidationPipe({ transform: true })) dto: SchemaRefreshDto,
   ): Promise<UpdateSchemaResponse> {
-    const enqueued = await this.schemaService.createJobs(check, force);
+    const enqueued = await this.schemaService.createJobs(dto.action);
     return {
       enqueued,
     };
