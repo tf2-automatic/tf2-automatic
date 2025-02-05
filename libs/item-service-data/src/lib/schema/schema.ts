@@ -1,5 +1,7 @@
+import { IsEnum, IsOptional } from 'class-validator';
 import { BaseEvent } from '../events';
 import { AttachedParticle } from './misc';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const SCHEMA_BASE_PATH = '/schema';
 export const SCHEMA_PATH = '/';
@@ -7,6 +9,8 @@ export const SCHEMA_REFRESH_PATH = '/refresh';
 export const SCHEMA_ITEMS_GAME_PATH = '/items_game';
 export const SCHEMA_OVERVIEW_PATH = '/overview';
 export const SCHEMA_ITEMS_PATH = '/items';
+
+export const SCHEMA_BY_TIME_PATH = '/:time';
 
 const SCHEMA_ITEMS_DEFINDEX_PATH = SCHEMA_ITEMS_PATH + '/defindex';
 export const SCHEMA_ITEM_DEFINDEX_PATH =
@@ -42,6 +46,8 @@ export const SCHEMA_OVERVIEW_FULL_PATH =
   SCHEMA_BASE_PATH + SCHEMA_OVERVIEW_PATH;
 export const SCHEMA_ITEMS_FULL_PATH = SCHEMA_BASE_PATH + SCHEMA_ITEMS_PATH;
 
+export const SCHEMA_BY_TIME_FULL_PATH = SCHEMA_BASE_PATH + SCHEMA_BY_TIME_PATH;
+
 export const SCHEMA_ITEM_DEFINDEX_FULL_PATH =
   SCHEMA_BASE_PATH + SCHEMA_ITEM_DEFINDEX_PATH;
 export const SCHEMA_ITEM_NAME_FULL_PATH =
@@ -62,14 +68,29 @@ export const SCHEMA_PAINTKIT_NAME_FULL_PATH =
 export const SCHEMA_PAINTKIT_ID_FULL_PATH =
   SCHEMA_BASE_PATH + SCHEMA_PAINTKIT_ID_PATH;
 
+export enum SchemaRefreshAction {
+  // Only check for new schema version if not recently checked
+  DEFAULT = 'default',
+  // Force the schema version to be checked
+  CHECK = 'check',
+  // Force the schema to be updated
+  FORCE = 'force',
+}
+
+export class SchemaRefreshDto {
+  @IsEnum(SchemaRefreshAction)
+  @IsOptional()
+  action: SchemaRefreshAction = SchemaRefreshAction.DEFAULT;
+}
+
 export interface UpdateSchemaResponse {
   enqueued: boolean;
 }
 
 export interface Schema {
-  itemsGameUrl: string;
-  checkedAt: number;
-  updatedAt: number;
+  version: string;
+  time: number;
+  consistent: boolean;
 }
 
 interface OriginName {
@@ -147,3 +168,25 @@ export type SchemaEventType = 'schema.updated';
 export const SCHEMA_EVENT: SchemaEventType = `schema.updated`;
 
 export type SchemaEvent = BaseEvent<SchemaEventType, Schema>;
+
+export class SchemaModel {
+  @ApiProperty({
+    example:
+      'http://media.steampowered.com/apps/440/scripts/items/items_game.cab5453ec6f504e4738685f5d0c0468db8feaee1.txt',
+    description: 'The URL to the items game',
+  })
+  version!: string;
+
+  @ApiProperty({
+    example: Math.floor(Date.now() / 1000),
+    description: 'The time the schema started being fetched',
+  })
+  time!: number;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'Whether the versions before and after fetching the schema are consistent',
+  })
+  consistent!: boolean;
+}

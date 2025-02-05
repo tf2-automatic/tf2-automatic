@@ -5,6 +5,10 @@ export interface UpdateCustomGame {
   name: string;
 }
 
+export interface UpdateGames {
+  appids: number[];
+}
+
 export interface UpdateCustomPersonaState {
   state: SteamUser.EPersonaState;
 }
@@ -51,6 +55,7 @@ export const PROFILE_SETTINGS_PATH = '/settings';
 export const PROFILE_NAME_PATH = '/name';
 export const PROFILE_TRADEOFFERURL_PATH = '/tradeofferurl';
 export const PROFILE_CUSTOM_GAME_PATH = '/game';
+export const PROFILE_GAMES_PATH = '/games';
 export const PROFILE_CUSTOM_PERSONA_STATE_PATH = '/state';
 
 export const PROFILE_AVATAR_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_AVATAR_PATH}`;
@@ -59,3 +64,4 @@ export const PROFILE_SETTINGS_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_SETTINGS
 export const PROFILE_NAME_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_NAME_PATH}`;
 export const PROFILE_TRADEOFFERURL_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_TRADEOFFERURL_PATH}`;
 export const PROFILE_CUSTOM_GAME_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_CUSTOM_GAME_PATH}`;
+export const PROFILE_GAMES_FULL_PATH = `${PROFILE_BASE_URL}${PROFILE_GAMES_PATH}`;

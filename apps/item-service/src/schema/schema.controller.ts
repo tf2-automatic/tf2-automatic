@@ -1,13 +1,14 @@
 import {
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
-  ParseBoolPipe,
   ParseIntPipe,
   Post,
   Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { SchemaService } from './schema.service';
 import {
@@ -17,6 +18,7 @@ import {
   PaintKitModel,
   Quality,
   QualityModel,
+  SchemaRefreshDto,
   SCHEMA_BASE_PATH,
   SCHEMA_EFFECT_ID_PATH,
   SCHEMA_EFFECT_NAME_PATH,
@@ -36,9 +38,12 @@ import {
   SchemaItem,
   SchemaItemModel,
   SchemaItemsResponse,
+  SchemaModel,
+  SchemaRefreshAction,
   Spell,
   SpellModel,
   UpdateSchemaResponse,
+  SCHEMA_BY_TIME_PATH,
 } from '@tf2-automatic/item-service-data';
 import {
   ApiOperation,
@@ -47,6 +52,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiQuerySchemaTime } from '@tf2-automatic/swagger';
 
 @ApiTags('Schema')
 @Controller(SCHEMA_BASE_PATH)
@@ -55,11 +61,29 @@ export class SchemaController {
 
   @Get(SCHEMA_PATH)
   @ApiOperation({
-    summary: 'Get schema metadata',
-    description: 'Returns the schema metadata',
+    summary: 'Get available schemas',
+    description: 'Returns a list of all the available schemas',
+  })
+  @ApiResponse({
+    type: SchemaModel,
+    isArray: true,
   })
   async getSchema() {
-    return this.schemaService.getSchema();
+    return this.schemaService.getSchemas();
+  }
+
+  @Delete(SCHEMA_BY_TIME_PATH)
+  @ApiOperation({
+    summary: 'Delete schema',
+    description: 'Deletes the schema',
+  })
+  @ApiParam({
+    name: 'time',
+    description: 'The time of the schema',
+    example: Math.floor(Date.now() / 1000),
+  })
+  async deleteSchema(@Param('time', ParseIntPipe) time: number): Promise<void> {
+    await this.schemaService.deleteSchema(time);
   }
 
   @Post(SCHEMA_REFRESH_PATH)
@@ -69,23 +93,17 @@ export class SchemaController {
       'Enqueues a job to check if the schema needs to be updated and updates the schema if it does.',
   })
   @ApiQuery({
-    name: 'check',
-    description: 'Force a check to be made even if one was recently made',
-    example: false,
-    required: false,
-  })
-  @ApiQuery({
-    name: 'force',
-    description: 'Force the schema to be updated',
-    example: false,
+    name: 'action',
+    description: 'The action to take',
+    example: SchemaRefreshAction.CHECK,
+    enum: Object.values(SchemaRefreshAction),
     required: false,
   })
   @HttpCode(HttpStatus.OK)
   async updateSchema(
-    @Query('check', new ParseBoolPipe({ optional: true })) check?: boolean,
-    @Query('force', new ParseBoolPipe({ optional: true })) force?: boolean,
+    @Query(new ValidationPipe({ transform: true })) dto: SchemaRefreshDto,
   ): Promise<UpdateSchemaResponse> {
-    const enqueued = await this.schemaService.createJobs(check, force);
+    const enqueued = await this.schemaService.createJobs(dto.action);
     return {
       enqueued,
     };
@@ -96,8 +114,11 @@ export class SchemaController {
     summary: 'Get items game',
     description: 'Returns the items game',
   })
-  async getItemsGame(): Promise<any> {
-    return this.schemaService.getSchemaItemsGame();
+  @ApiQuerySchemaTime()
+  async getItemsGame(
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  ) {
+    return this.schemaService.getSchemaItemsGameByTime(time);
   }
 
   @Get(SCHEMA_OVERVIEW_PATH)
@@ -105,8 +126,11 @@ export class SchemaController {
     summary: 'Get schema overview',
     description: 'Returns an overview of the schema',
   })
-  async getSchemaOverview() {
-    return this.schemaService.getSchemaOverview();
+  @ApiQuerySchemaTime()
+  async getSchemaOverview(
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  ) {
+    return this.schemaService.getSchemaOverviewByTime(time);
   }
 
   @Get(SCHEMA_ITEMS_PATH)
@@ -127,11 +151,13 @@ export class SchemaController {
     description: 'The number of items to return, defaults to 1000.',
     required: false,
   })
+  @ApiQuerySchemaTime()
   async getItems(
     @Query('cursor', new ParseIntPipe({ optional: true })) cursor = 0,
     @Query('count', new ParseIntPipe({ optional: true })) count = 1000,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<SchemaItemsResponse> {
-    return this.schemaService.getItems(cursor, count);
+    return this.schemaService.getItems(cursor, count, time);
   }
 
   @Get(SCHEMA_ITEM_DEFINDEX_PATH)
@@ -144,13 +170,15 @@ export class SchemaController {
     description: 'The defindex of the item',
     example: '5021',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: SchemaItemModel,
   })
   async getSchemaItemByDefinedx(
     @Param('defindex') defindex: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<SchemaItem> {
-    return this.schemaService.getItemByDefindex(defindex);
+    return this.schemaService.getItemByDefindex(defindex, time);
   }
 
   @Get(SCHEMA_ITEM_NAME_PATH)
@@ -163,14 +191,16 @@ export class SchemaController {
     description: 'The name of the item',
     example: 'Mann Co. Supply Crate Key',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: SchemaItemModel,
     isArray: true,
   })
   async getSchemaItemsByName(
     @Param('name') name: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<SchemaItem[]> {
-    return this.schemaService.getItemsByName(name);
+    return this.schemaService.getItemsByName(name, time);
   }
 
   @Get(SCHEMA_QUALITY_NAME_PATH)
@@ -183,13 +213,15 @@ export class SchemaController {
     description: 'The name of the quality',
     example: 'Unique',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: QualityModel,
   })
   async getSchemaQualitiesByName(
     @Param('name') name: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<Quality> {
-    return this.schemaService.getQualityByName(name);
+    return this.schemaService.getQualityByName(name, time);
   }
 
   @Get(SCHEMA_QUALITY_ID_PATH)
@@ -202,11 +234,16 @@ export class SchemaController {
     description: 'The id of the quality',
     example: '6',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: QualityModel,
   })
-  async getSchemaQualitiesById(@Param('id') id: string): Promise<Quality> {
-    return this.schemaService.getQualityById(id);
+  async getSchemaQualitiesById(
+    @Param('id') id: string,
+
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  ): Promise<Quality> {
+    return this.schemaService.getQualityById(id, time);
   }
 
   @Get(SCHEMA_EFFECT_NAME_PATH)
@@ -219,13 +256,15 @@ export class SchemaController {
     description: 'The name of the effect',
     example: 'Burning Flames',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: AttachedParticleModel,
   })
   async getSchemaEffectsByName(
     @Param('name') name: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<AttachedParticle> {
-    return this.schemaService.getEffectByName(name);
+    return this.schemaService.getEffectByName(name, time);
   }
 
   @Get(SCHEMA_EFFECT_ID_PATH)
@@ -238,13 +277,15 @@ export class SchemaController {
     description: 'The id of the effect',
     example: '13',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: AttachedParticleModel,
   })
   async getSchemaEffectsById(
     @Param('id') id: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<AttachedParticle> {
-    return this.schemaService.getEffectById(id);
+    return this.schemaService.getEffectById(id, time);
   }
 
   @Get(SCHEMA_PAINTKIT_NAME_PATH)
@@ -257,13 +298,15 @@ export class SchemaController {
     description: 'The name of the paint kit',
     example: 'Night Owl',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: PaintKitModel,
   })
   async getSchemaPaintkitsByName(
     @Param('name') name: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
   ): Promise<PaintKit> {
-    return this.schemaService.getPaintKitByName(name);
+    return this.schemaService.getPaintKitByName(name, time);
   }
 
   @Get(SCHEMA_PAINTKIT_ID_PATH)
@@ -276,11 +319,15 @@ export class SchemaController {
     description: 'The id of the paint kit',
     example: '14',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: PaintKitModel,
   })
-  async getSchemaPaintkitsById(@Param('id') id: string): Promise<PaintKit> {
-    return this.schemaService.getPaintKitById(id);
+  async getSchemaPaintkitsById(
+    @Param('id') id: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  ): Promise<PaintKit> {
+    return this.schemaService.getPaintKitById(id, time);
   }
 
   @Get(SCHEMA_SPELL_NAME_PATH)
@@ -293,11 +340,15 @@ export class SchemaController {
     description: 'The name of the spell',
     example: 'Exorcism',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: SpellModel,
   })
-  getSpellByName(@Param('name') name: string): Promise<Spell> {
-    return this.schemaService.getSpellByName(name);
+  getSpellByName(
+    @Param('name') name: string,
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  ): Promise<Spell> {
+    return this.schemaService.getSpellByName(name, time);
   }
 
   @Get(SCHEMA_SPELL_ID_PATH)
@@ -310,10 +361,15 @@ export class SchemaController {
     description: 'The id of the spell',
     example: '1009',
   })
+  @ApiQuerySchemaTime()
   @ApiResponse({
     type: SpellModel,
   })
-  getSpellById(@Param('id') id: string): Promise<Spell> {
-    return this.schemaService.getSpellById(id);
+  getSpellById(
+    @Param('id') id: string,
+
+    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  ): Promise<Spell> {
+    return this.schemaService.getSpellById(id, time);
   }
 }

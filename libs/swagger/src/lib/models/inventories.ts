@@ -192,6 +192,12 @@ export class CachedInventoryModel implements InventoryResponse {
   timestamp: number;
 
   @ApiProperty({
+    example: 3600,
+    description: 'The time to live of the cache in seconds',
+  })
+  ttl: number;
+
+  @ApiProperty({
     type: [ItemModel],
     description: 'The items in the inventory',
   })

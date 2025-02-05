@@ -13,10 +13,12 @@ export type InventoryItem =
       appid: number;
       contextid: string;
       assetid: string;
+      tradable?: boolean;
     };
 
 export interface InventoryResponse {
   timestamp: number;
+  ttl: number;
   items: InventoryItem[];
 }
 

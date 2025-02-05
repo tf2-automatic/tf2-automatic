@@ -162,6 +162,8 @@ export enum ListingError {
   InvalidCurrencies = 'MISSING_PRICE',
   // The cap was exceeded and the listing was not made
   CapExceeded = 'CAP_EXCEEDED',
+  // The listing was made but multiple desired listings results in the same listing
+  DuplicateListing = 'DUPLICATE_LISTING',
   // The listing was not made and the reason is unknown
   Unknown = 'UNKNOWN',
 }

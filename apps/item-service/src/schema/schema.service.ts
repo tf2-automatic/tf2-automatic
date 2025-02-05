@@ -33,22 +33,21 @@ import {
   Spell,
   SchemaEvent,
   SCHEMA_EVENT,
+  SchemaRefreshAction,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 
-// Keeps track of the current version of the schema
-const ITEMS_GAME_URL_KEY = 'schema:items-game-url';
+// A key that stores the current schema id
+const CURRENT_SCHEMA_KEY = 'schema:current';
+// A key that stores the
+const SCHEMAS_KEY = 'schema:schemas';
 // The last time the schema was checked
 const LAST_CHECKED_KEY = 'schema:last-checked';
-// The last time the schema was updated
-const LAST_UPDATED_KEY = 'schema:last-updated';
 // All schema items are stored in a hash set with the defindex as the key
 const SCHEMA_ITEMS_KEY = 'schema:items';
 // All schema items are stored in a set with the name as the key and the defindex as the value(s)
-const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name:<name>';
-// A key that stores the suffix of the current schema keys
-const CURRENT_SCHEMA_KEY = 'schema:current';
+const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name';
 // A hash set that stores all schema qualities with the id as the key
 const SCHEMA_QUALITIES_ID_KEY = 'schema:qualities:id';
 // A hash set that stores all schema qualities with the name as the key
@@ -103,32 +102,67 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
-  async getSchema(): Promise<Schema> {
-    const [itemsGameUrl, lastChecked, lastUpdated] = await Promise.all([
-      this.getItemsGameUrl(),
-      this.redis.get(LAST_CHECKED_KEY),
-      this.redis.get(LAST_UPDATED_KEY),
-    ]);
+  private async getSchemaOrNull(): Promise<Schema | null> {
+    const schemas = await this.getSchemas();
+    if (schemas.length === 0) {
+      return null;
+    }
 
-    if (!itemsGameUrl || !lastChecked || !lastUpdated) {
+    return schemas[0];
+  }
+
+  async getSchema(): Promise<Schema> {
+    const schema = await this.getSchemaOrNull();
+    if (schema === null) {
       throw new NotFoundException('Schema not found');
     }
 
-    const lastCheckedParsed = Math.floor(parseInt(lastChecked, 10) / 1000);
-    const lastUpdatedParsed = Math.floor(parseInt(lastUpdated, 10) / 1000);
-
-    return {
-      itemsGameUrl,
-      checkedAt: lastCheckedParsed,
-      updatedAt: lastUpdatedParsed,
-    };
+    return schema;
   }
 
-  async getItems(cursor: number, count: number): Promise<SchemaItemsResponse> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getSchemas(): Promise<Schema[]> {
+    const raw = await this.redis.hgetallBuffer(SCHEMAS_KEY);
+
+    const schemas: Schema[] = [];
+
+    for (const timestamp in raw) {
+      schemas.push(unpack(raw[timestamp]));
+    }
+
+    return schemas.sort((a, b) => b.time - a.time);
+  }
+
+  async deleteSchema(time: number): Promise<void> {
+    const multi = this.redis.multi();
+
+    multi
+      .hdel(SCHEMAS_KEY, time.toString())
+      .del(this.getKey(PAINTKIT_ID_KEY, time))
+      .del(this.getKey(PAINTKIT_NAME_KEY, time))
+      .del(this.getKey(SCHEMA_EFFECTS_ID_KEY, time))
+      .del(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time))
+      .del(this.getKey(SCHEMA_ITEMS_KEY, time))
+      .del(this.getKey(SCHEMA_ITEMS_NAME_KEY, time))
+      .del(this.getKey(SCHEMA_QUALITIES_ID_KEY, time))
+      .del(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time))
+      .del(this.getKey(SPELLS_ID_KEY, time))
+      .del(this.getKey(SPELLS_NAME_KEY, time));
+
+    await multi.exec();
+
+    await this.storageService.delete(time + '.' + OVERVIEW_FILE);
+    await this.storageService.delete(time + '.' + ITEMS_GAME_FILE);
+  }
+
+  async getItems(
+    cursor: number,
+    count: number,
+    time?: number,
+  ): Promise<SchemaItemsResponse> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
-      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
+      this.getKey(SCHEMA_ITEMS_KEY, schema.time),
       cursor,
       'COUNT',
       count,
@@ -149,8 +183,8 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  async getItemByDefindex(defindex: string): Promise<any> {
-    const items = await this.getItemsByDefindexes([defindex]);
+  async getItemByDefindex(defindex: string, time?: number): Promise<any> {
+    const items = await this.getItemsByDefindexes([defindex], time);
 
     const match = items[defindex];
     if (!match) {
@@ -160,29 +194,31 @@ export class SchemaService implements OnApplicationBootstrap {
     return match;
   }
 
-  async getItemsByName(name: string): Promise<SchemaItem[]> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getItemsByName(name: string, time?: number): Promise<SchemaItem[]> {
+    const schema = await this.getClosestSchemaByTime(time);
 
-    const defindexes = await this.redis.smembers(
-      this.getSuffixedKey(SCHEMA_ITEMS_NAME_KEY, currentKey, {
-        name: Buffer.from(name).toString('base64'),
-      }),
+    const result = await this.redis.hgetBuffer(
+      this.getKey(SCHEMA_ITEMS_NAME_KEY, schema.time),
+      Buffer.from(name).toString('base64'),
     );
 
-    if (!defindexes.length) {
+    if (!result) {
       throw new NotFoundException('Item not found');
     }
+
+    const defindexes = unpack(result);
 
     return Object.values(await this.getItemsByDefindexes(defindexes));
   }
 
   private async getItemsByDefindexes(
     defindexes: string[],
+    time?: number,
   ): Promise<Record<string, SchemaItem>> {
-    const currentKey = await this.getCurrentKeyAndError();
+    const schema = await this.getClosestSchemaByTime(time);
 
     const match = await this.redis.hmgetBuffer(
-      this.getSuffixedKey(SCHEMA_ITEMS_KEY, currentKey),
+      this.getKey(SCHEMA_ITEMS_KEY, schema.time),
       ...defindexes,
     );
 
@@ -198,11 +234,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return items;
   }
 
-  async getQualityById(id: string): Promise<Quality> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getQualityById(id: string, time?: number): Promise<Quality> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const quality = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_QUALITIES_ID_KEY, currentKey),
+      this.getKey(SCHEMA_QUALITIES_ID_KEY, schema.time),
       id,
     );
 
@@ -213,11 +249,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(quality);
   }
 
-  async getQualityByName(name: string): Promise<Quality> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getQualityByName(name: string, time?: number): Promise<Quality> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const quality = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_QUALITIES_NAME_KEY, currentKey),
+      this.getKey(SCHEMA_QUALITIES_NAME_KEY, schema.time),
       Buffer.from(name).toString('base64'),
     );
 
@@ -228,11 +264,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(quality);
   }
 
-  async getEffectById(id: string): Promise<AttachedParticle> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getEffectById(id: string, time?: number): Promise<AttachedParticle> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const effect = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_EFFECTS_ID_KEY, currentKey),
+      this.getKey(SCHEMA_EFFECTS_ID_KEY, schema.time),
       id,
     );
 
@@ -243,11 +279,14 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(effect);
   }
 
-  async getEffectByName(name: string): Promise<AttachedParticle> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getEffectByName(
+    name: string,
+    time?: number,
+  ): Promise<AttachedParticle> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const effect = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SCHEMA_EFFECTS_NAME_KEY, currentKey),
+      this.getKey(SCHEMA_EFFECTS_NAME_KEY, schema.time),
       Buffer.from(name).toString('base64'),
     );
 
@@ -258,11 +297,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(effect);
   }
 
-  async getPaintKitById(id: string): Promise<PaintKit> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getPaintKitById(id: string, time?: number): Promise<PaintKit> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const paintkit = await this.redis.hgetBuffer(
-      this.getSuffixedKey(PAINTKIT_ID_KEY, currentKey),
+      this.getKey(PAINTKIT_ID_KEY, schema.time),
       id,
     );
 
@@ -273,11 +312,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(paintkit);
   }
 
-  async getPaintKitByName(name: string): Promise<PaintKit> {
-    const currentKey = await this.getCurrentKeyAndError();
+  async getPaintKitByName(name: string, time?: number): Promise<PaintKit> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const paintkit = await this.redis.hgetBuffer(
-      this.getSuffixedKey(PAINTKIT_NAME_KEY, currentKey),
+      this.getKey(PAINTKIT_NAME_KEY, schema.time),
       Buffer.from(name).toString('base64'),
     );
 
@@ -288,8 +327,26 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(paintkit);
   }
 
-  async getSpellById(id: string): Promise<Spell> {
-    const spellFromAttribute = await this.getSpellByIdFromAttributes(id).catch(
+  async getSpellById(id: string, time?: number): Promise<Spell> {
+    const spellFromAttribute = await this.getSpellByIdFromAttributes(
+      id,
+      time,
+    ).catch((err) => {
+      if (
+        err instanceof NotFoundException &&
+        err.message === 'Spell not found'
+      ) {
+        return null;
+      }
+
+      throw err;
+    });
+
+    if (spellFromAttribute) {
+      return spellFromAttribute;
+    }
+
+    const spellFromItems = await this.getItemByDefindex(id, time).catch(
       (err) => {
         if (
           err instanceof NotFoundException &&
@@ -302,21 +359,6 @@ export class SchemaService implements OnApplicationBootstrap {
       },
     );
 
-    if (spellFromAttribute) {
-      return spellFromAttribute;
-    }
-
-    const spellFromItems = await this.getItemByDefindex(id).catch((err) => {
-      if (
-        err instanceof NotFoundException &&
-        err.message === 'Spell not found'
-      ) {
-        return null;
-      }
-
-      throw err;
-    });
-
     if (
       spellFromItems &&
       spellFromItems.item_name.startsWith('Halloween Spell: ')
@@ -327,11 +369,14 @@ export class SchemaService implements OnApplicationBootstrap {
     throw new NotFoundException('Spell not found');
   }
 
-  private async getSpellByIdFromAttributes(id: string): Promise<Spell> {
-    const currentKey = await this.getCurrentKeyAndError();
+  private async getSpellByIdFromAttributes(
+    id: string,
+    time?: number,
+  ): Promise<Spell> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const spell = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SPELLS_ID_KEY, currentKey),
+      this.getKey(SPELLS_ID_KEY, schema.time),
       id,
     );
 
@@ -342,9 +387,10 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(spell);
   }
 
-  async getSpellByName(name: string): Promise<Spell> {
+  async getSpellByName(name: string, time?: number): Promise<Spell> {
     const spellFromAttributes = await this.getSpellByNameFromAttributes(
       name,
+      time,
     ).catch((err) => {
       if (err instanceof NotFoundException) {
         return null;
@@ -359,6 +405,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const spellFromItems = await this.getItemsByName(
       'Halloween Spell: ' + name,
+      time,
     ).catch((err) => {
       if (err instanceof NotFoundException) {
         return [];
@@ -377,11 +424,14 @@ export class SchemaService implements OnApplicationBootstrap {
     throw new NotFoundException('Spell not found');
   }
 
-  private async getSpellByNameFromAttributes(name: string): Promise<Spell> {
-    const currentKey = await this.getCurrentKeyAndError();
+  private async getSpellByNameFromAttributes(
+    name: string,
+    time?: number,
+  ): Promise<Spell> {
+    const schema = await this.getClosestSchemaByTime(time);
 
     const spell = await this.redis.hgetBuffer(
-      this.getSuffixedKey(SPELLS_NAME_KEY, currentKey),
+      this.getKey(SPELLS_NAME_KEY, schema.time),
       Buffer.from(name).toString('base64'),
     );
 
@@ -392,19 +442,6 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(spell);
   }
 
-  private async getCurrentKey(): Promise<string | null> {
-    return this.redis.get(CURRENT_SCHEMA_KEY);
-  }
-
-  private async getCurrentKeyAndError() {
-    const current = await this.getCurrentKey();
-    if (!current) {
-      throw new NotFoundException('Schema not found');
-    }
-
-    return current;
-  }
-
   async createJobsIfNewUrl(url: string): Promise<void> {
     if (await this.isSameItemsGameUrl(url)) {
       return;
@@ -413,14 +450,19 @@ export class SchemaService implements OnApplicationBootstrap {
     await this.createJobs();
   }
 
-  async createJobs(check = false, force = false): Promise<boolean> {
-    if (!force && !check) {
+  async createJobs(
+    action: SchemaRefreshAction = SchemaRefreshAction.DEFAULT,
+  ): Promise<boolean> {
+    // Store the time in seconds
+    const now = Math.floor(Date.now() / 1000);
+
+    if (action === SchemaRefreshAction.DEFAULT) {
       // Check if the schema was recently queued to be checked
       const last = await this.redis.get(LAST_CHECKED_KEY);
       if (last) {
         // It has been checked earlier
         const time = parseInt(last, 10);
-        if (Date.now() - time < this.updateTimeout) {
+        if (now - time < this.updateTimeout / 1000) {
           return false;
         }
 
@@ -428,24 +470,20 @@ export class SchemaService implements OnApplicationBootstrap {
       }
     }
 
-    const time = Date.now();
+    await this.redis.set(LAST_CHECKED_KEY, now);
 
-    await this.redis.set(LAST_CHECKED_KEY, time);
-
-    await this.createSchemaJob(time, force);
+    await this.createSchemaJob(now, action === SchemaRefreshAction.FORCE);
 
     return true;
   }
 
-  private async getItemsGameUrl(): Promise<string | null> {
-    const currentKey = await this.getCurrentKey();
-
-    return this.redis.get(this.getSuffixedKey(ITEMS_GAME_URL_KEY, currentKey));
-  }
-
   private async isSameItemsGameUrl(url: string): Promise<boolean> {
-    const currentItemsGameUrl = await this.getItemsGameUrl();
-    return currentItemsGameUrl === url;
+    const schema = await this.getSchemaOrNull();
+    if (!schema) {
+      return false;
+    }
+
+    return schema.version === url;
   }
 
   private createSchemaJob(time: number, force = false) {
@@ -527,41 +565,39 @@ export class SchemaService implements OnApplicationBootstrap {
    * This method is called when all schema jobs have finished
    * @param job
    */
-  async updateSchema(job: Job) {
-    const currentKey = await this.getCurrentKey();
-    if (currentKey) {
-      // We have a schema stored, check if the schema is newer than this one
-      const currentTime = parseInt(currentKey, 10);
-      if (currentTime > job.data.time) {
-        // The schema has already been updated
-        this.logger.debug('Schema has been updated more recently');
-        return;
-      }
+  async updateSchema(job: Job, endUrl: string) {
+    const current: Schema = {
+      version: job.data.items_game_url!,
+      time: job.data.time,
+      consistent: job.data.items_game_url! === endUrl,
+    };
+
+    const multi = this.redis
+      .multi()
+      .hset(SCHEMAS_KEY, current.time, pack(current));
+
+    const newest = await this.getSchemaOrNull();
+    if (!newest || newest.time <= current.time) {
+      // The schema is newer than the current one
+      multi.set(CURRENT_SCHEMA_KEY, current.time);
     }
 
-    await this.redis
-      .multi()
-      .set(LAST_UPDATED_KEY, job.data.time)
-      .set(CURRENT_SCHEMA_KEY, job.data.time)
-      .exec();
-
-    // Delete schema keys with the old suffix
-    await this.deleteKeysByPattern(
-      // TODO: Fix this. Very dangerous, could delete all keys
-      // We use "schema:*:*" to make sure that we do not get the current schema
-      // or last updated keys. They would only match the pattern "schema:*".
-      'schema:*:*',
-      job.data.time.toString(),
-    );
-
-    const metadata = await this.getSchema();
+    await multi.exec();
 
     await this.eventsService.publish(
       SCHEMA_EVENT,
-      metadata satisfies SchemaEvent['data'],
+      current satisfies SchemaEvent['data'],
     );
 
     this.logger.log('Schema updated');
+
+    if (!current.consistent) {
+      // The schema has changed while we were processing it
+      this.logger.warn(
+        'Schema versions changed while updating it, retrying...',
+      );
+      await this.createJobs(SchemaRefreshAction.FORCE);
+    }
   }
 
   /**
@@ -575,11 +611,6 @@ export class SchemaService implements OnApplicationBootstrap {
         return;
       }
     }
-
-    await this.redis.set(
-      this.getSuffixedKey(ITEMS_GAME_URL_KEY, job.data.time),
-      url,
-    );
 
     // Start the other schema jobs
     await this.createSchemaJobs(job.data.time, url);
@@ -642,15 +673,12 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .hmset(
-        this.getSuffixedKey(SCHEMA_QUALITIES_NAME_KEY, time),
-        qualitiesByName,
-      )
-      .hmset(this.getSuffixedKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
-      .hmset(this.getSuffixedKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
-      .hmset(this.getSuffixedKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
-      .hmset(this.getSuffixedKey(SPELLS_NAME_KEY, time), spellsByName)
-      .hmset(this.getSuffixedKey(SPELLS_ID_KEY, time), spellsById)
+      .hmset(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time), qualitiesByName)
+      .hmset(this.getKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
+      .hmset(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
+      .hmset(this.getKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
+      .hmset(this.getKey(SPELLS_NAME_KEY, time), spellsByName)
+      .hmset(this.getKey(SPELLS_ID_KEY, time), spellsById)
       .exec();
   }
 
@@ -661,30 +689,60 @@ export class SchemaService implements OnApplicationBootstrap {
     }
 
     const defindexToItem: Record<string, Buffer> = {};
+    const nameToDefindex: Record<string, Set<number>> = {};
 
     for (const item of result.items) {
-      const serialized = pack(item);
-      const defindex = item.defindex.toString();
+      const defindex = item.defindex;
 
       // Save the item to the defindex key
-      defindexToItem[defindex] = serialized;
+      defindexToItem[defindex] = pack(item);
 
-      // Save the item to the name key
-      await this.redis.sadd(
-        this.getSuffixedKey(SCHEMA_ITEMS_NAME_KEY, job.data.time, {
-          name: Buffer.from(item.item_name).toString('base64'),
-        }),
-        defindex,
-      );
+      const nameBuffer = Buffer.from(item.item_name).toString('base64');
+
+      // Keep track of the defindexes for each name
+      if (nameToDefindex[nameBuffer] === undefined) {
+        nameToDefindex[nameBuffer] = new Set<number>();
+      }
+      nameToDefindex[nameBuffer].add(defindex);
     }
 
-    const tempSchemaItemsKey = this.getSuffixedKey(
-      SCHEMA_ITEMS_KEY,
+    // Save the schema items
+    const multi = this.redis
+      .multi()
+      .hmset(this.getKey(SCHEMA_ITEMS_KEY, job.data.time), defindexToItem);
+
+    const keys = Object.keys(nameToDefindex);
+
+    // Save to a variable to reuse later
+    const schemaItemsNameKey = this.getKey(
+      SCHEMA_ITEMS_NAME_KEY,
       job.data.time,
     );
 
-    // Save the schema items to a temporary key
-    await this.redis.multi().hmset(tempSchemaItemsKey, defindexToItem).exec();
+    const existing = await this.redis.hmgetBuffer(schemaItemsNameKey, ...keys);
+
+    const nameToDefindexToSave: Record<string, Buffer> = {};
+
+    // Merge existing into current ones
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const previous = existing[key];
+
+      if (previous) {
+        const defindexes = unpack(previous);
+        for (const defindex of defindexes) {
+          nameToDefindex[key].add(defindex);
+        }
+      }
+
+      nameToDefindexToSave[key] = pack(Array.from(nameToDefindex[key]));
+    }
+
+    // Save the schema items to the name key
+    multi.hmset(schemaItemsNameKey, nameToDefindexToSave);
+
+    // Write the changes to the database
+    await multi.exec();
   }
 
   async updateProtoObjDefs(job: Job, result: string) {
@@ -733,11 +791,8 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .hmset(this.getSuffixedKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
-      .hmset(
-        this.getSuffixedKey(PAINTKIT_NAME_KEY, job.data.time),
-        paintkitsByName,
-      )
+      .hmset(this.getKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
+      .hmset(this.getKey(PAINTKIT_NAME_KEY, job.data.time), paintkitsByName)
       .exec();
   }
 
@@ -750,13 +805,51 @@ export class SchemaService implements OnApplicationBootstrap {
     time: number,
   ): Promise<void> {
     await this.storageService.write(
-      OVERVIEW_FILE,
+      time + '.' + OVERVIEW_FILE,
       pack(result).toString('base64'),
     );
   }
 
-  async getSchemaOverview(): Promise<SchemaOverviewResponse> {
-    const overview = await this.storageService.read(OVERVIEW_FILE);
+  private async getClosestSchemaByTime(time?: number): Promise<Schema> {
+    const schemas = await this.getSchemas();
+
+    if (schemas.length === 0) {
+      throw new NotFoundException('Schema not found');
+    }
+
+    // Time is not defined, return the latest schema
+    if (time === undefined) {
+      return schemas[0];
+    }
+
+    // If the time is out of bounds then use the closest
+    if (time >= schemas[0].time) {
+      return schemas[0];
+    }
+
+    for (let i = 0; i < schemas.length; i++) {
+      const schema = schemas[i];
+      if (schema.time <= time) {
+        return schema;
+      }
+    }
+
+    return schemas[schemas.length - 1];
+  }
+
+  async getSchemaOverviewByTime(
+    time?: number,
+  ): Promise<SchemaOverviewResponse> {
+    const schema = await this.getClosestSchemaByTime(time);
+    return this.getSchemaOverviewBySchema(schema);
+  }
+
+  private async getSchemaOverviewBySchema(
+    schema: Schema,
+  ): Promise<SchemaOverviewResponse> {
+    const overview = await this.storageService.read(
+      schema.time + '.' + OVERVIEW_FILE,
+    );
     if (!overview) {
       throw new NotFoundException('Schema overview not found');
     }
@@ -768,11 +861,18 @@ export class SchemaService implements OnApplicationBootstrap {
     result: string,
     time: number,
   ): Promise<void> {
-    await this.storageService.write(ITEMS_GAME_FILE, result);
+    await this.storageService.write(time + '.' + ITEMS_GAME_FILE, result);
   }
 
-  async getSchemaItemsGame(): Promise<string> {
-    const items = await this.storageService.read(ITEMS_GAME_FILE);
+  async getSchemaItemsGameByTime(time?: number): Promise<string> {
+    const schema = await this.getClosestSchemaByTime(time);
+    return this.getSchemaItemsGameBySchema(schema);
+  }
+
+  private async getSchemaItemsGameBySchema(schema: Schema): Promise<string> {
+    const items = await this.storageService.read(
+      schema.time + '.' + ITEMS_GAME_FILE,
+    );
     if (!items) {
       throw new NotFoundException('Schema items not found');
     }
@@ -780,59 +880,12 @@ export class SchemaService implements OnApplicationBootstrap {
     return items;
   }
 
-  private deleteKeysByPattern(pattern: string, excludeSuffix?: string) {
-    const prefix = this.redis.options.keyPrefix ?? '';
-
-    return new Promise((resolve, reject) => {
-      const stream = this.redis.scanStream({
-        match: prefix + pattern,
-        count: 100,
-      });
-
-      stream.on('data', (keys: string[]) => {
-        if (keys.length === 0) {
-          return;
-        }
-
-        let keysToDelete = keys.map((k) => k.substring(prefix.length));
-        if (excludeSuffix) {
-          keysToDelete = keysToDelete.filter((k) => !k.endsWith(excludeSuffix));
-        }
-
-        if (keysToDelete.length === 0) {
-          return;
-        }
-
-        stream.pause();
-
-        this.redis
-          .del(keysToDelete)
-          .then(() => stream.resume())
-          .catch((err) => {
-            stream.destroy(err);
-          });
-      });
-
-      stream.on('end', resolve);
-      stream.on('error', reject);
-    });
-  }
-
-  private getKey(key: string, properties?: Record<string, any>) {
+  private getKey(key: string, prefix: any, properties?: Record<string, any>) {
     if (properties) {
       for (const property in properties) {
         key = key.replace('<' + property + '>', properties[property]);
       }
     }
-
-    return key;
-  }
-
-  private getSuffixedKey(
-    key: string,
-    suffix: any,
-    properties?: Record<string, any>,
-  ) {
-    return this.getKey(key + ':' + suffix, properties);
+    return prefix + ':' + key;
   }
 }

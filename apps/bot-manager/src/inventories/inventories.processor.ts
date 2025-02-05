@@ -66,6 +66,7 @@ export class InventoriesProcessor extends WorkerHost {
         .publish(
           unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
           data,
+          new SteamID(job.data.raw.steamid64),
         )
         .finally(() => {
           throw err;
@@ -186,7 +187,6 @@ export class InventoriesProcessor extends WorkerHost {
       job.data.raw.appid,
       job.data.raw.contextid,
       job.data.ttl,
-      job.data.tradableOnly,
     );
 
     return inventory.timestamp;

@@ -55,7 +55,7 @@ interface InventoryIdentifier {
   contextid: string;
 }
 
-const INVENTORY_EXPIRE_TIME = 600;
+export const INVENTORY_EXPIRE_TIME = 600;
 
 @Injectable()
 export class InventoriesService
@@ -128,7 +128,6 @@ export class InventoriesService
       bot: dto.bot,
       retry: dto.retry,
       ttl: dto.ttl,
-      tradableOnly: dto.tradableOnly,
     };
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
@@ -146,7 +145,6 @@ export class InventoriesService
     steamid: SteamID,
     appid: number,
     contextid: string,
-    tradableOnly: boolean,
   ): Promise<Inventory> {
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
@@ -154,7 +152,7 @@ export class InventoriesService
           .replace(':steamid', steamid.getSteamID64())
           .replace(':appid', appid.toString())
           .replace(':contextid', contextid),
-        { params: { tradableOnly: tradableOnly } },
+        { params: { tradableOnly: false } },
       ),
     );
 
@@ -167,7 +165,6 @@ export class InventoriesService
     appid: number,
     contextid: string,
     ttl: number = INVENTORY_EXPIRE_TIME,
-    tradableOnly = true,
   ): Promise<InventoryResponse> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -176,7 +173,6 @@ export class InventoriesService
       steamid,
       appid,
       contextid,
-      tradableOnly,
     );
 
     const object = items.reduce((acc, item) => {
@@ -217,7 +213,7 @@ export class InventoriesService
           data: event,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: event.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies InventoryLoadedEvent);
@@ -233,6 +229,7 @@ export class InventoriesService
 
     return {
       timestamp: now,
+      ttl,
       items,
     };
   }
@@ -266,7 +263,8 @@ export class InventoriesService
     appid: number,
     contextid: string,
     useCache = true,
-    tradableOnly?: boolean,
+    tradableOnly = true,
+    ttl?: number,
   ): Promise<InventoryResponse> {
     if (useCache) {
       try {
@@ -274,6 +272,7 @@ export class InventoriesService
           steamid,
           appid,
           contextid,
+          tradableOnly,
         );
 
         return inventory;
@@ -289,8 +288,7 @@ export class InventoriesService
     // Add the job to the queue. I believe that if it is already in the queue
     // then it will not be replaced
     const job = await this.addToQueue(steamid, appid, contextid, {
-      ttl: INVENTORY_EXPIRE_TIME,
-      tradableOnly,
+      ttl: ttl ?? INVENTORY_EXPIRE_TIME,
     });
 
     // Wait for it to finish
@@ -312,17 +310,40 @@ export class InventoriesService
         throw err;
       });
 
-    return this.getInventoryFromCache(steamid, appid, contextid);
+    return this.getInventoryFromCache(steamid, appid, contextid, tradableOnly);
   }
 
   async getInventoryFromCache(
     steamid: SteamID,
     appid: number,
     contextid: string,
+    tradableOnly = true,
+  ): Promise<InventoryResponse> {
+    const inventory = await this.fetchInventoryFromCache(
+      steamid,
+      appid,
+      contextid,
+    );
+
+    const items = tradableOnly
+      ? inventory.items.filter((item) => item?.tradable === true)
+      : inventory.items;
+
+    return {
+      timestamp: inventory.timestamp,
+      ttl: inventory.ttl,
+      items,
+    };
+  }
+
+  private async fetchInventoryFromCache(
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid, appid, contextid);
 
-    const { timestamp, object } = await this.locker.using(
+    const { timestamp, ttl, object } = await this.locker.using(
       [
         this.getInventoryResource({
           steamid64: steamid.getSteamID64(),
@@ -342,9 +363,12 @@ export class InventoriesService
           throw signal.error;
         }
 
-        const object = await this.redis.hgetallBuffer(key);
+        const [object, ttl] = await Promise.all([
+          this.redis.hgetallBuffer(key),
+          this.redis.ttl(key),
+        ]);
 
-        return { timestamp: parseInt(timestamp, 10), object };
+        return { timestamp: parseInt(timestamp, 10), ttl, object };
       },
     );
 
@@ -356,6 +380,7 @@ export class InventoriesService
 
     return {
       timestamp,
+      ttl,
       items,
     };
   }
@@ -621,7 +646,7 @@ export class InventoriesService
           data,
           metadata: {
             id: uuidv4(),
-            steamid64: null,
+            steamid64: data.steamid64,
             time: Math.floor(Date.now() / 1000),
           },
         } satisfies InventoryChangedEvent);

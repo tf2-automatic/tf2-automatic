@@ -12,20 +12,34 @@ import { MODULE_OPTIONS_TOKEN } from './nestjs-storage.module-definition';
 import { StorageModuleOptions } from './nestjs-storage.module';
 import { LocalStorageEngine } from './engines/local-storage.engine';
 import { S3StorageEngine } from './engines/s3-storage.engine';
+import fs from 'fs';
+import path from 'path';
 
 type ReadFileResult = string | null;
 type WriteFileResult = boolean;
 
 interface WriteTask {
   relativePath: string;
-  data: string;
+  data: string | null;
 }
 
 interface NextWrite {
   // The next data to write
-  data: string;
+  data: string | null;
   // The promise for the next write
   promise: Promise<WriteFileResult>;
+}
+
+function getAppName(): string | null {
+  if (process.env['NODE_ENV'] === 'test') {
+    return null;
+  }
+
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
+  );
+
+  return packageJson.name;
 }
 
 @Injectable()
@@ -41,6 +55,8 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
     fastq.promise(this.processWriteQueue.bind(this), 1);
 
   private readonly engine: StorageEngine;
+
+  private readonly prefix = getAppName() ? `./${getAppName()}/` : '';
 
   constructor(
     @Inject(MODULE_OPTIONS_TOKEN)
@@ -72,88 +88,106 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
       });
   }
 
+  private getPath(relativePath: string): string {
+    return path.join(this.prefix, relativePath);
+  }
+
   async read(relativePath: string): Promise<ReadFileResult> {
-    if (this._readPromises.has(relativePath)) {
+    const path = this.getPath(relativePath);
+
+    if (this._readPromises.has(path)) {
       // Return cached promise
-      return this._readPromises.get(relativePath) as Promise<ReadFileResult>;
+      return this._readPromises.get(path) as Promise<ReadFileResult>;
     }
 
-    this.logger.debug(`Reading file "${relativePath}"`);
+    this.logger.debug(`Reading file "${path}"`);
 
-    const promise = this.engine.read(relativePath).catch((err) => {
+    const promise = this.engine.read(path).catch((err) => {
       this.logger.error(
-        `Failed to read file "${relativePath}": ${err.message}`,
+        `Failed to read file "${path}": ${err.message}`,
       );
       throw err;
     });
 
     // Cache promise
-    this._readPromises.set(relativePath, promise);
+    this._readPromises.set(path, promise);
 
     promise.finally(() => {
       // Remove promise from cache when it's done
-      this._readPromises.delete(relativePath);
+      this._readPromises.delete(path);
     });
 
     return promise;
   }
 
   private async processWriteQueue(task: WriteTask): Promise<WriteFileResult> {
-    this.logger.debug(`Writing to file "${task.relativePath}"`);
+    let promise: Promise<WriteFileResult>;
 
-    return this.engine.write(task.relativePath, task.data).catch((err) => {
+    if (task.data === null) {
+      this.logger.debug(`Deleting file "${task.relativePath}"`);
+      promise = this.engine.delete(task.relativePath);
+    } else {
+      this.logger.debug(`Writing to file "${task.relativePath}"`);
+      promise = this.engine.write(task.relativePath, task.data);
+    }
+
+    return promise.catch((err) => {
       this.logger.error(
-        `Failed to write to file "${task.relativePath}": ${err.message}`,
+        `Failed to ${task.data === null ? 'delete' : 'write to'} file "${
+          task.relativePath
+        }": ${err.message}`,
       );
       throw err;
     });
   }
 
   async write(relativePath: string, data: string): Promise<WriteFileResult> {
-    const currentWrite = this.currentWrites.get(relativePath);
-    if (currentWrite) {
+    const path = this.getPath(relativePath);
+    return this.writeOrDelete(path, data);
+  }
+
+  async delete(relativePath: string): Promise<WriteFileResult> {
+    const path = this.getPath(relativePath);
+    return this.writeOrDelete(path, null);
+  }
+
+  private async writeOrDelete(
+    relativePath: string,
+    data: string | null,
+  ): Promise<WriteFileResult> {
+    const current = this.currentWrites.get(relativePath);
+    if (current) {
       // We are already writing to this file so queue the next write
-      const nextWrite = this.nextWrites.get(relativePath);
+      const next = this.nextWrites.get(relativePath);
 
-      if (nextWrite) {
+      if (next) {
         // Have already queued the next write so just set new data and return the promise
-        nextWrite.data = data;
-        return nextWrite.promise;
-      } else {
-        // Queue the next write to start after the current write
-        const promise = currentWrite.finally(() => {
-          const nextWrite = this.nextWrites.get(relativePath) as NextWrite;
-
-          const promise = this.writeQueue
-            .push({
-              relativePath,
-              data: nextWrite.data,
-            })
-            .finally(() => {
-              // Remove current write from map if next write is not queued
-              if (!this.nextWrites.has(relativePath)) {
-                this.currentWrites.delete(relativePath);
-              }
-            });
-
-          // This job is now the current write
-          this.currentWrites.set(relativePath, promise);
-          this.nextWrites.delete(relativePath);
-
-          return promise;
-        });
-
-        const nextWrite: NextWrite = {
-          data,
-          promise,
-        };
-
-        this.nextWrites.set(relativePath, nextWrite);
-
-        return nextWrite.promise;
+        next.data = data;
+        return next.promise;
       }
+
+      const promise = current.finally(() => {
+        const next = this.nextWrites.get(relativePath) as NextWrite;
+        const promise = this.enqueueWrite(relativePath, next.data);
+        this.nextWrites.delete(relativePath);
+        return promise;
+      });
+
+      this.nextWrites.set(relativePath, {
+        data,
+        promise,
+      });
+
+      return promise;
     }
 
+    return this.enqueueWrite(relativePath, data);
+  }
+
+  private enqueueWrite(
+    relativePath: string,
+    data: string | null,
+  ): Promise<WriteFileResult> {
     // No writes to this file are currently in progress
     const promise = this.writeQueue.push({ relativePath, data }).finally(() => {
       // Remove current write from map if next write is not queued

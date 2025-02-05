@@ -57,3 +57,21 @@ export function getEnvWithDefault<T extends 'string' | 'float' | 'integer' | 'bo
 
   return value as ParsedValueWithDefault<T>;
 }
+
+export function getEnvWithDefaultAllowEmptyString<T extends 'string' | 'float' | 'integer' | 'boolean'>(
+  key: string,
+  type: T,
+  defaultValue: ParsedValueWithDefault<T>,
+): ParsedValueWithDefault<T> | null {
+  const value = getEnv(key, type);
+
+  if (value === "") {
+    return null;
+  }
+
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  return value as ParsedValueWithDefault<T>;
+}

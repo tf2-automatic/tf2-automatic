@@ -10,6 +10,7 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { ChainableCommander, Redis } from 'ioredis';
 import SteamID from 'steamid';
 import {
+  JobData,
   JobData as ManageJobData,
   JobName as ManageJobName,
   JobResult as ManageJobResult,
@@ -17,7 +18,7 @@ import {
 } from './interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../agents/agents.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { JobsOptions, Queue } from 'bullmq';
 import { DesiredListingsService } from './desired-listings.service';
 import { CurrentListingsService } from './current-listings.service';
 import { Listing, ListingError, Token } from '@tf2-automatic/bptf-manager-data';
@@ -54,14 +55,29 @@ export class ManageListingsService {
     >,
   ) {}
 
+  /*
+  We cannot do this because it results in a concurrency issue where the listings
+  are refreshed while listings are being created, resulting in the listings
+  being removed because they are not associated with a desired listing yet.
+
   @OnEvent('agents.registering')
   private async agentsRegistering(steamid: SteamID): Promise<void> {
     await this.createJob(steamid, ManageJobType.Plan);
   }
+  */
 
   @OnEvent('agents.unregistering')
   private async agentsUnregistering(steamid: SteamID): Promise<void> {
     await this.createJob(steamid, ManageJobType.DeleteAll);
+
+    // Clear any queues that the agent might have
+    await this.redis
+      .multi()
+      .del(ManageListingsService.getCreateKey(steamid))
+      .del(ManageListingsService.getUpdateKey(steamid))
+      .del(ManageListingsService.getDeleteKey(steamid))
+      .del(ManageListingsService.getArchivedDeleteKey(steamid))
+      .exec();
   }
 
   @OnEvent('desired-listings.added')
@@ -79,6 +95,16 @@ export class ManageListingsService {
     const update: DesiredListingClass[] = [];
 
     event.desired.forEach((d) => {
+      if (
+        d.getError() === ListingError.InvalidItem ||
+        d.getError() === ListingError.DuplicateListing ||
+        d.getError() === ListingError.ItemDoesNotExist
+      ) {
+        // Don't queue listings with these errors just because the desired
+        // listings were updated.
+        return;
+      }
+
       if (!d.getID() || d.isForced()) {
         create.push(d);
       } else {
@@ -225,7 +251,11 @@ export class ManageListingsService {
   }
 
   async createJob(steamid: SteamID, type: ManageJobType): Promise<void> {
-    if (type === ManageJobType.Create || type === ManageJobType.Update) {
+    if (
+      type === ManageJobType.Create ||
+      type === ManageJobType.Update ||
+      type === ManageJobType.Plan
+    ) {
       const agent = await this.agentsService.getAgent(steamid);
       if (!agent) {
         // Agent is not running, don't create the job for creating listings
@@ -253,22 +283,22 @@ export class ManageListingsService {
         break;
     }
 
-    await this.queue.add(
-      type,
-      {
-        steamid64: steamid.getSteamID64(),
-      },
-      {
-        jobId: type + ':' + steamid.getSteamID64(),
-        priority,
-      },
-    );
+    const data: JobData = {
+      steamid64: steamid.getSteamID64(),
+    };
+
+    const opts: JobsOptions = {
+      jobId: type + ':' + steamid.getSteamID64(),
+      priority,
+    };
+
+    await this.queue.add(type, data, opts);
   }
 
   @OnEvent('current-listings.refreshed', {
     suppressErrors: false,
   })
-  private refreshedCurrentListings(steamid: SteamID) {
+  private async refreshedCurrentListings(steamid: SteamID) {
     return this.createJob(steamid, ManageJobType.Plan);
   }
 
@@ -434,6 +464,11 @@ export class ManageListingsService {
         remove.push(event.listings[hash].id);
       } else if (!match.getID()) {
         create.push(match);
+      } else if (match.getError() === ListingError.DuplicateListing) {
+        const id = match.getID();
+        if (id) {
+          remove.push(id);
+        }
       } else {
         const action = ManageListingsService.compareCurrentAndDesired(
           match,
@@ -529,28 +564,26 @@ export class ManageListingsService {
       };
     }
 
-    const map = new Map<string, DesiredListingClass>();
+    const update = new Map<string, DesiredListingClass>();
     desired.forEach((d) => {
       // id should not be undefined but we check it anyway
       const id = d.getID();
       if (id) {
-        map.set(id, d);
+        update.set(id, d);
       }
     });
 
-    const update = desired.filter((d) => d.getID());
-
     const result = await this.currentListingsService.updateListings(
       token,
-      update,
+      Array.from(update.values()),
     );
 
     // List of hashes of listings that were successfully updated
     const updated: string[] = [];
 
     // Go through all updated listings and get the hash of the desired listing
-    result.updated.forEach((_, i) => {
-      const match = map.get(result.updated[i].id);
+    result.updated.forEach((value) => {
+      const match = update.get(value.id);
       if (match) {
         updated.push(match.getHash());
       }
@@ -634,6 +667,11 @@ export class ManageListingsService {
   }
 
   async planListings(steamid: SteamID): Promise<void> {
+    const agent = await this.agentsService.getAgent(steamid);
+    if (!agent) {
+      return;
+    }
+
     const [current, desired] = await Promise.all([
       this.currentListingsService.getAllCurrent(steamid),
       this.desiredListingsService.getAllDesired(steamid),
@@ -645,11 +683,30 @@ export class ManageListingsService {
     const update = new Map<string, DesiredListingClass>();
     const create = new Map<string, DesiredListingClass>();
 
+    // Listing id -> hashes
+    const duplicates = new Map<string, DesiredListingClass[]>();
+
+    const remove = new Set<string>();
+
     // Go through all desired and check if the listing is still active
     desired.forEach((d) => {
       const id = d.getID();
       if (!id) {
         return;
+      }
+
+      // Keep track of duplicates
+      if (duplicates.has(id)) {
+        duplicates.get(id)!.push(d);
+      } else {
+        duplicates.set(id, [d]);
+      }
+
+      if (d.getError() === ListingError.DuplicateListing) {
+        const id = d.getID();
+        if (id) {
+          remove.add(id);
+        }
       }
 
       const match = currentMap.get(id);
@@ -668,6 +725,19 @@ export class ManageListingsService {
       }
     });
 
+    for (const [id, dupes] of duplicates.entries()) {
+      if (dupes.length === 1) {
+        continue;
+      }
+
+      // Mark duplicate desired listings with an error
+      dupes.forEach((d) => {
+        d.setError(ListingError.DuplicateListing);
+      });
+
+      remove.add(id);
+    }
+
     const inventory = await this.inventoriesService.getInventory(steamid);
 
     // Queue listings to be created if they don't have a listing id
@@ -677,6 +747,9 @@ export class ManageListingsService {
         return;
       } else if (d.getError() === undefined && d.getID()) {
         // If there is no error and the listing already has an id then don't queue it to be created
+        return;
+      } else if (d.getError() === ListingError.DuplicateListing) {
+        // Don't retry duplicate listing errors because they will never be fixed
         return;
       } else if (
         d.getError() === ListingError.ItemDoesNotExist &&
@@ -710,13 +783,11 @@ export class ManageListingsService {
       }
     });
 
-    const remove: string[] = [];
-
     // Queue listings to be deleted if they are not associated with a desired listing
     current.forEach((c) => {
       if (!desiredWithId.has(c.id)) {
         // Listing is not desired, add it to the delete queue
-        remove.push(c.id);
+        remove.add(c.id);
       }
     });
 
@@ -741,9 +812,13 @@ export class ManageListingsService {
       );
     }
 
-    if (remove.length > 0) {
+    if (remove.size > 0) {
       // Add listings to delete queues
-      ManageListingsService.chainableQueueDelete(transaction, steamid, remove);
+      ManageListingsService.chainableQueueDelete(
+        transaction,
+        steamid,
+        Array.from(remove.values()),
+      );
     }
 
     if (desired.length > 0) {
@@ -762,7 +837,7 @@ export class ManageListingsService {
         ' listing(s) to be created, ' +
         update.size +
         ' listing(s) to be updated and ' +
-        remove.length +
+        remove.size +
         ' listing(s) to be deleted',
     );
 
@@ -776,7 +851,7 @@ export class ManageListingsService {
       promises.push(this.createJob(steamid, ManageJobType.Update));
     }
 
-    if (remove.length > 0) {
+    if (remove.size > 0) {
       promises.push(this.createJob(steamid, ManageJobType.Delete));
       promises.push(this.createJob(steamid, ManageJobType.DeleteArchived));
     }

@@ -68,6 +68,14 @@ export class S3StorageEngine implements StorageEngine {
     return true;
   }
 
+  async delete(relativePath: string): Promise<boolean> {
+    const fullPath = this.getFullPath(relativePath);
+
+    await this.client.removeObject(this.config.bucket, fullPath);
+
+    return true;
+  }
+
   private getFullPath(relativePath: string): string {
     return path.join(this.config.directory, relativePath).replace(/\\/g, '/');
   }

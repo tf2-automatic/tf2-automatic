@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Notification, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
@@ -8,19 +8,19 @@ import { GetNotificationsResponse } from './interfaces/notifications';
 import SteamID from 'steamid';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { FlowProducer, Job, Queue } from 'bullmq';
 import { JobData } from './interfaces/queue';
 import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class NotificationsService {
-  private readonly logger = new Logger(NotificationsService.name);
+  private readonly producer = new FlowProducer(this.queue.opts);
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
     private readonly httpService: HttpService,
     @InjectQueue('notifications')
-    private readonly notificationsQueue: Queue<JobData>,
+    private readonly queue: Queue<JobData>,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -32,32 +32,42 @@ export class NotificationsService {
     });
   }
 
-  refreshNotifications(steamid: SteamID): Promise<void> {
-    return this.createJob(steamid);
+  async refreshNotifications(steamid: SteamID): Promise<void> {
+    await this.producer.add(
+      {
+        name: 'done',
+        queueName: this.queue.name,
+        data: {
+          steamid64: steamid.getSteamID64(),
+        },
+        children: [
+          {
+            name: 'fetch',
+            queueName: this.queue.name,
+            data: {
+              steamid64: steamid.getSteamID64(),
+            },
+          },
+        ],
+      },
+      {
+        queuesOptions: {
+          [this.queue.name]: {
+            defaultJobOptions: {
+              removeOnComplete: true,
+            },
+          },
+        },
+      },
+    );
   }
 
-  async getNotificationsAndContinue(
-    token: Token,
-    time: number = Date.now(),
-    skip?: number,
-    limit?: number,
-  ): Promise<void> {
-    const response = await this.fetchNotifications(token, skip, limit);
-
-    this.logger.debug(
-      'Got notifications response for ' +
-        token.steamid64 +
-        ': skip: ' +
-        response.cursor.skip +
-        ', limit: ' +
-        response.cursor.limit +
-        ', total: ' +
-        response.cursor.total +
-        ', results: ' +
-        response.results.length,
-    );
-
-    const steamid = new SteamID(token.steamid64);
+  async handleNotifications(
+    job: Job<JobData>,
+    response: GetNotificationsResponse,
+  ) {
+    const steamid = new SteamID(job.data.steamid64);
+    const time = job.data.time;
 
     const key = this.getKey(steamid);
     const tempKey = key + ':' + time;
@@ -75,12 +85,19 @@ export class NotificationsService {
     if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
       // Fetch more notifications
       return this.createJob(
-        steamid,
-        time,
+        job,
         response.cursor.skip + response.cursor.limit,
         response.cursor.limit,
       );
     }
+  }
+
+  async handleNotificationsFetched(job: Job<JobData>) {
+    const steamid = new SteamID(job.data.steamid64);
+    const time = job.data.time;
+
+    const key = this.getKey(steamid);
+    const tempKey = key + ':' + time;
 
     const exists = await this.redis.exists(tempKey);
 
@@ -133,22 +150,22 @@ export class NotificationsService {
     await this.refreshNotifications(steamid);
   }
 
-  async createJob(
-    steamid: SteamID,
-    time: number = Date.now(),
-    skip?: number,
-    limit?: number,
-  ) {
-    await this.notificationsQueue.add(
+  private async createJob(job: Job<JobData>, skip?: number, limit?: number) {
+    await this.queue.add(
       'fetch',
       {
-        steamid64: steamid.getSteamID64(),
-        time,
+        steamid64: job.data.steamid64,
+        time: job.data.time,
         skip,
         limit,
       },
       {
-        jobId: steamid.getSteamID64() + ':' + time + ':' + skip + ':' + limit,
+        jobId:
+          job.data.steamid64 + ':' + job.data.time + ':' + skip + ':' + limit,
+        parent: {
+          id: job.parent!.id,
+          queue: job.queueQualifiedName!,
+        },
       },
     );
   }
