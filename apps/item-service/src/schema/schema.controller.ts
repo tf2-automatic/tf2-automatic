@@ -55,11 +55,15 @@ export class SchemaController {
 
   @Get(SCHEMA_PATH)
   @ApiOperation({
-    summary: 'Get schema metadata',
-    description: 'Returns the schema metadata',
+    summary: 'Get available schemas',
+    description: 'Returns a list of all the available schemas',
+  })
+  @ApiResponse({
+    type: SchemaModel,
+    isArray: true,
   })
   async getSchema() {
-    return this.schemaService.getSchema();
+    return this.schemaService.getSchemas();
   }
 
   @Post(SCHEMA_REFRESH_PATH)

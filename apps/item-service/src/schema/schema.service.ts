@@ -37,18 +37,18 @@ import {
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 
+// A key that stores the current schema id
+const CURRENT_SCHEMA_KEY = 'schema:current';
+// A key that stores the
+const SCHEMAS_KEY = 'schema:schemas';
 // Keeps track of the current version of the schema
 const ITEMS_GAME_URL_KEY = 'schema:items-game-url';
 // The last time the schema was checked
 const LAST_CHECKED_KEY = 'schema:last-checked';
-// The last time the schema was updated
-const LAST_UPDATED_KEY = 'schema:last-updated';
 // All schema items are stored in a hash set with the defindex as the key
 const SCHEMA_ITEMS_KEY = 'schema:items';
 // All schema items are stored in a set with the name as the key and the defindex as the value(s)
 const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name';
-// A key that stores the suffix of the current schema keys
-const CURRENT_SCHEMA_KEY = 'schema:current';
 // A hash set that stores all schema qualities with the id as the key
 const SCHEMA_QUALITIES_ID_KEY = 'schema:qualities:id';
 // A hash set that stores all schema qualities with the name as the key
@@ -103,25 +103,34 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
-  async getSchema(): Promise<Schema> {
-    const [itemsGameUrl, lastChecked, lastUpdated] = await Promise.all([
-      this.getItemsGameUrl(),
-      this.redis.get(LAST_CHECKED_KEY),
-      this.redis.get(LAST_UPDATED_KEY),
-    ]);
+  private async getSchemaOrNull(): Promise<Schema | null> {
+    const schemas = await this.getSchemas();
+    if (schemas.length === 0) {
+      return null;
+    }
 
-    if (!itemsGameUrl || !lastChecked || !lastUpdated) {
+    return schemas[0];
+  }
+
+  async getSchema(): Promise<Schema> {
+    const schema = await this.getSchemaOrNull();
+    if (schema === null) {
       throw new NotFoundException('Schema not found');
     }
 
-    const lastCheckedParsed = Math.floor(parseInt(lastChecked, 10) / 1000);
-    const lastUpdatedParsed = Math.floor(parseInt(lastUpdated, 10) / 1000);
+    return schema;
+  }
 
-    return {
-      itemsGameUrl,
-      checkedAt: lastCheckedParsed,
-      updatedAt: lastUpdatedParsed,
-    };
+  async getSchemas(): Promise<Schema[]> {
+    const raw = await this.redis.hgetallBuffer(SCHEMAS_KEY);
+
+    const schemas: Schema[] = [];
+
+    for (const timestamp in raw) {
+      schemas.push(unpack(raw[timestamp]));
+    }
+
+    return schemas.sort((a, b) => b.time - a.time);
   }
 
   async getItems(cursor: number, count: number): Promise<SchemaItemsResponse> {
@@ -415,13 +424,15 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async createJobs(check = false, force = false): Promise<boolean> {
-    if (!force && !check) {
+    // Store the time in seconds
+    const now = Math.floor(Date.now() / 1000);
+
       // Check if the schema was recently queued to be checked
       const last = await this.redis.get(LAST_CHECKED_KEY);
       if (last) {
         // It has been checked earlier
         const time = parseInt(last, 10);
-        if (Date.now() - time < this.updateTimeout) {
+        if (now - time < this.updateTimeout / 1000) {
           return false;
         }
 
@@ -429,11 +440,9 @@ export class SchemaService implements OnApplicationBootstrap {
       }
     }
 
-    const time = Date.now();
+    await this.redis.set(LAST_CHECKED_KEY, now);
 
-    await this.redis.set(LAST_CHECKED_KEY, time);
-
-    await this.createSchemaJob(time, force);
+    await this.createSchemaJob(now, force);
 
     return true;
   }
@@ -529,29 +538,26 @@ export class SchemaService implements OnApplicationBootstrap {
    * @param job
    */
   async updateSchema(job: Job) {
-    const currentKey = await this.getCurrentKey();
-    if (currentKey) {
-      // We have a schema stored, check if the schema is newer than this one
-      const currentTime = parseInt(currentKey, 10);
-      if (currentTime > job.data.time) {
-        // The schema has already been updated
-        this.logger.debug('Schema has been updated more recently');
-        return;
-      }
+    const current: Schema = {
+      version: job.data.items_game_url!,
+      time: job.data.time,
+    };
+
+    const multi = this.redis
+      .multi()
+      .hset(SCHEMAS_KEY, current.time, pack(current));
+
+    const newest = await this.getSchemaOrNull();
+    if (!newest || newest.time <= current.time) {
+      // The schema is newer than the current one
+      multi.set(CURRENT_SCHEMA_KEY, current.time);
     }
 
-    await this.redis
-      .multi()
-      .set(LAST_UPDATED_KEY, job.data.time)
-      .set(CURRENT_SCHEMA_KEY, job.data.time)
-      .exec();
-
     // Delete schema keys with the old suffix
-    const metadata = await this.getSchema();
 
     await this.eventsService.publish(
       SCHEMA_EVENT,
-      metadata satisfies SchemaEvent['data'],
+      current satisfies SchemaEvent['data'],
     );
 
     this.logger.log('Schema updated');

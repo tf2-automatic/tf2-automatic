@@ -1,5 +1,6 @@
 import { BaseEvent } from '../events';
 import { AttachedParticle } from './misc';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const SCHEMA_BASE_PATH = '/schema';
 export const SCHEMA_PATH = '/';
@@ -67,9 +68,8 @@ export interface UpdateSchemaResponse {
 }
 
 export interface Schema {
-  itemsGameUrl: string;
-  checkedAt: number;
-  updatedAt: number;
+  version: string;
+  time: number;
 }
 
 interface OriginName {
@@ -147,3 +147,18 @@ export type SchemaEventType = 'schema.updated';
 export const SCHEMA_EVENT: SchemaEventType = `schema.updated`;
 
 export type SchemaEvent = BaseEvent<SchemaEventType, Schema>;
+
+export class SchemaModel {
+  @ApiProperty({
+    example:
+      'http://media.steampowered.com/apps/440/scripts/items/items_game.cab5453ec6f504e4738685f5d0c0468db8feaee1.txt',
+    description: 'The URL to the items game',
+  })
+  version!: string;
+
+  @ApiProperty({
+    example: Math.floor(Date.now() / 1000),
+    description: 'The time the schema started being fetched',
+  })
+  time!: number;
+}
