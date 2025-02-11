@@ -206,7 +206,10 @@ export class SchemaService implements OnApplicationBootstrap {
     return unpack(result);
   }
 
-  async getItemByDefindex(defindex: string, time?: number): Promise<any> {
+  async getItemByDefindex(
+    defindex: string,
+    time?: number,
+  ): Promise<SchemaItem> {
     const items = await this.getItemsByDefindexes([defindex], time);
 
     const match = items[defindex];
@@ -309,7 +312,10 @@ export class SchemaService implements OnApplicationBootstrap {
       spellFromItems &&
       spellFromItems.item_name.startsWith('Halloween Spell: ')
     ) {
-      return spellFromItems;
+      return {
+        id: parseInt(id, 10),
+        name: spellFromItems.item_name.slice(17),
+      };
     }
 
     throw new NotFoundException('Spell not found');
