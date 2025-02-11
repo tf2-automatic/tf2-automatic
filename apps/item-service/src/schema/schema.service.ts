@@ -183,6 +183,29 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
+  private getHashByBase64(key: string, name: string, time?: number) {
+    return this.getHashByName(key, Buffer.from(name).toString('base64'), time);
+  }
+
+  private async getHashByName(
+    key: string,
+    name: string,
+    time?: number,
+  ): Promise<any> {
+    const schema = await this.getClosestSchemaByTime(time);
+
+    const result = await this.redis.hgetBuffer(
+      this.getKey(key, schema.time),
+      name,
+    );
+
+    if (!result) {
+      throw new NotFoundException('Not found');
+    }
+
+    return unpack(result);
+  }
+
   async getItemByDefindex(defindex: string, time?: number): Promise<any> {
     const items = await this.getItemsByDefindexes([defindex], time);
 
@@ -195,19 +218,11 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getItemsByName(name: string, time?: number): Promise<SchemaItem[]> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const result = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_ITEMS_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
+    const defindexes = await this.getHashByBase64(
+      SCHEMA_ITEMS_NAME_KEY,
+      name,
+      time,
     );
-
-    if (!result) {
-      throw new NotFoundException('Item not found');
-    }
-
-    const defindexes = unpack(result);
-
     return Object.values(await this.getItemsByDefindexes(defindexes));
   }
 
@@ -235,96 +250,30 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getQualityById(id: string, time?: number): Promise<Quality> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const quality = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_QUALITIES_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!quality) {
-      throw new NotFoundException('Quality not found');
-    }
-
-    return unpack(quality);
+    return this.getHashByName(SCHEMA_QUALITIES_ID_KEY, id, time);
   }
 
   async getQualityByName(name: string, time?: number): Promise<Quality> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const quality = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_QUALITIES_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!quality) {
-      throw new NotFoundException('Quality not found');
-    }
-
-    return unpack(quality);
+    return this.getHashByBase64(SCHEMA_QUALITIES_NAME_KEY, name, time);
   }
 
   async getEffectById(id: string, time?: number): Promise<AttachedParticle> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const effect = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_EFFECTS_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!effect) {
-      throw new NotFoundException('Effect not found');
-    }
-
-    return unpack(effect);
+    return this.getHashByName(SCHEMA_EFFECTS_ID_KEY, id, time);
   }
 
   async getEffectByName(
     name: string,
     time?: number,
   ): Promise<AttachedParticle> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const effect = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_EFFECTS_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!effect) {
-      throw new NotFoundException('Effect not found');
-    }
-
-    return unpack(effect);
+    return this.getHashByBase64(SCHEMA_EFFECTS_NAME_KEY, name, time);
   }
 
   async getPaintKitById(id: string, time?: number): Promise<PaintKit> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const paintkit = await this.redis.hgetBuffer(
-      this.getKey(PAINTKIT_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!paintkit) {
-      throw new NotFoundException('Paintkit not found');
-    }
-
-    return unpack(paintkit);
+    return this.getHashByName(PAINTKIT_ID_KEY, id, time);
   }
 
   async getPaintKitByName(name: string, time?: number): Promise<PaintKit> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const paintkit = await this.redis.hgetBuffer(
-      this.getKey(PAINTKIT_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!paintkit) {
-      throw new NotFoundException('Paintkit not found');
-    }
-
-    return unpack(paintkit);
+    return this.getHashByBase64(PAINTKIT_NAME_KEY, name, time);
   }
 
   async getSpellById(id: string, time?: number): Promise<Spell> {
@@ -332,10 +281,7 @@ export class SchemaService implements OnApplicationBootstrap {
       id,
       time,
     ).catch((err) => {
-      if (
-        err instanceof NotFoundException &&
-        err.message === 'Spell not found'
-      ) {
+      if (err instanceof NotFoundException) {
         return null;
       }
 
@@ -373,18 +319,7 @@ export class SchemaService implements OnApplicationBootstrap {
     id: string,
     time?: number,
   ): Promise<Spell> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const spell = await this.redis.hgetBuffer(
-      this.getKey(SPELLS_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!spell) {
-      throw new NotFoundException('Spell not found');
-    }
-
-    return unpack(spell);
+    return this.getHashByName(SPELLS_ID_KEY, id, time);
   }
 
   async getSpellByName(name: string, time?: number): Promise<Spell> {
@@ -428,18 +363,7 @@ export class SchemaService implements OnApplicationBootstrap {
     name: string,
     time?: number,
   ): Promise<Spell> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const spell = await this.redis.hgetBuffer(
-      this.getKey(SPELLS_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!spell) {
-      throw new NotFoundException('Spell not found');
-    }
-
-    return unpack(spell);
+    return this.getHashByBase64(SPELLS_NAME_KEY, name, time);
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
