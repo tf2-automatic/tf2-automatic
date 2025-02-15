@@ -20,6 +20,7 @@ import {
   JobData,
   GetSchemaItemsResponse,
   JobWithTypes as Job,
+  SchemaOverviewResponse,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -29,7 +30,6 @@ import {
   Schema,
   SchemaItem,
   SchemaItemsResponse,
-  SchemaOverviewResponse,
   Spell,
   SchemaEvent,
   SCHEMA_EVENT,
@@ -37,10 +37,13 @@ import {
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
+import { ItemsGameItem } from './types';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
   ITEMS_NAME = 'schema:items:name',
+  ITEMS_GAME = 'schema:items-game',
+  ITEMS_GAME_PREFAB = 'schema:items-game:prefab',
   QUALITIES_ID = 'schema:qualities:id',
   QUALITIES_NAME = 'schema:qualities:name',
   EFFECTS_ID = 'schema:effects:id',
@@ -206,6 +209,30 @@ export class SchemaService implements OnApplicationBootstrap {
     }
 
     return items;
+  }
+
+  private async saveHashInChunks(
+    key: string,
+    data: Record<string, any>,
+    time: number,
+    chunkSize = 200,
+  ) {
+    const keys = Object.keys(data);
+    let index = 0;
+
+    while (index < keys.length) {
+      const chunk: Record<string, any> = {};
+
+      for (let i = index; i < Math.min(index + chunkSize, keys.length); i++) {
+        chunk[keys[i]] = pack(data[keys[i]]);
+      }
+
+      await this.redis.hmset(this.getKey(key, time), chunk);
+
+      index += chunkSize;
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   async getItemByDefindex(
@@ -733,6 +760,21 @@ export class SchemaService implements OnApplicationBootstrap {
 
   async updateItemsGame(job: Job, result: string) {
     await this.saveSchemaItemsGameFile(result, job.data.time);
+
+    const parsed = vdf(result);
+
+    const items = parsed.items_game.items as Record<string, ItemsGameItem>;
+    const prefabs = parsed.items_game.prefabs as Record<
+      string,
+      Partial<ItemsGameItem>
+    >;
+
+    await this.saveHashInChunks(SchemaKeys.ITEMS_GAME, items, job.data.time);
+    await this.saveHashInChunks(
+      SchemaKeys.ITEMS_GAME_PREFAB,
+      prefabs,
+      job.data.time,
+    );
   }
 
   private async saveSchemaOverviewFile(

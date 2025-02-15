@@ -5,9 +5,12 @@ import { SchemaService } from './schema.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { BotsService } from '../bots/bots.service';
-import { JobWithTypes as Job, GetSchemaItemsResponse } from './schema.types';
+import {
+  JobWithTypes as Job,
+  GetSchemaItemsResponse,
+  SchemaOverviewResponse,
+} from './schema.types';
 import configuration from '../common/config/configuration';
-import { SchemaOverviewResponse } from '@tf2-automatic/item-service-data';
 
 @Processor('schema', {
   settings: bullWorkerSettings,
