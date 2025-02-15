@@ -8,7 +8,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
-  ValidationPipe,
+  Res,
 } from '@nestjs/common';
 import { SchemaService } from './schema.service';
 import {
@@ -20,30 +20,25 @@ import {
   QualityModel,
   SchemaRefreshDto,
   SCHEMA_BASE_PATH,
-  SCHEMA_EFFECT_ID_PATH,
-  SCHEMA_EFFECT_NAME_PATH,
   SCHEMA_ITEM_DEFINDEX_PATH,
-  SCHEMA_ITEM_NAME_PATH,
   SCHEMA_ITEMS_GAME_PATH,
   SCHEMA_ITEMS_PATH,
   SCHEMA_OVERVIEW_PATH,
-  SCHEMA_PAINTKIT_ID_PATH,
-  SCHEMA_PAINTKIT_NAME_PATH,
   SCHEMA_PATH,
-  SCHEMA_QUALITY_ID_PATH,
-  SCHEMA_QUALITY_NAME_PATH,
   SCHEMA_REFRESH_PATH,
-  SCHEMA_SPELL_ID_PATH,
-  SCHEMA_SPELL_NAME_PATH,
   SchemaItem,
-  SchemaItemModel,
-  SchemaItemsResponse,
   SchemaModel,
   SchemaRefreshAction,
   Spell,
   SpellModel,
   UpdateSchemaResponse,
   SCHEMA_BY_TIME_PATH,
+  SCHEMA_ITEMS_SEARCH_PATH,
+  SCHEMA_QUALITY_PATH,
+  SCHEMA_EFFECT_PATH,
+  SCHEMA_PAINTKIT_PATH,
+  SCHEMA_SPELL_PATH,
+  ItemsGameItem,
 } from '@tf2-automatic/item-service-data';
 import {
   ApiOperation,
@@ -53,6 +48,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiQuerySchemaTime } from '@tf2-automatic/swagger';
+import {
+  SchemaOptionsDto,
+  SchemaPaginatedDto,
+  SchemaSearchDto,
+} from './schema.types';
+import { Response } from 'express';
 
 @ApiTags('Schema')
 @Controller(SCHEMA_BASE_PATH)
@@ -101,7 +102,7 @@ export class SchemaController {
   })
   @HttpCode(HttpStatus.OK)
   async updateSchema(
-    @Query(new ValidationPipe({ transform: true })) dto: SchemaRefreshDto,
+    @Query() dto: SchemaRefreshDto,
   ): Promise<UpdateSchemaResponse> {
     const enqueued = await this.schemaService.createJobs(dto.action);
     return {
@@ -112,25 +113,30 @@ export class SchemaController {
   @Get(SCHEMA_ITEMS_GAME_PATH)
   @ApiOperation({
     summary: 'Get items game',
-    description: 'Returns the items game',
+    description: 'Redirects the request to download the items_game.txt file',
   })
   @ApiQuerySchemaTime()
-  async getItemsGame(
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ) {
-    return this.schemaService.getSchemaItemsGameByTime(time);
+  async getItemsGame(@Query() options: SchemaOptionsDto, @Res() res: Response) {
+    const url = await this.schemaService.getSchemaItemsGameUrlByTime(
+      options.time,
+    );
+    res.redirect(url);
   }
 
   @Get(SCHEMA_OVERVIEW_PATH)
   @ApiOperation({
     summary: 'Get schema overview',
-    description: 'Returns an overview of the schema',
+    description: 'Redirects the request to download the schema overview',
   })
   @ApiQuerySchemaTime()
   async getSchemaOverview(
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+    @Query() options: SchemaOptionsDto,
+    @Res() res: Response,
   ) {
-    return this.schemaService.getSchemaOverviewByTime(time);
+    const url = await this.schemaService.getSchemaOverviewUrlByTime(
+      options.time,
+    );
+    res.redirect(url);
   }
 
   @Get(SCHEMA_ITEMS_PATH)
@@ -138,26 +144,66 @@ export class SchemaController {
     summary: 'Get schema items paginated',
     description: 'Returns schema items paginated using a cursor and count',
   })
-  @ApiResponse({
-    type: SchemaItemsResponse,
-  })
   @ApiQuery({
     name: 'cursor',
     description: 'The cursor to use, defaults to 0.',
+    type: 'integer',
     required: false,
   })
   @ApiQuery({
     name: 'count',
     description: 'The number of items to return, defaults to 1000.',
+    type: 'integer',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'items_game',
+    description:
+      'If the items should be fetched from the schema or items_game.txt, defaults to false.',
+    type: 'boolean',
     required: false,
   })
   @ApiQuerySchemaTime()
   async getItems(
-    @Query('cursor', new ParseIntPipe({ optional: true })) cursor = 0,
-    @Query('count', new ParseIntPipe({ optional: true })) count = 1000,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<SchemaItemsResponse> {
-    return this.schemaService.getItems(cursor, count, time);
+    @Query() pagination: SchemaPaginatedDto,
+    @Query() options: SchemaOptionsDto,
+  ) {
+    return this.schemaService.getItems(
+      pagination.cursor,
+      pagination.count,
+      options.time,
+      options.items_game,
+    );
+  }
+
+  @Get(SCHEMA_ITEMS_SEARCH_PATH)
+  @ApiOperation({
+    summary: 'Search for schema items',
+    description: 'Returns schema items that match the given query',
+  })
+  @ApiQuery({
+    name: 'name',
+    description: 'The name of the item',
+    example: 'Mann Co. Supply Crate Key',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'items_game',
+    description:
+      'If the items should be fetched from the schema or items_game.txt, defaults to false.',
+    type: 'boolean',
+    required: false,
+  })
+  @ApiQuerySchemaTime()
+  async getSchemaItemsBySearch(
+    @Query() dto: SchemaSearchDto,
+    @Query() options: SchemaOptionsDto,
+  ): Promise<SchemaItem[] | ItemsGameItem[]> {
+    return this.schemaService.getItemsByName(
+      dto.name,
+      options.items_game,
+      options.time,
+    );
   }
 
   @Get(SCHEMA_ITEM_DEFINDEX_PATH)
@@ -170,90 +216,58 @@ export class SchemaController {
     description: 'The defindex of the item',
     example: '5021',
   })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: SchemaItemModel,
+  @ApiQuery({
+    name: 'items_game',
+    description:
+      'If the items should be fetched from the schema or items_game.txt, defaults to false.',
+    type: 'boolean',
+    required: false,
   })
-  async getSchemaItemByDefinedx(
+  @ApiQuerySchemaTime()
+  async getSchemaItemByDefindex(
     @Param('defindex') defindex: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<SchemaItem> {
-    return this.schemaService.getItemByDefindex(defindex, time);
+    @Query() options: SchemaOptionsDto,
+  ): Promise<SchemaItem | ItemsGameItem> {
+    return this.schemaService.getItemByDefindex(
+      defindex,
+      options.items_game,
+      options.time,
+    );
   }
 
-  @Get(SCHEMA_ITEM_NAME_PATH)
+  @Get(SCHEMA_QUALITY_PATH)
   @ApiOperation({
-    summary: 'Get schema item(s) by name',
-    description: 'Returns schema items that match the name provide',
-  })
-  @ApiParam({
-    name: 'name',
-    description: 'The name of the item',
-    example: 'Mann Co. Supply Crate Key',
-  })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: SchemaItemModel,
-    isArray: true,
-  })
-  async getSchemaItemsByName(
-    @Param('name') name: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<SchemaItem[]> {
-    return this.schemaService.getItemsByName(name, time);
-  }
-
-  @Get(SCHEMA_QUALITY_NAME_PATH)
-  @ApiOperation({
-    summary: 'Get schema quality by name',
+    summary: 'Get schema quality by id or name',
     description: 'Returns a schema quality',
   })
   @ApiParam({
-    name: 'name',
-    description: 'The name of the quality',
+    name: 'idOrName',
+    description: 'The id or name of the quality',
     example: 'Unique',
   })
   @ApiQuerySchemaTime()
   @ApiResponse({
     type: QualityModel,
   })
-  async getSchemaQualitiesByName(
-    @Param('name') name: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+  async getSchemaQuality(
+    @Param('idOrName') idOrName: string,
+    @Query() options: SchemaOptionsDto,
   ): Promise<Quality> {
-    return this.schemaService.getQualityByName(name, time);
+    if (Number.isInteger(Number(idOrName))) {
+      return this.schemaService.getQualityById(idOrName, options.time);
+    } else {
+      return this.schemaService.getQualityByName(idOrName, options.time);
+    }
   }
 
-  @Get(SCHEMA_QUALITY_ID_PATH)
+  @Get(SCHEMA_EFFECT_PATH)
   @ApiOperation({
-    summary: 'Get schema quality by id',
-    description: 'Returns a schema quality',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'The id of the quality',
-    example: '6',
-  })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: QualityModel,
-  })
-  async getSchemaQualitiesById(
-    @Param('id') id: string,
-
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<Quality> {
-    return this.schemaService.getQualityById(id, time);
-  }
-
-  @Get(SCHEMA_EFFECT_NAME_PATH)
-  @ApiOperation({
-    summary: 'Get schema effect by name',
+    summary: 'Get schema effect by id or name',
     description: 'Returns a schema effect',
   })
   @ApiParam({
-    name: 'name',
-    description: 'The name of the effect',
+    name: 'idOrName',
+    description: 'The id or name of the effect',
     example: 'Burning Flames',
   })
   @ApiQuerySchemaTime()
@@ -261,41 +275,24 @@ export class SchemaController {
     type: AttachedParticleModel,
   })
   async getSchemaEffectsByName(
-    @Param('name') name: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+    @Param('idOrName') idOrName: string,
+    @Query() options: SchemaOptionsDto,
   ): Promise<AttachedParticle> {
-    return this.schemaService.getEffectByName(name, time);
+    if (Number.isInteger(Number(idOrName))) {
+      return this.schemaService.getEffectById(idOrName, options.time);
+    } else {
+      return this.schemaService.getEffectByName(idOrName, options.time);
+    }
   }
 
-  @Get(SCHEMA_EFFECT_ID_PATH)
+  @Get(SCHEMA_PAINTKIT_PATH)
   @ApiOperation({
-    summary: 'Get schema effect by id',
-    description: 'Returns a schema effect',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'The id of the effect',
-    example: '13',
-  })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: AttachedParticleModel,
-  })
-  async getSchemaEffectsById(
-    @Param('id') id: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<AttachedParticle> {
-    return this.schemaService.getEffectById(id, time);
-  }
-
-  @Get(SCHEMA_PAINTKIT_NAME_PATH)
-  @ApiOperation({
-    summary: 'Get paint kit by name',
+    summary: 'Get paint kit by id or name',
     description: 'Returns a paint kit',
   })
   @ApiParam({
-    name: 'name',
-    description: 'The name of the paint kit',
+    name: 'idOrName',
+    description: 'The id or name of the paint kit',
     example: 'Night Owl',
   })
   @ApiQuerySchemaTime()
@@ -303,41 +300,24 @@ export class SchemaController {
     type: PaintKitModel,
   })
   async getSchemaPaintkitsByName(
-    @Param('name') name: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+    @Param('idOrName') idOrName: string,
+    @Query() options: SchemaOptionsDto,
   ): Promise<PaintKit> {
-    return this.schemaService.getPaintKitByName(name, time);
+    if (Number.isInteger(Number(idOrName))) {
+      return this.schemaService.getPaintKitById(idOrName, options.time);
+    } else {
+      return this.schemaService.getPaintKitByName(idOrName, options.time);
+    }
   }
 
-  @Get(SCHEMA_PAINTKIT_ID_PATH)
+  @Get(SCHEMA_SPELL_PATH)
   @ApiOperation({
-    summary: 'Get paint kit by id',
-    description: 'Returns a paint kit',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'The id of the paint kit',
-    example: '14',
-  })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: PaintKitModel,
-  })
-  async getSchemaPaintkitsById(
-    @Param('id') id: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<PaintKit> {
-    return this.schemaService.getPaintKitById(id, time);
-  }
-
-  @Get(SCHEMA_SPELL_NAME_PATH)
-  @ApiOperation({
-    summary: 'Get spell by name',
+    summary: 'Get spell by id or name',
     description: 'Returns a spell',
   })
   @ApiParam({
-    name: 'name',
-    description: 'The name of the spell',
+    name: 'idOrName',
+    description: 'The id or name of the spell',
     example: 'Exorcism',
   })
   @ApiQuerySchemaTime()
@@ -345,31 +325,13 @@ export class SchemaController {
     type: SpellModel,
   })
   getSpellByName(
-    @Param('name') name: string,
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
+    @Param('idOrName') idOrName: string,
+    @Query() options: SchemaOptionsDto,
   ): Promise<Spell> {
-    return this.schemaService.getSpellByName(name, time);
-  }
-
-  @Get(SCHEMA_SPELL_ID_PATH)
-  @ApiOperation({
-    summary: 'Get spell by id',
-    description: 'Returns a spell',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'The id of the spell',
-    example: '1009',
-  })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: SpellModel,
-  })
-  getSpellById(
-    @Param('id') id: string,
-
-    @Query('time', new ParseIntPipe({ optional: true })) time?: number,
-  ): Promise<Spell> {
-    return this.schemaService.getSpellById(id, time);
+    if (Number.isInteger(Number(idOrName))) {
+      return this.schemaService.getSpellById(idOrName, options.time);
+    } else {
+      return this.schemaService.getSpellByName(idOrName, options.time);
+    }
   }
 }

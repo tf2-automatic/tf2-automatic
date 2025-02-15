@@ -71,6 +71,10 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
     }
   }
 
+  getEngine(): StorageEngine {
+    return this.engine;
+  }
+
   onModuleInit() {
     return this.engine.setup();
   }
@@ -88,7 +92,7 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
       });
   }
 
-  private getPath(relativePath: string): string {
+  getPath(relativePath: string): string {
     return path.join(this.prefix, relativePath);
   }
 

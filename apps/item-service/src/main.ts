@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
@@ -19,6 +19,8 @@ async function bootstrap() {
   const configService: ConfigService<Config> = app.get(ConfigService);
 
   app.enableShutdownHooks();
+
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
   const server = app.getHttpServer();
   server.keepAliveTimeout =

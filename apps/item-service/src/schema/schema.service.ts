@@ -20,6 +20,7 @@ import {
   JobData,
   GetSchemaItemsResponse,
   JobWithTypes as Job,
+  SchemaOverviewResponse,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -28,15 +29,31 @@ import {
   Quality,
   Schema,
   SchemaItem,
-  SchemaItemsResponse,
-  SchemaOverviewResponse,
   Spell,
   SchemaEvent,
   SCHEMA_EVENT,
   SchemaRefreshAction,
+  ItemsGameItem,
+  SchemaPaginatedResponse,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
+import { mergeDefinitionPrefab } from './schema.utils';
+import { S3StorageEngine } from '@tf2-automatic/nestjs-storage';
+
+enum SchemaKeys {
+  ITEMS = 'schema:items',
+  ITEMS_NAME = 'schema:items:name',
+  ITEMS_GAME = 'schema:items-game',
+  QUALITIES_ID = 'schema:qualities:id',
+  QUALITIES_NAME = 'schema:qualities:name',
+  EFFECTS_ID = 'schema:effects:id',
+  EFFECTS_NAME = 'schema:effects:name',
+  PAINTKIT_ID = 'schema:paintkit:id',
+  PAINTKIT_NAME = 'schema:paintkit:name',
+  SPELLS_ID = 'schema:spells:id',
+  SPELLS_NAME = 'schema:spells:name',
+}
 
 // A key that stores the current schema id
 const CURRENT_SCHEMA_KEY = 'schema:current';
@@ -44,26 +61,6 @@ const CURRENT_SCHEMA_KEY = 'schema:current';
 const SCHEMAS_KEY = 'schema:schemas';
 // The last time the schema was checked
 const LAST_CHECKED_KEY = 'schema:last-checked';
-// All schema items are stored in a hash set with the defindex as the key
-const SCHEMA_ITEMS_KEY = 'schema:items';
-// All schema items are stored in a set with the name as the key and the defindex as the value(s)
-const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name';
-// A hash set that stores all schema qualities with the id as the key
-const SCHEMA_QUALITIES_ID_KEY = 'schema:qualities:id';
-// A hash set that stores all schema qualities with the name as the key
-const SCHEMA_QUALITIES_NAME_KEY = 'schema:qualities:name';
-// A hash set that stores all schema effects with the id as the key
-const SCHEMA_EFFECTS_ID_KEY = 'schema:effects:id';
-// A hash set that stores all schema effects with the name as the key
-const SCHEMA_EFFECTS_NAME_KEY = 'schema:effects:name';
-// A hash set that stores all paintkits with the id as the key
-const PAINTKIT_ID_KEY = 'schema:paintkit:id';
-// A hash set that stores all paintkits with the name as the key
-const PAINTKIT_NAME_KEY = 'schema:paintkit:name';
-// A hash set that stores all spells with the id as the key
-const SPELLS_ID_KEY = 'schema:spells:id';
-// A hash set that stores all spells with the name as the key
-const SPELLS_NAME_KEY = 'schema:spells:name';
 
 // The name of the schema overview file
 const OVERVIEW_FILE = 'schema-overview.json';
@@ -135,18 +132,11 @@ export class SchemaService implements OnApplicationBootstrap {
   async deleteSchema(time: number): Promise<void> {
     const multi = this.redis.multi();
 
-    multi
-      .hdel(SCHEMAS_KEY, time.toString())
-      .del(this.getKey(PAINTKIT_ID_KEY, time))
-      .del(this.getKey(PAINTKIT_NAME_KEY, time))
-      .del(this.getKey(SCHEMA_EFFECTS_ID_KEY, time))
-      .del(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time))
-      .del(this.getKey(SCHEMA_ITEMS_KEY, time))
-      .del(this.getKey(SCHEMA_ITEMS_NAME_KEY, time))
-      .del(this.getKey(SCHEMA_QUALITIES_ID_KEY, time))
-      .del(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time))
-      .del(this.getKey(SPELLS_ID_KEY, time))
-      .del(this.getKey(SPELLS_NAME_KEY, time));
+    multi.hdel(SCHEMAS_KEY, time.toString());
+
+    for (const key in SchemaKeys) {
+      multi.del(this.getKey(SchemaKeys[key], time));
+    }
 
     await multi.exec();
 
@@ -158,17 +148,32 @@ export class SchemaService implements OnApplicationBootstrap {
     cursor: number,
     count: number,
     time?: number,
-  ): Promise<SchemaItemsResponse> {
+    useItemsGame = false,
+  ) {
+    return this.getHashesPaginated<SchemaItem>(
+      useItemsGame ? SchemaKeys.ITEMS_GAME : SchemaKeys.ITEMS,
+      cursor,
+      count,
+      time,
+    );
+  }
+
+  private async getHashesPaginated<T>(
+    key: SchemaKeys,
+    cursor: number,
+    count: number,
+    time?: number,
+  ): Promise<SchemaPaginatedResponse<T>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
-      this.getKey(SCHEMA_ITEMS_KEY, schema.time),
+      this.getKey(key, schema.time),
       cursor,
       'COUNT',
       count,
     );
 
-    const items: SchemaItem[] = [];
+    const items: T[] = [];
 
     for (let i = 0; i < elements.length; i += 2) {
       items.push(unpack(elements[i + 1]));
@@ -183,8 +188,70 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  async getItemByDefindex(defindex: string, time?: number): Promise<any> {
-    const items = await this.getItemsByDefindexes([defindex], time);
+  private async getValueByField(
+    key: SchemaKeys,
+    hash: string,
+    time?: number,
+  ): Promise<any> {
+    const matches = await this.getValuesByField(key, [hash], time);
+
+    const result = matches[hash];
+    if (!result) {
+      throw new NotFoundException('Not found');
+    }
+
+    return result;
+  }
+
+  private async getValuesByField(
+    key: SchemaKeys,
+    fields: string[],
+    time?: number,
+  ): Promise<Record<string, any>> {
+    const schema = await this.getClosestSchemaByTime(time);
+
+    const result = await this.redis.hmgetBuffer(
+      this.getKey(key, schema.time),
+      ...fields,
+    );
+
+    const items: Record<string, any> = {};
+
+    for (let i = 0; i < fields.length; i++) {
+      const value = result[i];
+      if (value !== null) {
+        items[fields[i]] = unpack(value);
+      }
+    }
+
+    return items;
+  }
+
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame: true,
+    time?: number,
+  ): Promise<ItemsGameItem>;
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame: false,
+    time?: number,
+  ): Promise<SchemaItem>;
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame: boolean,
+    time?: number,
+  ): Promise<SchemaItem | ItemsGameItem>;
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame = false,
+    time?: number,
+  ): Promise<SchemaItem | ItemsGameItem> {
+    const items = await this.getItemsByDefindexes(
+      [defindex],
+      useItemsGame,
+      time,
+    );
 
     const match = items[defindex];
     if (!match) {
@@ -194,31 +261,63 @@ export class SchemaService implements OnApplicationBootstrap {
     return match;
   }
 
-  async getItemsByName(name: string, time?: number): Promise<SchemaItem[]> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const result = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_ITEMS_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
+  async getItemsByName(
+    name: string,
+    useItemsGame: true,
+    time?: number,
+  ): Promise<ItemsGameItem[]>;
+  async getItemsByName(
+    name: string,
+    useItemsGame: false,
+    time?: number,
+  ): Promise<SchemaItem[]>;
+  async getItemsByName(
+    name: string,
+    useItemsGame: boolean,
+    time?: number,
+  ): Promise<SchemaItem[] | ItemsGameItem[]>;
+  async getItemsByName(
+    name: string,
+    useItemsGame = false,
+    time?: number,
+  ): Promise<SchemaItem[] | ItemsGameItem[]> {
+    const defindexes = await this.getValueByField(
+      SchemaKeys.ITEMS_NAME,
+      name,
+      time,
     );
-
-    if (!result) {
-      throw new NotFoundException('Item not found');
-    }
-
-    const defindexes = unpack(result);
-
-    return Object.values(await this.getItemsByDefindexes(defindexes));
+    return Object.values(
+      await this.getItemsByDefindexes(defindexes, useItemsGame, time),
+    );
   }
 
   private async getItemsByDefindexes(
     defindexes: string[],
+    useItemsGame: true,
     time?: number,
-  ): Promise<Record<string, SchemaItem>> {
+  ): Promise<Record<string, ItemsGameItem>>;
+  private async getItemsByDefindexes(
+    defindexes: string[],
+    useItemsGame: false,
+    time?: number,
+  ): Promise<Record<string, SchemaItem>>;
+  private async getItemsByDefindexes(
+    defindexes: string[],
+    useItemsGame: boolean,
+    time?: number,
+  ): Promise<Record<string, SchemaItem> | Record<string, ItemsGameItem>>;
+  private async getItemsByDefindexes(
+    defindexes: string[],
+    useItemsGame = false,
+    time?: number,
+  ): Promise<Record<string, SchemaItem | ItemsGameItem>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const match = await this.redis.hmgetBuffer(
-      this.getKey(SCHEMA_ITEMS_KEY, schema.time),
+      this.getKey(
+        useItemsGame ? SchemaKeys.ITEMS_GAME : SchemaKeys.ITEMS,
+        schema.time,
+      ),
       ...defindexes,
     );
 
@@ -235,96 +334,30 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getQualityById(id: string, time?: number): Promise<Quality> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const quality = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_QUALITIES_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!quality) {
-      throw new NotFoundException('Quality not found');
-    }
-
-    return unpack(quality);
+    return this.getValueByField(SchemaKeys.QUALITIES_ID, id, time);
   }
 
   async getQualityByName(name: string, time?: number): Promise<Quality> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const quality = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_QUALITIES_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!quality) {
-      throw new NotFoundException('Quality not found');
-    }
-
-    return unpack(quality);
+    return this.getValueByField(SchemaKeys.QUALITIES_NAME, name, time);
   }
 
   async getEffectById(id: string, time?: number): Promise<AttachedParticle> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const effect = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_EFFECTS_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!effect) {
-      throw new NotFoundException('Effect not found');
-    }
-
-    return unpack(effect);
+    return this.getValueByField(SchemaKeys.EFFECTS_ID, id, time);
   }
 
   async getEffectByName(
     name: string,
     time?: number,
   ): Promise<AttachedParticle> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const effect = await this.redis.hgetBuffer(
-      this.getKey(SCHEMA_EFFECTS_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!effect) {
-      throw new NotFoundException('Effect not found');
-    }
-
-    return unpack(effect);
+    return this.getValueByField(SchemaKeys.EFFECTS_NAME, name, time);
   }
 
   async getPaintKitById(id: string, time?: number): Promise<PaintKit> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const paintkit = await this.redis.hgetBuffer(
-      this.getKey(PAINTKIT_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!paintkit) {
-      throw new NotFoundException('Paintkit not found');
-    }
-
-    return unpack(paintkit);
+    return this.getValueByField(SchemaKeys.PAINTKIT_ID, id, time);
   }
 
   async getPaintKitByName(name: string, time?: number): Promise<PaintKit> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const paintkit = await this.redis.hgetBuffer(
-      this.getKey(PAINTKIT_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!paintkit) {
-      throw new NotFoundException('Paintkit not found');
-    }
-
-    return unpack(paintkit);
+    return this.getValueByField(SchemaKeys.PAINTKIT_NAME, name, time);
   }
 
   async getSpellById(id: string, time?: number): Promise<Spell> {
@@ -332,10 +365,7 @@ export class SchemaService implements OnApplicationBootstrap {
       id,
       time,
     ).catch((err) => {
-      if (
-        err instanceof NotFoundException &&
-        err.message === 'Spell not found'
-      ) {
+      if (err instanceof NotFoundException) {
         return null;
       }
 
@@ -346,7 +376,7 @@ export class SchemaService implements OnApplicationBootstrap {
       return spellFromAttribute;
     }
 
-    const spellFromItems = await this.getItemByDefindex(id, time).catch(
+    const spellFromItems = await this.getItemByDefindex(id, false, time).catch(
       (err) => {
         if (
           err instanceof NotFoundException &&
@@ -363,7 +393,10 @@ export class SchemaService implements OnApplicationBootstrap {
       spellFromItems &&
       spellFromItems.item_name.startsWith('Halloween Spell: ')
     ) {
-      return spellFromItems;
+      return {
+        id: parseInt(id, 10),
+        name: spellFromItems.item_name.slice(17),
+      };
     }
 
     throw new NotFoundException('Spell not found');
@@ -373,18 +406,7 @@ export class SchemaService implements OnApplicationBootstrap {
     id: string,
     time?: number,
   ): Promise<Spell> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const spell = await this.redis.hgetBuffer(
-      this.getKey(SPELLS_ID_KEY, schema.time),
-      id,
-    );
-
-    if (!spell) {
-      throw new NotFoundException('Spell not found');
-    }
-
-    return unpack(spell);
+    return this.getValueByField(SchemaKeys.SPELLS_ID, id, time);
   }
 
   async getSpellByName(name: string, time?: number): Promise<Spell> {
@@ -405,6 +427,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const spellFromItems = await this.getItemsByName(
       'Halloween Spell: ' + name,
+      false,
       time,
     ).catch((err) => {
       if (err instanceof NotFoundException) {
@@ -428,18 +451,14 @@ export class SchemaService implements OnApplicationBootstrap {
     name: string,
     time?: number,
   ): Promise<Spell> {
-    const schema = await this.getClosestSchemaByTime(time);
+    return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
+  }
 
-    const spell = await this.redis.hgetBuffer(
-      this.getKey(SPELLS_NAME_KEY, schema.time),
-      Buffer.from(name).toString('base64'),
-    );
-
-    if (!spell) {
-      throw new NotFoundException('Spell not found');
-    }
-
-    return unpack(spell);
+  async getItemFromItemsGameByDefindex(
+    defindex: string,
+    time?: number,
+  ): Promise<ItemsGameItem> {
+    return this.getValueByField(SchemaKeys.ITEMS_GAME, defindex, time);
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
@@ -635,7 +654,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
       const packed = pack(quality);
 
-      qualitiesByName[Buffer.from(name).toString('base64')] = packed;
+      qualitiesByName[name] = packed;
       qualitiesById[id.toString()] = packed;
     }
 
@@ -645,7 +664,7 @@ export class SchemaService implements OnApplicationBootstrap {
     for (const effect of result.attribute_controlled_attached_particles) {
       const packed = pack(effect);
 
-      effectsByName[Buffer.from(effect.name).toString('base64')] = packed;
+      effectsByName[effect.name] = packed;
       effectsById[effect.id.toString()] = packed;
     }
 
@@ -661,7 +680,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
         const packed = pack(spell);
 
-        spellsByName[Buffer.from(spell.name).toString('base64')] = packed;
+        spellsByName[spell.name] = packed;
         spellsById[spell.id.toString()] = packed;
       }
     }
@@ -673,12 +692,12 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .hmset(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time), qualitiesByName)
-      .hmset(this.getKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
-      .hmset(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
-      .hmset(this.getKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
-      .hmset(this.getKey(SPELLS_NAME_KEY, time), spellsByName)
-      .hmset(this.getKey(SPELLS_ID_KEY, time), spellsById)
+      .hmset(this.getKey(SchemaKeys.QUALITIES_NAME, time), qualitiesByName)
+      .hmset(this.getKey(SchemaKeys.QUALITIES_ID, time), qualitiesById)
+      .hmset(this.getKey(SchemaKeys.EFFECTS_NAME, time), effectsByName)
+      .hmset(this.getKey(SchemaKeys.EFFECTS_ID, time), effectsById)
+      .hmset(this.getKey(SchemaKeys.SPELLS_NAME, time), spellsByName)
+      .hmset(this.getKey(SchemaKeys.SPELLS_ID, time), spellsById)
       .exec();
   }
 
@@ -697,25 +716,25 @@ export class SchemaService implements OnApplicationBootstrap {
       // Save the item to the defindex key
       defindexToItem[defindex] = pack(item);
 
-      const nameBuffer = Buffer.from(item.item_name).toString('base64');
+      const name = item.item_name;
 
       // Keep track of the defindexes for each name
-      if (nameToDefindex[nameBuffer] === undefined) {
-        nameToDefindex[nameBuffer] = new Set<number>();
+      if (nameToDefindex[name] === undefined) {
+        nameToDefindex[name] = new Set<number>();
       }
-      nameToDefindex[nameBuffer].add(defindex);
+      nameToDefindex[name].add(defindex);
     }
 
     // Save the schema items
     const multi = this.redis
       .multi()
-      .hmset(this.getKey(SCHEMA_ITEMS_KEY, job.data.time), defindexToItem);
+      .hmset(this.getKey(SchemaKeys.ITEMS, job.data.time), defindexToItem);
 
     const keys = Object.keys(nameToDefindex);
 
     // Save to a variable to reuse later
     const schemaItemsNameKey = this.getKey(
-      SCHEMA_ITEMS_NAME_KEY,
+      SchemaKeys.ITEMS_NAME,
       job.data.time,
     );
 
@@ -786,18 +805,60 @@ export class SchemaService implements OnApplicationBootstrap {
       const packed = pack(paintkit);
 
       paintkitsById[paintkit.id.toString()] = packed;
-      paintkitsByName[Buffer.from(paintkit.name).toString('base64')] = packed;
+      paintkitsByName[paintkit.name] = packed;
     }
 
     await this.redis
       .multi()
-      .hmset(this.getKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
-      .hmset(this.getKey(PAINTKIT_NAME_KEY, job.data.time), paintkitsByName)
+      .hmset(this.getKey(SchemaKeys.PAINTKIT_ID, job.data.time), paintkitsById)
+      .hmset(
+        this.getKey(SchemaKeys.PAINTKIT_NAME, job.data.time),
+        paintkitsByName,
+      )
       .exec();
   }
 
   async updateItemsGame(job: Job, result: string) {
     await this.saveSchemaItemsGameFile(result, job.data.time);
+
+    const parsed = vdf(result);
+
+    const items = parsed.items_game.items as Record<string, ItemsGameItem>;
+    const prefabs = parsed.items_game.prefabs as Record<
+      string,
+      Partial<ItemsGameItem>
+    >;
+
+    const chunkSize = 100;
+
+    const keys = Object.keys(items);
+    let index = 0;
+
+    const key = this.getKey(SchemaKeys.ITEMS_GAME, job.data.time);
+
+    while (index < keys.length) {
+      const chunk: Record<string, any> = {};
+
+      for (let i = index; i < Math.min(index + chunkSize, keys.length); i++) {
+        const defindex = keys[i];
+        const element = items[defindex];
+
+        const item: Partial<ItemsGameItem> = {};
+
+        mergeDefinitionPrefab(item, element, prefabs);
+
+        item.def_index = defindex;
+        delete item.prefab;
+
+        chunk[defindex] = pack(item);
+      }
+
+      await this.redis.hmset(key, chunk);
+
+      index += chunkSize;
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   private async saveSchemaOverviewFile(
@@ -806,7 +867,7 @@ export class SchemaService implements OnApplicationBootstrap {
   ): Promise<void> {
     await this.storageService.write(
       time + '.' + OVERVIEW_FILE,
-      pack(result).toString('base64'),
+      JSON.stringify(result),
     );
   }
 
@@ -837,24 +898,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return schemas[schemas.length - 1];
   }
 
-  async getSchemaOverviewByTime(
-    time?: number,
-  ): Promise<SchemaOverviewResponse> {
+  async getSchemaOverviewUrlByTime(time?: number): Promise<string> {
     const schema = await this.getClosestSchemaByTime(time);
-    return this.getSchemaOverviewBySchema(schema);
-  }
-
-  private async getSchemaOverviewBySchema(
-    schema: Schema,
-  ): Promise<SchemaOverviewResponse> {
-    const overview = await this.storageService.read(
-      schema.time + '.' + OVERVIEW_FILE,
-    );
-    if (!overview) {
-      throw new NotFoundException('Schema overview not found');
-    }
-
-    return unpack(Buffer.from(overview, 'base64'));
+    const engine = this.storageService.getEngine() as S3StorageEngine;
+    const path = this.storageService.getPath(schema.time + '.' + OVERVIEW_FILE);
+    return engine.getSignedUrl(path);
   }
 
   private async saveSchemaItemsGameFile(
@@ -864,20 +912,13 @@ export class SchemaService implements OnApplicationBootstrap {
     await this.storageService.write(time + '.' + ITEMS_GAME_FILE, result);
   }
 
-  async getSchemaItemsGameByTime(time?: number): Promise<string> {
+  async getSchemaItemsGameUrlByTime(time?: number): Promise<string> {
     const schema = await this.getClosestSchemaByTime(time);
-    return this.getSchemaItemsGameBySchema(schema);
-  }
-
-  private async getSchemaItemsGameBySchema(schema: Schema): Promise<string> {
-    const items = await this.storageService.read(
+    const engine = this.storageService.getEngine() as S3StorageEngine;
+    const path = this.storageService.getPath(
       schema.time + '.' + ITEMS_GAME_FILE,
     );
-    if (!items) {
-      throw new NotFoundException('Schema items not found');
-    }
-
-    return items;
+    return engine.getSignedUrl(path);
   }
 
   private getKey(key: string, prefix: any, properties?: Record<string, any>) {
