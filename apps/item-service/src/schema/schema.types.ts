@@ -77,7 +77,7 @@ export class SchemaOptionsDto {
   @Transform(({ value }) =>
     value === 'true' ? true : value === 'false' ? false : value,
   )
-  items_game?: boolean;
+  items_game = false;
 }
 
 export class SchemaPaginatedDto {

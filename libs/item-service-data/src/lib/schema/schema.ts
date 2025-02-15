@@ -70,6 +70,7 @@ type Bool = '0' | '1';
 
 export interface ItemsGameItem {
   name: string;
+  def_index: string;
   item_class?: string;
   first_sale_date?: string;
   prefab?: string;
