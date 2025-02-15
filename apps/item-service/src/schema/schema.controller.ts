@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { SchemaService } from './schema.service';
 import {
@@ -52,6 +53,7 @@ import {
   SchemaPaginatedDto,
   SchemaSearchDto,
 } from './schema.types';
+import { Response } from 'express';
 
 @ApiTags('Schema')
 @Controller(SCHEMA_BASE_PATH)
@@ -110,22 +112,31 @@ export class SchemaController {
 
   @Get(SCHEMA_ITEMS_GAME_PATH)
   @ApiOperation({
-    summary: 'Get a url to download the items_game.txt file',
-    description: 'Returns a url ready to download the items_game.txt file',
+    summary: 'Get items game',
+    description: 'Redirects the request to download the items_game.txt file',
   })
   @ApiQuerySchemaTime()
-  async getItemsGame(@Query() options: SchemaOptionsDto) {
-    return this.schemaService.getSchemaItemsGameUrlByTime(options.time);
+  async getItemsGame(@Query() options: SchemaOptionsDto, @Res() res: Response) {
+    const url = await this.schemaService.getSchemaItemsGameUrlByTime(
+      options.time,
+    );
+    res.redirect(url);
   }
 
   @Get(SCHEMA_OVERVIEW_PATH)
   @ApiOperation({
-    summary: 'Get a url to download the schema overview',
-    description: 'Returns a url ready to download the schema overview',
+    summary: 'Get schema overview',
+    description: 'Redirects the request to download the schema overview',
   })
   @ApiQuerySchemaTime()
-  async getSchemaOverview(@Query() options: SchemaOptionsDto) {
-    return this.schemaService.getSchemaOverviewUrlByTime(options.time);
+  async getSchemaOverview(
+    @Query() options: SchemaOptionsDto,
+    @Res() res: Response,
+  ) {
+    const url = await this.schemaService.getSchemaOverviewUrlByTime(
+      options.time,
+    );
+    res.redirect(url);
   }
 
   @Get(SCHEMA_ITEMS_PATH)
