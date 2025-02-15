@@ -38,32 +38,25 @@ import {
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 
+enum SchemaKeys {
+  ITEMS = 'schema:items',
+  ITEMS_NAME = 'schema:items:name',
+  QUALITIES_ID = 'schema:qualities:id',
+  QUALITIES_NAME = 'schema:qualities:name',
+  EFFECTS_ID = 'schema:effects:id',
+  EFFECTS_NAME = 'schema:effects:name',
+  PAINTKIT_ID = 'schema:paintkit:id',
+  PAINTKIT_NAME = 'schema:paintkit:name',
+  SPELLS_ID = 'schema:spells:id',
+  SPELLS_NAME = 'schema:spells:name',
+}
+
 // A key that stores the current schema id
 const CURRENT_SCHEMA_KEY = 'schema:current';
 // A key that stores the
 const SCHEMAS_KEY = 'schema:schemas';
 // The last time the schema was checked
 const LAST_CHECKED_KEY = 'schema:last-checked';
-// All schema items are stored in a hash set with the defindex as the key
-const SCHEMA_ITEMS_KEY = 'schema:items';
-// All schema items are stored in a set with the name as the key and the defindex as the value(s)
-const SCHEMA_ITEMS_NAME_KEY = 'schema:items:name';
-// A hash set that stores all schema qualities with the id as the key
-const SCHEMA_QUALITIES_ID_KEY = 'schema:qualities:id';
-// A hash set that stores all schema qualities with the name as the key
-const SCHEMA_QUALITIES_NAME_KEY = 'schema:qualities:name';
-// A hash set that stores all schema effects with the id as the key
-const SCHEMA_EFFECTS_ID_KEY = 'schema:effects:id';
-// A hash set that stores all schema effects with the name as the key
-const SCHEMA_EFFECTS_NAME_KEY = 'schema:effects:name';
-// A hash set that stores all paintkits with the id as the key
-const PAINTKIT_ID_KEY = 'schema:paintkit:id';
-// A hash set that stores all paintkits with the name as the key
-const PAINTKIT_NAME_KEY = 'schema:paintkit:name';
-// A hash set that stores all spells with the id as the key
-const SPELLS_ID_KEY = 'schema:spells:id';
-// A hash set that stores all spells with the name as the key
-const SPELLS_NAME_KEY = 'schema:spells:name';
 
 // The name of the schema overview file
 const OVERVIEW_FILE = 'schema-overview.json';
@@ -135,18 +128,11 @@ export class SchemaService implements OnApplicationBootstrap {
   async deleteSchema(time: number): Promise<void> {
     const multi = this.redis.multi();
 
-    multi
-      .hdel(SCHEMAS_KEY, time.toString())
-      .del(this.getKey(PAINTKIT_ID_KEY, time))
-      .del(this.getKey(PAINTKIT_NAME_KEY, time))
-      .del(this.getKey(SCHEMA_EFFECTS_ID_KEY, time))
-      .del(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time))
-      .del(this.getKey(SCHEMA_ITEMS_KEY, time))
-      .del(this.getKey(SCHEMA_ITEMS_NAME_KEY, time))
-      .del(this.getKey(SCHEMA_QUALITIES_ID_KEY, time))
-      .del(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time))
-      .del(this.getKey(SPELLS_ID_KEY, time))
-      .del(this.getKey(SPELLS_NAME_KEY, time));
+    multi.hdel(SCHEMAS_KEY, time.toString());
+
+    for (const key in SchemaKeys) {
+      multi.del(this.getKey(SchemaKeys[key], time));
+    }
 
     await multi.exec();
 
@@ -162,7 +148,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const schema = await this.getClosestSchemaByTime(time);
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
-      this.getKey(SCHEMA_ITEMS_KEY, schema.time),
+      this.getKey(SchemaKeys.ITEMS, schema.time),
       cursor,
       'COUNT',
       count,
@@ -183,27 +169,43 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  private getHashByBase64(key: string, name: string, time?: number) {
-    return this.getHashByName(key, Buffer.from(name).toString('base64'), time);
-  }
-
-  private async getHashByName(
+  private async getValueByField(
     key: string,
-    name: string,
+    hash: string,
     time?: number,
   ): Promise<any> {
-    const schema = await this.getClosestSchemaByTime(time);
+    const matches = await this.getValuesByField(key, [hash], time);
 
-    const result = await this.redis.hgetBuffer(
-      this.getKey(key, schema.time),
-      name,
-    );
-
+    const result = matches[hash];
     if (!result) {
       throw new NotFoundException('Not found');
     }
 
-    return unpack(result);
+    return result;
+  }
+
+  private async getValuesByField(
+    key: string,
+    fields: string[],
+    time?: number,
+  ): Promise<Record<string, any>> {
+    const schema = await this.getClosestSchemaByTime(time);
+
+    const result = await this.redis.hmgetBuffer(
+      this.getKey(key, schema.time),
+      ...fields,
+    );
+
+    const items: Record<string, any> = {};
+
+    for (let i = 0; i < fields.length; i++) {
+      const value = result[i];
+      if (value !== null) {
+        items[fields[i]] = unpack(value);
+      }
+    }
+
+    return items;
   }
 
   async getItemByDefindex(
@@ -221,8 +223,8 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getItemsByName(name: string, time?: number): Promise<SchemaItem[]> {
-    const defindexes = await this.getHashByBase64(
-      SCHEMA_ITEMS_NAME_KEY,
+    const defindexes = await this.getValueByField(
+      SchemaKeys.ITEMS_NAME,
       name,
       time,
     );
@@ -236,7 +238,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const schema = await this.getClosestSchemaByTime(time);
 
     const match = await this.redis.hmgetBuffer(
-      this.getKey(SCHEMA_ITEMS_KEY, schema.time),
+      this.getKey(SchemaKeys.ITEMS, schema.time),
       ...defindexes,
     );
 
@@ -253,30 +255,30 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getQualityById(id: string, time?: number): Promise<Quality> {
-    return this.getHashByName(SCHEMA_QUALITIES_ID_KEY, id, time);
+    return this.getValueByField(SchemaKeys.QUALITIES_ID, id, time);
   }
 
   async getQualityByName(name: string, time?: number): Promise<Quality> {
-    return this.getHashByBase64(SCHEMA_QUALITIES_NAME_KEY, name, time);
+    return this.getValueByField(SchemaKeys.QUALITIES_NAME, name, time);
   }
 
   async getEffectById(id: string, time?: number): Promise<AttachedParticle> {
-    return this.getHashByName(SCHEMA_EFFECTS_ID_KEY, id, time);
+    return this.getValueByField(SchemaKeys.EFFECTS_ID, id, time);
   }
 
   async getEffectByName(
     name: string,
     time?: number,
   ): Promise<AttachedParticle> {
-    return this.getHashByBase64(SCHEMA_EFFECTS_NAME_KEY, name, time);
+    return this.getValueByField(SchemaKeys.EFFECTS_NAME, name, time);
   }
 
   async getPaintKitById(id: string, time?: number): Promise<PaintKit> {
-    return this.getHashByName(PAINTKIT_ID_KEY, id, time);
+    return this.getValueByField(SchemaKeys.PAINTKIT_ID, id, time);
   }
 
   async getPaintKitByName(name: string, time?: number): Promise<PaintKit> {
-    return this.getHashByBase64(PAINTKIT_NAME_KEY, name, time);
+    return this.getValueByField(SchemaKeys.PAINTKIT_NAME, name, time);
   }
 
   async getSpellById(id: string, time?: number): Promise<Spell> {
@@ -325,7 +327,7 @@ export class SchemaService implements OnApplicationBootstrap {
     id: string,
     time?: number,
   ): Promise<Spell> {
-    return this.getHashByName(SPELLS_ID_KEY, id, time);
+    return this.getValueByField(SchemaKeys.SPELLS_ID, id, time);
   }
 
   async getSpellByName(name: string, time?: number): Promise<Spell> {
@@ -369,7 +371,7 @@ export class SchemaService implements OnApplicationBootstrap {
     name: string,
     time?: number,
   ): Promise<Spell> {
-    return this.getHashByBase64(SPELLS_NAME_KEY, name, time);
+    return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
@@ -565,7 +567,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
       const packed = pack(quality);
 
-      qualitiesByName[Buffer.from(name).toString('base64')] = packed;
+      qualitiesByName[name] = packed;
       qualitiesById[id.toString()] = packed;
     }
 
@@ -575,7 +577,7 @@ export class SchemaService implements OnApplicationBootstrap {
     for (const effect of result.attribute_controlled_attached_particles) {
       const packed = pack(effect);
 
-      effectsByName[Buffer.from(effect.name).toString('base64')] = packed;
+      effectsByName[effect.name] = packed;
       effectsById[effect.id.toString()] = packed;
     }
 
@@ -591,7 +593,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
         const packed = pack(spell);
 
-        spellsByName[Buffer.from(spell.name).toString('base64')] = packed;
+        spellsByName[spell.name] = packed;
         spellsById[spell.id.toString()] = packed;
       }
     }
@@ -603,12 +605,12 @@ export class SchemaService implements OnApplicationBootstrap {
 
     await this.redis
       .multi()
-      .hmset(this.getKey(SCHEMA_QUALITIES_NAME_KEY, time), qualitiesByName)
-      .hmset(this.getKey(SCHEMA_QUALITIES_ID_KEY, time), qualitiesById)
-      .hmset(this.getKey(SCHEMA_EFFECTS_NAME_KEY, time), effectsByName)
-      .hmset(this.getKey(SCHEMA_EFFECTS_ID_KEY, time), effectsById)
-      .hmset(this.getKey(SPELLS_NAME_KEY, time), spellsByName)
-      .hmset(this.getKey(SPELLS_ID_KEY, time), spellsById)
+      .hmset(this.getKey(SchemaKeys.QUALITIES_NAME, time), qualitiesByName)
+      .hmset(this.getKey(SchemaKeys.QUALITIES_ID, time), qualitiesById)
+      .hmset(this.getKey(SchemaKeys.EFFECTS_NAME, time), effectsByName)
+      .hmset(this.getKey(SchemaKeys.EFFECTS_ID, time), effectsById)
+      .hmset(this.getKey(SchemaKeys.SPELLS_NAME, time), spellsByName)
+      .hmset(this.getKey(SchemaKeys.SPELLS_ID, time), spellsById)
       .exec();
   }
 
@@ -627,25 +629,25 @@ export class SchemaService implements OnApplicationBootstrap {
       // Save the item to the defindex key
       defindexToItem[defindex] = pack(item);
 
-      const nameBuffer = Buffer.from(item.item_name).toString('base64');
+      const name = item.item_name;
 
       // Keep track of the defindexes for each name
-      if (nameToDefindex[nameBuffer] === undefined) {
-        nameToDefindex[nameBuffer] = new Set<number>();
+      if (nameToDefindex[name] === undefined) {
+        nameToDefindex[name] = new Set<number>();
       }
-      nameToDefindex[nameBuffer].add(defindex);
+      nameToDefindex[name].add(defindex);
     }
 
     // Save the schema items
     const multi = this.redis
       .multi()
-      .hmset(this.getKey(SCHEMA_ITEMS_KEY, job.data.time), defindexToItem);
+      .hmset(this.getKey(SchemaKeys.ITEMS, job.data.time), defindexToItem);
 
     const keys = Object.keys(nameToDefindex);
 
     // Save to a variable to reuse later
     const schemaItemsNameKey = this.getKey(
-      SCHEMA_ITEMS_NAME_KEY,
+      SchemaKeys.ITEMS_NAME,
       job.data.time,
     );
 
@@ -716,13 +718,16 @@ export class SchemaService implements OnApplicationBootstrap {
       const packed = pack(paintkit);
 
       paintkitsById[paintkit.id.toString()] = packed;
-      paintkitsByName[Buffer.from(paintkit.name).toString('base64')] = packed;
+      paintkitsByName[paintkit.name] = packed;
     }
 
     await this.redis
       .multi()
-      .hmset(this.getKey(PAINTKIT_ID_KEY, job.data.time), paintkitsById)
-      .hmset(this.getKey(PAINTKIT_NAME_KEY, job.data.time), paintkitsByName)
+      .hmset(this.getKey(SchemaKeys.PAINTKIT_ID, job.data.time), paintkitsById)
+      .hmset(
+        this.getKey(SchemaKeys.PAINTKIT_NAME, job.data.time),
+        paintkitsByName,
+      )
       .exec();
   }
 
