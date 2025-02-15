@@ -110,22 +110,22 @@ export class SchemaController {
 
   @Get(SCHEMA_ITEMS_GAME_PATH)
   @ApiOperation({
-    summary: 'Get items game',
-    description: 'Returns the items game',
+    summary: 'Get a url to download the items_game.txt file',
+    description: 'Returns a url ready to download the items_game.txt file',
   })
   @ApiQuerySchemaTime()
   async getItemsGame(@Query() options: SchemaOptionsDto) {
-    return this.schemaService.getSchemaItemsGameByTime(options.time);
+    return this.schemaService.getSchemaItemsGameUrlByTime(options.time);
   }
 
   @Get(SCHEMA_OVERVIEW_PATH)
   @ApiOperation({
-    summary: 'Get schema overview',
-    description: 'Returns an overview of the schema',
+    summary: 'Get a url to download the schema overview',
+    description: 'Returns a url ready to download the schema overview',
   })
   @ApiQuerySchemaTime()
   async getSchemaOverview(@Query() options: SchemaOptionsDto) {
-    return this.schemaService.getSchemaOverviewByTime(options.time);
+    return this.schemaService.getSchemaOverviewUrlByTime(options.time);
   }
 
   @Get(SCHEMA_ITEMS_PATH)

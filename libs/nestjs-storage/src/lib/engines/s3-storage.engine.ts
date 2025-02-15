@@ -79,4 +79,13 @@ export class S3StorageEngine implements StorageEngine {
   private getFullPath(relativePath: string): string {
     return path.join(this.config.directory, relativePath).replace(/\\/g, '/');
   }
+
+  async getSignedUrl(relativePath: string): Promise<string> {
+    const fullPath = this.getFullPath(relativePath);
+
+    return this.client.presignedGetObject(
+      this.config.bucket,
+      fullPath
+    );
+  }
 }

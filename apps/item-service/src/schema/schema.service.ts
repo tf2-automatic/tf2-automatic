@@ -39,6 +39,7 @@ import {
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 import { mergeDefinitionPrefab } from './schema.utils';
+import { S3StorageEngine } from '@tf2-automatic/nestjs-storage';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
@@ -866,7 +867,7 @@ export class SchemaService implements OnApplicationBootstrap {
   ): Promise<void> {
     await this.storageService.write(
       time + '.' + OVERVIEW_FILE,
-      pack(result).toString('base64'),
+      JSON.stringify(result),
     );
   }
 
@@ -897,24 +898,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return schemas[schemas.length - 1];
   }
 
-  async getSchemaOverviewByTime(
-    time?: number,
-  ): Promise<SchemaOverviewResponse> {
+  async getSchemaOverviewUrlByTime(time?: number): Promise<string> {
     const schema = await this.getClosestSchemaByTime(time);
-    return this.getSchemaOverviewBySchema(schema);
-  }
-
-  private async getSchemaOverviewBySchema(
-    schema: Schema,
-  ): Promise<SchemaOverviewResponse> {
-    const overview = await this.storageService.read(
-      schema.time + '.' + OVERVIEW_FILE,
-    );
-    if (!overview) {
-      throw new NotFoundException('Schema overview not found');
-    }
-
-    return unpack(Buffer.from(overview, 'base64'));
+    const engine = this.storageService.getEngine() as S3StorageEngine;
+    const path = this.storageService.getPath(schema.time + '.' + OVERVIEW_FILE);
+    return engine.getSignedUrl(path);
   }
 
   private async saveSchemaItemsGameFile(
@@ -924,20 +912,13 @@ export class SchemaService implements OnApplicationBootstrap {
     await this.storageService.write(time + '.' + ITEMS_GAME_FILE, result);
   }
 
-  async getSchemaItemsGameByTime(time?: number): Promise<string> {
+  async getSchemaItemsGameUrlByTime(time?: number): Promise<string> {
     const schema = await this.getClosestSchemaByTime(time);
-    return this.getSchemaItemsGameBySchema(schema);
-  }
-
-  private async getSchemaItemsGameBySchema(schema: Schema): Promise<string> {
-    const items = await this.storageService.read(
+    const engine = this.storageService.getEngine() as S3StorageEngine;
+    const path = this.storageService.getPath(
       schema.time + '.' + ITEMS_GAME_FILE,
     );
-    if (!items) {
-      throw new NotFoundException('Schema items not found');
-    }
-
-    return items;
+    return engine.getSignedUrl(path);
   }
 
   private getKey(key: string, prefix: any, properties?: Record<string, any>) {
