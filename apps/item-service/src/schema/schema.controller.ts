@@ -26,8 +26,6 @@ import {
   SCHEMA_PATH,
   SCHEMA_REFRESH_PATH,
   SchemaItem,
-  SchemaItemModel,
-  SchemaItemsResponse,
   SchemaModel,
   SchemaRefreshAction,
   Spell,
@@ -39,6 +37,7 @@ import {
   SCHEMA_EFFECT_PATH,
   SCHEMA_PAINTKIT_PATH,
   SCHEMA_SPELL_PATH,
+  ItemsGameItem,
 } from '@tf2-automatic/item-service-data';
 import {
   ApiOperation,
@@ -134,28 +133,35 @@ export class SchemaController {
     summary: 'Get schema items paginated',
     description: 'Returns schema items paginated using a cursor and count',
   })
-  @ApiResponse({
-    type: SchemaItemsResponse,
-  })
   @ApiQuery({
     name: 'cursor',
     description: 'The cursor to use, defaults to 0.',
+    type: 'integer',
     required: false,
   })
   @ApiQuery({
     name: 'count',
     description: 'The number of items to return, defaults to 1000.',
+    type: 'integer',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'items_game',
+    description:
+      'If the items should be fetched from the schema or items_game.txt, defaults to false.',
+    type: 'boolean',
     required: false,
   })
   @ApiQuerySchemaTime()
   async getItems(
     @Query() pagination: SchemaPaginatedDto,
     @Query() options: SchemaOptionsDto,
-  ): Promise<SchemaItemsResponse> {
+  ) {
     return this.schemaService.getItems(
       pagination.cursor,
       pagination.count,
       options.time,
+      options.items_game,
     );
   }
 
@@ -170,16 +176,23 @@ export class SchemaController {
     example: 'Mann Co. Supply Crate Key',
     required: true,
   })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: SchemaItemModel,
-    isArray: true,
+  @ApiQuery({
+    name: 'items_game',
+    description:
+      'If the items should be fetched from the schema or items_game.txt, defaults to false.',
+    type: 'boolean',
+    required: false,
   })
+  @ApiQuerySchemaTime()
   async getSchemaItemsBySearch(
     @Query() dto: SchemaSearchDto,
     @Query() options: SchemaOptionsDto,
-  ): Promise<SchemaItem[]> {
-    return this.schemaService.getItemsByName(dto.name, options.time);
+  ): Promise<SchemaItem[] | ItemsGameItem[]> {
+    return this.schemaService.getItemsByName(
+      dto.name,
+      options.items_game,
+      options.time,
+    );
   }
 
   @Get(SCHEMA_ITEM_DEFINDEX_PATH)
@@ -192,15 +205,23 @@ export class SchemaController {
     description: 'The defindex of the item',
     example: '5021',
   })
-  @ApiQuerySchemaTime()
-  @ApiResponse({
-    type: SchemaItemModel,
+  @ApiQuery({
+    name: 'items_game',
+    description:
+      'If the items should be fetched from the schema or items_game.txt, defaults to false.',
+    type: 'boolean',
+    required: false,
   })
+  @ApiQuerySchemaTime()
   async getSchemaItemByDefindex(
     @Param('defindex') defindex: string,
     @Query() options: SchemaOptionsDto,
-  ): Promise<SchemaItem> {
-    return this.schemaService.getItemByDefindex(defindex, time);
+  ): Promise<SchemaItem | ItemsGameItem> {
+    return this.schemaService.getItemByDefindex(
+      defindex,
+      options.items_game,
+      options.time,
+    );
   }
 
   @Get(SCHEMA_QUALITY_PATH)

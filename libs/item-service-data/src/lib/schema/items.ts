@@ -229,7 +229,7 @@ export class SchemaItemModel implements SchemaItem {
   attributes?: Attribute[] | undefined;
 }
 
-export class SchemaItemsResponse {
+export class SchemaPaginatedResponse<T> {
   @ApiProperty({
     description: 'The cursor used for the current request',
     example: 0,
@@ -243,8 +243,7 @@ export class SchemaItemsResponse {
   next: number | null;
 
   @ApiProperty({
-    type: SchemaItemModel,
     isArray: true,
   })
-  items: SchemaItem[];
+  items: T[];
 }

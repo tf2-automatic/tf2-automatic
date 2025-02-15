@@ -29,14 +29,15 @@ import {
   Quality,
   Schema,
   SchemaItem,
-  SchemaItemsResponse,
   Spell,
   SchemaEvent,
   SCHEMA_EVENT,
   SchemaRefreshAction,
   ItemsGameItem,
+  SchemaPaginatedResponse,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
+import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 import { mergeDefinitionPrefab } from './schema.utils';
 
 enum SchemaKeys {
@@ -146,17 +147,32 @@ export class SchemaService implements OnApplicationBootstrap {
     cursor: number,
     count: number,
     time?: number,
-  ): Promise<SchemaItemsResponse> {
+    useItemsGame = false,
+  ) {
+    return this.getHashesPaginated<SchemaItem>(
+      useItemsGame ? SchemaKeys.ITEMS_GAME : SchemaKeys.ITEMS,
+      cursor,
+      count,
+      time,
+    );
+  }
+
+  private async getHashesPaginated<T>(
+    key: SchemaKeys,
+    cursor: number,
+    count: number,
+    time?: number,
+  ): Promise<SchemaPaginatedResponse<T>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
-      this.getKey(SchemaKeys.ITEMS, schema.time),
+      this.getKey(key, schema.time),
       cursor,
       'COUNT',
       count,
     );
 
-    const items: SchemaItem[] = [];
+    const items: T[] = [];
 
     for (let i = 0; i < elements.length; i += 2) {
       items.push(unpack(elements[i + 1]));
@@ -172,7 +188,7 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   private async getValueByField(
-    key: string,
+    key: SchemaKeys,
     hash: string,
     time?: number,
   ): Promise<any> {
@@ -187,7 +203,7 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   private async getValuesByField(
-    key: string,
+    key: SchemaKeys,
     fields: string[],
     time?: number,
   ): Promise<Record<string, any>> {
@@ -212,9 +228,29 @@ export class SchemaService implements OnApplicationBootstrap {
 
   async getItemByDefindex(
     defindex: string,
+    useItemsGame: true,
     time?: number,
-  ): Promise<SchemaItem> {
-    const items = await this.getItemsByDefindexes([defindex], time);
+  ): Promise<ItemsGameItem>;
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame: false,
+    time?: number,
+  ): Promise<SchemaItem>;
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame: boolean,
+    time?: number,
+  ): Promise<SchemaItem | ItemsGameItem>;
+  async getItemByDefindex(
+    defindex: string,
+    useItemsGame = false,
+    time?: number,
+  ): Promise<SchemaItem | ItemsGameItem> {
+    const items = await this.getItemsByDefindexes(
+      [defindex],
+      useItemsGame,
+      time,
+    );
 
     const match = items[defindex];
     if (!match) {
@@ -224,23 +260,63 @@ export class SchemaService implements OnApplicationBootstrap {
     return match;
   }
 
-  async getItemsByName(name: string, time?: number): Promise<SchemaItem[]> {
+  async getItemsByName(
+    name: string,
+    useItemsGame: true,
+    time?: number,
+  ): Promise<ItemsGameItem[]>;
+  async getItemsByName(
+    name: string,
+    useItemsGame: false,
+    time?: number,
+  ): Promise<SchemaItem[]>;
+  async getItemsByName(
+    name: string,
+    useItemsGame: boolean,
+    time?: number,
+  ): Promise<SchemaItem[] | ItemsGameItem[]>;
+  async getItemsByName(
+    name: string,
+    useItemsGame = false,
+    time?: number,
+  ): Promise<SchemaItem[] | ItemsGameItem[]> {
     const defindexes = await this.getValueByField(
       SchemaKeys.ITEMS_NAME,
       name,
       time,
     );
-    return Object.values(await this.getItemsByDefindexes(defindexes));
+    return Object.values(
+      await this.getItemsByDefindexes(defindexes, useItemsGame, time),
+    );
   }
 
   private async getItemsByDefindexes(
     defindexes: string[],
+    useItemsGame: true,
     time?: number,
-  ): Promise<Record<string, SchemaItem>> {
+  ): Promise<Record<string, ItemsGameItem>>;
+  private async getItemsByDefindexes(
+    defindexes: string[],
+    useItemsGame: false,
+    time?: number,
+  ): Promise<Record<string, SchemaItem>>;
+  private async getItemsByDefindexes(
+    defindexes: string[],
+    useItemsGame: boolean,
+    time?: number,
+  ): Promise<Record<string, SchemaItem> | Record<string, ItemsGameItem>>;
+  private async getItemsByDefindexes(
+    defindexes: string[],
+    useItemsGame = false,
+    time?: number,
+  ): Promise<Record<string, SchemaItem | ItemsGameItem>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const match = await this.redis.hmgetBuffer(
-      this.getKey(SchemaKeys.ITEMS, schema.time),
+      this.getKey(
+        useItemsGame ? SchemaKeys.ITEMS_GAME : SchemaKeys.ITEMS,
+        schema.time,
+      ),
       ...defindexes,
     );
 
@@ -299,7 +375,7 @@ export class SchemaService implements OnApplicationBootstrap {
       return spellFromAttribute;
     }
 
-    const spellFromItems = await this.getItemByDefindex(id, time).catch(
+    const spellFromItems = await this.getItemByDefindex(id, false, time).catch(
       (err) => {
         if (
           err instanceof NotFoundException &&
@@ -350,6 +426,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const spellFromItems = await this.getItemsByName(
       'Halloween Spell: ' + name,
+      false,
       time,
     ).catch((err) => {
       if (err instanceof NotFoundException) {
@@ -374,6 +451,13 @@ export class SchemaService implements OnApplicationBootstrap {
     time?: number,
   ): Promise<Spell> {
     return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
+  }
+
+  async getItemFromItemsGameByDefindex(
+    defindex: string,
+    time?: number,
+  ): Promise<ItemsGameItem> {
+    return this.getValueByField(SchemaKeys.ITEMS_GAME, defindex, time);
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
