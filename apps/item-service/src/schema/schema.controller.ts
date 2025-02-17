@@ -252,7 +252,7 @@ export class SchemaController {
   @ApiResponse({
     type: QualityModel,
   })
-  async getSchemaQuality(
+  async getQuality(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<Quality> {
@@ -277,7 +277,7 @@ export class SchemaController {
   @ApiResponse({
     type: AttachedParticleModel,
   })
-  async getSchemaEffectsByName(
+  async getEffect(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<AttachedParticle> {
@@ -302,7 +302,7 @@ export class SchemaController {
   @ApiResponse({
     type: PaintKitModel,
   })
-  async getSchemaPaintkitsByName(
+  async getPaintkit(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<PaintKit> {
@@ -327,7 +327,7 @@ export class SchemaController {
   @ApiResponse({
     type: SpellModel,
   })
-  getSpellByName(
+  getSpell(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<Spell> {
