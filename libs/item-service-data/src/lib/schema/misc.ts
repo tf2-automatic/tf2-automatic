@@ -26,6 +26,7 @@ export interface Spell {
 
 export interface StrangePart {
   id: number;
+  name: string;
   defindex: number;
 }
 
@@ -97,6 +98,11 @@ export class StrangePartModel implements StrangePart {
     example: 27,
   })
   id!: number;
+
+  @ApiProperty({
+    example: 'Strange Part: Full Moon Kills',
+  })
+  name!: string;
 
   @ApiProperty({
     example: 6015,
