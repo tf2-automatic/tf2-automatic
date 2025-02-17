@@ -88,6 +88,7 @@ export interface DescriptionAttributes {
  * The result of extracting information from an EconItem
  */
 export interface ExtractedEconItem {
+  type: string | null;
   assetid: string;
   defindex: number | null;
   quality: string | null;

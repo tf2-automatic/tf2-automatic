@@ -60,6 +60,11 @@ export type RequiredItemAttributes = RequiredKeys<
   PrimaryItemAttributes
 >;
 
+export interface StrangePart {
+  name: string;
+  defindex: number;
+}
+
 /**
  * Various information needs to be retrieved externally to format the items.
  * This schema is used to define the getters for this information.
@@ -85,4 +90,16 @@ export interface Schema {
   fetchDefindexByName(name: string): Promise<number | null>;
   getSpellByName(name: string): number | undefined;
   fetchSpellByName(name: string): Promise<number>;
+  /**
+   * Gets the defindex and name of a strange part by its score type.
+   * @param name The score type name.
+   * @returns Returns null if a strange part with the given score type does not exist.
+   */
+  getStrangePartByScoreType(name: string): StrangePart | null | undefined;
+  /**
+   * Gets the defindex and name of a strange part by its score type.
+   * @param name The score type name.
+   * @returns Returns null if a strange part with the given score type does not exist.
+   */
+  fetchStrangePartByScoreType(name: string): Promise<StrangePart | null>;
 }

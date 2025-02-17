@@ -1,4 +1,4 @@
-import { EconParser, Schema } from '../../dist/libs/tf2-format';
+import { EconParser, Schema, StrangePart } from '../../dist/libs/tf2-format';
 import { parseEconItem } from 'tf2-item-format/static';
 import axios from 'axios';
 import DataLoader from 'dataloader';
@@ -101,6 +101,28 @@ const spellLoader = new DataLoader<string, number | null>(
   },
 );
 
+const partLoader = new DataLoader<string, StrangePart | null>(
+  ([part]) => {
+    return axios
+      .get('http://localhost:3003/schema/parts/' + part)
+      .then((res) => {
+        const result = res.data;
+        cache.set('part:' + part, result);
+        return [result];
+      }).catch((err) => {
+        if (err.response.status === 404) {
+          cache.set('part:' + part, null);
+          return [null];
+        }
+
+        throw err;
+      });
+  },
+  {
+    batch: false,
+  },
+);
+
 const schema: Schema = {
   getQualityByName: (name) => cache.get('quality:' + name),
   fetchQualityByName: (name) => qualityLoader.load(name),
@@ -112,6 +134,8 @@ const schema: Schema = {
   fetchDefindexByName: (name) => itemLoader.load(name),
   getSpellByName: (name) => cache.get('spell:' + name),
   fetchSpellByName: (name) => spellLoader.load(name),
+  getStrangePartByScoreType: (name) => cache.get('part:' + name),
+  fetchStrangePartByScoreType: (name) => partLoader.load(name),
 };
 
 const parser = new EconParser(schema);

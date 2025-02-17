@@ -160,6 +160,8 @@ describe('EconParser', () => {
         fetchSpellByName: jest.fn(),
         getTextureByName: jest.fn(),
         fetchTextureByName: jest.fn(),
+        getStrangePartByScoreType: jest.fn(),
+        fetchStrangePartByScoreType: jest.fn(),
       };
 
       parser = new EconParser(schema);
@@ -294,6 +296,11 @@ describe('EconParser', () => {
 
       expect(extracted.quality).toEqual('Unusual');
       expect(extracted.elevated).toEqual(true);
+      expect(extracted.parts).toEqual([
+        'Kills Under A Full Moon',
+        'Kills',
+        'Damage Dealt',
+      ]);
     });
 
     it('will parse decorated weapons', () => {
@@ -450,6 +457,11 @@ describe('EconParser', () => {
       expect(extracted.paintkit).toEqual('Flash Fryer');
       expect(extracted.wear).toEqual('Factory New');
       expect(extracted.effect).toEqual(null);
+      expect(extracted.parts).toEqual([
+        'Kills',
+        'Teammates Extinguished',
+        'Projectiles Reflected',
+      ]);
     });
 
     it('will parse crate series', () => {
@@ -487,6 +499,11 @@ describe('EconParser', () => {
       schema.fetchSpellByName.mockResolvedValue(-1);
       schema.getTextureByName.mockReturnValue(undefined);
       schema.fetchTextureByName.mockResolvedValue(-1);
+      schema.getStrangePartByScoreType.mockReturnValue(undefined);
+      schema.fetchStrangePartByScoreType.mockResolvedValue({
+        name: '',
+        defindex: -1,
+      });
     }
 
     beforeEach(() => {
@@ -501,6 +518,8 @@ describe('EconParser', () => {
         fetchSpellByName: jest.fn(),
         getTextureByName: jest.fn(),
         fetchTextureByName: jest.fn(),
+        getStrangePartByScoreType: jest.fn(),
+        fetchStrangePartByScoreType: jest.fn(),
       };
 
       parser = new EconParser(schema);
@@ -547,6 +566,56 @@ describe('EconParser', () => {
       const parse = parser.parse(extracted);
 
       await expect(parse).rejects.toThrow('Failed to fetch quality');
+    });
+
+    it('will properly handle non-cosmetic items with strange parts', async () => {
+      const item = TestData.getDecoratedWeaponWithoutEffect();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenCalledTimes(3);
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenNthCalledWith(
+        1,
+        'Kills',
+      );
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenNthCalledWith(
+        2,
+        'Teammates Extinguished',
+      );
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenNthCalledWith(
+        3,
+        'Projectiles Reflected',
+      );
+
+      expect(parsed.parts).toEqual([-1, -1, -1]);
+    });
+
+    it('will properly handle cosmetic items with strange parts', async () => {
+      const item = TestData.getUnusualElevatedQualityItem();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenCalledTimes(3);
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenNthCalledWith(
+        1,
+        'Kills Under A Full Moon',
+      );
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenNthCalledWith(
+        2,
+        'Kills',
+      );
+      expect(schema.fetchStrangePartByScoreType).toHaveBeenNthCalledWith(
+        3,
+        'Damage Dealt',
+      );
+
+      expect(parsed.parts).toEqual([-1, -1, -1]);
     });
 
     it('will parse Strangifier Chemistry Sets', async () => {

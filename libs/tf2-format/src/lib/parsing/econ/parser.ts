@@ -128,6 +128,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     const descriptions = EconParser.getDescriptionAttributes(item, tags, start);
 
     const raw: ExtractedEconItem = {
+      type: tags.Type ?? null,
       assetid: item.assetid,
       defindex: EconParser.getDefindex(item),
       quality: tags.Quality ?? null,
@@ -300,16 +301,14 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     }
 
     const parts: number[] = [];
-    for (const part of raw.parts) {
-      const cached = this.getPartByNameFromCache(part);
-      if (cached) {
-        parts.push(cached);
-        continue;
+    for (const scoreType of raw.parts) {
+      let part = this.getPartByScoreType(scoreType, raw.type);
+      if (part === undefined) {
+        part = await this.fetchPartByScoreType(scoreType, raw.type);
       }
 
-      const fetched = await this.fetchPartByName(part);
-      if (fetched) {
-        parts.push(fetched);
+      if (part !== null) {
+        parts.push(part.defindex);
       }
     }
 
@@ -396,22 +395,35 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     return parsed;
   }
 
-  private getPartByNameFromCache(name: string) {
-    const any = this.schema.getDefindexByName('Strange Part: ' + name);
-    if (any) {
-      return any;
+  private getPartByScoreType(scoreType: string, itemType: string | null) {
+    const part = this.schema.getStrangePartByScoreType(scoreType);
+    if (!part) {
+      return part;
+    } else if (
+      part.name.startsWith('Strange Cosmetic Part: ') &&
+      itemType !== 'Cosmetic'
+    ) {
+      return null;
     }
 
-    return this.schema.getDefindexByName('Strange Cosmetic Part: ' + name);
+    return part;
   }
 
-  private async fetchPartByName(name: string) {
-    const any = await this.schema.fetchDefindexByName('Strange Part: ' + name);
-    if (any) {
-      return any;
+  private async fetchPartByScoreType(
+    scoreType: string,
+    itemType: string | null,
+  ) {
+    const part = await this.schema.fetchStrangePartByScoreType(scoreType);
+    if (!part) {
+      return part;
+    } else if (
+      part.name.startsWith('Strange Cosmetic Part: ') &&
+      itemType !== 'Cosmetic'
+    ) {
+      return null;
     }
 
-    return this.schema.fetchDefindexByName('Strange Cosmetic Part: ' + name);
+    return part;
   }
 
   private getInputByName(name: string) {

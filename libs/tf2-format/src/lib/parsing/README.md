@@ -21,6 +21,8 @@ const schema: Schema = {
   fetchDefindexByName: (name) => Promise.resolve(0),
   getSpellByName: (name) => 0,
   fetchSpellByName: (name) => Promise.resolve(0),
+  getStrangePartByScoreType: (name) => { defindex: 0, name: '' },
+  fetchStrangePartByScoreType: (name) => Promise.resolve({ defindex: 0, name: '' }),
 };
 
 const parser = new EconParser(schema);
@@ -54,7 +56,7 @@ const cache = new Map<string, number>();
 const schema: Schema = {
   getQualityByName: (name) => cache.get('quality:' + name),
   fetchQualityByName: (name) => {
-    return axios.get('http://localhost:3000/schema/qualities/name/' + name).then((response) => {
+    return axios.get('http://localhost:3000/schema/qualities/' + name).then((response) => {
       const result = response.data.id;
 
       // Save the value in the cache
@@ -71,6 +73,8 @@ const schema: Schema = {
   fetchDefindexByName: (name) => Promise.resolve(0),
   getSpellByName: (name) => 0,
   fetchSpellByName: (name) => Promise.resolve(0),
+  getStrangePartByScoreType: (name) => { defindex: 0, name: '' },
+  fetchStrangePartByScoreType: (name) => Promise.resolve({ defindex: 0, name: '' }),
 };
 ```
 
