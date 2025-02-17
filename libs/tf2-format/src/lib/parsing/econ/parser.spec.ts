@@ -557,12 +557,67 @@ describe('EconParser', () => {
       const extracted = parser.extract(item);
       const parsed = await parser.parse(extracted);
 
-      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(1);
+      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(7);
       expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
         1,
         'Professor Speks',
       );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        2,
+        'Righteous Bison',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(3, 'Winger');
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        4,
+        'Backburner',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(5, 'Gunboats');
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        6,
+        'Half-Zatoichi',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(7, 'Mad Milk');
+
+      expect(schema.fetchQualityByName).toHaveBeenCalledTimes(7);
+      for (let i = 1; i <= 6; i++) {
+        expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(i, 'Unique');
+      }
+      expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(7, 'Strange');
+
       expect(parsed.output).toEqual(6522);
+
+      expect(parsed.inputs).toEqual([
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 5,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 1,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 1,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 1,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 1,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 1,
+        },
+      ]);
     });
 
     it("will parse Collector's Chemistry Sets", async () => {
@@ -573,20 +628,34 @@ describe('EconParser', () => {
       const extracted = parser.extract(item);
       const parsed = await parser.parse(extracted);
 
-      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(1);
+      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(2);
       expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
         1,
         'Sharpened Volcano Fragment',
       );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        2,
+        'Sharpened Volcano Fragment',
+      );
 
-      expect(schema.fetchQualityByName).toHaveBeenCalledTimes(2);
+      expect(schema.fetchQualityByName).toHaveBeenCalledTimes(3);
       expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(1, 'Unique');
       expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(
         2,
         "Collector's",
       );
+      expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(3, 'Unique');
 
       expect(parsed.defindex).toEqual(20006);
+      expect(parsed.inputs).not.toBeNull();
+      expect(parsed.inputs!.length).toEqual(1);
+      expect(parsed.inputs).toEqual([
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 1,
+        },
+      ]);
     });
   });
 });

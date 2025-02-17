@@ -1,9 +1,10 @@
 import { Parser } from '../parser';
-import { InventoryItem } from '../../types';
+import { InventoryItem, RecipeInput } from '../../types';
 import {
   DescriptionAttributes,
   EconItem,
   ExtractedEconItem,
+  RecipeInput as ExtractedRecipeInput,
   TagAttributes,
 } from './types';
 
@@ -332,6 +333,35 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       paint = await this.schema.fetchDefindexByName(raw.paint!);
     }
 
+    let inputs: RecipeInput[] | null = null;
+    if (raw.inputs !== null) {
+      inputs = [];
+
+      for (const input of raw.inputs) {
+        let name = input.name;
+        let rawQuality = 'Unique';
+        // Handle strange items for strangifier chemistry sets
+        if (name.startsWith('Strange ') && raw.output === 'Strangifier') {
+          name = name.slice(8);
+          rawQuality = 'Strange';
+        }
+
+        // Get the quality
+        let quality = this.schema.getQualityByName(rawQuality);
+        if (quality === undefined) {
+          quality = await this.schema.fetchQualityByName(rawQuality);
+        }
+
+        // Get the defindex of the input item
+        let defindex = this.getInputByName(name);
+        if (defindex === undefined) {
+          defindex = await this.fetchInputByName(name);
+        }
+
+        inputs.push({ defindex, quality, amount: input.amount });
+      }
+    }
+
     const parsed: InventoryItem = {
       assetid: raw.assetid,
       defindex: raw.defindex,
@@ -354,6 +384,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       spells,
       sheen: raw.sheen,
       killstreaker: raw.killstreaker,
+      inputs,
     };
 
     return parsed;
@@ -375,6 +406,27 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     }
 
     return this.schema.fetchDefindexByName('Strange Cosmetic Part: ' + name);
+  }
+
+  private getInputByName(name: string) {
+    const any = this.schema.getDefindexByName(name);
+    if (any) {
+      return any;
+    }
+
+    if (name.startsWith('The ')) {
+      return this.schema.getDefindexByName(name.slice(4));
+    }
+
+    return undefined;
+  }
+
+  private async fetchInputByName(name: string) {
+    if (name.startsWith('The ')) {
+      return this.schema.fetchDefindexByName(name.slice(4));
+    }
+
+    return this.schema.fetchDefindexByName(name);
   }
 
   static getDefindex(item: EconItem): number | null {
@@ -683,7 +735,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
           ) {
             i++;
 
-            const inputs: { name: string; amount: number }[] = [];
+            const inputs: ExtractedRecipeInput[] = [];
             attributes.inputs = inputs;
 
             while (descriptions[i].value !== ' ') {

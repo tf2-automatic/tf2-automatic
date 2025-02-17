@@ -31,6 +31,12 @@ export interface PrimaryItemAttributes {
   crateSeries: number | null;
 }
 
+export interface RecipeInput {
+  defindex: number;
+  quality: number;
+  amount: number;
+}
+
 /**
  * Extra attributes of a TF2 item.
  */
@@ -40,6 +46,7 @@ export interface ExtraItemAttributes {
   parts: number[];
   sheen: string | null;
   killstreaker: string | null;
+  inputs: RecipeInput[] | null;
 }
 
 type RequiredKeys<T extends keyof U, U> = {
