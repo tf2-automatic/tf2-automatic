@@ -564,5 +564,29 @@ describe('EconParser', () => {
       );
       expect(parsed.output).toEqual(6522);
     });
+
+    it("will parse Collector's Chemistry Sets", async () => {
+      const item = TestData.getCollectorsChemistrySet();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(1);
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        1,
+        'Sharpened Volcano Fragment',
+      );
+
+      expect(schema.fetchQualityByName).toHaveBeenCalledTimes(2);
+      expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(1, 'Unique');
+      expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(
+        2,
+        "Collector's",
+      );
+
+      expect(parsed.defindex).toEqual(20006);
+    });
   });
 });

@@ -293,6 +293,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
         output = KILLSTREAK_FABRICATORS[raw.killstreak];
       } else if (raw.output === 'Strangifier') {
         output = 6522;
+      } else if (raw.defindex === 20006) {
+        output = await this.schema.fetchDefindexByName(raw.output);
       }
     }
 
