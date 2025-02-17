@@ -263,6 +263,32 @@ describe('EconParser', () => {
       expect(extracted.killstreaker).toEqual('Tornado');
       expect(extracted.sheen).toEqual('Hot Rod');
       expect(extracted.killstreak).toEqual(3);
+      expect(extracted.inputs).toEqual([
+        {
+          name: 'Unique Specialized Killstreak Item',
+          amount: 2,
+        },
+        {
+          name: 'Battle-Worn Robot KB-808',
+          amount: 13,
+        },
+        {
+          name: 'Battle-Worn Robot Money Furnace',
+          amount: 3,
+        },
+        {
+          name: 'Reinforced Robot Emotion Detector',
+          amount: 4,
+        },
+        {
+          name: 'Reinforced Robot Bomb Stabilizer',
+          amount: 2,
+        },
+        {
+          name: 'Pristine Robot Brainstorm Bulb',
+          amount: 3,
+        },
+      ]);
     });
 
     it('will parse Professional Kilstreak Kits', () => {
@@ -618,6 +644,74 @@ describe('EconParser', () => {
       expect(parsed.parts).toEqual([-1, -1, -1]);
     });
 
+    it('will parse Killstreak Kit Fabricators', async () => {
+      const item = TestData.getKillstreakKitFabricator();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(6);
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        1,
+        'Splendid Screen',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        2,
+        'Battle-Worn Robot KB-808',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        3,
+        'Battle-Worn Robot Money Furnace',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        4,
+        'Reinforced Robot Emotion Detector',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        5,
+        'Reinforced Robot Bomb Stabilizer',
+      );
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        6,
+        'Pristine Robot Brainstorm Bulb',
+      );
+
+      expect(parsed.inputs).toEqual([
+        {
+          killstreak: 2,
+          quality: -1,
+          amount: 2,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 13,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 3,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 4,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 2,
+        },
+        {
+          defindex: -1,
+          quality: -1,
+          amount: 3,
+        },
+      ]);
+    });
+
     it('will parse Strangifier Chemistry Sets', async () => {
       const item = TestData.getStrangifierChemistrySet();
 
@@ -716,8 +810,6 @@ describe('EconParser', () => {
       expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(3, 'Unique');
 
       expect(parsed.defindex).toEqual(20006);
-      expect(parsed.inputs).not.toBeNull();
-      expect(parsed.inputs!.length).toEqual(1);
       expect(parsed.inputs).toEqual([
         {
           defindex: -1,

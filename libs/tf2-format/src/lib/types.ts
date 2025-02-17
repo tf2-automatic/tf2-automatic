@@ -32,7 +32,8 @@ export interface PrimaryItemAttributes {
 }
 
 export interface RecipeInput {
-  defindex: number;
+  defindex?: number;
+  killstreak?: number;
   quality: number;
   amount: number;
 }

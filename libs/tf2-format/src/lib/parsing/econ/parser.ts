@@ -35,6 +35,12 @@ const KILLSTREAK_FABRICATORS = {
   3: 6526,
 };
 
+const KILLSTREAK_TIERS = {
+  Killstreak: 1,
+  'Specialized Killstreak': 2,
+  'Professional Killstreak': 3,
+};
+
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 enum IdentifiableDescription {
   Skip = 0,
@@ -223,6 +229,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
           raw.output.lastIndexOf(' Kit'),
         );
         raw.output = 'Kit';
+        // This is a little dumb but it is for consistency with the TF2 API
         raw.outputQuality = 'Unique';
       } else if (raw.output.endsWith('Strangifier')) {
         // Handle Strangifier Chemistry Sets
@@ -336,8 +343,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     if (raw.inputs !== null) {
       inputs = [];
 
-      for (const input of raw.inputs) {
-        let name = input.name;
+      for (const rawInput of raw.inputs) {
+        let name: string | null = rawInput.name;
         let rawQuality = 'Unique';
         // Handle strange items for strangifier chemistry sets
         if (name.startsWith('Strange ') && raw.output === 'Strangifier') {
@@ -351,19 +358,35 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
           quality = await this.schema.fetchQualityByName(rawQuality);
         }
 
-        // Get the defindex of the input item
-        let defindex = this.getInputByName(name);
-        if (defindex === undefined) {
-          defindex = await this.fetchInputByName(name);
+        const input: RecipeInput = {
+          quality,
+          amount: rawInput.amount,
+        };
+
+        // Handle killstreak items for killstreak kit fabricators
+        if (name.startsWith('Unique') && name.endsWith(' Killstreak Item')) {
+          const killstreak = name.slice(7, name.length - 5);
+          name = null;
+          input.killstreak = KILLSTREAK_TIERS[killstreak];
         }
 
-        if (!defindex) {
-          throw new Error(
-            `Could not find the defindex of the input item "${name}"`,
-          );
+        if (name !== null) {
+          // Get the defindex of the input item
+          let defindex = this.getInputByName(name);
+          if (defindex === undefined) {
+            defindex = await this.fetchInputByName(name);
+          }
+
+          if (!defindex) {
+            throw new Error(
+              `Could not find the defindex of the input item "${name}"`,
+            );
+          }
+
+          input.defindex = defindex;
         }
 
-        inputs.push({ defindex, quality, amount: input.amount });
+        inputs.push(input);
       }
     }
 
@@ -427,23 +450,21 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
   }
 
   private getInputByName(name: string) {
-    const any = this.schema.getDefindexByName(name);
-    if (any) {
-      return any;
-    }
-
     if (name.startsWith('The ')) {
-      return this.schema.getDefindexByName(name.slice(4));
+      const input = this.schema.getDefindexByName(name.slice(4));
+      if (input) {
+        return input;
+      }
     }
 
-    return undefined;
+    return this.schema.getDefindexByName(name);
   }
 
   private async fetchInputByName(name: string) {
     if (name.startsWith('The ')) {
-      const result = await this.schema.fetchDefindexByName(name.slice(4));
-      if (result) {
-        return result;
+      const input = await this.schema.fetchDefindexByName(name.slice(4));
+      if (input) {
+        return input;
       }
     }
 
