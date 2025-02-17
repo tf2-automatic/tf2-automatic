@@ -771,6 +771,7 @@ export class SchemaService implements OnApplicationBootstrap {
         if (scoreType) {
           strangePartByScoreType[scoreType.value.toString()] = pack({
             id: scoreType.value,
+            name,
             defindex,
           } satisfies StrangePart);
         }
