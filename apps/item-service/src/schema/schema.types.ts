@@ -51,6 +51,12 @@ interface Attribute {
   stored_as_integer: boolean;
 }
 
+export interface KillEaterTypeScore {
+  type: number;
+  type_name: string;
+  level_data: string;
+}
+
 export interface SchemaOverviewResponse {
   status: number;
   items_game_url: string;
@@ -61,7 +67,7 @@ export interface SchemaOverviewResponse {
   item_sets: unknown;
   attribute_controlled_attached_particles: AttachedParticle[];
   item_levels: unknown;
-  kill_eater_score_types: unknown;
+  kill_eater_score_types: KillEaterTypeScore[];
   string_lookups: unknown;
 }
 

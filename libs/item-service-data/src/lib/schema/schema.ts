@@ -18,6 +18,7 @@ export const SCHEMA_QUALITY_PATH = '/qualities/:idOrName';
 export const SCHEMA_EFFECT_PATH = '/effects/:idOrName';
 export const SCHEMA_PAINTKIT_PATH = '/paintkits/:idOrName';
 export const SCHEMA_SPELL_PATH = '/spells/:idOrName';
+export const SCHEMA_STRANGE_PART_PATH = '/parts/:idOrName';
 
 export const SCHEMA_FULL_PATH = SCHEMA_BASE_PATH + SCHEMA_PATH;
 export const SCHEMA_REFRESH_FULL_PATH = SCHEMA_BASE_PATH + SCHEMA_REFRESH_PATH;
@@ -40,6 +41,11 @@ export const SCHEMA_EFFECT_FULL_PATH = SCHEMA_BASE_PATH + SCHEMA_EFFECT_PATH;
 
 export const SCHEMA_PAINTKIT_FULL_PATH =
   SCHEMA_BASE_PATH + SCHEMA_PAINTKIT_PATH;
+
+export const SCHEMA_SPELL_FULL_PATH = SCHEMA_BASE_PATH + SCHEMA_SPELL_PATH;
+
+export const SCHEMA_STRANGE_PART_FULL_PATH =
+  SCHEMA_BASE_PATH + SCHEMA_STRANGE_PART_PATH;
 
 export enum SchemaRefreshAction {
   // Only check for new schema version if not recently checked

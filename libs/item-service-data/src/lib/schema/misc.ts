@@ -24,6 +24,11 @@ export interface Spell {
   name: string;
 }
 
+export interface StrangePart {
+  id: number;
+  defindex: number;
+}
+
 export class QualityModel implements Quality {
   @ApiProperty({
     example: 6,
@@ -85,6 +90,18 @@ export class SpellModel implements Spell {
     example: 'Exorcism',
   })
   name!: string;
+}
+
+export class StrangePartModel implements StrangePart {
+  @ApiProperty({
+    example: 27,
+  })
+  id!: number;
+
+  @ApiProperty({
+    example: 6015,
+  })
+  defindex!: number;
 }
 
 export class SchemaQueryDto {
