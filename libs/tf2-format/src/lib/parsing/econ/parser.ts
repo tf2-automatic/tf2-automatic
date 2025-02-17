@@ -145,7 +145,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       parts: descriptions.parts,
       paintkit: descriptions.paintkit,
       uses: descriptions.uses,
-      input: descriptions.input,
+      inputs: descriptions.inputs,
       output: descriptions.output,
       outputQuality: null,
       target: descriptions.target,
@@ -501,7 +501,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       festivized: false,
       paintkit: null,
       uses: null,
-      input: null,
+      inputs: null,
       output: null,
       target: null,
       grade: null,
@@ -682,7 +682,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
             i++;
 
             const inputs: { name: string; amount: number }[] = [];
-            attributes.input = inputs;
+            attributes.inputs = inputs;
 
             while (descriptions[i].value !== ' ') {
               const split = descriptions[i].value.lastIndexOf(' x ');

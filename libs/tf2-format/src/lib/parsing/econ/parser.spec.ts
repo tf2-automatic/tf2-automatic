@@ -181,7 +181,7 @@ describe('EconParser', () => {
       const item = TestData.getStrangifierChemistrySet();
       const extracted = parser.extract(item);
 
-      expect(extracted.input).toEqual([
+      expect(extracted.inputs).toEqual([
         {
           name: 'The Righteous Bison',
           amount: 5,
@@ -233,7 +233,7 @@ describe('EconParser', () => {
       expect(extracted.output).toEqual('Sharpened Volcano Fragment');
       expect(extracted.outputQuality).toEqual("Collector's");
       expect(extracted.target).toEqual(null);
-      expect(extracted.input).toEqual([
+      expect(extracted.inputs).toEqual([
         {
           name: 'Sharpened Volcano Fragment',
           amount: 1,

@@ -77,7 +77,7 @@ export interface DescriptionAttributes {
   festivized: boolean;
   paintkit: string | null;
   uses: number | null;
-  input: RecipeInput[] | null;
+  inputs: RecipeInput[] | null;
   output: string | null;
   target: string | null;
   grade: string | null;
@@ -106,7 +106,7 @@ export interface ExtractedEconItem {
   parts: string[];
   paintkit: string | null;
   uses: number | null;
-  input: RecipeInput[] | null;
+  inputs: RecipeInput[] | null;
   output: string | null;
   outputQuality: string | null;
   target: string | null;
