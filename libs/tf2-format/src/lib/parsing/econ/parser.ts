@@ -4,7 +4,7 @@ import {
   DescriptionAttributes,
   EconItem,
   ExtractedEconItem,
-  RecipeInput as ExtractedRecipeInput,
+  ExtractedRecipeInput,
   TagAttributes,
 } from './types';
 

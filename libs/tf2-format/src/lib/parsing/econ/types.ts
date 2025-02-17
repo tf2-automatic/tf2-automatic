@@ -53,7 +53,7 @@ export interface MarketAction {
   name: string;
 }
 
-export interface RecipeInput {
+export interface ExtractedRecipeInput {
   name: string;
   amount: number;
 }
@@ -77,7 +77,7 @@ export interface DescriptionAttributes {
   festivized: boolean;
   paintkit: string | null;
   uses: number | null;
-  inputs: RecipeInput[] | null;
+  inputs: ExtractedRecipeInput[] | null;
   output: string | null;
   target: string | null;
   grade: string | null;
@@ -106,7 +106,7 @@ export interface ExtractedEconItem {
   parts: string[];
   paintkit: string | null;
   uses: number | null;
-  inputs: RecipeInput[] | null;
+  inputs: ExtractedRecipeInput[] | null;
   output: string | null;
   outputQuality: string | null;
   target: string | null;
