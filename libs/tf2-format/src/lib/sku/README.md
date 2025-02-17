@@ -8,7 +8,7 @@ See the example below:
 
 ```ts
 import { SKU, PrimaryItemAttributes } from '@tf2-automatic/tf2-format';
-import assert from 'assert'
+import assert from 'assert';
 
 // A Mann Co. Supply Crate Key represented as a string
 const sku = '5021;6';
