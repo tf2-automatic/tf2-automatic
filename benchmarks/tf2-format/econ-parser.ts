@@ -17,7 +17,7 @@ const cache = new Map();
 const qualityLoader = new DataLoader<string, number | null>(
   ([quality]) => {
     return axios
-      .get(itemServiceUrl + '/schema/qualities/name/' + quality)
+      .get(itemServiceUrl + '/schema/qualities/' + quality)
       .then((res) => {
         const result = res.data.id;
         cache.set('quality:' + quality, result);
@@ -32,7 +32,7 @@ const qualityLoader = new DataLoader<string, number | null>(
 const effectLoader = new DataLoader<string, number | null>(
   ([effect]) => {
     return axios
-      .get(itemServiceUrl + '/schema/effects/name/' + effect)
+      .get(itemServiceUrl + '/schema/effects/' + effect)
       .then((res) => {
         const result = res.data.id;
         cache.set('effect:' + effect, result);
@@ -47,7 +47,7 @@ const effectLoader = new DataLoader<string, number | null>(
 const textureLoader = new DataLoader<string, number | null>(
   ([texture]) => {
     return axios
-      .get(itemServiceUrl + '/schema/paintkits/name/' + texture)
+      .get(itemServiceUrl + '/schema/paintkits/' + texture)
       .then((res) => {
         const result = res.data.id;
         cache.set('texture:' + texture, result);
@@ -62,7 +62,11 @@ const textureLoader = new DataLoader<string, number | null>(
 const itemLoader = new DataLoader<string, number | null>(
   ([item]) => {
     return axios
-      .get(itemServiceUrl + '/schema/items/name/' + item)
+      .get(itemServiceUrl + '/schema/items/search', {
+        params: {
+          name: item,
+        },
+      })
       .then((res) => {
         const result = res.data[0].defindex;
         cache.set('item:' + item, result);
@@ -85,7 +89,7 @@ const itemLoader = new DataLoader<string, number | null>(
 const spellLoader = new DataLoader<string, number | null>(
   ([spell]) => {
     return axios
-      .get('http://localhost:3003/schema/spells/name/' + spell)
+      .get('http://localhost:3003/schema/spells/' + spell)
       .then((res) => {
         const result = res.data.id;
         cache.set('spell:' + spell, result);
