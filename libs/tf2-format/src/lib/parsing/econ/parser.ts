@@ -358,6 +358,12 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
           defindex = await this.fetchInputByName(name);
         }
 
+        if (!defindex) {
+          throw new Error(
+            `Could not find the defindex of the input item "${name}"`,
+          );
+        }
+
         inputs.push({ defindex, quality, amount: input.amount });
       }
     }
@@ -423,7 +429,10 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
 
   private async fetchInputByName(name: string) {
     if (name.startsWith('The ')) {
-      return this.schema.fetchDefindexByName(name.slice(4));
+      const result = await this.schema.fetchDefindexByName(name.slice(4));
+      if (result) {
+        return result;
+      }
     }
 
     return this.schema.fetchDefindexByName(name);

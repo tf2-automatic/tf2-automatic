@@ -71,8 +71,18 @@ export interface Schema {
   fetchEffectByName(name: string): Promise<number>;
   getTextureByName(name: string): number | undefined;
   fetchTextureByName(name: string): Promise<number>;
-  getDefindexByName(name: string): number | undefined;
-  fetchDefindexByName(name: string): Promise<number>;
+  /**
+   * Gets the defindex of an item by its name.
+   * @param name The name of the item
+   * @returns Returns null if an item with the given name does not exist.
+   */
+  getDefindexByName(name: string): number | null | undefined;
+  /**
+   * Gets the defindex of an item by its name.
+   * @param name The name of the item.
+   * @returns Returns null if an item with the given name does not exist.
+   */
+  fetchDefindexByName(name: string): Promise<number | null>;
   getSpellByName(name: string): number | undefined;
   fetchSpellByName(name: string): Promise<number>;
 }
