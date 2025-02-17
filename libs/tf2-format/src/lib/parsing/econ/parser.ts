@@ -224,8 +224,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
         raw.outputQuality = 'Unique';
       } else if (raw.output.endsWith('Strangifier')) {
         // Handle Strangifier Chemistry Sets
-        raw.output = raw.output.slice(0, raw.output.length - 12);
-        raw.outputQuality = 'Strange';
+        raw.target = raw.output.slice(0, raw.output.length - 12);
+        raw.output = 'Strangifier';
       } else if (raw.output.startsWith("Collector's ")) {
         // Handle Collector's Chemistry Sets
         raw.output = raw.output.slice(12);
@@ -291,7 +291,7 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     if (raw.output !== null) {
       if (raw.output === 'Kit') {
         output = KILLSTREAK_FABRICATORS[raw.killstreak];
-      } else if (output === 'Strangifier') {
+      } else if (raw.output === 'Strangifier') {
         output = 6522;
       }
     }

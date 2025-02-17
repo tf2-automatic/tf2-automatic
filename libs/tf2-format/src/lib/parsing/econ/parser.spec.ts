@@ -208,10 +208,10 @@ describe('EconParser', () => {
         },
       ]);
 
+      expect(extracted.defindex).toEqual(20005);
       expect(extracted.quality).toEqual('Unique');
-      expect(extracted.output).toEqual('Professor Speks');
-      expect(extracted.outputQuality).toEqual('Strange');
-      expect(extracted.target).toEqual(null);
+      expect(extracted.output).toEqual('Strangifier');
+      expect(extracted.target).toEqual('Professor Speks');
       expect(extracted.uses).toEqual(1);
     });
 
@@ -476,6 +476,19 @@ describe('EconParser', () => {
     let parser: EconParser;
     let schema: Record<keyof Schema, jest.Mock>;
 
+    function mockSchema() {
+      schema.getDefindexByName.mockReturnValue(undefined);
+      schema.fetchDefindexByName.mockResolvedValue(-1);
+      schema.getQualityByName.mockReturnValue(undefined);
+      schema.fetchQualityByName.mockResolvedValue(-1);
+      schema.getEffectByName.mockReturnValue(undefined);
+      schema.fetchEffectByName.mockResolvedValue(-1);
+      schema.getSpellByName.mockReturnValue(undefined);
+      schema.fetchSpellByName.mockResolvedValue(-1);
+      schema.getTextureByName.mockReturnValue(undefined);
+      schema.fetchTextureByName.mockResolvedValue(-1);
+    }
+
     beforeEach(() => {
       schema = {
         getDefindexByName: jest.fn(),
@@ -534,6 +547,22 @@ describe('EconParser', () => {
       const parse = parser.parse(extracted);
 
       await expect(parse).rejects.toThrow('Failed to fetch quality');
+    });
+
+    it('will parse Strangifier Chemistry Sets', async () => {
+      const item = TestData.getStrangifierChemistrySet();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(1);
+      expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(
+        1,
+        'Professor Speks',
+      );
+      expect(parsed.output).toEqual(6522);
     });
   });
 });
