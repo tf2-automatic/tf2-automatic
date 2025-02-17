@@ -21,6 +21,7 @@ import {
   GetSchemaItemsResponse,
   JobWithTypes as Job,
   SchemaOverviewResponse,
+  KillEaterTypeScore,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -35,6 +36,7 @@ import {
   SchemaRefreshAction,
   ItemsGameItem,
   SchemaPaginatedResponse,
+  StrangePart,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
@@ -53,6 +55,10 @@ enum SchemaKeys {
   PAINTKIT_NAME = 'schema:paintkit:name',
   SPELLS_ID = 'schema:spells:id',
   SPELLS_NAME = 'schema:spells:name',
+  // Strange part defindex by kill eater score type
+  STRANGE_PART_ID = 'schema:part:id',
+  // Kill eater score type by name
+  KILL_EATER_SCORE_TYPE_NAME = 'schema:kill-eater-score-type:name',
 }
 
 // A key that stores the current schema id
@@ -454,11 +460,28 @@ export class SchemaService implements OnApplicationBootstrap {
     return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
   }
 
-  async getItemFromItemsGameByDefindex(
-    defindex: string,
+  async getStrangePartByScoreType(
+    id: string,
     time?: number,
-  ): Promise<ItemsGameItem> {
-    return this.getValueByField(SchemaKeys.ITEMS_GAME, defindex, time);
+  ): Promise<StrangePart> {
+    return this.getValueByField(SchemaKeys.STRANGE_PART_ID, id, time);
+  }
+
+  async getStrangePartByScoreTypeName(
+    name: string,
+    time?: number,
+  ): Promise<StrangePart> {
+    const killEater: KillEaterTypeScore = await this.getValueByField(
+      SchemaKeys.KILL_EATER_SCORE_TYPE_NAME,
+      name,
+      time,
+    );
+
+    return this.getValueByField(
+      SchemaKeys.STRANGE_PART_ID,
+      killEater.type.toString(),
+      time,
+    );
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
@@ -685,6 +708,13 @@ export class SchemaService implements OnApplicationBootstrap {
       }
     }
 
+    const scoreTypesByName: Record<string, Buffer> = {};
+
+    for (const attribute of result.kill_eater_score_types) {
+      const packed = pack(attribute);
+      scoreTypesByName[attribute.type_name] = packed;
+    }
+
     // Wait for the overview to be saved
     await savingOverview;
 
@@ -698,6 +728,10 @@ export class SchemaService implements OnApplicationBootstrap {
       .hmset(this.getKey(SchemaKeys.EFFECTS_ID, time), effectsById)
       .hmset(this.getKey(SchemaKeys.SPELLS_NAME, time), spellsByName)
       .hmset(this.getKey(SchemaKeys.SPELLS_ID, time), spellsById)
+      .hmset(
+        this.getKey(SchemaKeys.KILL_EATER_SCORE_TYPE_NAME, time),
+        scoreTypesByName,
+      )
       .exec();
   }
 
@@ -709,6 +743,8 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const defindexToItem: Record<string, Buffer> = {};
     const nameToDefindex: Record<string, Set<number>> = {};
+
+    const strangePartByScoreType: Record<string, Buffer> = {};
 
     for (const item of result.items) {
       const defindex = item.defindex;
@@ -723,12 +759,35 @@ export class SchemaService implements OnApplicationBootstrap {
         nameToDefindex[name] = new Set<number>();
       }
       nameToDefindex[name].add(defindex);
+
+      if (
+        item.item_type_name === 'Strange Part' &&
+        item.attributes !== undefined
+      ) {
+        const scoreType = item.attributes.find(
+          (attribute) => attribute.name === 'strange part new counter ID',
+        );
+
+        if (scoreType) {
+          strangePartByScoreType[scoreType.value.toString()] = pack({
+            id: scoreType.value,
+            defindex,
+          } satisfies StrangePart);
+        }
+      }
     }
 
     // Save the schema items
     const multi = this.redis
       .multi()
       .hmset(this.getKey(SchemaKeys.ITEMS, job.data.time), defindexToItem);
+
+    if (Object.keys(strangePartByScoreType).length > 0) {
+      multi.hmset(
+        this.getKey(SchemaKeys.STRANGE_PART_ID, job.data.time),
+        strangePartByScoreType,
+      );
+    }
 
     const keys = Object.keys(nameToDefindex);
 

@@ -39,6 +39,9 @@ import {
   SCHEMA_PAINTKIT_PATH,
   SCHEMA_SPELL_PATH,
   ItemsGameItem,
+  SCHEMA_STRANGE_PART_PATH,
+  StrangePart,
+  StrangePartModel,
 } from '@tf2-automatic/item-service-data';
 import {
   ApiOperation,
@@ -249,7 +252,7 @@ export class SchemaController {
   @ApiResponse({
     type: QualityModel,
   })
-  async getSchemaQuality(
+  async getQuality(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<Quality> {
@@ -274,7 +277,7 @@ export class SchemaController {
   @ApiResponse({
     type: AttachedParticleModel,
   })
-  async getSchemaEffectsByName(
+  async getEffect(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<AttachedParticle> {
@@ -299,7 +302,7 @@ export class SchemaController {
   @ApiResponse({
     type: PaintKitModel,
   })
-  async getSchemaPaintkitsByName(
+  async getPaintkit(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<PaintKit> {
@@ -324,7 +327,7 @@ export class SchemaController {
   @ApiResponse({
     type: SpellModel,
   })
-  getSpellByName(
+  getSpell(
     @Param('idOrName') idOrName: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<Spell> {
@@ -332,6 +335,37 @@ export class SchemaController {
       return this.schemaService.getSpellById(idOrName, options.time);
     } else {
       return this.schemaService.getSpellByName(idOrName, options.time);
+    }
+  }
+
+  @Get(SCHEMA_STRANGE_PART_PATH)
+  @ApiOperation({
+    summary: 'Get strange part by id or name',
+    description: 'Returns a strange part',
+  })
+  @ApiParam({
+    name: 'idOrName',
+    description: 'The id or name of the strange part',
+    example: 'Kills Under A Full Moon',
+  })
+  @ApiQuerySchemaTime()
+  @ApiResponse({
+    type: StrangePartModel,
+  })
+  getStrangePart(
+    @Param('idOrName') idOrName: string,
+    @Query() options: SchemaOptionsDto,
+  ): Promise<StrangePart> {
+    if (Number.isInteger(Number(idOrName))) {
+      return this.schemaService.getStrangePartByScoreType(
+        idOrName,
+        options.time,
+      );
+    } else {
+      return this.schemaService.getStrangePartByScoreTypeName(
+        idOrName,
+        options.time,
+      );
     }
   }
 }
