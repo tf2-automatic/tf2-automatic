@@ -516,24 +516,22 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       return null;
     }
 
-    // TODO: Can probably speed this up by hardcoding checks for the last few characters
-    // There is no real reason to check for n numbers when we know there are at
-    // max 3. We can save time by not having the overhead of a loop.
-
     // We know there is atleast one number in the name
-    let numbers = 1;
+    let series = lastChar - 48;
 
-    // We start from the end of the string and go backwards (skipping one char)
-    for (let i = item.market_hash_name.length - 2; i >= 0; i--) {
+    const length = item.market_hash_name.length;
+
+    // We start from the end of the string and go backwards towards a number sign
+    for (let i = length - 2; i >= length - 4; i--) {
       // Get the char code of the current character
       const charCode = item.market_hash_name.charCodeAt(i);
 
       if (charCode >= 48 && charCode <= 57) {
         // The character is a number
-        numbers++;
+        series = series + (charCode - 48) * Math.pow(10, length - i - 1);
       } else if (charCode === 35) {
         // The character is a number sign
-        return parseInt(item.market_hash_name.slice(i + 1), 10);
+        return series;
       } else {
         // The character is not a number or a number sign
         break;
