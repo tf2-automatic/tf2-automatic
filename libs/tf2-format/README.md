@@ -12,7 +12,7 @@ This library is organized into different classes, each made for working with spe
 
 ### Item parsing
 
-For parsing items, e.g. econ items from inventories and trades, or TF2 items from the TF2 GC ([node-tf2](https://github.com/DoctorMckay/node-tf2)), use one of the implementations of the `Parser` class. For parsing econ items, use the [EconParser](./src/lib/parsing/econ) class. For parsing tf2 items, use the [TF2Parser](./src/lib/parsing/tf2) class.
+For parsing items, e.g. econ items from inventories and trades, or TF2 items from the TF2 GC ([node-tf2](https://github.com/DoctorMckay/node-tf2)), use one of the implementations of the `Parser` class. For parsing econ items, use the [EconParser](./src/lib/parsing/econ) class. For parsing tf2 items, use the [TF2Parser](./src/lib/parsing/tf2) class. See [here](./src/lib/parsing/) for the item parser documentation.
 
 ### SKU
 
