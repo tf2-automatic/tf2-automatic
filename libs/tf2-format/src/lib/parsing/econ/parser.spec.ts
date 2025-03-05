@@ -1,7 +1,7 @@
 import { EconParser } from './parser';
 import { EconItem, Tag } from './types';
 import * as TestData from './test-data';
-import { Schema } from '../../types';
+import { EconParserSchema } from '../../types';
 
 describe('EconParser', () => {
   describe('#getDefindex', () => {
@@ -149,7 +149,7 @@ describe('EconParser', () => {
     let parser: EconParser;
 
     beforeEach(() => {
-      const schema: Schema = {
+      const schema: EconParserSchema = {
         getDefindexByName: jest.fn(),
         fetchDefindexByName: jest.fn(),
         getQualityByName: jest.fn(),
@@ -162,6 +162,8 @@ describe('EconParser', () => {
         fetchTextureByName: jest.fn(),
         getStrangePartByScoreType: jest.fn(),
         fetchStrangePartByScoreType: jest.fn(),
+        getItemByDefindex: jest.fn(),
+        fetchItemByDefindex: jest.fn(),
       };
 
       parser = new EconParser(schema);
@@ -512,7 +514,7 @@ describe('EconParser', () => {
 
   describe('#parse', () => {
     let parser: EconParser;
-    let schema: Record<keyof Schema, jest.Mock>;
+    let schema: Record<keyof EconParserSchema, jest.Mock>;
 
     function mockSchema() {
       schema.getDefindexByName.mockReturnValue(undefined);
@@ -526,9 +528,10 @@ describe('EconParser', () => {
       schema.getTextureByName.mockReturnValue(undefined);
       schema.fetchTextureByName.mockResolvedValue(-1);
       schema.getStrangePartByScoreType.mockReturnValue(undefined);
-      schema.fetchStrangePartByScoreType.mockResolvedValue({
-        name: '',
-        defindex: -1,
+      schema.fetchStrangePartByScoreType.mockResolvedValue(-1);
+      schema.getItemByDefindex.mockReturnValue(undefined);
+      schema.fetchItemByDefindex.mockResolvedValue({
+        name: 'Decoder Ring',
       });
     }
 
@@ -546,6 +549,8 @@ describe('EconParser', () => {
         fetchTextureByName: jest.fn(),
         getStrangePartByScoreType: jest.fn(),
         fetchStrangePartByScoreType: jest.fn(),
+        getItemByDefindex: jest.fn(),
+        fetchItemByDefindex: jest.fn(),
       };
 
       parser = new EconParser(schema);
@@ -741,11 +746,11 @@ describe('EconParser', () => {
       );
       expect(schema.fetchDefindexByName).toHaveBeenNthCalledWith(7, 'Mad Milk');
 
-      expect(schema.fetchQualityByName).toHaveBeenCalledTimes(7);
+      expect(schema.fetchQualityByName).toHaveBeenCalledTimes(8);
       for (let i = 1; i <= 6; i++) {
         expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(i, 'Unique');
       }
-      expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(7, 'Strange');
+      expect(schema.fetchQualityByName).toHaveBeenNthCalledWith(8, 'Strange');
 
       expect(parsed.output).toEqual(6522);
 

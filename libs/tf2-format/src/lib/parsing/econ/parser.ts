@@ -1,5 +1,5 @@
 import { Parser } from '../parser';
-import { InventoryItem, RecipeInput } from '../../types';
+import { EconParserSchema, InventoryItem, RecipeInput } from '../../types';
 import {
   DescriptionAttributes,
   EconItem,
@@ -114,8 +114,12 @@ const WEAPON_TYPES = new Set([
   'Secondary PDA',
 ]);
 
-export class EconParser extends Parser<EconItem, ExtractedEconItem> {
-  extract(item: EconItem): ExtractedEconItem {
+export class EconParser extends Parser<
+  EconParserSchema,
+  EconItem,
+  ExtractedEconItem
+> {
+  extract(item: EconItem) {
     const tags = EconParser.getTagAttributes(item);
 
     let start: IdentifiableDescription | undefined;
@@ -222,6 +226,9 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     }
 
     if (raw.output !== null) {
+      // This is a little dumb but it is for consistency with the TF2 API
+      raw.outputQuality = 'Unique';
+
       if (raw.killstreak !== 0) {
         // Handle Killstreak Kit Fabricators
         raw.target = raw.output.slice(
@@ -229,8 +236,6 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
           raw.output.lastIndexOf(' Kit'),
         );
         raw.output = 'Kit';
-        // This is a little dumb but it is for consistency with the TF2 API
-        raw.outputQuality = 'Unique';
       } else if (raw.output.endsWith('Strangifier')) {
         // Handle Strangifier Chemistry Sets
         raw.target = raw.output.slice(0, raw.output.length - 12);
@@ -259,6 +264,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     if (quality === undefined) {
       // Quality is not in cache, fetch it from the schema
       quality = await this.schema.fetchQualityByName(raw.quality!);
+    } else if (quality instanceof Error) {
+      throw quality;
     }
 
     if (!quality) {
@@ -269,12 +276,16 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
       raw.effect !== null ? this.schema.getEffectByName(raw.effect) : null;
     if (effect === undefined) {
       effect = await this.schema.fetchEffectByName(raw.effect!);
+    } else if (effect instanceof Error) {
+      throw effect;
     }
 
     let paintkit =
       raw.paintkit !== null ? this.schema.getTextureByName(raw.paintkit) : null;
     if (paintkit === undefined) {
       paintkit = await this.schema.fetchTextureByName(raw.paintkit!);
+    } else if (paintkit instanceof Error) {
+      throw paintkit;
     }
 
     let wear = null;
@@ -294,6 +305,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
         : null;
     if (outputQuality === undefined) {
       outputQuality = await this.schema.fetchQualityByName(raw.outputQuality!);
+    } else if (outputQuality instanceof Error) {
+      throw outputQuality;
     }
 
     let output: number | null = null;
@@ -304,25 +317,30 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
         output = 6522;
       } else if (raw.defindex === 20006) {
         output = await this.schema.fetchDefindexByName(raw.output);
+      } else {
+        const intermediate = this.schema.getDefindexByName(raw.output);
+        if (intermediate === undefined) {
+          output = await this.schema.fetchDefindexByName(raw.output);
+        } else {
+          output = intermediate;
+        }
       }
     }
 
     const parts: number[] = [];
     for (const scoreType of raw.parts) {
-      let part = this.getPartByScoreType(scoreType, raw.type);
-      if (part === undefined) {
-        part = await this.fetchPartByScoreType(scoreType, raw.type);
-      }
-
+      const part = await this.getPartByScoreType(scoreType, raw.type);
       if (part !== null) {
-        parts.push(part.defindex);
+        parts.push(part);
       }
     }
 
     const spells: number[] = [];
     for (const spell of raw.spells) {
       const cached = this.schema.getSpellByName(spell);
-      if (cached) {
+      if (cached instanceof Error) {
+        throw cached;
+      } else if (cached !== undefined) {
         spells.push(cached);
         continue;
       }
@@ -356,6 +374,8 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
         let quality = this.schema.getQualityByName(rawQuality);
         if (quality === undefined) {
           quality = await this.schema.fetchQualityByName(rawQuality);
+        } else if (quality instanceof Error) {
+          throw quality;
         }
 
         const input: RecipeInput = {
@@ -418,29 +438,29 @@ export class EconParser extends Parser<EconItem, ExtractedEconItem> {
     return parsed;
   }
 
-  private getPartByScoreType(scoreType: string, itemType: string | null) {
-    const part = this.schema.getStrangePartByScoreType(scoreType);
+  private async getPartByScoreType(scoreType: string, itemType: string | null) {
+    let part = this.schema.getStrangePartByScoreType(scoreType);
+    if (part === undefined) {
+      part = await this.schema.fetchStrangePartByScoreType(scoreType);
+    }
+
     if (!part) {
       return part;
-    } else if (
-      part.name.startsWith('Strange Cosmetic Part: ') &&
-      itemType !== 'Cosmetic'
-    ) {
+    }
+
+    let item = this.schema.getItemByDefindex(part);
+    if (item === undefined) {
+      item = await this.schema.fetchItemByDefindex(part);
+    } else if (item instanceof Error) {
+      throw item;
+    }
+
+    if (!item) {
       return null;
     }
 
-    return part;
-  }
-
-  private async fetchPartByScoreType(
-    scoreType: string,
-    itemType: string | null,
-  ) {
-    const part = await this.schema.fetchStrangePartByScoreType(scoreType);
-    if (!part) {
-      return part;
-    } else if (
-      part.name.startsWith('Strange Cosmetic Part: ') &&
+    if (
+      item.name.startsWith('Strange Cosmetic Part: ') &&
       itemType !== 'Cosmetic'
     ) {
       return null;
