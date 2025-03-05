@@ -250,7 +250,7 @@ const schema: Schema = {
 const econParser = new EconParser(schema);
 const tf2Parser = new TF2Parser(tf2Schema);
 
-const econItems = JSON.parse(fs.readFileSync('./econ-xd-data.json', 'utf-8'));
+const econItems = JSON.parse(fs.readFileSync('./econ-data.json', 'utf-8'));
 const tf2Items = JSON.parse(fs.readFileSync('./tf2-data.json', 'utf-8'));
 
 // Create map of the items
