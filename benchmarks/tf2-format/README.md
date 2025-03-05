@@ -11,13 +11,11 @@ These are some common steps that you need to do to run any of the benchmarks:
 
 Individual benchmarks might have additional prerequisites.
 
-## Econ parser
+## Item parsers
 
-This benchmark compares different libraries to parse econ items to a common format. To better represent real-world performance it is made to parse an actual inventory.
+To run the Econ parser or TF2 parser benchmarks, use the following command `pnpm ts-node <econ/tf2>-parser.ts <item-service-url>` where you replace `<item-service-url>` with the base url to item-service (e.g `http://localhost:3000`).
 
-Before running the benchmark you need to set up [@tf2-automatic/item-service](../../apps/item-service/) and load the schema, and also obtain a list of econ items to parse and save it to a file called `items.json`.
-
-Run the benchmark using `pnpm ts-node econ-parser.ts <item-service-url>` where you replace `<item-service-url>` with the base url to item-service (e.g `http://localhost:3000`).
+You also need to create a file called `<econ/tf2>-items.json` with the econ or tf2 items for the benchmark.
 
 There are some things to consider with the benchmark:
 
