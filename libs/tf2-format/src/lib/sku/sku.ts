@@ -25,7 +25,7 @@ export class SKU {
     if (item.elevated === true) {
       sku += ';strange';
     }
-    if (typeof item.killstreak === 'number' && item.killstreak !== 0) {
+    if (item.killstreak !== undefined && item.killstreak !== 0) {
       sku += `;kt-${item.killstreak}`;
     }
     if (item.target) {
