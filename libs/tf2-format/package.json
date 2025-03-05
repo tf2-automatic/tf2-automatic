@@ -2,6 +2,7 @@
   "name": "@tf2-automatic/tf2-format",
   "version": "latest",
   "dependencies": {
-    "tslib": "^2.7.0"
+    "tslib": "^2.7.0",
+    "protobufjs": "^7.4.0"
   }
 }
