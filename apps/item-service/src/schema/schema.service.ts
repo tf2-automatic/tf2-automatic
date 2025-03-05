@@ -37,6 +37,7 @@ import {
   ItemsGameItem,
   SchemaPaginatedResponse,
   StrangePart,
+  Paint,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
@@ -59,6 +60,7 @@ enum SchemaKeys {
   STRANGE_PART_ID = 'schema:part:id',
   // Kill eater score type by name
   KILL_EATER_SCORE_TYPE_NAME = 'schema:kill-eater-score-type:name',
+  PAINT_COLOR = 'schema:paint:color',
 }
 
 // A key that stores the current schema id
@@ -292,9 +294,13 @@ export class SchemaService implements OnApplicationBootstrap {
       name,
       time,
     );
-    return Object.values(
+    const result: SchemaItem[] = Object.values(
       await this.getItemsByDefindexes(defindexes, useItemsGame, time),
     );
+
+    result.sort((a, b) => a.defindex - b.defindex);
+
+    return result;
   }
 
   private async getItemsByDefindexes(
@@ -384,10 +390,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const spellFromItems = await this.getItemByDefindex(id, false, time).catch(
       (err) => {
-        if (
-          err instanceof NotFoundException &&
-          err.message === 'Spell not found'
-        ) {
+        if (err instanceof NotFoundException) {
           return null;
         }
 
@@ -482,6 +485,10 @@ export class SchemaService implements OnApplicationBootstrap {
       killEater.type.toString(),
       time,
     );
+  }
+
+  async getPaintByColor(color: string, time?: number): Promise<Paint> {
+    return this.getValueByField(SchemaKeys.PAINT_COLOR, color, time);
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
@@ -695,7 +702,10 @@ export class SchemaService implements OnApplicationBootstrap {
     const spellsById: Record<string, Buffer> = {};
 
     for (const attribute of result.attributes) {
-      if (attribute.name.startsWith('SPELL: ')) {
+      if (
+        attribute.name.startsWith('SPELL: ') &&
+        attribute.description_format !== 'value_is_from_lookup_table'
+      ) {
         const spell = {
           id: attribute.defindex,
           name: attribute.description_string!,
@@ -746,6 +756,8 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const strangePartByScoreType: Record<string, Buffer> = {};
 
+    const paintByColor: Record<string, Buffer> = {};
+
     for (const item of result.items) {
       const defindex = item.defindex;
 
@@ -771,9 +783,37 @@ export class SchemaService implements OnApplicationBootstrap {
         if (scoreType) {
           strangePartByScoreType[scoreType.value.toString()] = pack({
             id: scoreType.value,
-            name,
             defindex,
           } satisfies StrangePart);
+        }
+      }
+
+      if (item.item_class === 'tool' && item.tool?.type === 'paint_can') {
+        const primaryColor = item.attributes?.find(
+          (attribute) => attribute.name === 'set item tint RGB',
+        );
+
+        if (primaryColor) {
+          const secondaryColor = item.attributes?.find(
+            (attribute) => attribute.name === 'set item tint RGB 2',
+          );
+
+          const paint: Paint = {
+            defindex: item.defindex,
+            primaryColor: primaryColor.value.toString(16),
+            secondaryColor: null,
+          };
+
+          if (secondaryColor) {
+            paint.secondaryColor = secondaryColor.value.toString(16);
+          }
+
+          const packed = pack(paint);
+
+          paintByColor[paint.primaryColor] = packed;
+          if (paint.secondaryColor) {
+            paintByColor[paint.secondaryColor] = packed;
+          }
         }
       }
     }
@@ -787,6 +827,13 @@ export class SchemaService implements OnApplicationBootstrap {
       multi.hmset(
         this.getKey(SchemaKeys.STRANGE_PART_ID, job.data.time),
         strangePartByScoreType,
+      );
+    }
+
+    if (Object.keys(paintByColor).length > 0) {
+      multi.hmset(
+        this.getKey(SchemaKeys.PAINT_COLOR, job.data.time),
+        paintByColor,
       );
     }
 
@@ -805,7 +852,7 @@ export class SchemaService implements OnApplicationBootstrap {
     // Merge existing into current ones
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
-      const previous = existing[key];
+      const previous = existing[i];
 
       if (previous) {
         const defindexes = unpack(previous);

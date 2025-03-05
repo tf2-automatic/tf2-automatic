@@ -26,8 +26,13 @@ export interface Spell {
 
 export interface StrangePart {
   id: number;
-  name: string;
   defindex: number;
+}
+
+export interface Paint {
+  defindex: number;
+  primaryColor: string;
+  secondaryColor: string | null;
 }
 
 export class QualityModel implements Quality {
@@ -100,14 +105,26 @@ export class StrangePartModel implements StrangePart {
   id!: number;
 
   @ApiProperty({
-    example: 'Strange Part: Full Moon Kills',
-  })
-  name!: string;
-
-  @ApiProperty({
     example: 6015,
   })
   defindex!: number;
+}
+
+export class PaintModel implements Paint {
+  @ApiProperty({
+    example: 5037,
+  })
+  defindex!: number;
+
+  @ApiProperty({
+    example: 'e7b53b',
+  })
+  primaryColor!: string;
+
+  @ApiProperty({
+    example: null,
+  })
+  secondaryColor!: string | null;
 }
 
 export class SchemaQueryDto {
