@@ -42,6 +42,9 @@ import {
   SCHEMA_STRANGE_PART_PATH,
   StrangePart,
   StrangePartModel,
+  Paint,
+  SCHEMA_PAINT_PATH,
+  PaintModel,
 } from '@tf2-automatic/item-service-data';
 import {
   ApiOperation,
@@ -367,5 +370,29 @@ export class SchemaController {
         options.time,
       );
     }
+  }
+
+  @Get(SCHEMA_PAINT_PATH)
+  @ApiOperation({
+    summary: 'Get paint by color',
+    description: 'Returns a paint',
+  })
+  @ApiParam({
+    name: 'color',
+    description: 'The color of the paint',
+    example: 'e7b53b',
+  })
+  @ApiQuerySchemaTime()
+  @ApiResponse({
+    type: PaintModel,
+  })
+  getPaint(
+    @Param('color') color: string,
+    @Query() options: SchemaOptionsDto,
+  ): Promise<Paint> {
+    return this.schemaService.getPaintByColor(
+      color.toLowerCase(),
+      options.time,
+    );
   }
 }
