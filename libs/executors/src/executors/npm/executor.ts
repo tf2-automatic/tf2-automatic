@@ -23,6 +23,10 @@ export class NPMExecutorOptions {
   @IsOptional()
   @IsBoolean()
   'dry-run'?: boolean;
+
+  @IsOptional()
+  @IsString()
+  'access'?: string;
 }
 
 function formatErrors(errors: ValidationError[]): string {
@@ -118,6 +122,10 @@ export default async function npmExecutor(
 
   if (options['dry-run']) {
     args += ' --dry-run';
+  }
+
+  if (options['access']) {
+    args += ` --access ${options['access']}`;
   }
 
   const { stdout, stderr } = await promisify(exec)(`npm publish${args}`, {
