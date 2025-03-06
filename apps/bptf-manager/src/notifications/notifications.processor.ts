@@ -19,18 +19,67 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   async process(job: Job<JobData>): Promise<void> {
-    this.logger.debug('Processing job ' + job.id);
+    const steamid = new SteamID(job.data.steamid64);
 
+    switch (job.name) {
+      case 'done':
+        await this.done(job);
+        break;
+      case 'fetch':
+        await this.getNotifications(job);
+        break;
+    }
+  }
+
+  private async done(job: Job<JobData>): Promise<void> {
+    this.logger.debug('Refreshed notifications for ' + job.data.steamid64);
+
+    await this.notificationsService.handleNotificationsFetched(job);
+  }
+
+  private async getNotifications(job: Job<JobData>): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
 
-    await this.notificationsService.getNotificationsAndContinue(
+    let debugStr = 'Getting notifications for ' + token.steamid64;
+
+    const skip = job.data.skip;
+    const limit = job.data.limit;
+
+    if (skip && limit) {
+      debugStr += ' using skip ' + skip + ' and limit ' + limit;
+    } else if (skip) {
+      debugStr += ' using skip ' + skip;
+    } else if (limit) {
+      debugStr += ' using limit ' + limit;
+    }
+
+    debugStr += '...';
+
+    this.logger.debug(debugStr);
+
+    const response = await this.notificationsService.fetchNotifications(
       token,
-      job.data.time,
-      job.data.skip,
-      job.data.limit,
+      skip,
+      limit,
     );
+
+    this.logger.debug(
+      'Got notifications response for ' +
+        token.steamid64 +
+        ' (skip: ' +
+        response.cursor.skip +
+        ', limit: ' +
+        response.cursor.limit +
+        ', total: ' +
+        response.cursor.total +
+        ', results: ' +
+        response.results.length +
+        ')',
+    );
+
+    await this.notificationsService.handleNotifications(job, response);
   }
 
   @OnWorkerEvent('error')
@@ -51,10 +100,5 @@ export class NotificationsProcessor extends WorkerHost {
     } else {
       console.error(err);
     }
-  }
-
-  @OnWorkerEvent('completed')
-  onCompleted(job: Job): void {
-    this.logger.debug('Completed job ' + job.id);
   }
 }

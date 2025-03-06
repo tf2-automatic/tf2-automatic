@@ -23,6 +23,7 @@ import {
   CustomUnrecoverableError,
 } from '../common/utils/custom-queue-errors';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
+import assert from 'node:assert';
 
 @Processor('inventories', {
   settings: bullWorkerSettings,
@@ -65,11 +66,49 @@ export class InventoriesProcessor extends WorkerHost {
         .publish(
           unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
           data,
+          new SteamID(job.data.raw.steamid64),
         )
         .finally(() => {
           throw err;
         });
     });
+  }
+
+  private async selectBot(job: Job<InventoryQueue>): Promise<Bot> {
+    if (job.data.bot) {
+      const botSteamID = new SteamID(job.data.bot);
+
+      return this.heartbeatsService.getBot(botSteamID).catch((err) => {
+        throw new Error(err.message);
+      });
+    }
+
+    // Get list of bots
+    const bots = await this.heartbeatsService.getRunningBots();
+    if (bots.length === 0) {
+      throw new Error('No bots available');
+    }
+
+    let minAttempts = Number.MAX_SAFE_INTEGER;
+    let minAttemptsBots: Bot[] = [];
+
+    for (const bot of bots) {
+      const attempts = job.data.extra.botsAttempted?.[bot.steamid64] ?? 0;
+
+      if (attempts < minAttempts) {
+        minAttempts = attempts;
+        minAttemptsBots = [bot];
+      } else if (attempts === minAttempts) {
+        minAttemptsBots.push(bot);
+      }
+    }
+
+    assert(minAttemptsBots.length > 0, 'No bots after filtering by attempts');
+
+    // TODO: Filter bots by who they are friends with
+
+    // Select bots with the least attempts made
+    return minAttemptsBots[Math.floor(Math.random() * minAttemptsBots.length)];
   }
 
   private async processJobWithErrorHandler(
@@ -82,20 +121,34 @@ export class InventoriesProcessor extends WorkerHost {
       throw new UnrecoverableError('Job is too old');
     }
 
+    const bot = await this.selectBot(job);
+
+    this.logger.debug(`Bot ${bot.steamid64} selected`);
+
     try {
       // Work on job
-      const result = await this.handleJob(job);
+      const result = await this.handleJob(job, bot);
       return result;
     } catch (err) {
-      if (err instanceof AxiosError) {
+      if (err instanceof AxiosError && err.response !== undefined) {
         const response =
           err.response satisfies AxiosError<HttpError>['response'];
 
-        if (
-          response !== undefined &&
-          response.status < 500 &&
-          response.status >= 400
-        ) {
+        const botsAttempted = job.data.extra.botsAttempted ?? {};
+        botsAttempted[bot.steamid64] = (botsAttempted[bot.steamid64] ?? 0) + 1;
+
+        job.data.extra.botsAttempted = botsAttempted;
+
+        await job.updateData(job.data).catch(() => {
+          // Ignore error
+        });
+
+        if (response.status === 401 && !job.data.bot) {
+          // Retry loading the inventory (hopefully with a different bot)
+          throw err;
+        }
+
+        if (response.status < 500 && response.status >= 400) {
           // Don't retry on 4xx errors
           throw new CustomUnrecoverableError(response.data.message, response);
         }
@@ -123,27 +176,10 @@ export class InventoriesProcessor extends WorkerHost {
     }
   }
 
-  private async handleJob(job: Job<InventoryQueue>): Promise<unknown> {
-    let bot: Bot;
-
-    if (job.data.bot) {
-      const botSteamID = new SteamID(job.data.bot);
-
-      bot = await this.heartbeatsService.getBot(botSteamID).catch((err) => {
-        throw new Error(err.message);
-      });
-    } else {
-      // Get list of bots
-      const bots = await this.heartbeatsService.getBots();
-      if (bots.length === 0) {
-        throw new Error('No bots available');
-      }
-
-      bot = bots[Math.floor(Math.random() * bots.length)];
-    }
-
-    this.logger.debug(`Bot ${bot.steamid64} selected`);
-
+  private async handleJob(
+    job: Job<InventoryQueue>,
+    bot: Bot,
+  ): Promise<unknown> {
     // Get and save inventory
     const inventory = await this.inventoriesService.getInventoryFromBot(
       bot,
@@ -151,7 +187,6 @@ export class InventoriesProcessor extends WorkerHost {
       job.data.raw.appid,
       job.data.raw.contextid,
       job.data.ttl,
-      job.data.tradableOnly,
     );
 
     return inventory.timestamp;

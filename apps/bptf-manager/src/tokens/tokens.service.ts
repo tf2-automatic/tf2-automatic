@@ -8,8 +8,6 @@ import { SaveTokenDto, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
 import SteamID from 'steamid';
 
-const KEY_PREFIX = 'bptf-manager:data:';
-
 @Injectable()
 export class TokensService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
@@ -93,6 +91,6 @@ export class TokensService {
   }
 
   private getKey(steamid64: string) {
-    return KEY_PREFIX + 'tokens:' + steamid64;
+    return 'tokens:' + steamid64;
   }
 }

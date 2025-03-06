@@ -1,0 +1,77 @@
+{
+  "name": "item-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/item-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/item-service",
+        "main": "apps/item-service/src/main.ts",
+        "tsConfig": "apps/item-service/tsconfig.app.json",
+        "webpackConfig": "apps/item-service/webpack.config.js",
+        "generatePackageJson": true
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "options": {
+        "buildTarget": "item-service:build"
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "item-service:build:production"
+        },
+        "e2e": {
+          "watch": false,
+          "inspect": false
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "apps/item-service/**/*.ts",
+          "apps/item-service/package.json"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/item-service/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    },
+    "docker": {
+      "executor": "@nx-tools/nx-container:build",
+      "options": {
+        "push": true,
+        "cache-from": ["type=local,src=/tmp/.buildx-cache"],
+        "cache-to": ["type=local,dest=/tmp/.buildx-cache-new,mode=max"],
+        "platforms": ["linux/amd64", "linux/arm64"],
+        "file": "./Dockerfile"
+      }
+    }
+  },
+  "tags": []
+}

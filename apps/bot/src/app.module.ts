@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { BotModule } from './bot/bot.module';
 import configuration from './common/config/configuration';
 import { validation } from './common/config/validation';
-import { StorageModule } from './storage/storage.module';
+import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
 import { HealthModule } from './health/health.module';
 import { FriendsModule } from './friends/friends.module';
 import { InventoriesModule } from './inventories/inventories.module';
@@ -17,8 +17,17 @@ import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { getStorageConfig } from '@tf2-automatic/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 
 @Module({
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
+    },
+  ],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -32,7 +41,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
     }),
     EventEmitterModule.forRoot(),
     BotModule,
-    StorageModule,
+    NestStorageModule.register(getStorageConfig()),
     HealthModule,
     FriendsModule,
     InventoriesModule,

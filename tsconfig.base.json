@@ -22,6 +22,9 @@
       "@tf2-automatic/bptf-manager-data": [
         "libs/bptf-manager-data/src/index.ts"
       ],
+      "@tf2-automatic/item-service-data": [
+        "libs/item-service-data/src/index.ts"
+      ],
       "@tf2-automatic/config": ["libs/config/src/index.ts"],
       "@tf2-automatic/dto": ["libs/dto/src/index.ts"],
       "@tf2-automatic/executors": ["libs/executors/src/index.ts"],
@@ -33,11 +36,13 @@
       ],
       "@tf2-automatic/locking": ["libs/locking/src/index.ts"],
       "@tf2-automatic/nestjs-events": ["libs/nestjs-events/src/index.ts"],
+      "@tf2-automatic/nestjs-storage": ["libs/nestjs-storage/src/index.ts"],
       "@tf2-automatic/nestjs-steamid-pipe": [
         "libs/nestjs-steamid-pipe/src/index.ts"
       ],
       "@tf2-automatic/swagger": ["libs/swagger/src/index.ts"],
       "@tf2-automatic/testing": ["libs/testing/src/index.ts"],
+      "@tf2-automatic/tf2-format": ["libs/tf2-format/src/index.ts"],
       "@tf2-automatic/transactional-outbox": [
         "libs/transactional-outbox/src/index.ts"
       ]

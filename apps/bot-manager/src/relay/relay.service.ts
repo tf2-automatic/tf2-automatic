@@ -35,16 +35,8 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
     const redisConfig =
       this.configService.getOrThrow<RedisConfig.Config>('redis');
 
-    const config: RedisOptions = {
-      host: redisConfig.host,
-      port: redisConfig.port,
-      password: redisConfig.password,
-      db: redisConfig.db,
-      keyPrefix: redisConfig.keyPrefix,
-    };
-
-    this.subscriber = new Redis(config);
-    this.leaderRedis = new Redis(config);
+    this.subscriber = new Redis(redisConfig);
+    this.leaderRedis = new Redis(redisConfig);
   }
 
   async onApplicationBootstrap() {

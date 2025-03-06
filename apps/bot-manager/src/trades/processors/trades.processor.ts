@@ -213,7 +213,11 @@ export class TradesProcessor extends WorkerHost {
     try {
       this.logger.debug(`Creating trade...`);
 
-      const offer = await this.tradesService.createTrade(bot, job.data.raw);
+      const offer = await this.tradesService.createTrade(
+        bot,
+        job.data.raw,
+        job.id,
+      );
       return offer.id;
     } catch (err) {
       await this.handleSendTradeError(job, err, now);

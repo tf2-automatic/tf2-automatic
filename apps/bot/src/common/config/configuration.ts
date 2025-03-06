@@ -2,7 +2,10 @@ import {
   EventsConfig,
   getEnv,
   getEnvWithDefault,
+  getEnvWithDefaultAllowEmptyString,
   getEventsConfig,
+  getStorageConfig,
+  StorageConfig,
 } from '@tf2-automatic/config';
 
 export interface Config {
@@ -24,6 +27,7 @@ export interface SteamAccountConfig {
   identitySecret: string;
   proxyUrl?: string;
   apiKey?: string;
+  defaultGame: number | null;
 }
 
 export interface SteamTradeConfig {
@@ -32,28 +36,6 @@ export interface SteamTradeConfig {
   pollInterval: number;
   pollFullUpdateInterval: number;
   pollDataForgetTime: number;
-}
-
-export type StorageConfig = S3StorageConfig | LocalStorageConfig;
-
-export interface S3StorageConfig extends BaseChoiceConfig {
-  type: 's3';
-  endpoint: string;
-  port: number;
-  useSSL: boolean;
-  bucket: string;
-  directory: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-}
-
-export interface LocalStorageConfig extends BaseChoiceConfig {
-  type: 'local';
-  directory: string;
-}
-
-interface BaseChoiceConfig {
-  type: unknown;
 }
 
 export interface ManagerConfig {
@@ -80,6 +62,11 @@ export default (): Config => {
       identitySecret: getEnv('STEAM_IDENTITY_SECRET', 'string')!,
       proxyUrl: getEnv('STEAM_PROXY_URL', 'string'),
       apiKey: getEnv('STEAM_API_KEY', 'string'),
+      defaultGame: getEnvWithDefaultAllowEmptyString(
+        'STEAM_DEFAULT_GAME',
+        'integer',
+        440,
+      ),
     },
     trade: {
       cancelTime: getEnv('TRADE_CANCEL_TIME', 'integer'),
@@ -108,32 +95,8 @@ export default (): Config => {
       heartbeatInterval: getEnvWithDefault(
         'BOT_MANAGER_HEARTBEAT_INTERVAL',
         'integer',
-        60000,
+        20000,
       ),
     },
   };
 };
-
-function getStorageConfig(): StorageConfig {
-  const storageType = getEnv('STORAGE_TYPE', 'string') as 's3' | 'local';
-
-  if (storageType === 'local') {
-    return {
-      type: storageType,
-      directory: getEnv('STORAGE_LOCAL_PATH', 'string')!,
-    } satisfies LocalStorageConfig;
-  } else if (storageType === 's3') {
-    return {
-      type: storageType,
-      directory: getEnv('STORAGE_S3_PATH', 'string')!,
-      endpoint: getEnv('STORAGE_S3_ENDPOINT', 'string')!,
-      port: getEnv('STORAGE_S3_PORT', 'integer')!,
-      useSSL: getEnv('STORAGE_S3_USE_SSL', 'boolean'),
-      bucket: getEnv('STORAGE_S3_BUCKET', 'string')!,
-      accessKeyId: getEnv('STORAGE_S3_ACCESS_KEY_ID', 'string')!,
-      secretAccessKey: getEnv('STORAGE_S3_SECRET_ACCESS_KEY', 'string')!,
-    } satisfies S3StorageConfig;
-  } else {
-    throw new Error('Unknown storage type: ' + storageType);
-  }
-}

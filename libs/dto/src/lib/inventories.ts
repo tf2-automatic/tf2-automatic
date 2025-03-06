@@ -1,14 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsInt,
-  IsOptional,
-  Max,
-  Min,
-  ValidateNested,
-} from 'class-validator';
+import { IsInt, IsOptional, Max, Min, ValidateNested } from 'class-validator';
 import { QueueRetryDto } from './misc';
 import { EnqueueInventory } from '@tf2-automatic/bot-manager-data';
 
@@ -54,14 +47,4 @@ export class EnqueueInventoryDto implements EnqueueInventory {
   @Min(-1)
   @Max(Number.MAX_SAFE_INTEGER)
   ttl?: number;
-
-  @ApiProperty({
-    description:
-      'Set to false to include non-tradable items in the response. Defaults to true',
-    example: true,
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  tradableOnly?: boolean;
 }

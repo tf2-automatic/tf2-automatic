@@ -20,6 +20,7 @@ import {
   PROFILE_BASE_URL,
   PROFILE_CUSTOM_GAME_PATH,
   PROFILE_CUSTOM_PERSONA_STATE_PATH,
+  PROFILE_GAMES_PATH,
   PROFILE_NAME_PATH,
   PROFILE_PATH,
   PROFILE_SETTINGS_PATH,
@@ -29,6 +30,7 @@ import {
 import {
   UpdateCustomGameDto,
   UpdateCustomPersonaStateDto,
+  UpdateGamesDto,
   UpdateProfileAvatarDto,
   UpdateProfileDto,
   UpdateProfileSettingsDto,
@@ -131,7 +133,7 @@ export class ProfileController {
   @Put(PROFILE_CUSTOM_GAME_PATH)
   @ApiOperation({
     summary: 'Set a custom game',
-    description: 'Set a custom game for the bot, it will always be in TF2',
+    description: 'Set a custom game for the bot',
   })
   @ApiBody({
     type: UpdateCustomGameDto,
@@ -143,10 +145,22 @@ export class ProfileController {
   @Delete(PROFILE_CUSTOM_GAME_PATH)
   @ApiOperation({
     summary: 'Clear the custom game',
-    description: "Clear the bot's custom game and return to TF2 only",
+    description: "Clear the bot's custom game",
   })
   clearCustomGame() {
     return this.profileService.clearCustomGame();
+  }
+
+  @Put(PROFILE_GAMES_PATH)
+  @ApiOperation({
+    summary: 'Set a list of games to play',
+    description: 'Sets a list of games for the bot to play',
+  })
+  @ApiBody({
+    type: UpdateGamesDto,
+  })
+  setGames(@Body(new ValidationPipe()) dto: UpdateGamesDto) {
+    return this.profileService.setGames(dto);
   }
 
   @Put(PROFILE_CUSTOM_PERSONA_STATE_PATH)

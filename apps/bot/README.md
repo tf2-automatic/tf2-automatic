@@ -21,13 +21,13 @@ The bot is configured using environment variables. Below is a list of the enviro
 | STEAM_IDENTITY_SECRET | Identity secret of the Steam account | Yes |  |
 | STEAM_API_KEY | Manually set the Steam API key of the account. See issue [#346](https://github.com/tf2-automatic/tf2-automatic/issues/345) | No |  |
 | STEAM_PROXY_URL | Proxy used for all communications with Steam | No |  |
+| STEAM_DEFAULT_GAME | The game to play when no list of games to has been set. Use an empty string for no game to play. | No | `440` |
 | TRADE_CANCEL_TIME | Milliseconds a sent offer may be active for before it is canceled. Disabled if no value | No |  |
 | TRADE_PENDING_CANCEL_TIME | Milliseconds a sent offer may be pending for before it is canceled. Disabled if no value | No |  |
 | TRADE_POLL_INTERVAL | Milliseconds between getting the current state of recent trades. Use `-1` to disable | No | 30 seconds |
 | TRADE_POLL_FULL_UPDATE_INTERVAL | Milliseconds between getting the current state of all trades. Disabled if no value | No | 2 minutes |
 | TRADE_POLL_DATA_FORGET_TIME | Milliseconds a trade has not seen during a full poll before removing it from the polldata | No | 14 days |
-| EVENTS_TYPE | How events should be published, either using "rabbitmq" or "redis" | Yes |  |
-| EVENTS_PERSIST | If events should be persisted to a list or not (only used for "redis" events type) | No | `false` |
+| EVENTS_TYPE | How events should be published, can only be "rabbitmq" right now | Yes |  |
 | RABBITMQ_HOST | Address of the RabbitMQ server | If "rabbitmq" events type |  |
 | RABBITMQ_PORT | Port of the RabbitMQ server | If "rabbitmq" events type |  |
 | RABBITMQ_USERNAME | Username to authenticate with the RabbitMQ server | If "rabbitmq" events type |  |

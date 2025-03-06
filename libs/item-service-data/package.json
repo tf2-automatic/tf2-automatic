@@ -1,0 +1,8 @@
+{
+  "name": "@tf2-automatic/item-service-data",
+  "version": "latest",
+  "dependencies": {
+    "tslib": "^2.7.0",
+    "class-validator": "^0.14.1"
+  }
+}

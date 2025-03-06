@@ -69,9 +69,4 @@ export class ListingLimitsProcessor extends WorkerHost {
       console.error(err);
     }
   }
-
-  @OnWorkerEvent('completed')
-  onCompleted(job: Job): void {
-    this.logger.debug('Completed job ' + job.id);
-  }
 }

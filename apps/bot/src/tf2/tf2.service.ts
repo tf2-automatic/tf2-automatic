@@ -3,10 +3,10 @@ import {
   Injectable,
   OnApplicationShutdown,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import TeamFortress2 from 'tf2';
-import TF2Language from 'tf2/language';
 import {
   CraftResult,
   SortBackpackTypes,
@@ -14,6 +14,7 @@ import {
   TF2GainedEvent,
   TF2Item,
   TF2LostEvent,
+  TF2SchemaEvent,
   TF2_GAINED_EVENT,
   TF2_LOST_EVENT,
   TF2_SCHEMA_EVENT,
@@ -22,11 +23,6 @@ import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
-
-// Stop node-tf2 from fetching the item schema
-TeamFortress2.prototype._handlers[TF2Language.UpdateItemSchema] = function () {
-  this.emit('itemSchema');
-};
 
 enum TaskType {
   Craft = 'CRAFT',
@@ -96,13 +92,17 @@ export class TF2Service implements OnApplicationShutdown {
       this.logger.debug('Disconnected from GC');
     });
 
-    this.client.on('appQuit', () => {
+    this.client.on('appQuit', (appid) => {
+      if (appid !== 440) {
+        return;
+      }
+
       if (this.manuallyDisconnectedFromGC) {
         this.manuallyDisconnectedFromGC = false;
 
         // Add timeout to give Steam some time before we open the app again
         setTimeout(() => {
-          this.botService.setGamePlayed(440);
+          this.botService.joinGame(440);
         }, 1000);
       }
     });
@@ -137,10 +137,15 @@ export class TF2Service implements OnApplicationShutdown {
         });
     });
 
-    this.tf2.on('itemSchema', () => {
-      this.eventsService.publish(TF2_SCHEMA_EVENT).catch(() => {
-        // Ignore error
-      });
+    this.tf2.on('itemSchema', (version: string, itemsGameUrl: string) => {
+      this.eventsService
+        .publish(TF2_SCHEMA_EVENT, {
+          version,
+          itemsGameUrl,
+        } satisfies TF2SchemaEvent['data'])
+        .catch(() => {
+          // Ignore error
+        });
     });
   }
 
@@ -152,7 +157,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.reconnectTimeout = setTimeout(() => {
       this.logger.debug('Reconnecting to GC to refresh inventory');
       this.manuallyDisconnectedFromGC = true;
-      this.botService.setGamePlayed(null);
+      this.botService.exitGame(440);
       this.reconnectTimeout = null;
     }, 10000);
   }
@@ -289,7 +294,7 @@ export class TF2Service implements OnApplicationShutdown {
 
   getBackpack(): TF2Item[] {
     if (this.tf2.backpack === undefined) {
-      throw new BadRequestException('Backpack not loaded');
+      throw new ServiceUnavailableException('Backpack not loaded');
     }
 
     return this.tf2.backpack;
@@ -319,7 +324,11 @@ export class TF2Service implements OnApplicationShutdown {
   async connectToGC(): Promise<void> {
     if (!this.isPlayingTF2()) {
       // Not playing TF2
-      this.botService.setGamePlayed(440);
+      const joining = this.botService.joinGame(440);
+
+      if (!joining) {
+        throw new ServiceUnavailableException('Not playing TF2');
+      }
     }
 
     if (this.tf2.haveGCSession) {
@@ -336,11 +345,7 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   private isItemInBackpack(assetid: string): boolean {
-    if (this.tf2.backpack === undefined) {
-      throw new Error('Backpack not loaded');
-    }
-
-    return this.tf2.backpack.some((item) => item.id === assetid);
+    return this.getBackpack().some((item) => item.id === assetid);
   }
 
   private async waitForBackpack(): Promise<void> {

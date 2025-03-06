@@ -3,6 +3,7 @@ import { RetryOptions } from './misc';
 
 export const INVENTORIES_BASE_URL = '/inventories';
 export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
+export const INVENTORY_FETCH_PATH = `${INVENTORY_PATH}/fetch`;
 
 export const INVENTORY_FULL_PATH = `${INVENTORIES_BASE_URL}${INVENTORY_PATH}`;
 
@@ -12,11 +13,13 @@ export type InventoryItem =
       appid: number;
       contextid: string;
       assetid: string;
+      tradable?: boolean;
     };
 
 export interface InventoryResponse {
   timestamp: number;
-  inventory: InventoryItem[];
+  ttl: number;
+  items: InventoryItem[];
 }
 
 export interface EnqueueInventory {
