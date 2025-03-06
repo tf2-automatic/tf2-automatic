@@ -4,12 +4,12 @@ The item service stores information about items, such as their prices, stock lev
 
 ## Features
 
-- Tracks current item prices
-- Monitors stock levels
-- Keeps a list of items currently in offers to avoid offering the same item multiple times
-- Records the history of bought and sold items
+- <del>Tracks current item prices</del>
+- <del>Monitors stock levels</del>
+- <del>Keeps a list of items currently in offers to avoid offering the same item multiple times</del>
+- <del>Records the history of bought and sold items</del>
 - Periodically updates TF2 schema definitions
-- Integrates with bot and bot-manager applications to oversee stock and trading activities
+- <del>Integrates with bot and bot-manager applications to oversee stock and trading activities</del>
 
 ## Prerequisites
 
