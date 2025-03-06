@@ -9,5 +9,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/tf2-automatic/tf2-automatic.git"
-  }
+  },
+  "license": "MIT"
 }
