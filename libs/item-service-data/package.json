@@ -4,5 +4,10 @@
   "dependencies": {
     "tslib": "^2.7.0",
     "class-validator": "^0.14.1"
+  },
+  "homepage": "https://github.com/tf2-automatic/tf2-automatic",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tf2-automatic/tf2-automatic.git"
   }
 }
