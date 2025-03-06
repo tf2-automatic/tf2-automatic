@@ -1,4 +1,10 @@
-import { EconParser, ItemsGameItem, Schema, TF2Parser, TF2ParserSchema } from '../../dist/libs/tf2-format';
+import {
+  EconParser,
+  EconParserSchema,
+  ItemsGameItem,
+  TF2Parser,
+  TF2ParserSchema,
+} from '../../dist/libs/tf2-format';
 import axios from 'axios';
 import DataLoader from 'dataloader';
 import fs from 'node:fs';
@@ -18,7 +24,7 @@ const itemsGameLoader = new DataLoader<number, ItemsGameItem | null>(
       .get(itemServiceUrl + '/schema/items/' + defindex, {
         params: {
           items_game: true,
-        }
+        },
       })
       .then((res) => {
         const result = res.data;
@@ -99,7 +105,10 @@ const itemLoader = new DataLoader<string, number | null>(
 
         for (let i = 0; i < res.data.length; i++) {
           const element = res.data[i];
-          if (element.name === 'Upgradeable ' + element.item_class.toUpperCase()) {
+          if (
+            element.name ===
+            'Upgradeable ' + element.item_class.toUpperCase()
+          ) {
             match = element;
             break;
           }
@@ -147,7 +156,8 @@ const partLoader = new DataLoader<string | number, number | null>(
         cache.set('part:id:' + result.id, result);
         cache.set('part:name:' + result.name, result);
         return [result];
-      }).catch((err) => {
+      })
+      .catch((err) => {
         if (err.response.status === 404) {
           if (typeof part === 'string') {
             cache.set('part:name:' + part, null);
@@ -167,13 +177,11 @@ const partLoader = new DataLoader<string | number, number | null>(
 
 const paintLoader = new DataLoader<string, number | null>(
   ([paint]) => {
-    return axios
-      .get(itemServiceUrl + '/schema/paints/' + paint)
-      .then((res) => {
-        const result = res.data.defindex;
-        cache.set('paint:' + paint, result);
-        return [result];
-      });
+    return axios.get(itemServiceUrl + '/schema/paints/' + paint).then((res) => {
+      const result = res.data.defindex;
+      cache.set('paint:' + paint, result);
+      return [result];
+    });
   },
   {
     batch: false,
@@ -181,23 +189,23 @@ const paintLoader = new DataLoader<string, number | null>(
 );
 
 export const SHEENS = {
-  1: 'Team Shine',
-  2: 'Deadly Daffodil',
-  3: 'Manndarin',
-  4: 'Mean Green',
-  5: 'Agonizing Emerald',
-  6: 'Villainous Violet',
-  7: 'Hot Rod',
+  'Team Shine': 1,
+  'Deadly Daffodil': 2,
+  Manndarin: 3,
+  'Mean Green': 4,
+  'Agonizing Emerald': 5,
+  'Villainous Violet': 6,
+  'Hot Rod': 7,
 };
 
 export const KILLSTREAKERS = {
-  2002: 'Fire Horns',
-  2003: 'Cerebral Discharge',
-  2004: 'Tornado',
-  2005: 'Flames',
-  2006: 'Singularity',
-  2007: 'Incinerator',
-  2008: 'Hypno-Beam',
+  'Fire Horns': 2002,
+  'Cerebral Discharge': 2003,
+  Tornado: 2004,
+  Flames: 2005,
+  Singularity: 2006,
+  Incinerator: 2007,
+  'Hypno-Beam': 2008,
 };
 
 export const SPELLS = {
@@ -221,16 +229,13 @@ const tf2Schema: TF2ParserSchema = {
   getPaintByColor: (color) => cache.get('paint:' + color),
   fetchPaintByColor: (color) => paintLoader.load(color),
   getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
-  fetchSpellById: (defindex, id) => Promise.resolve(SPELLS[`${defindex}_${id}`]),
-  getKillstreakerById: (id) => KILLSTREAKERS[id],
-  fetchKillstreakerById: (id) => Promise.resolve(KILLSTREAKERS[id]),
-  getSheenById: (id) => SHEENS[id],
-  fetchSheenById: (id) => Promise.resolve(SHEENS[id]),
+  fetchSpellById: (defindex, id) =>
+    Promise.resolve(SPELLS[`${defindex}_${id}`]),
   getStrangePartById: (id) => cache.get('part:id:' + id),
   fetchStrangePartById: (id) => partLoader.load(id),
 };
 
-const schema: Schema = {
+const econSchema: EconParserSchema = {
   getItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
   fetchItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getQualityByName: (name) => cache.get('quality:' + name),
@@ -245,9 +250,13 @@ const schema: Schema = {
   fetchSpellByName: (name) => spellLoader.load(name),
   getStrangePartByScoreType: (name) => cache.get('part:name:' + name),
   fetchStrangePartByScoreType: (name) => partLoader.load(name),
+  getSheenByName: (name) => SHEENS[name],
+  fetchSheenByName: (name) => Promise.resolve(SHEENS[name]),
+  getKillstreakerByName: (name) => KILLSTREAKERS[name],
+  fetchKillstreakerByName: (name) => Promise.resolve(KILLSTREAKERS[name]),
 };
 
-const econParser = new EconParser(schema);
+const econParser = new EconParser(econSchema);
 const tf2Parser = new TF2Parser(tf2Schema);
 
 const econItems = JSON.parse(fs.readFileSync('./econ-data.json', 'utf-8'));
@@ -279,16 +288,18 @@ for (const item of tf2Items) {
     const econExtracted = econParser.extract(items[item].econ);
     const econParsed = await econParser.parse(econExtracted);
 
-    const [tf2Extracted, tf2ExtractedContext] = tf2Parser.extract(items[item].tf2);
+    const [tf2Extracted, tf2ExtractedContext] = tf2Parser.extract(
+      items[item].tf2,
+    );
     const tf2Parsed = await tf2Parser.parse(tf2Extracted, tf2ExtractedContext);
 
     const equal = JSON.stringify(econParsed) === JSON.stringify(tf2Parsed);
 
     if (!equal) {
-      console.log("Not equal");
+      console.log('Not equal');
       console.log(econParsed);
       console.log(tf2Parsed);
-      break;  
+      break;
     }
   }
 })();

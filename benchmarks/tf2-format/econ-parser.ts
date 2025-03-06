@@ -1,4 +1,8 @@
-import { EconParser, ItemsGameItem, Schema } from '../../dist/libs/tf2-format';
+import {
+  EconParser,
+  ItemsGameItem,
+  EconParserSchema,
+} from '../../dist/libs/tf2-format';
 import { parseEconItem } from 'tf2-item-format/static';
 import axios from 'axios';
 import DataLoader from 'dataloader';
@@ -20,7 +24,7 @@ const itemsGameLoader = new DataLoader<number, ItemsGameItem | null>(
       .get(itemServiceUrl + '/schema/items/' + defindex, {
         params: {
           items_game: true,
-        }
+        },
       })
       .then((res) => {
         const result = res.data;
@@ -100,7 +104,10 @@ const itemLoader = new DataLoader<string, number | null>(
 
         for (let i = 0; i < res.data.length; i++) {
           const element = res.data[i];
-          if (element.name === 'Upgradable ' + element.item_class.toUpperCase()) {
+          if (
+            element.name ===
+            'Upgradable ' + element.item_class.toUpperCase()
+          ) {
             match = element;
             break;
           }
@@ -147,7 +154,8 @@ const partLoader = new DataLoader<string, number | null>(
         const result = res.data.defindex;
         cache.set('part:' + part, result);
         return [result];
-      }).catch((err) => {
+      })
+      .catch((err) => {
         if (err.response.status === 404) {
           cache.set('part:' + part, null);
           return [null];
@@ -161,7 +169,27 @@ const partLoader = new DataLoader<string, number | null>(
   },
 );
 
-const schema: Schema = {
+export const SHEENS = {
+  'Team Shine': 1,
+  'Deadly Daffodil': 2,
+  Manndarin: 3,
+  'Mean Green': 4,
+  'Agonizing Emerald': 5,
+  'Villainous Violet': 6,
+  'Hot Rod': 7,
+};
+
+export const KILLSTREAKERS = {
+  'Fire Horns': 2002,
+  'Cerebral Discharge': 2003,
+  Tornado: 2004,
+  Flames: 2005,
+  Singularity: 2006,
+  Incinerator: 2007,
+  'Hypno-Beam': 2008,
+};
+
+const schema: EconParserSchema = {
   getItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
   fetchItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getQualityByName: (name) => cache.get('quality:' + name),
@@ -176,6 +204,10 @@ const schema: Schema = {
   fetchSpellByName: (name) => spellLoader.load(name),
   getStrangePartByScoreType: (name) => cache.get('part:' + name),
   fetchStrangePartByScoreType: (name) => partLoader.load(name),
+  getSheenByName: (name) => SHEENS[name],
+  fetchSheenByName: (name) => Promise.resolve(SHEENS[name]),
+  getKillstreakerByName: (name) => KILLSTREAKERS[name],
+  fetchKillstreakerByName: (name) => Promise.resolve(KILLSTREAKERS[name]),
 };
 
 const parser = new EconParser(schema);
