@@ -1,4 +1,4 @@
-import { PrimaryItemAttributes, RequiredItemAttributes } from '../types';
+import { Item, RequiredItemAttributes } from '../types';
 
 export class SKU {
   static fromObject(item: RequiredItemAttributes): string {
@@ -16,6 +16,9 @@ export class SKU {
     if (item.tradable === false) {
       sku += ';untradable';
     }
+    if (item.paint) {
+      sku += `;p${item.paint}`;
+    }
     if (item.wear) {
       sku += `;w${item.wear}`;
     }
@@ -27,6 +30,12 @@ export class SKU {
     }
     if (item.killstreak !== undefined && item.killstreak !== 0) {
       sku += `;kt-${item.killstreak}`;
+    }
+    if (item.sheen) {
+      sku += `;ks-${item.sheen}`;
+    }
+    if (item.killstreaker) {
+      sku += `;ke-${item.killstreaker}`;
     }
     if (item.target) {
       sku += `;td-${item.target}`;
@@ -47,8 +56,8 @@ export class SKU {
     return sku;
   }
 
-  static fromString(sku: string): RequiredItemAttributes {
-    const item: PrimaryItemAttributes = {
+  static fromString(sku: string): Item {
+    const item: Item = {
       defindex: -1,
       quality: -1,
       craftable: true,
@@ -56,14 +65,20 @@ export class SKU {
       australium: false,
       festivized: false,
       effect: null,
-      elevated: false,
-      killstreak: 0,
-      paintkit: null,
       wear: null,
+      paintkit: null,
+      killstreak: 0,
+      target: null,
       output: null,
       outputQuality: null,
-      target: null,
+      elevated: false,
       crateSeries: null,
+      paint: null,
+      parts: [],
+      spells: [],
+      sheen: null,
+      killstreaker: null,
+      inputs: null,
     };
 
     const length = sku.length;
@@ -150,8 +165,33 @@ export class SKU {
             item.festivized = true;
           }
           break;
+        case 2:
+          switch (sku.charAt(start + 1)) {
+            case 't':
+              item.killstreak = numValue;
+              break;
+            case 's':
+              item.sheen = numValue;
+              break;
+            case 'e':
+              item.killstreaker = numValue;
+              break;
+            case 'd':
+              if (sku.charAt(start) === 't') {
+                item.target = numValue;
+              } else {
+                item.output = numValue;
+              }
+              break;
+            case 'q':
+              item.outputQuality = numValue;
+              break;
+            case 'k':
+              item.paintkit = numValue;
+              break;
+          }
+          break;
         default: {
-          // Handle prefixes
           const prefix = sku.charAt(start);
           switch (prefix) {
             case 'u':
@@ -161,23 +201,10 @@ export class SKU {
               item.wear = numValue;
               break;
             case 'p':
-              item.paintkit = numValue;
-              break;
-            case 'k':
-              item.killstreak = numValue;
-              break;
-            case 't':
-              item.target = numValue;
+              item.paint = numValue;
               break;
             case 'c':
               item.crateSeries = numValue;
-              break;
-            case 'o':
-              if (sku.charAt(start + 1) === 'd') {
-                item.output = numValue;
-              } else if (sku.charAt(start + 1) === 'q') {
-                item.outputQuality = numValue;
-              }
               break;
           }
         }

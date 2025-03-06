@@ -1,4 +1,8 @@
-import { ItemsGameItem, TF2Parser, TF2ParserSchema } from '../../dist/libs/tf2-format';
+import {
+  ItemsGameItem,
+  TF2Parser,
+  TF2ParserSchema,
+} from '../../dist/libs/tf2-format';
 import { BackpackParser } from 'tf2-backpack';
 import axios from 'axios';
 import DataLoader from 'dataloader';
@@ -21,7 +25,7 @@ const itemLoader = new DataLoader<number, ItemsGameItem | null>(
       .get(itemServiceUrl + '/schema/items/' + defindex, {
         params: {
           items_game: true,
-        }
+        },
       })
       .then((res) => {
         const result = res.data;
@@ -44,13 +48,11 @@ const itemLoader = new DataLoader<number, ItemsGameItem | null>(
 
 const paintLoader = new DataLoader<string, number | null>(
   ([paint]) => {
-    return axios
-      .get(itemServiceUrl + '/schema/paints/' + paint)
-      .then((res) => {
-        const result = res.data.id;
-        cache.set('paint:' + paint, result);
-        return [result];
-      });
+    return axios.get(itemServiceUrl + '/schema/paints/' + paint).then((res) => {
+      const result = res.data.id;
+      cache.set('paint:' + paint, result);
+      return [result];
+    });
   },
   {
     batch: false,
@@ -65,7 +67,8 @@ const partLoader = new DataLoader<number, number | null>(
         const result = res.data.defindex;
         cache.set('part:' + result.id, result);
         return [result.id];
-      }).catch((err) => {
+      })
+      .catch((err) => {
         if (err.response.status === 404) {
           cache.set('part:' + part, null);
           return [null];
@@ -78,26 +81,6 @@ const partLoader = new DataLoader<number, number | null>(
     batch: false,
   },
 );
-
-export const SHEENS = {
-  1: 'Team Shine',
-  2: 'Deadly Daffodil',
-  3: 'Manndarin',
-  4: 'Mean Green',
-  5: 'Agonizing Emerald',
-  6: 'Villainous Violet',
-  7: 'Hot Rod',
-};
-
-export const KILLSTREAKERS = {
-  2002: 'Fire Horns',
-  2003: 'Cerebral Discharge',
-  2004: 'Tornado',
-  2005: 'Flames',
-  2006: 'Singularity',
-  2007: 'Incinerator',
-  2008: 'Hypno-Beam',
-};
 
 export const SPELLS = {
   '1004_0': 8901,
@@ -120,11 +103,8 @@ const schema: TF2ParserSchema = {
   getPaintByColor: (color) => cache.get('paint:' + color),
   fetchPaintByColor: (color) => paintLoader.load(color),
   getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
-  fetchSpellById: (defindex, id) => Promise.resolve(SPELLS[`${defindex}_${id}`]),
-  getKillstreakerById: (id) => KILLSTREAKERS[id],
-  fetchKillstreakerById: (id) => Promise.resolve(KILLSTREAKERS[id]),
-  getSheenById: (id) => SHEENS[id],
-  fetchSheenById: (id) => Promise.resolve(SHEENS[id]),
+  fetchSpellById: (defindex, id) =>
+    Promise.resolve(SPELLS[`${defindex}_${id}`]),
   getStrangePartById: (id) => cache.get('part:' + id),
   fetchStrangePartById: (id) => partLoader.load(id),
 };
@@ -138,7 +118,9 @@ const suite = new Benchmark.Suite({
 });
 
 (async () => {
-  const itemsGame = await axios.get(itemServiceUrl + '/schema/items_game').then((res) => res.data);
+  const itemsGame = await axios
+    .get(itemServiceUrl + '/schema/items_game')
+    .then((res) => res.data);
 
   const tf2BackpackParser = new BackpackParser(parse(itemsGame).items_game);
 

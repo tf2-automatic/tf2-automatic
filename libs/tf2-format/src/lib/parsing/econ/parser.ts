@@ -357,6 +357,26 @@ export class EconParser extends Parser<
       paint = await this.schema.fetchDefindexByName(raw.paint!);
     }
 
+    let sheen =
+      raw.sheen !== null ? this.schema.getSheenByName(raw.sheen) : null;
+    if (sheen === undefined) {
+      sheen = await this.schema.fetchSheenByName(raw.sheen!);
+    } else if (sheen instanceof Error) {
+      throw sheen;
+    }
+
+    let killstreaker =
+      raw.killstreaker !== null
+        ? this.schema.getKillstreakerByName(raw.killstreaker)
+        : null;
+    if (killstreaker === undefined) {
+      killstreaker = await this.schema.fetchKillstreakerByName(
+        raw.killstreaker!,
+      );
+    } else if (killstreaker instanceof Error) {
+      throw killstreaker;
+    }
+
     let inputs: RecipeInput[] | null = null;
     if (raw.inputs !== null) {
       inputs = [];
@@ -430,8 +450,8 @@ export class EconParser extends Parser<
       paint,
       parts,
       spells,
-      sheen: raw.sheen,
-      killstreaker: raw.killstreaker,
+      sheen,
+      killstreaker,
       inputs,
     };
 

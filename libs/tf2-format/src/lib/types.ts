@@ -45,8 +45,8 @@ export interface ExtraItemAttributes {
   paint: number | null;
   spells: number[];
   parts: number[];
-  sheen: string | null;
-  killstreaker: string | null;
+  sheen: number | null;
+  killstreaker: number | null;
   inputs: RecipeInput[] | null;
 }
 
@@ -58,7 +58,7 @@ type RequiredKeys<T extends keyof U, U> = {
 
 export type RequiredItemAttributes = RequiredKeys<
   'defindex' | 'quality',
-  PrimaryItemAttributes
+  PrimaryItemAttributes & ExtraItemAttributes
 >;
 
 export interface ItemsGameItem {
@@ -221,6 +221,44 @@ export interface EconParserSchema extends GetItem {
    * @example schema.fetchStrangePartByScoreType("Non-existent score type") -> Promise.resolve(null)
    */
   fetchStrangePartByScoreType(scoreType: string): Promise<number | null>;
+  /**
+   * Syncronously get the id of a sheen by its name.
+   * @param name The name of the sheen.
+   * @returns Returns the id of the sheen, undefined if the sheen cannot be
+   * found syncronously or an error to exit early.
+   * @example schema.getSheenByName("Villainous Violet") -> 6
+   * @example schema.getSheenByName("Non-existent sheen") -> undefined
+   * @example schema.getSheenByName("Non-existent sheen") -> new Error("Sheen not found")
+   */
+  getSheenByName(name: string): number | undefined | Error;
+  /**
+   * Asynchronously get the id of a sheen by its name.
+   * @param name The name of the sheen.
+   * @returns Returns the id of the sheen or throws an error if the sheen
+   * cannot be found.
+   * @example schema.fetchSheenByName("Villainous Violet") -> Promise.resolve(6)
+   * @example schema.fetchSheenByName("Non-existent sheen") -> Promise.reject(new Error("Sheen not found"))
+   */
+  fetchSheenByName(name: string): Promise<number>;
+  /**
+   * Syncronously get the id of a killstreaker by its name.
+   * @param name The name of the killstreaker.
+   * @returns Returns the id of the killstreaker, undefined if the killstreaker
+   * cannot be found syncronously or an error to exit early.
+   * @example schema.getKillstreakerByName("Cerebral Discharge") -> 2003
+   * @example schema.getKillstreakerByName("Non-existent killstreaker") -> undefined
+   * @example schema.getKillstreakerByName("Non-existent killstreaker") -> new Error("Killstreaker not found")
+   */
+  getKillstreakerByName(name: string): number | undefined | Error;
+  /**
+   * Asynchronously get the id of a killstreaker by its name.
+   * @param name The name of the killstreaker.
+   * @returns Returns the id of the killstreaker or throws an error if the
+   * killstreaker cannot be found.
+   * @example schema.fetchKillstreakerByName("Cerebral Discharge") -> Promise.resolve(2003)
+   * @example schema.fetchKillstreakerByName("Non-existent killstreaker") -> Promise.reject(new Error("Killstreaker not found"))
+   */
+  fetchKillstreakerByName(name: string): Promise<number>;
 }
 
 /**
@@ -228,54 +266,6 @@ export interface EconParserSchema extends GetItem {
  * This schema is used to define the getters for this information.
  */
 export interface TF2ParserSchema extends GetItem {
-  /**
-   * Syncronously get the name of a sheen by its id.
-   * @param id The id of the sheen.
-   * @returns Returns the name of the sheen, undefined if the sheen cannot be
-   * found syncronously or an error to exit early.
-   * @example schema.getSheenById(6) -> "Villainous Violet"
-   * @example schema.getSheenById(6) -> undefined
-   * @example schema.getSheenById(-1) -> new Error("Sheen not found")
-   */
-  getSheenById(id: number): string | undefined | Error;
-  /**
-   * Asynchronously get the name of a sheen by its id.
-   * @param id The id of the sheen.
-   * @returns Returns the name of the sheen or throws an error if the sheen
-   * cannot be found.
-   * @example schema.fetchSheenById(6) -> Promise.resolve("Villainous Violet")
-   * @example schema.fetchSheenById(-1) -> Promise.reject(new Error("Sheen not found"))
-   */
-  fetchSheenById(id: number): Promise<string>;
-  /**
-   * Syncronously get the name of a killstreaker by its id.
-   * @param id The id of the killstreaker.
-   * @returns Returns the name of the killstreaker, undefined if the killstreaker
-   * cannot be found syncronously or an error to exit early.
-   * @example schema.getKillstreakerById(2003) -> "Cerebral Discharge"
-   * @example schema.getKillstreakerById(2003) -> undefined
-   * @example schema.getKillstreakerById(-1) -> new Error("Killstreaker not found")
-   */
-  getKillstreakerById(id: number): string | undefined | Error;
-  /**
-   * Asynchronously get the name of a killstreaker by its id.
-   * @param id The id of the killstreaker.
-   * @returns Returns the name of the killstreaker or throws an error if the
-   * killstreaker cannot be found.
-   * @example schema.fetchKillstreakerById(2003) -> Promise.resolve("Cerebral Discharge")
-   * @example schema.fetchKillstreakerById(-1) -> Promise.reject(new Error("Killstreaker not found"))
-   */
-  fetchKillstreakerById(id: number): Promise<string>;
-  /**
-   * Syncronously get the defindex of a spell by the attribute defindex and value.
-   * @param defindex The defindex of the spell attribute.
-   * @param id The value of the spell attribute.
-   * @returns Returns the defindex of the spell, undefined if the spell cannot
-   * be found syncronously or an error to exit early.
-   * @example schema.getSpellById(1004, 1) -> 8902
-   * @example schema.getSpellById(1004, 1) -> undefined
-   * @example schema.getSpellById(-1, -1) -> new Error("Spell not found")
-   */
   getSpellById(defindex: number, id: number): number | undefined | Error;
   /**
    * Asynchronously get the defindex of a spell by the attribute defindex and value.

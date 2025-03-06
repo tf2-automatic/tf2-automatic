@@ -164,6 +164,10 @@ describe('EconParser', () => {
         fetchStrangePartByScoreType: jest.fn(),
         getItemByDefindex: jest.fn(),
         fetchItemByDefindex: jest.fn(),
+        getSheenByName: jest.fn(),
+        fetchSheenByName: jest.fn(),
+        getKillstreakerByName: jest.fn(),
+        fetchKillstreakerByName: jest.fn(),
       };
 
       parser = new EconParser(schema);
@@ -533,6 +537,10 @@ describe('EconParser', () => {
       schema.fetchItemByDefindex.mockResolvedValue({
         name: 'Decoder Ring',
       });
+      schema.getSheenByName.mockReturnValue(undefined);
+      schema.fetchSheenByName.mockResolvedValue(-1);
+      schema.getKillstreakerByName.mockReturnValue(undefined);
+      schema.fetchKillstreakerByName.mockResolvedValue(-1);
     }
 
     beforeEach(() => {
@@ -551,6 +559,10 @@ describe('EconParser', () => {
         fetchStrangePartByScoreType: jest.fn(),
         getItemByDefindex: jest.fn(),
         fetchItemByDefindex: jest.fn(),
+        getSheenByName: jest.fn(),
+        fetchSheenByName: jest.fn(),
+        getKillstreakerByName: jest.fn(),
+        fetchKillstreakerByName: jest.fn(),
       };
 
       parser = new EconParser(schema);

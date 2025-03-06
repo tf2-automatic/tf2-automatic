@@ -7,14 +7,14 @@ SKUs are used to create a string representation of a TF2 item. The SKU format wa
 See the example below:
 
 ```ts
-import { SKU, PrimaryItemAttributes } from '@tf2-automatic/tf2-format';
+import { SKU, Item } from '@tf2-automatic/tf2-format';
 import assert from 'assert';
 
 // A Mann Co. Supply Crate Key represented as a string
 const sku = '5021;6';
 
 // Parse the string into the common item representation
-const item: PrimaryItemAttributes = SKU.fromString(sku);
+const item: Item = SKU.fromString(sku);
 
 // Or create the string representation again
 assert(sku === SKU.fromObject(item));

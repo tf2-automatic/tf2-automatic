@@ -57,8 +57,8 @@ export interface ExtractedTF2Item {
   festivized: boolean;
   effect: number | null;
   wear: number | null;
-  primaryPaint: string | null;
-  secondaryPaint: string | null;
+  primaryPaint: number | null;
+  secondaryPaint: number | null;
   killstreak: number;
   sheen: number | null;
   killstreaker: number | null;
