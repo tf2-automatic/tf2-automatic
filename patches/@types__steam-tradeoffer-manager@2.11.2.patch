@@ -1,5 +1,5 @@
 diff --git a/index.d.ts b/index.d.ts
-index 9434e88a17a7a9315fa030330ba959eb5743f126..aac4d17597245bd632dd53cea8fd11384d3ca2d7 100644
+index 7f4576a773d125d807172eb29ea89ed37560cde4..2e5e890d9386d24ddba79158a12fdb144eb03c7d 100644
 --- a/index.d.ts
 +++ b/index.d.ts
 @@ -21,7 +21,7 @@ declare class TradeOfferManager extends EventEmitter {
@@ -11,10 +11,10 @@ index 9434e88a17a7a9315fa030330ba959eb5743f126..aac4d17597245bd632dd53cea8fd1138
      steamID: SteamID | null;
      storage: FileManager;
  
-@@ -689,6 +689,8 @@ declare namespace TradeOfferManager {
-          * @param received An array of TradeOffer objects for offers we received
+@@ -696,6 +696,8 @@ declare namespace TradeOfferManager {
+          * @param err An Error object
           */
-         offerList: (filter: number, sent: TradeOffer[], received: TradeOffer[]) => void;
+         sessionExpired: (err: Error) => void;
 +
 +        debug: (msg: string) => void;
      }

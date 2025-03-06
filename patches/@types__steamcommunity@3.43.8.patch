@@ -1,8 +1,8 @@
 diff --git a/index.d.ts b/index.d.ts
-index 2196aea21a679fe275cb67362167d586fd20ac0a..5a0e4ede7d2cd26c4b08c148c2064d074c9944b9 100644
+index 65ab085d90ccd429e5d71c95f150ee7a0f500993..530ca2d50b9209ba8efbe90ec0624f77a1a4f0bc 100644
 --- a/index.d.ts
 +++ b/index.d.ts
-@@ -619,23 +619,23 @@ declare namespace SteamCommunity {
+@@ -637,23 +637,23 @@ declare namespace SteamCommunity {
      type CallbackError = Error & { [key: string]: any } | null;
  
      /** Unique and can change after a trade. */

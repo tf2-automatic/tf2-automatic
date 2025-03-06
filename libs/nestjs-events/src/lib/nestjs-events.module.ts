@@ -47,7 +47,7 @@ function rabbitmq(options: EventsModuleOptions): DynamicModule {
   return {
     module: NestEventsModule,
     imports: [
-      RabbitMQModule.forRootAsync(RabbitMQModule, {
+      RabbitMQModule.forRootAsync({
         useFactory: () => {
           const exchanges = options.subscriberExchanges.map((exchange) => ({
             name: exchange,
