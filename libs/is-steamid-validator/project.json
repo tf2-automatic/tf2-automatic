@@ -38,9 +38,6 @@
         "main": "libs/is-steamid-validator/src/index.ts",
         "assets": ["libs/is-steamid-validator/*.md"]
       }
-    },
-    "npm": {
-      "executor": "@tf2-automatic/executors:npm"
     }
   },
   "tags": []
