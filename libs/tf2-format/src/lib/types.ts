@@ -58,7 +58,7 @@ type RequiredKeys<T extends keyof U, U> = {
 
 export type RequiredItemAttributes = RequiredKeys<
   'defindex' | 'quality',
-  PrimaryItemAttributes
+  PrimaryItemAttributes & ExtraItemAttributes
 >;
 
 export interface ItemsGameItem {
