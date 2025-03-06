@@ -114,11 +114,11 @@ export class TF2Parser extends Parser<
       switch (attribute.def_index) {
         case 142:
           // Paint color for RED/BLU if universal and RED if team color
-          attributes.primaryPaint = value.readFloatLE(0).toString(16);
+          attributes.primaryPaint = value.readFloatLE(0);
           break;
         case 261:
           // Paint color for BLU
-          attributes.secondaryPaint = value.readFloatLE(0).toString(16);
+          attributes.secondaryPaint = value.readFloatLE(0);
           break;
         case 214:
         case 294:
@@ -403,9 +403,10 @@ export class TF2Parser extends Parser<
 
     let paint: number | undefined | null | Error = null;
     if (extracted.primaryPaint) {
-      paint = this.schema.getPaintByColor(extracted.primaryPaint);
+      const hex = extracted.primaryPaint.toString(16);
+      paint = this.schema.getPaintByColor(hex);
       if (paint === undefined) {
-        paint = await this.schema.fetchPaintByColor(extracted.primaryPaint);
+        paint = await this.schema.fetchPaintByColor(hex);
       } else if (paint instanceof Error) {
         throw paint;
       }
@@ -446,28 +447,6 @@ export class TF2Parser extends Parser<
       }
     }
 
-    let sheen: string | undefined | null | Error = null;
-    if (extracted.sheen) {
-      sheen = this.schema.getSheenById(extracted.sheen);
-      if (sheen === undefined) {
-        sheen = await this.schema.fetchSheenById(extracted.sheen);
-      } else if (sheen instanceof Error) {
-        throw sheen;
-      }
-    }
-
-    let killstreaker: string | undefined | null | Error = null;
-    if (extracted.killstreaker) {
-      killstreaker = this.schema.getKillstreakerById(extracted.killstreaker);
-      if (killstreaker === undefined) {
-        killstreaker = await this.schema.fetchKillstreakerById(
-          extracted.killstreaker,
-        );
-      } else if (killstreaker instanceof Error) {
-        throw killstreaker;
-      }
-    }
-
     const parsed: InventoryItem = {
       assetid: extracted.assetid,
       defindex: extracted.defindex,
@@ -488,8 +467,8 @@ export class TF2Parser extends Parser<
       paint,
       parts,
       spells,
-      sheen,
-      killstreaker,
+      sheen: extracted.sheen,
+      killstreaker: extracted.killstreaker,
       inputs: extracted.inputs,
     };
 

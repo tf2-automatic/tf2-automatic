@@ -10,10 +10,6 @@ describe('TF2Parser', () => {
       const schema: TF2ParserSchema = {
         getItemByDefindex: jest.fn(),
         fetchItemByDefindex: jest.fn(),
-        getSheenById: jest.fn(),
-        fetchSheenById: jest.fn(),
-        getKillstreakerById: jest.fn(),
-        fetchKillstreakerById: jest.fn(),
         getSpellById: jest.fn(),
         fetchSpellById: jest.fn(),
         getPaintByColor: jest.fn(),
@@ -46,8 +42,8 @@ describe('TF2Parser', () => {
       expect(extracted.defindex).toEqual(920);
       expect(extracted.quality).toEqual(5);
       expect(extracted.effect).toEqual(10);
-      expect(extracted.primaryPaint).toEqual('ff69b4');
-      expect(extracted.secondaryPaint).toEqual('ff69b4');
+      expect(extracted.primaryPaint).toEqual(16738740);
+      expect(extracted.secondaryPaint).toEqual(16738740);
     });
 
     it('will parse basic killstreaks', () => {
@@ -208,10 +204,6 @@ describe('TF2Parser', () => {
       schema = {
         getItemByDefindex: jest.fn(),
         fetchItemByDefindex: jest.fn(),
-        getSheenById: jest.fn(),
-        fetchSheenById: jest.fn(),
-        getKillstreakerById: jest.fn(),
-        fetchKillstreakerById: jest.fn(),
         getSpellById: jest.fn(),
         fetchSpellById: jest.fn(),
         getPaintByColor: jest.fn(),
