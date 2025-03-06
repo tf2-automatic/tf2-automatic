@@ -38,9 +38,6 @@
         "main": "libs/is-refined-validator/src/index.ts",
         "assets": ["libs/is-refined-validator/*.md"]
       }
-    },
-    "npm": {
-      "executor": "@tf2-automatic/executors:npm"
     }
   },
   "tags": []
