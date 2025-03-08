@@ -74,7 +74,13 @@ export interface ItemsGameItem {
   >;
 }
 
-interface GetItem {
+export interface SchemaItem {
+  item_name: string;
+  proper_name: boolean;
+  item_quality: number;
+}
+
+interface GetItemsGameItem {
   /**
    * Synchronously get an item by its defindex from items_game.txt.
    * @param defindex The defindex of the item.
@@ -97,10 +103,92 @@ interface GetItem {
 }
 
 /**
+ * Various information needs to be retrieved externally to name items.
+ * This schema is used to define the getters for this information.
+ */
+export interface ItemNamingSchema {
+  /**
+   * Syncronously get an item by its defindex from the TF2 GetItemsGame API.
+   * @param defindex The defindex of the item.
+   * @returns Returns the matching item, undefined if it is not possible to get
+   * the item synchronously or an error to exit early.
+   * @example schema.getItemByDefindex(5021) -> { item_name: "Mann Co. Supply Crate Key", ... }
+   * @example schema.getItemByDefindex(5021) -> undefined
+   * @example schema.getItemByDefindex(-1) -> new Error("Item not found")
+   */
+  getItemByDefindex(defindex: number): SchemaItem | undefined | Error;
+  /**
+   * Asynchronously get an item by its defindex from the TF2 GetItemsGame API.
+   * @param defindex The defindex of the item.
+   * @returns Returns the matching item or throws an error if it was not found.
+   * @example schema.fetchItemByDefindex(5021) -> Promise.resolve({ item_name: "Mann Co. Supply Crate Key", ... })
+   * @example schema.fetchItemByDefindex(-1) -> Promise.reject(new Error("Item not found"))
+   */
+  fetchItemByDefindex(defindex: number): Promise<SchemaItem>;
+  /**
+   * Syncronously get the name of an item by its defindex.
+   * @param id The id of the quality.
+   * @returns Returns the name of the quality, undefined if the quality cannot
+   * be found syncronously or an error to exit early.
+   * @example schema.getQualityById(6) -> "Unique"
+   * @example schema.getQualityById(6) -> undefined
+   * @example schema.getQualityById(-1) -> new Error("Quality not found")
+   */
+  getQualityById(id: number): string | undefined | Error;
+  /**
+   * Asynchronously get the name of a quality by its id.
+   * @param id The id of the quality.
+   * @returns Returns the name of the quality or throws an error if the quality
+   * cannot be found.
+   * @example schema.fetchQualityById(6) -> Promise.resolve("Unique")
+   * @example schema.fetchQualityById(-1) -> Promise.reject(new Error("Quality not found"))
+   */
+  fetchQualityById(id: number): Promise<string>;
+  /**
+   * Syncronously get the name of an effect by its id.
+   * @param id The id of the effect.
+   * @returns Returns the name of the effect, undefined if the effect cannot
+   * be found syncronously or an error to exit early.
+   * @example schema.getEffectById(13) -> "Burning Flames"
+   * @example schema.getEffectById(13) -> undefined
+   * @example schema.getEffectById(-1) -> new Error("Effect not found")
+   */
+  getEffectById(id: number): string | undefined | Error;
+  /**
+   * Asynchronously get the name of an effect by its id.
+   * @param id The id of the effect.
+   * @returns Returns the name of the effect or throws an error if the effect
+   * cannot be found.
+   * @example schema.fetchEffectById(13) -> Promise.resolve("Burning Flames")
+   * @example schema.fetchEffectById(-1) -> Promise.reject(new Error("Effect not found"))
+   */
+  fetchEffectById(id: number): Promise<string>;
+  /**
+   * Syncronously get the name of a texture by its id.
+   * @param id The id of the texture.
+   * @returns Returns the name of the texture, undefined if the texture cannot
+   * be found syncronously or an error to exit early.
+   * @example schema.getTextureById(14) -> "Night Owl"
+   * @example schema.getTextureById(14) -> undefined
+   * @example schema.getTextureById(-1) -> new Error("Texture not found")
+   */
+  getPaintkitById(id: number): string | undefined | Error;
+  /**
+   * Asynchronously get the name of a texture by its id.
+   * @param id The id of the texture.
+   * @returns Returns the name of the texture or throws an error if the texture
+   * cannot be found.
+   * @example schema.fetchTextureById(14) -> Promise.resolve("Night Owl")
+   * @example schema.fetchTextureById(-1) -> Promise.reject(new Error("Texture not found"))
+   */
+  fetchPaintkitById(id: number): Promise<string>;
+}
+
+/**
  * Various information needs to be retrieved externally to format the Econ items.
  * This schema is used to define the getters for this information.
  */
-export interface EconParserSchema extends GetItem {
+export interface EconParserSchema extends GetItemsGameItem {
   /**
    * Syncronously get the defindex of an item by its `item_name` using the
    * GetSchemaItems API.
@@ -265,7 +353,7 @@ export interface EconParserSchema extends GetItem {
  * Various information needs to be retrieved externally to format the TF2 items.
  * This schema is used to define the getters for this information.
  */
-export interface TF2ParserSchema extends GetItem {
+export interface TF2ParserSchema extends GetItemsGameItem {
   getSpellById(defindex: number, id: number): number | undefined | Error;
   /**
    * Asynchronously get the defindex of a spell by the attribute defindex and value.
