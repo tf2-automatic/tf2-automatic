@@ -134,6 +134,7 @@ describe('TF2Parser', () => {
       expect(extracted.sheen).toEqual(7);
       expect(extracted.killstreaker).toEqual(2004);
       expect(extracted.output).toEqual(6526);
+      expect(extracted.target).toEqual(406);
     });
 
     it('will parse strangifier chemistry sets', () => {
@@ -193,6 +194,22 @@ describe('TF2Parser', () => {
       expect(extracted.defindex).toEqual(6527);
       expect(extracted.quality).toEqual(6);
       expect(extracted.target).toEqual(206);
+      expect(extracted.killstreak).toEqual(1);
+    });
+
+    it('will parse collectors chemistry sets', () => {
+      const item = TestData.getCollectorsChemistrySet();
+
+      const [extracted] = parser.extract(item);
+
+      expect(extracted.assetid).toEqual('15511116952');
+      expect(extracted.defindex).toEqual(20007);
+      expect(extracted.quality).toEqual(6);
+      expect(extracted.outputQuality).toEqual(14);
+      expect(extracted.output).toEqual(1080);
+      expect(extracted.inputs).toEqual([
+        { amount: 193, defindex: 1080, quality: 6 },
+      ]);
     });
   });
 

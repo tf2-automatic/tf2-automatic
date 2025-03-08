@@ -17,3 +17,7 @@ For parsing items, e.g. econ items from inventories and trades, or TF2 items fro
 ### SKU
 
 For working with SKUs, use the [SKU](./src/lib/sku) class.
+
+### Generating names
+
+For generating the name of items, use the [NameGenerator](./src/lib/naming) class.
