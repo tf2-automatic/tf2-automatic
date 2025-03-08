@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AttachedParticle } from '.';
 
 export interface SchemaItem {
   name: string;
