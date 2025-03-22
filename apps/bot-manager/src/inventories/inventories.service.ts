@@ -19,8 +19,6 @@ import {
   TF2_LOST_EVENT,
   TradeChangedEvent,
   TRADE_CHANGED_EVENT,
-  TF2_GAINED_EVENT,
-  TF2GainedEvent,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -33,7 +31,6 @@ import {
   INVENTORY_CHANGED_EVENT,
   InventoryChangedEvent,
   InventoryChangedEventReason,
-  InventoryItem,
 } from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
@@ -90,7 +87,7 @@ export class InventoriesService
     await this.eventsService.subscribe(
       'bot-manager.delete-inventory-items',
       BOT_EXCHANGE_NAME,
-      [TF2_LOST_EVENT, TF2_GAINED_EVENT, TRADE_CHANGED_EVENT],
+      [TF2_LOST_EVENT, TRADE_CHANGED_EVENT],
       (event) => this.handleDeleteInventoryItems(event as any),
       {
         retry: true,
@@ -362,15 +359,13 @@ export class InventoriesService
   }
 
   private handleDeleteInventoryItems(
-    event: TF2LostEvent | TradeChangedEvent | TF2GainedEvent,
+    event: TF2LostEvent | TradeChangedEvent,
   ): Promise<void> {
     switch (event.type) {
       case TRADE_CHANGED_EVENT:
         return this.handleOfferChanged(event);
       case TF2_LOST_EVENT:
         return this.handleItemLost(event);
-      case TF2_GAINED_EVENT:
-        return this.handleItemGained(event);
     }
   }
 
@@ -394,9 +389,9 @@ export class InventoriesService
   }
 
   private addItems(
-    result: Record<string, InventoryItem[]>,
+    result: Record<string, Item[]>,
     steamid: SteamID,
-    items: InventoryItem[],
+    items: Item[],
   ) {
     items.reduce((acc, cur) => {
       const key = pack({
@@ -493,7 +488,7 @@ export class InventoriesService
 
   private async updateInventories(
     lostItems: Record<string, string[]>,
-    gainedItems: Record<string, InventoryItem[]>,
+    gainedItems: Record<string, Item[]>,
     reason: InventoryChangedEventReason,
   ) {
     const inventories = Object.keys(lostItems)
@@ -549,10 +544,7 @@ export class InventoriesService
           );
         });
 
-      const changes: Record<
-        string,
-        { gained: InventoryItem[]; lost: InventoryItem[] }
-      > = {};
+      const changes: Record<string, { gained: Item[]; lost: Item[] }> = {};
 
       Object.keys(gainedItems).forEach((key) => {
         changes[key] = changes[key] ?? { gained: [], lost: [] };
@@ -687,28 +679,6 @@ export class InventoriesService
     return this.updateInventories(
       lostItems,
       {},
-      InventoryChangedEventReason.TF2,
-    );
-  }
-
-  private async handleItemGained(event: TF2GainedEvent): Promise<void> {
-    const gainedItems: Record<string, InventoryItem[]> = {};
-
-    this.addItems(
-      gainedItems,
-      new SteamID(event.metadata.steamid64 as string),
-      [
-        {
-          appid: 440,
-          contextid: '2',
-          assetid: event.data.id,
-        },
-      ],
-    );
-
-    return this.updateInventories(
-      {},
-      gainedItems,
       InventoryChangedEventReason.TF2,
     );
   }
