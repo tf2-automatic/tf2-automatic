@@ -361,7 +361,7 @@ export class InventoriesService
     };
   }
 
-  private handleDeleteInventoryItems(
+  private async handleDeleteInventoryItems(
     event: TF2LostEvent | TradeChangedEvent,
   ): Promise<void> {
     switch (event.type) {
