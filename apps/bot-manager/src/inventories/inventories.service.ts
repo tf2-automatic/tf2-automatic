@@ -192,26 +192,26 @@ export class InventoriesService
 
     // Save inventory in Redis and event in outbox
     await this.locker.using([key], LockDuration.SHORT, async () => {
-        await this.redis.hset(tempKey, object);
+      await this.redis.hset(tempKey, object);
 
-        const multi = this.redis.multi().rename(tempKey, key);
+      const multi = this.redis.multi().rename(tempKey, key);
 
-        redisMultiEvent(multi, {
-          type: INVENTORY_LOADED_EVENT,
-          data: event,
-          metadata: {
-            id: uuidv4(),
-            steamid64: event.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies InventoryLoadedEvent);
+      redisMultiEvent(multi, {
+        type: INVENTORY_LOADED_EVENT,
+        data: event,
+        metadata: {
+          id: uuidv4(),
+          steamid64: event.steamid64,
+          time: Math.floor(Date.now() / 1000),
+        },
+      } satisfies InventoryLoadedEvent);
 
-        if (ttl > 0) {
-          // and make it expire
-          multi.expire(key, ttl);
-        }
+      if (ttl > 0) {
+        // and make it expire
+        multi.expire(key, ttl);
+      }
 
-        await multi.exec();
+      await multi.exec();
     });
 
     return {
@@ -345,11 +345,14 @@ export class InventoriesService
       },
     );
 
-    const items = Object.keys(object)
-      .filter((key) => {
-        return key.startsWith('item:');
-      })
-      .map((item) => unpack(object[item]));
+    const items: Item[] = [];
+    for (const assetid in object) {
+      if (!assetid.startsWith('item:')) {
+        continue;
+      }
+
+      items.push(unpack(object[assetid]));
+    }
 
     return {
       timestamp,
