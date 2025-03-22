@@ -219,4 +219,27 @@ export class SKU {
 
     return item;
   }
+
+  static hasAttribute(
+    item: RequiredItemAttributes,
+    attribute: keyof RequiredItemAttributes,
+  ): boolean {
+    const value = item[attribute];
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    const defaultValue = this.getDefault()[attribute];
+
+    const cheap = value === defaultValue;
+    if (cheap) {
+      return false;
+    }
+
+    if (Array.isArray(defaultValue) && Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
+  }
 }
