@@ -182,7 +182,7 @@ export class InventoriesService
 
     object['timestamp'] = now;
 
-    const key = this.getInventoryKey(steamid, appid, contextid);
+    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
     const tempKey = key + ':temp';
 
     const event = {
@@ -194,16 +194,7 @@ export class InventoriesService
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
-    await this.locker.using(
-      [
-        this.getInventoryResource({
-          steamid64: steamid.getSteamID64(),
-          appid,
-          contextid,
-        }),
-      ],
-      LockDuration.SHORT,
-      async () => {
+    await this.locker.using([key], LockDuration.SHORT, async () => {
         await this.redis.hset(tempKey, object);
 
         const multi = this.redis.multi().rename(tempKey, key);
@@ -224,8 +215,7 @@ export class InventoriesService
         }
 
         await multi.exec();
-      },
-    );
+    });
 
     return {
       timestamp: now,
@@ -243,19 +233,11 @@ export class InventoriesService
       this.getInventoryJobId(steamid, appid, contextid),
     );
 
-    return this.locker.using(
-      [
-        this.getInventoryResource({
-          steamid64: steamid.getSteamID64(),
-          appid,
-          contextid,
-        }),
-      ],
-      LockDuration.SHORT,
-      async () => {
-        await this.redis.del(this.getInventoryKey(steamid, appid, contextid));
-      },
-    );
+    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
+
+    return this.locker.using([key], LockDuration.SHORT, async () => {
+      await this.redis.del(key);
+    });
   }
 
   async fetchInventory(
@@ -341,16 +323,10 @@ export class InventoriesService
     appid: number,
     contextid: string,
   ): Promise<InventoryResponse> {
-    const key = this.getInventoryKey(steamid, appid, contextid);
+    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
 
     const { timestamp, ttl, object } = await this.locker.using(
-      [
-        this.getInventoryResource({
-          steamid64: steamid.getSteamID64(),
-          appid,
-          contextid,
-        }),
-      ],
+      [key],
       LockDuration.SHORT,
       async (signal) => {
         const timestamp = await this.redis.hget(key, 'timestamp');
@@ -528,8 +504,15 @@ export class InventoriesService
       }, new Set<string>());
 
     const resources = Array.from(inventories).map((inventory) => {
-      const parts = unpack(Buffer.from(inventory, 'base64'));
-      return this.getInventoryResource(parts);
+      const parts = unpack(
+        Buffer.from(inventory, 'base64'),
+      ) as InventoryIdentifier;
+
+      return this.getInventoryKey(
+        parts.steamid64,
+        parts.appid,
+        parts.contextid,
+      );
     });
 
     return this.locker.using(resources, LockDuration.LONG, async (signal) => {
@@ -730,18 +713,13 @@ export class InventoriesService
     );
   }
 
-  private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+  private getInventoryKey(steamid64: string, appid: number, contextid: string) {
+    return `inventory:${steamid64}:${appid}:${contextid}`;
   }
 
   private getInventoryKeyFromObject(data: InventoryIdentifier) {
     const { steamid64, appid, contextid } = data;
-    return this.getInventoryKey(new SteamID(steamid64), appid, contextid);
-  }
-
-  private getInventoryResource(data: InventoryIdentifier) {
-    const { steamid64, appid, contextid } = data;
-    return `inventories:${steamid64}:${appid}:${contextid}`;
+    return this.getInventoryKey(steamid64, appid, contextid);
   }
 
   private getInventoryJobId(
