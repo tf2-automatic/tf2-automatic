@@ -56,8 +56,8 @@ export class SKU {
     return sku;
   }
 
-  static fromString(sku: string): Item {
-    const item: Item = {
+  static getDefault(): Item {
+    return {
       defindex: -1,
       quality: -1,
       craftable: true,
@@ -80,6 +80,10 @@ export class SKU {
       killstreaker: null,
       inputs: null,
     };
+  }
+
+  static fromString(sku: string): Item {
+    const item = this.getDefault();
 
     const length = sku.length;
     let start = 0;
