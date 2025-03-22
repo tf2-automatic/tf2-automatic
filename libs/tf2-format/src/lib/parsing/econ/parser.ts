@@ -268,7 +268,7 @@ export class EconParser extends Parser<
       throw quality;
     }
 
-    if (!quality) {
+    if (typeof quality !== 'number') {
       throw new Error('Quality is undefined');
     }
 

@@ -3172,3 +3172,100 @@ export function getStrangeWarPaintWithEffect() {
     fraudwarnings: [],
   };
 }
+
+export function getNormalQualityItem() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14862138830',
+    classid: '6144226856',
+    instanceid: '6089123091',
+    amount: 1,
+    pos: 2652,
+    id: '14862138830',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEcUxQfVAvnqipKjsTjMv6NGucF1Yln48ECjDQ5x1grYuaxMmJiJlDGWfUMDPdv8g3tDyYxvpJgVY7h9OJIOVK4tSW1UdY',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEcUxQfVAvnqipKjsTjMv6NGucF1Yln48ECjDQ5x1grYuaxMmJiJlDGWfUMDPdv8g3tDyYxvpJgVY7h9OJIOVK4tSW1UdY',
+    descriptions: [
+      {
+        value: '(Headshot Kills: 75)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '(Dominations: 3)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '(Damage Dealt: 22851)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Exorcism (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=201&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D3325601304308363461',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Strange Professional Killstreak Sniper Rifle',
+    name_color: 'B2B2B2',
+    type: 'Strange Sniper Rifle - Kills: 90',
+    market_name: 'Strange Professional Killstreak Sniper Rifle',
+    market_hash_name: 'Strange Professional Killstreak Sniper Rifle',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D3325601304308363461',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'Normal',
+        name: 'Normal',
+        category: 'Quality',
+        color: 'B2B2B2',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Sniper',
+        name: 'Sniper',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
