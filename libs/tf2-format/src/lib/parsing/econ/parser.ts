@@ -42,7 +42,7 @@ const KILLSTREAK_TIERS = {
 };
 
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
-enum IdentifiableDescription {
+const enum IdentifiableDescription {
   Skip = 0,
   All = 1,
   // Paints, spells and parts have the same precedence because it has been shown
