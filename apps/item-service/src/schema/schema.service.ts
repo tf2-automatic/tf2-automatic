@@ -989,12 +989,7 @@ export class SchemaService implements OnApplicationBootstrap {
     return engine.getSignedUrl(path);
   }
 
-  private getKey(key: string, prefix: any, properties?: Record<string, any>) {
-    if (properties) {
-      for (const property in properties) {
-        key = key.replace('<' + property + '>', properties[property]);
-      }
-    }
+  private getKey(key: string, prefix: any) {
     return prefix + ':' + key;
   }
 }
