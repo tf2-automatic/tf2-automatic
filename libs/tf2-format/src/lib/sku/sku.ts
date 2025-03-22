@@ -79,6 +79,7 @@ export class SKU {
       sheen: null,
       killstreaker: null,
       inputs: null,
+      quantity: 1,
     };
   }
 

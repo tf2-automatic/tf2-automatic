@@ -67,7 +67,7 @@ export interface ExtractedTF2Item {
   spells: (number | [number, number])[];
   parts: number[];
   paintkit: number | null;
-  quantity: number | null;
+  quantity: number;
   inputs: RecipeInput[] | null;
   output: number | null;
   outputQuality: number | null;

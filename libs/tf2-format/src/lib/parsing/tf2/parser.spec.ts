@@ -211,6 +211,17 @@ describe('TF2Parser', () => {
         { amount: 193, defindex: 1080, quality: 6 },
       ]);
     });
+
+    it('will parse dueling minigames', () => {
+      const item = TestData.getDuelingMinigame();
+
+      const [extracted] = parser.extract(item);
+
+      expect(extracted.assetid).toEqual('15568852549');
+      expect(extracted.defindex).toEqual(241);
+      expect(extracted.quality).toEqual(6);
+      expect(extracted.quantity).toEqual(5);
+    });
   });
 
   describe('#parse', () => {

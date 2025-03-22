@@ -1,3 +1,4 @@
+import { Item } from '../types';
 import { SKU } from './';
 import * as TestData from './test-data';
 
@@ -88,7 +89,7 @@ describe('SKU', () => {
   });
 
   it('will result in the starting object', () => {
-    const item = {
+    const item: Item = {
       defindex: 1,
       quality: 1,
       craftable: false,
@@ -110,6 +111,7 @@ describe('SKU', () => {
       inputs: null,
       parts: [],
       spells: [],
+      quantity: 1,
     };
 
     const sku = SKU.fromObject(item);

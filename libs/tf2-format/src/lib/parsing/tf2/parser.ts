@@ -484,6 +484,7 @@ export class TF2Parser extends Parser<
       sheen: extracted.sheen,
       killstreaker: extracted.killstreaker,
       inputs: extracted.inputs,
+      quantity: extracted.quantity,
     };
 
     return parsed;

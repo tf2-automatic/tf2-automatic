@@ -680,3 +680,26 @@ export function getCollectorsChemistrySet(): TF2Item {
     position: 0,
   };
 }
+
+export function getDuelingMinigame(): TF2Item {
+  return {
+    attribute: [],
+    equipped_state: [],
+    id: '15568852549',
+    account_id: 320302259,
+    inventory: 3221225475,
+    def_index: 241,
+    quantity: 5,
+    level: 5,
+    quality: 6,
+    flags: 4,
+    origin: 0,
+    custom_name: null,
+    custom_desc: null,
+    interior_item: null,
+    in_use: false,
+    style: 0,
+    original_id: '15487882462',
+    position: 0,
+  };
+}
