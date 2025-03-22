@@ -18,8 +18,6 @@ export interface TF2Item {
   in_use: boolean;
   style: number;
   original_id: string | null;
-  contains_equipped_state: null;
-  contains_equipped_state_v2: boolean;
   position: number;
 }
 
