@@ -19,6 +19,7 @@ import { SchemaModule } from './schema/schema.module';
 import { BotsModule } from './bots/bots.module';
 import { HealthModule } from './health/health.module';
 import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
+import { ManagerModule } from './manager/manager.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
     HealthModule,
     BotsModule,
     SchemaModule,
+    ManagerModule,
   ],
   controllers: [],
   providers: [],
