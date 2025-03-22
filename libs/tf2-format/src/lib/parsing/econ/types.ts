@@ -5,9 +5,9 @@ export interface EconItem {
   classid: string;
   instanceid: string;
   amount: string | number;
-  pos: number;
+  pos?: number;
   id: string;
-  currency: number;
+  currency?: number;
   background_color: string;
   icon_url: string;
   icon_url_large: string;
@@ -23,7 +23,7 @@ export interface EconItem {
   market_marketable_restriction: number;
   marketable: boolean;
   tags: Tag[];
-  is_currency: boolean;
+  is_currency?: boolean;
   fraudwarnings: string[];
   descriptions: Description[];
   market_actions?: MarketAction[];

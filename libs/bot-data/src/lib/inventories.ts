@@ -49,7 +49,7 @@ export interface Item {
   owner_actions?: Action[];
   tags: Tag[];
   id: string;
-  fraudwarnings: unknown[];
+  fraudwarnings: string[];
   owner_descriptions?: Description[];
   actions: Action[];
   market_actions?: Action[];

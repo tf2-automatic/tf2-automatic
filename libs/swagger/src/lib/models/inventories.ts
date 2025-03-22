@@ -159,7 +159,7 @@ export class ItemModel extends AssetModel implements Item {
   @ApiProperty({
     description: 'A list of fraud warnings',
   })
-  fraudwarnings: unknown[];
+  fraudwarnings: string[];
 
   @ApiProperty()
   owner_descriptions?: Description[] | undefined;
