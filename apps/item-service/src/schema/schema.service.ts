@@ -755,8 +755,9 @@ export class SchemaService implements OnApplicationBootstrap {
     const nameToDefindex: Record<string, Set<number>> = {};
 
     const strangePartByScoreType: Record<string, Buffer> = {};
-
     const paintByColor: Record<string, Buffer> = {};
+    const spellsByName: Record<string, Buffer> = {};
+    const spellsById: Record<string, Buffer> = {};
 
     for (const item of result.items) {
       const defindex = item.defindex;
@@ -816,6 +817,19 @@ export class SchemaService implements OnApplicationBootstrap {
           }
         }
       }
+
+      if (
+        item.item_type_name === 'TF_SpellTool' &&
+        item.item_name.startsWith('Halloween Spell: ')
+      ) {
+        const spell = {
+          id: item.defindex,
+          name: item.item_name.slice(17),
+        };
+
+        spellsByName[spell.name] = pack(spell);
+        spellsById[spell.id.toString()] = pack(spell);
+      }
     }
 
     // Save the schema items
@@ -835,6 +849,36 @@ export class SchemaService implements OnApplicationBootstrap {
         this.getKey(SchemaKeys.PAINT_COLOR, job.data.time),
         paintByColor,
       );
+    }
+
+    // Only save spells that are not already in the schema
+
+    const spellsByNameKeys = Object.keys(spellsByName);
+    if (spellsByNameKeys.length > 0) {
+      const existing = await this.redis.hmgetBuffer(
+        this.getKey(SchemaKeys.SPELLS_NAME, job.data.time),
+        ...spellsByNameKeys,
+      );
+
+      for (let i = 0; i < spellsByNameKeys.length; i++) {
+        const key = spellsByNameKeys[i];
+        const previous = existing[i];
+        if (previous) {
+          delete spellsByName[key];
+        }
+      }
+
+      if (Object.keys(spellsByName).length > 0) {
+        multi.hmset(
+          this.getKey(SchemaKeys.SPELLS_NAME, job.data.time),
+          spellsByName,
+        );
+      }
+    }
+
+    // We (probably) don't need to check for existing spells by id here... right?
+    if (Object.keys(spellsById).length > 0) {
+      multi.hmset(this.getKey(SchemaKeys.SPELLS_ID, job.data.time), spellsById);
     }
 
     const keys = Object.keys(nameToDefindex);
