@@ -13,8 +13,7 @@ import {
   eEconItemOrigin,
   KILLSTREAK_FABRICATORS,
 } from './constants';
-import protobuf from 'protobufjs';
-import path from 'path';
+import protobuf from 'protobufjs/light';
 
 enum AttributeTokens {
   'cannot trade' = 153,
@@ -28,7 +27,22 @@ enum AttributeTokens {
   'killstreak tier' = 2025,
 }
 
-const root = protobuf.loadSync(path.resolve(__dirname, './tf2.proto'));
+const PROTO: protobuf.INamespace = {
+  nested: {
+    CAttribute_DynamicRecipeComponent: {
+      fields: {
+        defIndex: { type: 'uint32', id: 1 },
+        itemQuality: { type: 'uint32', id: 2 },
+        componentFlags: { type: 'uint32', id: 3 },
+        attributesString: { type: 'string', id: 4 },
+        numRequired: { type: 'uint32', id: 5 },
+        numFulfilled: { type: 'uint32', id: 6 },
+      },
+    },
+  },
+};
+
+const root = protobuf.Root.fromJSON(PROTO);
 const recipeComponentType = root.lookupType(
   'CAttribute_DynamicRecipeComponent',
 );

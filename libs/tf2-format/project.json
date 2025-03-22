@@ -36,7 +36,7 @@
         "tsConfig": "libs/tf2-format/tsconfig.lib.json",
         "packageJson": "libs/tf2-format/package.json",
         "main": "libs/tf2-format/src/index.ts",
-        "assets": ["libs/tf2-format/*.md", "libs/tf2-format/**/*.proto"]
+        "assets": ["libs/tf2-format/*.md"]
       }
     },
     "npm": {
