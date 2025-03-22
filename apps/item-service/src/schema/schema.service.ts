@@ -373,93 +373,10 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getSpellById(id: string, time?: number): Promise<Spell> {
-    const spellFromAttribute = await this.getSpellByIdFromAttributes(
-      id,
-      time,
-    ).catch((err) => {
-      if (err instanceof NotFoundException) {
-        return null;
-      }
-
-      throw err;
-    });
-
-    if (spellFromAttribute) {
-      return spellFromAttribute;
-    }
-
-    const spellFromItems = await this.getItemByDefindex(id, false, time).catch(
-      (err) => {
-        if (err instanceof NotFoundException) {
-          return null;
-        }
-
-        throw err;
-      },
-    );
-
-    if (
-      spellFromItems &&
-      spellFromItems.item_name.startsWith('Halloween Spell: ')
-    ) {
-      return {
-        id: parseInt(id, 10),
-        name: spellFromItems.item_name.slice(17),
-      };
-    }
-
-    throw new NotFoundException('Spell not found');
-  }
-
-  private async getSpellByIdFromAttributes(
-    id: string,
-    time?: number,
-  ): Promise<Spell> {
     return this.getValueByField(SchemaKeys.SPELLS_ID, id, time);
   }
 
   async getSpellByName(name: string, time?: number): Promise<Spell> {
-    const spellFromAttributes = await this.getSpellByNameFromAttributes(
-      name,
-      time,
-    ).catch((err) => {
-      if (err instanceof NotFoundException) {
-        return null;
-      }
-
-      throw err;
-    });
-
-    if (spellFromAttributes) {
-      return spellFromAttributes;
-    }
-
-    const spellFromItems = await this.getItemsByName(
-      'Halloween Spell: ' + name,
-      false,
-      time,
-    ).catch((err) => {
-      if (err instanceof NotFoundException) {
-        return [];
-      }
-
-      throw err;
-    });
-
-    if (spellFromItems.length !== 0) {
-      return {
-        id: spellFromItems[0].defindex,
-        name,
-      };
-    }
-
-    throw new NotFoundException('Spell not found');
-  }
-
-  private async getSpellByNameFromAttributes(
-    name: string,
-    time?: number,
-  ): Promise<Spell> {
     return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
   }
 
