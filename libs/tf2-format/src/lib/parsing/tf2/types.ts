@@ -18,8 +18,6 @@ export interface TF2Item {
   in_use: boolean;
   style: number;
   original_id: string | null;
-  contains_equipped_state: null;
-  contains_equipped_state_v2: boolean;
   position: number;
 }
 
@@ -69,7 +67,7 @@ export interface ExtractedTF2Item {
   spells: (number | [number, number])[];
   parts: number[];
   paintkit: number | null;
-  quantity: number | null;
+  quantity: number;
   inputs: RecipeInput[] | null;
   output: number | null;
   outputQuality: number | null;

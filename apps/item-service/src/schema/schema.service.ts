@@ -373,93 +373,10 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getSpellById(id: string, time?: number): Promise<Spell> {
-    const spellFromAttribute = await this.getSpellByIdFromAttributes(
-      id,
-      time,
-    ).catch((err) => {
-      if (err instanceof NotFoundException) {
-        return null;
-      }
-
-      throw err;
-    });
-
-    if (spellFromAttribute) {
-      return spellFromAttribute;
-    }
-
-    const spellFromItems = await this.getItemByDefindex(id, false, time).catch(
-      (err) => {
-        if (err instanceof NotFoundException) {
-          return null;
-        }
-
-        throw err;
-      },
-    );
-
-    if (
-      spellFromItems &&
-      spellFromItems.item_name.startsWith('Halloween Spell: ')
-    ) {
-      return {
-        id: parseInt(id, 10),
-        name: spellFromItems.item_name.slice(17),
-      };
-    }
-
-    throw new NotFoundException('Spell not found');
-  }
-
-  private async getSpellByIdFromAttributes(
-    id: string,
-    time?: number,
-  ): Promise<Spell> {
     return this.getValueByField(SchemaKeys.SPELLS_ID, id, time);
   }
 
   async getSpellByName(name: string, time?: number): Promise<Spell> {
-    const spellFromAttributes = await this.getSpellByNameFromAttributes(
-      name,
-      time,
-    ).catch((err) => {
-      if (err instanceof NotFoundException) {
-        return null;
-      }
-
-      throw err;
-    });
-
-    if (spellFromAttributes) {
-      return spellFromAttributes;
-    }
-
-    const spellFromItems = await this.getItemsByName(
-      'Halloween Spell: ' + name,
-      false,
-      time,
-    ).catch((err) => {
-      if (err instanceof NotFoundException) {
-        return [];
-      }
-
-      throw err;
-    });
-
-    if (spellFromItems.length !== 0) {
-      return {
-        id: spellFromItems[0].defindex,
-        name,
-      };
-    }
-
-    throw new NotFoundException('Spell not found');
-  }
-
-  private async getSpellByNameFromAttributes(
-    name: string,
-    time?: number,
-  ): Promise<Spell> {
     return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
   }
 
@@ -755,8 +672,9 @@ export class SchemaService implements OnApplicationBootstrap {
     const nameToDefindex: Record<string, Set<number>> = {};
 
     const strangePartByScoreType: Record<string, Buffer> = {};
-
     const paintByColor: Record<string, Buffer> = {};
+    const spellsByName: Record<string, Buffer> = {};
+    const spellsById: Record<string, Buffer> = {};
 
     for (const item of result.items) {
       const defindex = item.defindex;
@@ -816,6 +734,19 @@ export class SchemaService implements OnApplicationBootstrap {
           }
         }
       }
+
+      if (
+        item.item_type_name === 'TF_SpellTool' &&
+        item.item_name.startsWith('Halloween Spell: ')
+      ) {
+        const spell = {
+          id: item.defindex,
+          name: item.item_name.slice(17),
+        };
+
+        spellsByName[spell.name] = pack(spell);
+        spellsById[spell.id.toString()] = pack(spell);
+      }
     }
 
     // Save the schema items
@@ -835,6 +766,36 @@ export class SchemaService implements OnApplicationBootstrap {
         this.getKey(SchemaKeys.PAINT_COLOR, job.data.time),
         paintByColor,
       );
+    }
+
+    // Only save spells that are not already in the schema
+
+    const spellsByNameKeys = Object.keys(spellsByName);
+    if (spellsByNameKeys.length > 0) {
+      const existing = await this.redis.hmgetBuffer(
+        this.getKey(SchemaKeys.SPELLS_NAME, job.data.time),
+        ...spellsByNameKeys,
+      );
+
+      for (let i = 0; i < spellsByNameKeys.length; i++) {
+        const key = spellsByNameKeys[i];
+        const previous = existing[i];
+        if (previous) {
+          delete spellsByName[key];
+        }
+      }
+
+      if (Object.keys(spellsByName).length > 0) {
+        multi.hmset(
+          this.getKey(SchemaKeys.SPELLS_NAME, job.data.time),
+          spellsByName,
+        );
+      }
+    }
+
+    // We (probably) don't need to check for existing spells by id here... right?
+    if (Object.keys(spellsById).length > 0) {
+      multi.hmset(this.getKey(SchemaKeys.SPELLS_ID, job.data.time), spellsById);
     }
 
     const keys = Object.keys(nameToDefindex);
@@ -1028,12 +989,7 @@ export class SchemaService implements OnApplicationBootstrap {
     return engine.getSignedUrl(path);
   }
 
-  private getKey(key: string, prefix: any, properties?: Record<string, any>) {
-    if (properties) {
-      for (const property in properties) {
-        key = key.replace('<' + property + '>', properties[property]);
-      }
-    }
+  private getKey(key: string, prefix: any) {
     return prefix + ':' + key;
   }
 }

@@ -56,8 +56,8 @@ export class SKU {
     return sku;
   }
 
-  static fromString(sku: string): Item {
-    const item: Item = {
+  static getDefault(): Item {
+    return {
       defindex: -1,
       quality: -1,
       craftable: true,
@@ -79,7 +79,12 @@ export class SKU {
       sheen: null,
       killstreaker: null,
       inputs: null,
+      quantity: 1,
     };
+  }
+
+  static fromString(sku: string): Item {
+    const item = this.getDefault();
 
     const length = sku.length;
     let start = 0;
@@ -214,5 +219,28 @@ export class SKU {
     }
 
     return item;
+  }
+
+  static hasAttribute(
+    item: RequiredItemAttributes,
+    attribute: keyof RequiredItemAttributes,
+  ): boolean {
+    const value = item[attribute];
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    const defaultValue = this.getDefault()[attribute];
+
+    const cheap = value === defaultValue;
+    if (cheap) {
+      return false;
+    }
+
+    if (Array.isArray(defaultValue) && Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
   }
 }

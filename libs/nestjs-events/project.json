@@ -11,6 +11,17 @@
       "options": {
         "jestConfig": "libs/nestjs-events/jest.config.ts"
       }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/nestjs-events",
+        "tsConfig": "libs/nestjs-events/tsconfig.lib.json",
+        "packageJson": "libs/nestjs-events/package.json",
+        "main": "libs/nestjs-events/src/index.ts",
+        "assets": ["libs/nestjs-events/*.md"]
+      }
     }
   }
 }

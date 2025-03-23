@@ -6,20 +6,12 @@ export const INVENTORY_PATH = '/:steamid/:appid/:contextid';
 export const INVENTORY_FETCH_PATH = `${INVENTORY_PATH}/fetch`;
 
 export const INVENTORY_FULL_PATH = `${INVENTORIES_BASE_URL}${INVENTORY_PATH}`;
-
-export type InventoryItem =
-  | Item
-  | {
-      appid: number;
-      contextid: string;
-      assetid: string;
-      tradable?: boolean;
-    };
+export const INVENTORY_FETCH_FULL_PATH = `${INVENTORIES_BASE_URL}${INVENTORY_FETCH_PATH}`;
 
 export interface InventoryResponse {
   timestamp: number;
   ttl: number;
-  items: InventoryItem[];
+  items: Item[];
 }
 
 export interface EnqueueInventory {
@@ -87,8 +79,8 @@ export type InventoryChangedEvent = BaseEvent<
     steamid64: string;
     appid: number;
     contextid: string;
-    gained: InventoryItem[];
-    lost: InventoryItem[];
+    gained: Item[];
+    lost: Item[];
     reason: InventoryChangedEventReason;
   }
 >;

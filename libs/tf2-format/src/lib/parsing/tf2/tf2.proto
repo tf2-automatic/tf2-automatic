@@ -1,8 +1,0 @@
-message CAttribute_DynamicRecipeComponent {
-	optional uint32 def_index = 1;
-	optional uint32 item_quality = 2;
-	optional uint32 component_flags = 3;
-	optional string attributes_string = 4;
-	optional uint32 num_required = 5;
-	optional uint32 num_fulfilled = 6;
-};

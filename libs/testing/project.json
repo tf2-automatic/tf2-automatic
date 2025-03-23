@@ -14,6 +14,17 @@
       "options": {
         "jestConfig": "libs/testing/jest.config.ts"
       }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/testing",
+        "tsConfig": "libs/testing/tsconfig.lib.json",
+        "packageJson": "libs/testing/package.json",
+        "main": "libs/testing/src/index.ts",
+        "assets": ["libs/testing/*.md"]
+      }
     }
   },
   "tags": []

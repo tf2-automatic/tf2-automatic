@@ -1,5 +1,5 @@
 FROM node:20-alpine AS base
-RUN npm i -g pnpm
+RUN npm i -g pnpm@10
 
 FROM alpine:3.18.4 AS source
 WORKDIR /app
@@ -10,7 +10,8 @@ COPY $SOURCE_DIR ./
 FROM base AS installer
 WORKDIR /app
 COPY --from=source /app/package.json /app/pnpm-lock.yaml ./
-COPY patches ./patches
+COPY ./patches ./patches
+COPY ./.pnpmfile.cjs ./
 RUN pnpm install --frozen-lockfile --prod
 
 FROM node:20-alpine AS runner

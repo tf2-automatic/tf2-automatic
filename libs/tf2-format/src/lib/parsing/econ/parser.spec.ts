@@ -835,5 +835,21 @@ describe('EconParser', () => {
         },
       ]);
     });
+
+    it('will parse Normal quality items', async () => {
+      const item = TestData.getNormalQualityItem();
+
+      mockSchema();
+
+      schema.getQualityByName.mockReturnValueOnce(0);
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Normal');
+
+      expect(parsed.quality).toEqual(0);
+    });
   });
 });

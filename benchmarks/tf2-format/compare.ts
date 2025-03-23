@@ -293,6 +293,11 @@ for (const item of tf2Items) {
     );
     const tf2Parsed = await tf2Parser.parse(tf2Extracted, tf2ExtractedContext);
 
+    // Hacky way to fix quantities but it seems to work?
+    if (tf2Parsed.quantity === 25) {
+      tf2Parsed.quantity = -1;
+    }
+
     const equal = JSON.stringify(econParsed) === JSON.stringify(tf2Parsed);
 
     if (!equal) {

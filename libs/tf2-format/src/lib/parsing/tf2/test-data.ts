@@ -19,8 +19,6 @@ export function getBasicItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '10002021287',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 60,
   };
 }
@@ -77,8 +75,6 @@ export function getGiftedItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '6856776322',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 98,
   };
 }
@@ -143,8 +139,6 @@ export function getUnusualAndPainted(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '9183228727',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 0,
   };
 }
@@ -177,8 +171,6 @@ export function getBasicKillstreak(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '5552837239',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 0,
   };
 }
@@ -235,8 +227,6 @@ export function getPaintKitItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '6895372219',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 9,
   };
 }
@@ -293,8 +283,6 @@ export function getAustraliumItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '13666970657',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 0,
   };
 }
@@ -359,8 +347,6 @@ export function getProfessionalKillstreakItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '1388332098',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 0,
   };
 }
@@ -393,8 +379,6 @@ export function getExorcismSpelledItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '605964830',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 3,
   };
 }
@@ -427,8 +411,6 @@ export function getFestivizedItem(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '14916665881',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 0,
   };
 }
@@ -531,8 +513,6 @@ export function getProfessionalKillstreakKitFabricator(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '13666970647',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 55,
   };
 }
@@ -625,8 +605,6 @@ export function getStrangifierChemistrySet(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '2124822184',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 0,
   };
 }
@@ -659,8 +637,6 @@ export function getBasicKillstreakKit(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '13666970636',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
     position: 56,
   };
 }
@@ -701,8 +677,29 @@ export function getCollectorsChemistrySet(): TF2Item {
     in_use: false,
     style: 0,
     original_id: '2206362185',
-    contains_equipped_state: null,
-    contains_equipped_state_v2: true,
+    position: 0,
+  };
+}
+
+export function getDuelingMinigame(): TF2Item {
+  return {
+    attribute: [],
+    equipped_state: [],
+    id: '15568852549',
+    account_id: 320302259,
+    inventory: 3221225475,
+    def_index: 241,
+    quantity: 5,
+    level: 5,
+    quality: 6,
+    flags: 4,
+    origin: 0,
+    custom_name: null,
+    custom_desc: null,
+    interior_item: null,
+    in_use: false,
+    style: 0,
+    original_id: '15487882462',
     position: 0,
   };
 }

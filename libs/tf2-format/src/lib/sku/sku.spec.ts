@@ -1,3 +1,4 @@
+import { Item } from '../types';
 import { SKU } from './';
 import * as TestData from './test-data';
 
@@ -88,7 +89,7 @@ describe('SKU', () => {
   });
 
   it('will result in the starting object', () => {
-    const item = {
+    const item: Item = {
       defindex: 1,
       quality: 1,
       craftable: false,
@@ -110,10 +111,37 @@ describe('SKU', () => {
       inputs: null,
       parts: [],
       spells: [],
+      quantity: 1,
     };
 
     const sku = SKU.fromObject(item);
 
     expect(SKU.fromString(sku)).toEqual(item);
+  });
+
+  describe('#hasAttribute', () => {
+    it('will return true if the attribute is present and different', () => {
+      const item = { ...SKU.getDefault(), defindex: 1 };
+      expect(SKU.hasAttribute(item, 'defindex')).toBe(true);
+    });
+
+    it('will return false if the attribute is present and the same', () => {
+      const item = { ...SKU.getDefault() };
+      expect(SKU.hasAttribute(item, 'defindex')).toBe(false);
+    });
+
+    it('will work with arrays', () => {
+      const item = { ...SKU.getDefault(), parts: [1] };
+      expect(SKU.hasAttribute(item, 'parts')).toBe(true);
+      expect(SKU.hasAttribute(item, 'spells')).toBe(false);
+    });
+
+    it('will work with booleans', () => {
+      const item = { ...SKU.getDefault(), elevated: true };
+      // Elevated is true and therefore different from the default
+      expect(SKU.hasAttribute(item, 'elevated')).toBe(true);
+      // Craftable is true, but it is not different from the default
+      expect(SKU.hasAttribute(item, 'craftable')).toBe(false);
+    });
   });
 });

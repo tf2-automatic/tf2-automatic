@@ -42,7 +42,7 @@ const KILLSTREAK_TIERS = {
 };
 
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
-enum IdentifiableDescription {
+const enum IdentifiableDescription {
   Skip = 0,
   All = 1,
   // Paints, spells and parts have the same precedence because it has been shown
@@ -73,9 +73,9 @@ enum TypeToIdentifiableDescription {
   'Cosmetic' = IdentifiableDescription.All,
   // Taunts may have effects, so we will check for that
   'Taunt 1' = IdentifiableDescription.Effect,
-  // Nothing interesting in these items
-  'Party Favor' = IdentifiableDescription.Skip,
-  'Action' = IdentifiableDescription.Skip,
+  // Nothing interesting in these items (except for uses I guess?)
+  'Party Favor' = IdentifiableDescription.Uses,
+  'Action' = IdentifiableDescription.Uses,
   // Most craft items do not have descriptions but we will check for craftable
   'Craft Item' = IdentifiableDescription.Craftable,
   // Check for uses on limited use items
@@ -268,7 +268,7 @@ export class EconParser extends Parser<
       throw quality;
     }
 
-    if (!quality) {
+    if (typeof quality !== 'number') {
       throw new Error('Quality is undefined');
     }
 
@@ -453,6 +453,7 @@ export class EconParser extends Parser<
       sheen,
       killstreaker,
       inputs,
+      quantity: raw.uses ?? 1,
     };
 
     return parsed;
@@ -878,7 +879,11 @@ export class EconParser extends Parser<
             }
           }
         case IdentifiableDescription.Uses:
-          if (
+          if (descriptions[i].value === 'Unlimited use') {
+            attributes.uses = -1;
+            next = IdentifiableDescription.Craftable;
+            i++;
+          } else if (
             descriptions[i].value.startsWith(
               'This is a limited use item. Uses: ',
             )

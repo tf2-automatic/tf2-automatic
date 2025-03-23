@@ -19,8 +19,6 @@ import {
   TF2_LOST_EVENT,
   TradeChangedEvent,
   TRADE_CHANGED_EVENT,
-  TF2_GAINED_EVENT,
-  TF2GainedEvent,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -33,7 +31,6 @@ import {
   INVENTORY_CHANGED_EVENT,
   InventoryChangedEvent,
   InventoryChangedEventReason,
-  InventoryItem,
 } from '@tf2-automatic/bot-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
@@ -90,7 +87,7 @@ export class InventoriesService
     await this.eventsService.subscribe(
       'bot-manager.delete-inventory-items',
       BOT_EXCHANGE_NAME,
-      [TF2_LOST_EVENT, TF2_GAINED_EVENT, TRADE_CHANGED_EVENT],
+      [TF2_LOST_EVENT, TRADE_CHANGED_EVENT],
       (event) => this.handleDeleteInventoryItems(event as any),
       {
         retry: true,
@@ -182,7 +179,7 @@ export class InventoriesService
 
     object['timestamp'] = now;
 
-    const key = this.getInventoryKey(steamid, appid, contextid);
+    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
     const tempKey = key + ':temp';
 
     const event = {
@@ -194,38 +191,28 @@ export class InventoriesService
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
-    await this.locker.using(
-      [
-        this.getInventoryResource({
-          steamid64: steamid.getSteamID64(),
-          appid,
-          contextid,
-        }),
-      ],
-      LockDuration.SHORT,
-      async () => {
-        await this.redis.hset(tempKey, object);
+    await this.locker.using([key], LockDuration.SHORT, async () => {
+      await this.redis.hset(tempKey, object);
 
-        const multi = this.redis.multi().rename(tempKey, key);
+      const multi = this.redis.multi().rename(tempKey, key);
 
-        redisMultiEvent(multi, {
-          type: INVENTORY_LOADED_EVENT,
-          data: event,
-          metadata: {
-            id: uuidv4(),
-            steamid64: event.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies InventoryLoadedEvent);
+      redisMultiEvent(multi, {
+        type: INVENTORY_LOADED_EVENT,
+        data: event,
+        metadata: {
+          id: uuidv4(),
+          steamid64: event.steamid64,
+          time: Math.floor(Date.now() / 1000),
+        },
+      } satisfies InventoryLoadedEvent);
 
-        if (ttl > 0) {
-          // and make it expire
-          multi.expire(key, ttl);
-        }
+      if (ttl > 0) {
+        // and make it expire
+        multi.expire(key, ttl);
+      }
 
-        await multi.exec();
-      },
-    );
+      await multi.exec();
+    });
 
     return {
       timestamp: now,
@@ -243,19 +230,11 @@ export class InventoriesService
       this.getInventoryJobId(steamid, appid, contextid),
     );
 
-    return this.locker.using(
-      [
-        this.getInventoryResource({
-          steamid64: steamid.getSteamID64(),
-          appid,
-          contextid,
-        }),
-      ],
-      LockDuration.SHORT,
-      async () => {
-        await this.redis.del(this.getInventoryKey(steamid, appid, contextid));
-      },
-    );
+    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
+
+    return this.locker.using([key], LockDuration.SHORT, async () => {
+      await this.redis.del(key);
+    });
   }
 
   async fetchInventory(
@@ -341,16 +320,10 @@ export class InventoriesService
     appid: number,
     contextid: string,
   ): Promise<InventoryResponse> {
-    const key = this.getInventoryKey(steamid, appid, contextid);
+    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
 
     const { timestamp, ttl, object } = await this.locker.using(
-      [
-        this.getInventoryResource({
-          steamid64: steamid.getSteamID64(),
-          appid,
-          contextid,
-        }),
-      ],
+      [key],
       LockDuration.SHORT,
       async (signal) => {
         const timestamp = await this.redis.hget(key, 'timestamp');
@@ -372,11 +345,14 @@ export class InventoriesService
       },
     );
 
-    const items = Object.keys(object)
-      .filter((key) => {
-        return key.startsWith('item:');
-      })
-      .map((item) => unpack(object[item]));
+    const items: Item[] = [];
+    for (const assetid in object) {
+      if (!assetid.startsWith('item:')) {
+        continue;
+      }
+
+      items.push(unpack(object[assetid]));
+    }
 
     return {
       timestamp,
@@ -385,16 +361,14 @@ export class InventoriesService
     };
   }
 
-  private handleDeleteInventoryItems(
-    event: TF2LostEvent | TradeChangedEvent | TF2GainedEvent,
+  private async handleDeleteInventoryItems(
+    event: TF2LostEvent | TradeChangedEvent,
   ): Promise<void> {
     switch (event.type) {
       case TRADE_CHANGED_EVENT:
         return this.handleOfferChanged(event);
       case TF2_LOST_EVENT:
         return this.handleItemLost(event);
-      case TF2_GAINED_EVENT:
-        return this.handleItemGained(event);
     }
   }
 
@@ -418,9 +392,9 @@ export class InventoriesService
   }
 
   private addItems(
-    result: Record<string, InventoryItem[]>,
+    result: Record<string, Item[]>,
     steamid: SteamID,
-    items: InventoryItem[],
+    items: Item[],
   ) {
     items.reduce((acc, cur) => {
       const key = pack({
@@ -517,7 +491,7 @@ export class InventoriesService
 
   private async updateInventories(
     lostItems: Record<string, string[]>,
-    gainedItems: Record<string, InventoryItem[]>,
+    gainedItems: Record<string, Item[]>,
     reason: InventoryChangedEventReason,
   ) {
     const inventories = Object.keys(lostItems)
@@ -528,8 +502,15 @@ export class InventoriesService
       }, new Set<string>());
 
     const resources = Array.from(inventories).map((inventory) => {
-      const parts = unpack(Buffer.from(inventory, 'base64'));
-      return this.getInventoryResource(parts);
+      const parts = unpack(
+        Buffer.from(inventory, 'base64'),
+      ) as InventoryIdentifier;
+
+      return this.getInventoryKey(
+        parts.steamid64,
+        parts.appid,
+        parts.contextid,
+      );
     });
 
     return this.locker.using(resources, LockDuration.LONG, async (signal) => {
@@ -566,10 +547,7 @@ export class InventoriesService
           );
         });
 
-      const changes: Record<
-        string,
-        { gained: InventoryItem[]; lost: InventoryItem[] }
-      > = {};
+      const changes: Record<string, { gained: Item[]; lost: Item[] }> = {};
 
       Object.keys(gainedItems).forEach((key) => {
         changes[key] = changes[key] ?? { gained: [], lost: [] };
@@ -708,40 +686,13 @@ export class InventoriesService
     );
   }
 
-  private async handleItemGained(event: TF2GainedEvent): Promise<void> {
-    const gainedItems: Record<string, InventoryItem[]> = {};
-
-    this.addItems(
-      gainedItems,
-      new SteamID(event.metadata.steamid64 as string),
-      [
-        {
-          appid: 440,
-          contextid: '2',
-          assetid: event.data.id,
-        },
-      ],
-    );
-
-    return this.updateInventories(
-      {},
-      gainedItems,
-      InventoryChangedEventReason.TF2,
-    );
-  }
-
-  private getInventoryKey(steamid: SteamID, appid: number, contextid: string) {
-    return `inventory:${steamid.getSteamID64()}:${appid}:${contextid}`;
+  private getInventoryKey(steamid64: string, appid: number, contextid: string) {
+    return `inventory:${steamid64}:${appid}:${contextid}`;
   }
 
   private getInventoryKeyFromObject(data: InventoryIdentifier) {
     const { steamid64, appid, contextid } = data;
-    return this.getInventoryKey(new SteamID(steamid64), appid, contextid);
-  }
-
-  private getInventoryResource(data: InventoryIdentifier) {
-    const { steamid64, appid, contextid } = data;
-    return `inventories:${steamid64}:${appid}:${contextid}`;
+    return this.getInventoryKey(steamid64, appid, contextid);
   }
 
   private getInventoryJobId(

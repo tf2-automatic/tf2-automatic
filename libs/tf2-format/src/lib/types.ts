@@ -48,6 +48,7 @@ export interface ExtraItemAttributes {
   sheen: number | null;
   killstreaker: number | null;
   inputs: RecipeInput[] | null;
+  quantity: number;
 }
 
 type RequiredKeys<T extends keyof U, U> = {
