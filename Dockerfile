@@ -11,6 +11,7 @@ FROM base AS installer
 WORKDIR /app
 COPY --from=source /app/package.json /app/pnpm-lock.yaml ./
 COPY ./patches ./patches
+COPY ./.pnpmfile.cjs ./
 RUN pnpm install --frozen-lockfile --prod
 
 FROM node:20-alpine AS runner
