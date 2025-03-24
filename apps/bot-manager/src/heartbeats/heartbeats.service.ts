@@ -30,8 +30,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
 import { v4 as uuidv4 } from 'uuid';
-import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { redisMultiEvent } from '../common/utils/redis-multi-event';
+import { redisMultiEvent } from '@tf2-automatic/transactional-outbox';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 
@@ -48,7 +47,6 @@ export class HeartbeatsService {
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
-    private readonly eventsService: NestEventsService,
   ) {
     this.locker = new Locker(this.redis);
   }

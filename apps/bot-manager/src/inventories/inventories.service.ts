@@ -42,7 +42,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue, QueueEvents } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
 import { v4 as uuidv4 } from 'uuid';
-import { redisMultiEvent } from '../common/utils/redis-multi-event';
+import { redisMultiEvent } from '@tf2-automatic/transactional-outbox';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 
