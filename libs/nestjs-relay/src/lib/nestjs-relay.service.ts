@@ -4,15 +4,14 @@ import {
   OnApplicationBootstrap,
   OnModuleDestroy,
   Logger,
+  Inject,
 } from '@nestjs/common';
-import { Redis, RedisOptions } from 'ioredis';
+import { Redis } from 'ioredis';
 import { SafeRedisLeader } from 'ts-safe-redis-leader';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 import { BaseEvent } from '@tf2-automatic/bot-data';
-import { ConfigService } from '@nestjs/config';
-import { Config, RelayConfig } from '../common/config/configuration';
-import { Redis as RedisConfig } from '@tf2-automatic/config';
+import { RelayModuleConfig } from '@tf2-automatic/config';
 
 @Injectable()
 export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -21,34 +20,29 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   private leader: SafeRedisLeader;
   private isLeader = false;
   private working = false;
-  private timeout: NodeJS.Timeout;
+  private timeout: NodeJS.Timeout | null = null;
 
   private readonly leaderRedis: Redis;
   private readonly subscriber: Redis;
 
   constructor(
     private readonly eventsService: NestEventsService,
-    private readonly configService: ConfigService<Config>,
     @InjectRedis()
     private readonly redis: Redis,
+    @Inject('RELAY_CONFIG') config: RelayModuleConfig,
   ) {
-    const redisConfig =
-      this.configService.getOrThrow<RedisConfig.Config>('redis');
-
-    this.subscriber = new Redis(redisConfig);
-    this.leaderRedis = new Redis(redisConfig);
-  }
-
-  async onApplicationBootstrap() {
-    const relayConfig = this.configService.getOrThrow<RelayConfig>('relay');
+    this.subscriber = new Redis(config.redis);
+    this.leaderRedis = new Redis(config.redis);
 
     this.leader = new SafeRedisLeader(
       this.leaderRedis,
-      relayConfig.leaderTimeout,
-      relayConfig.leaderRenewTimeout,
+      config.relay.leaderTimeout,
+      config.relay.leaderRenewTimeout,
       'publisher-leader-election',
     );
+  }
 
+  async onApplicationBootstrap() {
     this.leader.on('elected', () => {
       this.elected();
     });
@@ -75,11 +69,18 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    clearTimeout(this.timeout);
+    this.clearTimeout();
 
     await this.leader.shutdown();
 
     await Promise.all([this.subscriber.quit(), this.leaderRedis.quit()]);
+  }
+
+  private clearTimeout() {
+    if (this.timeout !== null) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
   }
 
   private elected() {
@@ -91,7 +92,7 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   private demoted() {
     this.logger.debug('No longer leader');
     this.isLeader = false;
-    clearTimeout(this.timeout);
+    this.clearTimeout();
   }
 
   private loop() {
@@ -115,7 +116,7 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
           this.loop();
         } else {
           // We did not process a message, try again in a second
-          clearTimeout(this.timeout);
+          this.clearTimeout();
           this.timeout = setTimeout(() => {
             this.loop();
           }, 1000);

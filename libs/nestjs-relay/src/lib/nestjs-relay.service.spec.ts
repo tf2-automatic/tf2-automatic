@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RelayService } from './relay.service';
+import { RelayService } from './nestjs-relay.service';
 
-describe('OutboxService', () => {
+describe('NestRelayService', () => {
   let service: RelayService;
 
   beforeEach(async () => {
