@@ -30,9 +30,9 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
 import { v4 as uuidv4 } from 'uuid';
-import { redisMultiEvent } from '@tf2-automatic/transactional-outbox';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
+import { RelayService } from '@tf2-automatic/nestjs-relay';
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -47,6 +47,7 @@ export class HeartbeatsService {
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
+    private readonly relayService: RelayService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -170,7 +171,7 @@ export class HeartbeatsService {
           // Save bot
           .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
-        redisMultiEvent(multi, {
+        this.relayService.publishEvent(multi, {
           type: BOT_HEARTBEAT_EVENT,
           data: bot,
           metadata: {
@@ -217,7 +218,7 @@ export class HeartbeatsService {
           .multi()
           .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
-        redisMultiEvent(multi, {
+        this.relayService.publishEvent(multi, {
           type: BOT_STOPPED_EVENT,
           data: bot,
           metadata: {
@@ -253,7 +254,7 @@ export class HeartbeatsService {
           .multi()
           .del(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()));
 
-        redisMultiEvent(multi, {
+        this.relayService.publishEvent(multi, {
           type: BOT_DELETED_EVENT,
           data: bot,
           metadata: {

@@ -75,7 +75,7 @@ import { RelayModule } from '@tf2-automatic/nestjs-relay';
       useFactory: () => {
         return {
           relay: getRelayConfig(),
-          redis: RedisConfig.getConfig(false),
+          redis: RedisConfig.getConfig(),
         };
       },
     }),

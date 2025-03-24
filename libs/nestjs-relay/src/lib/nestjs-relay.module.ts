@@ -1,11 +1,11 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
 import { RelayService } from './nestjs-relay.service';
 import { RelayModuleConfig } from '@tf2-automatic/config';
 import { NestEventsModule } from '@tf2-automatic/nestjs-events';
 
-@Module({
-  imports: [NestEventsModule],
-})
+
+@Global()
+@Module({})
 export class RelayModule {
   static forRootAsync(options: {
     useFactory: (...args: any[]) => Promise<RelayModuleConfig> | RelayModuleConfig;
@@ -30,6 +30,7 @@ export class RelayModule {
       module: RelayModule,
       imports: [NestEventsModule],
       providers: [provider, RelayService],
+      exports: [RelayService],
     };
   }
 }

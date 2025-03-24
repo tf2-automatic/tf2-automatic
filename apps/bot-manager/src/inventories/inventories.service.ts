@@ -42,9 +42,9 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue, QueueEvents } from 'bullmq';
 import { InventoryQueue } from './interfaces/queue.interfaces';
 import { v4 as uuidv4 } from 'uuid';
-import { redisMultiEvent } from '@tf2-automatic/transactional-outbox';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
+import { RelayService } from '@tf2-automatic/nestjs-relay';
 
 interface InventoryIdentifier {
   steamid64: string;
@@ -76,6 +76,7 @@ export class InventoriesService
     private readonly eventsService: NestEventsService,
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryQueue>,
+    private readonly relayService: RelayService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -196,7 +197,7 @@ export class InventoriesService
 
       const multi = this.redis.multi().rename(tempKey, key);
 
-      redisMultiEvent(multi, {
+      this.relayService.publishEvent(multi, {
         type: INVENTORY_LOADED_EVENT,
         data: event,
         metadata: {
@@ -619,7 +620,7 @@ export class InventoriesService
       for (let i = 0; i < changedEvents.length; i++) {
         const data = changedEvents[i];
 
-        redisMultiEvent(multi, {
+        this.relayService.publishEvent(multi, {
           type: INVENTORY_CHANGED_EVENT,
           data,
           metadata: {

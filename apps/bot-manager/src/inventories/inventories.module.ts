@@ -7,6 +7,7 @@ import { InventoriesService } from './inventories.service';
 import { BullModule } from '@nestjs/bullmq';
 import { InventoriesProcessor } from './inventories.processor';
 import { defaultJobOptions } from '../common/utils/default-job-options';
+import { RelayModule } from '@tf2-automatic/nestjs-relay';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { defaultJobOptions } from '../common/utils/default-job-options';
       name: 'inventories',
       defaultJobOptions,
     }),
+    RelayModule,
   ],
   controllers: [InventoriesController],
   providers: [InventoriesService, InventoriesProcessor],

@@ -6,12 +6,13 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import { ChainableCommander, Redis } from 'ioredis';
 import { SafeRedisLeader } from 'ts-safe-redis-leader';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { OUTBOX_KEY } from '@tf2-automatic/transactional-outbox';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import { RelayModuleConfig } from '@tf2-automatic/config';
+import { pack, unpack } from 'msgpackr';
+import { OUTBOX_KEY } from './constants';
 
 @Injectable()
 export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -21,6 +22,8 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   private isLeader = false;
   private working = false;
   private timeout: NodeJS.Timeout | null = null;
+
+  private readonly outboxChannel: string;
 
   private readonly leaderRedis: Redis;
   private readonly subscriber: Redis;
@@ -40,6 +43,16 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
       config.relay.leaderRenewTimeout,
       'publisher-leader-election',
     );
+
+    this.outboxChannel = this.eventsService.getExchange() + ':' + OUTBOX_KEY;
+  }
+
+  publishEvent(multi: ChainableCommander, event: BaseEvent<string>) {
+    // Add event to outbox
+    multi
+      .lpush(OUTBOX_KEY, pack(event))
+      // Publish that there is a new event
+      .publish(this.outboxChannel, '');
   }
 
   async onApplicationBootstrap() {
@@ -51,7 +64,9 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
       this.demoted();
     });
 
-    await this.subscriber.subscribe(OUTBOX_KEY);
+    // TODO: Subscribe to channel unique to the specific application.
+
+    await this.subscriber.subscribe(this.outboxChannel);
 
     this.subscriber.on('message', (channel) => {
       if (channel !== OUTBOX_KEY) {
@@ -125,22 +140,20 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async getMessageAndPublish(): Promise<boolean> {
-    const isLeader = await this.leader.isLeader();
-    this.isLeader = isLeader;
-
+    this.isLeader = await this.leader.isLeader();
     if (!this.isLeader) {
       return false;
     }
 
-    const message = await this.redis.lindex(OUTBOX_KEY, -1);
+    const message = await this.redis.lindexBuffer(OUTBOX_KEY, -1);
     if (!message) {
       return false;
     }
 
-    const event = JSON.parse(message) as BaseEvent<string>;
+    const unpacked = unpack(message) as BaseEvent<string>;
 
     // Publish message
-    await this.eventsService.publishEvent(event);
+    await this.eventsService.publishEvent(unpacked);
 
     // Remove message from outbox
     await this.redis.lrem(OUTBOX_KEY, 1, message);

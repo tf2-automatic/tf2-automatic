@@ -24,6 +24,10 @@ export class NestEventsService implements OnModuleDestroy {
     return this.options.config.type;
   }
 
+  getExchange(): string {
+    return this.options.publishingExchange;
+  }
+
   async publish(
     event: string,
     data: object = {},
