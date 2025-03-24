@@ -13,6 +13,8 @@
   "devDependencies": {
     "@commitlint/cli": "^19.7.1",
     "@commitlint/config-conventional": "^19.7.1",
+    "@eslint/eslintrc": "^2.1.1",
+    "@eslint/js": "~8.57.0",
     "@jest/globals": "^29.7.0",
     "@nestjs/schematics": "^11.0.2",
     "@nestjs/testing": "^11.0.11",
@@ -68,7 +70,8 @@
     "ts-jest": "29.2.6",
     "ts-node": "10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "typescript-eslint": "^8.0.0"
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^5.7.0",
