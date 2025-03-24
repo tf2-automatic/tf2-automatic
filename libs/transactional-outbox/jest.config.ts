@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'transactional-outbox',
   preset: '../../jest.preset.js',

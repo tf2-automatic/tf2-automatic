@@ -45,19 +45,15 @@ const context: ExecutorContext = {
 jest.mock('fs');
 jest.mock('child_process');
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const child_process = require('child_process');
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 fs.readFileSync = jest.fn(() => mockedPackageJson);
 fs.writeFileSync = jest.fn();
 
-child_process.exec = jest
-  .fn()
-  .mockImplementation((command, options, callback) => {
-    callback(null, 'stdout', 'stderr');
-  });
+child_process.exec = jest.fn().mockImplementation((_, __, callback) => {
+  callback(null, 'stdout', 'stderr');
+});
 
 describe('NPM Executor', () => {
   beforeEach(() => {
