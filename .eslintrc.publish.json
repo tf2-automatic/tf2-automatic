@@ -8,7 +8,7 @@
           "@tf2-automatic/is-steamid-validator",
           "redlock",
           "@nestjs/swagger"
-        ], 
+        ],
         "includeTransitiveDependencies": true,
         "checkMissingDependencies": true
       }

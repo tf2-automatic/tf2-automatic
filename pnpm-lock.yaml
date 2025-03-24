@@ -11,7 +11,7 @@ overrides:
   '@octokit/request@>=1.0.0 <9.2.1': '>=9.2.1'
   '@octokit/plugin-paginate-rest@>=1.0.0 <11.4.1': '>=11.4.1'
 
-pnpmfileChecksum: sha256-krwslv9obKKje2dTRQd37Og/mOKGtuThxe7mCEuZ/sU=
+pnpmfileChecksum: sha256-UNyiwJexWMAXlPraE0ZmSCIAYiZMfD+x1N6RZmfTr7I=
 
 patchedDependencies:
   '@types/steam-tradeoffer-manager@2.11.2':
