@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
-import { BaseEvent } from '@tf2-automatic/bot-data';
+import { BaseEvent, EventMetadata } from '@tf2-automatic/bot-data';
 import SteamID from 'steamid';
 import {
   CustomEventsService,
@@ -33,14 +33,16 @@ export class NestEventsService implements OnModuleDestroy {
     data: object = {},
     steamid?: SteamID,
   ): Promise<void> {
+    const metadata: EventMetadata = {
+      id: uuidv4(),
+      steamid64: steamid?.getSteamID64() ?? null,
+      time: Math.floor(new Date().getTime() / 1000),
+    };
+
     await this.publishEvent({
       type: event,
       data,
-      metadata: {
-        id: uuidv4(),
-        steamid64: steamid?.getSteamID64() ?? null,
-        time: Math.floor(new Date().getTime() / 1000),
-      },
+      metadata,
     } satisfies BaseEvent<string>);
   }
 

@@ -40,7 +40,6 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
-import { v4 as uuidv4 } from 'uuid';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
@@ -200,15 +199,12 @@ export class InventoriesService
 
       const multi = this.redis.multi().rename(tempKey, key);
 
-      this.relayService.publishEvent(multi, {
-        type: INVENTORY_LOADED_EVENT,
-        data: event,
-        metadata: {
-          id: uuidv4(),
-          steamid64: event.steamid64,
-          time: Math.floor(Date.now() / 1000),
-        },
-      } satisfies InventoryLoadedEvent);
+      this.relayService.publishEvent<InventoryLoadedEvent>(
+        multi,
+        INVENTORY_LOADED_EVENT,
+        event,
+        steamid,
+      );
 
       if (ttl > 0) {
         // and make it expire
@@ -622,16 +618,12 @@ export class InventoriesService
 
       for (let i = 0; i < changedEvents.length; i++) {
         const data = changedEvents[i];
-
-        this.relayService.publishEvent(multi, {
-          type: INVENTORY_CHANGED_EVENT,
+        this.relayService.publishEvent<InventoryChangedEvent>(
+          multi,
+          INVENTORY_CHANGED_EVENT,
           data,
-          metadata: {
-            id: uuidv4(),
-            steamid64: data.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies InventoryChangedEvent);
+          new SteamID(data.steamid64),
+        );
       }
 
       await multi.exec();

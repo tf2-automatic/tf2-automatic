@@ -47,7 +47,19 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
     this.outboxChannel = this.eventsService.getExchange() + ':' + OUTBOX_KEY;
   }
 
-  publishEvent(multi: ChainableCommander, event: BaseEvent<string>) {
+  publishEvent<Event extends BaseEvent<unknown>>(multi: ChainableCommander, type: Event["type"], data: Event["data"], steamid?: SteamID) {
+    const metadata: EventMetadata = {
+      id: uuidv4(),
+      steamid64: steamid?.getSteamID64() ?? null,
+      time: Math.floor(new Date().getTime() / 1000),
+    };
+
+    const event: BaseEvent<unknown> = {
+      type,
+      data,
+      metadata,
+    };
+
     // Add event to outbox
     multi
       .lpush(OUTBOX_KEY, pack(event))
