@@ -3,8 +3,8 @@ import { Module } from '@nestjs/common';
 import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
 import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
-import { TradesProcessor } from './processors/trades.processor';
-import { defaultJobOptions } from '../common/utils/default-job-options';
+import { TradesProcessor } from './trades.processor';
+import { defaultJobOptions } from '@tf2-automatic/queue';
 
 @Module({
   imports: [

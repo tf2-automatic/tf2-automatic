@@ -2,8 +2,8 @@ import { CreateTrade } from '@tf2-automatic/bot-data';
 import {
   ManagerCounterTrade,
   QueueTradeType,
-  RetryOptions,
 } from '@tf2-automatic/bot-manager-data';
+import { JobData } from '@tf2-automatic/queue';
 
 export type TradeQueue =
   | CreateTradeJob
@@ -43,10 +43,8 @@ export type ConfirmTradeJob = BaseTradeQueue<
 
 export type RefreshTradeJob = BaseTradeQueue<'REFRESH', string>;
 
-interface BaseTradeQueue<Event extends QueueTradeType, Raw, Extra = unknown> {
-  type: Event;
-  raw: Raw;
-  extra: Extra;
-  bot: string;
-  retry?: RetryOptions;
-}
+type BaseTradeQueue<
+  EventType extends QueueTradeType,
+  OptionsType,
+  StateType = unknown,
+> = JobData<OptionsType, StateType, EventType>;

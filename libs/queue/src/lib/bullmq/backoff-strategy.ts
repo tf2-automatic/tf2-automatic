@@ -1,15 +1,15 @@
 import { RetryOptions } from '@tf2-automatic/bot-manager-data';
-import { MinimalJob } from 'bullmq';
+import { AdvancedOptions, MinimalJob } from 'bullmq';
 
 type BackoffStrategy = (
   attemptsMade: number,
-  job: MinimalJob<{ retry?: RetryOptions }>,
+  job?: MinimalJob<{ retry?: RetryOptions }>,
 ) => number;
 
 export const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
-  const strategy = job.data.retry?.strategy ?? 'exponential';
-  const delay = job.data.retry?.delay ?? 1000;
-  const maxDelay = job.data.retry?.maxDelay ?? 10000;
+  const strategy = job?.data.retry?.strategy ?? 'exponential';
+  const delay = job?.data.retry?.delay ?? 1000;
+  const maxDelay = job?.data.retry?.maxDelay ?? 10000;
 
   let wait = delay;
 
@@ -22,8 +22,8 @@ export const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
   return Math.min(wait, maxDelay);
 };
 
-export const bullWorkerSettings = {
-  backoffStrategy: (attempts: number, _, __, job: MinimalJob) => {
+export const bullWorkerSettings: AdvancedOptions = {
+  backoffStrategy: (attempts: number, _, __, job?: MinimalJob) => {
     return customBackoffStrategy(attempts, job);
   },
 };

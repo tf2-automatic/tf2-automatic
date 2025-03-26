@@ -1,5 +1,5 @@
-import { HttpError } from '@tf2-automatic/bot-data';
-import { AxiosResponse } from 'axios';
+import type { HttpError } from '@tf2-automatic/bot-data';
+import type { AxiosResponse } from 'axios';
 import { UnrecoverableError } from 'bullmq';
 
 export class CustomUnrecoverableError extends UnrecoverableError {

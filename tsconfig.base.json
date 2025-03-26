@@ -40,6 +40,7 @@
         "libs/nestjs-steamid-pipe/src/index.ts"
       ],
       "@tf2-automatic/nestjs-storage": ["libs/nestjs-storage/src/index.ts"],
+      "@tf2-automatic/queue": ["libs/queue/src/index.ts"],
       "@tf2-automatic/swagger": ["libs/swagger/src/index.ts"],
       "@tf2-automatic/testing": ["libs/testing/src/index.ts"],
       "@tf2-automatic/tf2-format": ["libs/tf2-format/src/index.ts"],

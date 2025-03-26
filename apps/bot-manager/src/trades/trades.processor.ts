@@ -1,8 +1,6 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Processor } from '@nestjs/bullmq';
 import {
   CreateTrade,
-  HttpError,
   SteamError,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
@@ -17,7 +15,7 @@ import { AxiosError } from 'axios';
 import { Job, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
-import { HeartbeatsService } from '../../heartbeats/heartbeats.service';
+import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import {
   AcceptTradeJob,
   ConfirmTradeJob,
@@ -25,17 +23,17 @@ import {
   CreateTradeJob,
   DeleteTradeJob,
   TradeQueue,
-} from '../interfaces/trade-queue.interface';
-import { TradesService } from '../trades.service';
-import {
-  bullWorkerSettings,
-  customBackoffStrategy,
-} from '../../common/utils/backoff-strategy';
+} from './interfaces/trade-queue.interface';
+import { TradesService } from './trades.service';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
+  bullWorkerSettings,
   CustomError,
+  CustomJob,
   CustomUnrecoverableError,
-} from '../../common/utils/custom-queue-errors';
+  CustomWorkerHost,
+} from '@tf2-automatic/queue';
+import { ClsService } from 'nestjs-cls';
 
 @Processor('trades', {
   settings: bullWorkerSettings,
@@ -44,23 +42,22 @@ import {
     duration: 5000,
   },
 })
-export class TradesProcessor extends WorkerHost {
-  private readonly logger = new Logger(TradesProcessor.name);
-
+export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   constructor(
     private readonly tradesService: TradesService,
     private readonly heartbeatsService: HeartbeatsService,
     private readonly eventsService: NestEventsService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(job: Job<TradeQueue>): Promise<unknown> {
-    this.logger.log(
-      `Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade}...`,
-    );
+  async errorHandler(job: CustomJob<TradeQueue>, err: unknown): Promise<void> {
+    // No need to do anything extra about errors
+  }
 
-    return this.processJobWithErrorHandler(job).catch((err) => {
+  async processJob(job: Job<TradeQueue>): Promise<unknown> {
+    return this.handleJob(job).catch((err) => {
       const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
         job: this.tradesService.mapJob(job),
         error: err.message,
@@ -88,60 +85,6 @@ export class TradesProcessor extends WorkerHost {
     });
   }
 
-  private async processJobWithErrorHandler(
-    job: Job<TradeQueue>,
-  ): Promise<unknown> {
-    const maxTime = job.data?.retry?.maxTime ?? 120000;
-
-    // Check if job is too old
-    if (job.timestamp < Date.now() - maxTime) {
-      throw new UnrecoverableError('Job is too old');
-    }
-
-    try {
-      // Work on job
-      const result = await this.handleJob(job);
-      return result;
-    } catch (err) {
-      if (err instanceof AxiosError) {
-        const response =
-          err.response satisfies AxiosError<HttpError>['response'];
-
-        if (
-          response !== undefined &&
-          response.status < 500 &&
-          response.status >= 400
-        ) {
-          // Don't retry on 4xx errors
-          throw new CustomUnrecoverableError(response.data.message, response);
-        }
-      }
-
-      // Check if job will be too old when it can be retried again
-      const delay = customBackoffStrategy(job.attemptsMade, job);
-      if (job.timestamp < Date.now() + delay - maxTime) {
-        if (err instanceof AxiosError && err.response !== undefined) {
-          // Is axios error, throw custom unrecoverable error with axios response
-          throw new CustomUnrecoverableError(
-            'Job is too old to be retried',
-            err.response,
-          );
-        }
-
-        // Is not axios error, throw normal unrecoverable error
-        throw new UnrecoverableError('Job is too old to be retried');
-      }
-
-      if (err instanceof AxiosError && err.response !== undefined) {
-        // Not a unrecoverable error, and is an axios error, throw custom error with axios response
-        throw new CustomError(err.response.data.message, err.response);
-      }
-
-      // Unknown error
-      throw err;
-    }
-  }
-
   private async handleJob(job: Job<TradeQueue>): Promise<unknown> {
     const botSteamID = new SteamID(job.data.bot);
 
@@ -163,7 +106,7 @@ export class TradesProcessor extends WorkerHost {
       case 'CONFIRM':
         return this.handleConfirmJob(job as Job<ConfirmTradeJob>, bot);
       case 'REFRESH':
-        return this.refreshTrade(bot, job.data.raw);
+        return this.refreshTrade(bot, job.data.options);
       default:
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
@@ -185,7 +128,7 @@ export class TradesProcessor extends WorkerHost {
     job: Job<CreateTradeJob>,
     bot: Bot,
   ): Promise<string> {
-    if (job.data.extra.checkCreatedAfter !== undefined) {
+    if (job.data.state.checkCreatedAfter !== undefined) {
       // Check if offer was created
       this.logger.debug(
         `Checking if a similar offer already offer exists...`,
@@ -195,8 +138,8 @@ export class TradesProcessor extends WorkerHost {
       const trades = await this.tradesService.getActiveTrades(bot);
 
       const offer = this.findMatchingTrade(
-        job.data.raw,
-        job.data.extra.checkCreatedAfter,
+        job.data.options,
+        job.data.state.checkCreatedAfter,
         trades.sent,
       );
 
@@ -215,7 +158,7 @@ export class TradesProcessor extends WorkerHost {
 
       const offer = await this.tradesService.createTrade(
         bot,
-        job.data.raw,
+        job.data.options,
         job.id,
       );
       return offer.id;
@@ -229,7 +172,7 @@ export class TradesProcessor extends WorkerHost {
     job: Job<CounterTradeJob>,
     bot: Bot,
   ): Promise<string> {
-    const offer = await this.tradesService.getTrade(bot, job.data.raw.id);
+    const offer = await this.tradesService.getTrade(bot, job.data.options.id);
 
     if (offer.state !== SteamUser.ETradeOfferState.Active) {
       throw new UnrecoverableError('Offer is not active');
@@ -242,11 +185,11 @@ export class TradesProcessor extends WorkerHost {
 
       const offer = await this.tradesService.counterTrade(
         bot,
-        job.data.raw.id,
+        job.data.options.id,
         {
-          message: job.data.raw.message,
-          itemsToGive: job.data.raw.itemsToGive,
-          itemsToReceive: job.data.raw.itemsToReceive,
+          message: job.data.options.message,
+          itemsToGive: job.data.options.itemsToGive,
+          itemsToReceive: job.data.options.itemsToReceive,
         },
       );
       return offer.id;
@@ -260,36 +203,36 @@ export class TradesProcessor extends WorkerHost {
     job: Job<DeleteTradeJob>,
     bot: Bot,
   ): Promise<void> {
-    const check = await this.tradesService.deletedTrade(bot, job.data.raw);
+    const check = await this.tradesService.deletedTrade(bot, job.data.options);
 
-    if (job.data.extra.alreadyDeleted === undefined) {
-      job.data.extra.alreadyDeleted = check.deleted;
+    if (job.data.state.alreadyDeleted === undefined) {
+      job.data.state.alreadyDeleted = check.deleted;
       await job.updateData(job.data);
     } else {
-      if (check.deleted !== job.data.extra.alreadyDeleted) {
+      if (check.deleted !== job.data.state.alreadyDeleted) {
         return;
       }
     }
 
-    await this.tradesService.deleteTrade(bot, job.data.raw);
+    await this.tradesService.deleteTrade(bot, job.data.options);
   }
 
   private async handleAcceptJob(
     job: Job<AcceptTradeJob>,
     bot: Bot,
   ): Promise<void> {
-    const check = await this.tradesService.acceptedTrade(bot, job.data.raw);
+    const check = await this.tradesService.acceptedTrade(bot, job.data.options);
 
-    if (job.data.extra.alreadyAccepted === undefined) {
-      job.data.extra.alreadyAccepted = check.accepted;
+    if (job.data.state.alreadyAccepted === undefined) {
+      job.data.state.alreadyAccepted = check.accepted;
       await job.updateData(job.data);
     } else {
-      if (check.accepted !== job.data.extra.alreadyAccepted) {
+      if (check.accepted !== job.data.state.alreadyAccepted) {
         return;
       }
     }
 
-    await this.tradesService.acceptTrade(bot, job.data.raw);
+    await this.tradesService.acceptTrade(bot, job.data.options);
   }
 
   private async handleConfirmJob(
@@ -297,22 +240,25 @@ export class TradesProcessor extends WorkerHost {
     bot: Bot,
   ): Promise<void> {
     // Check if offer was confirmed
-    const check = await this.tradesService.confirmedTrade(bot, job.data.raw);
+    const check = await this.tradesService.confirmedTrade(
+      bot,
+      job.data.options,
+    );
 
     // Check if the check was already done before
-    if (job.data.extra.alreadyConfirmed === undefined) {
+    if (job.data.state.alreadyConfirmed === undefined) {
       // Add confirmed state to job data
-      job.data.extra.alreadyConfirmed = check.confirmed;
+      job.data.state.alreadyConfirmed = check.confirmed;
       await job.updateData(job.data);
     } else {
       // Check if state has changed
-      if (check.confirmed !== job.data.extra.alreadyConfirmed) {
+      if (check.confirmed !== job.data.state.alreadyConfirmed) {
         // Offer was confirmed
         return;
       }
     }
 
-    await this.tradesService.confirmTrade(bot, job.data.raw);
+    await this.tradesService.confirmTrade(bot, job.data.options);
   }
 
   private async handleSendTradeError(job: Job, err: Error, now: number) {
@@ -329,7 +275,7 @@ export class TradesProcessor extends WorkerHost {
 
         if (data.eresult === SteamUser.EResult.Timeout) {
           // Add time to job data it as a potentially active offer and to check if it was created
-          job.data.extra.checkCreatedAfter = Math.floor(now / 1000);
+          job.data.state.checkCreatedAfter = Math.floor(now / 1000);
           await job.updateData(job.data);
         } else if (
           data.eresult !== SteamUser.EResult.ServiceUnavailable &&
@@ -389,21 +335,5 @@ export class TradesProcessor extends WorkerHost {
 
     // There might be more than one matching trade but there shouldn't be
     return filtered.length === 0 ? null : filtered[0];
-  }
-
-  @OnWorkerEvent('error')
-  onError(err: Error): void {
-    this.logger.error('Error in worker');
-    console.error(err);
-  }
-
-  @OnWorkerEvent('failed')
-  onFailed(job: Job<TradeQueue>, err: Error): void {
-    this.logger.warn(`Failed job ${job.id}: ${err.message}`);
-  }
-
-  @OnWorkerEvent('completed')
-  onCompleted(job: Job<TradeQueue>): void {
-    this.logger.log(`Completed job ${job.id}`);
   }
 }

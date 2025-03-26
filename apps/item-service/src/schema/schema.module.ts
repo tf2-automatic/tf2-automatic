@@ -1,6 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { defaultJobOptions } from '../common/utils/default-job-options';
+import { defaultJobOptions } from '@tf2-automatic/queue';
 import { SchemaService } from './schema.service';
 import { SchemaProcessor } from './schema.processor';
 import { BotsModule } from '../bots/bots.module';

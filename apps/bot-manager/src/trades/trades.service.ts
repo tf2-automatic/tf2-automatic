@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import {
   ConflictException,
   Injectable,
+  Logger,
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import {
@@ -58,6 +59,8 @@ import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(TradesService.name);
+
   private readonly locker: Locker;
 
   constructor(
@@ -87,10 +90,11 @@ export class TradesService implements OnApplicationBootstrap {
     const createJob = async (id: string) => {
       const data: TradeQueue = {
         type: dto.type,
-        raw: dto.data as never,
-        extra: {},
         bot: dto.bot,
+        options: dto.data as never,
+        state: {},
         retry: dto.retry,
+        metadata: {},
       };
 
       const job = await this.tradesQueue.add(id, data, {
@@ -380,8 +384,8 @@ export class TradesService implements OnApplicationBootstrap {
     return {
       id: job.id as string,
       type: job.data.type,
-      data: job.data.raw,
-      bot: job.data.bot,
+      data: job.data.options,
+      bot: job.data.bot!,
       attempts: job.attemptsMade,
       lastProcessedAt:
         job.processedOn === undefined

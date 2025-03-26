@@ -39,12 +39,13 @@ import SteamID from 'steamid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Job, Queue, QueueEvents } from 'bullmq';
-import { InventoryQueue } from './interfaces/queue.interfaces';
+import { Queue, QueueEvents } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
+import { CustomJob } from '@tf2-automatic/queue';
+import { InventoryJobData } from './inventories.types';
 
 interface InventoryIdentifier {
   steamid64: string;
@@ -75,7 +76,7 @@ export class InventoriesService
     private readonly httpService: HttpService,
     private readonly eventsService: NestEventsService,
     @InjectQueue('inventories')
-    private readonly inventoriesQueue: Queue<InventoryQueue>,
+    private readonly inventoriesQueue: Queue<InventoryJobData>,
     private readonly relayService: RelayService,
   ) {
     this.locker = new Locker(this.redis);
@@ -115,17 +116,19 @@ export class InventoriesService
     appid: number,
     contextid: string,
     dto: EnqueueInventoryDto,
-  ): Promise<Job<InventoryQueue>> {
-    const data: InventoryQueue = {
-      raw: {
+  ): Promise<CustomJob<InventoryJobData>> {
+    const data: InventoryJobData = {
+      type: 'load',
+      options: {
         steamid64: steamid.getSteamID64(),
         appid,
         contextid,
+        ttl: dto.ttl,
       },
-      extra: {},
       bot: dto.bot,
+      state: {},
       retry: dto.retry,
-      ttl: dto.ttl,
+      metadata: {},
     };
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
