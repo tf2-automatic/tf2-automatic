@@ -37,6 +37,8 @@ import {
   QueueTradeResponse,
   Job,
   QueueTradeJob,
+  EXCHANGE_DETAILS_EVENT,
+  ExchangeDetailsEvent,
 } from '@tf2-automatic/bot-manager-data';
 import {
   CreateTradeDto,
@@ -46,13 +48,13 @@ import {
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
-import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
 import { v4 as uuidv4 } from 'uuid';
 import { TradeQueue } from './interfaces/trade-queue.interface';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
+import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -60,12 +62,11 @@ export class TradesService implements OnApplicationBootstrap {
 
   constructor(
     private readonly httpService: HttpService,
-    @InjectQueue('getExchangeDetails')
-    private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
     @InjectQueue('trades')
     private readonly tradesQueue: Queue<TradeQueue>,
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
+    private readonly heartbeatService: HeartbeatsService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -327,18 +328,29 @@ export class TradesService implements OnApplicationBootstrap {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const steamid = new SteamID(event.metadata.steamid64!);
 
-    await this.exchangeDetailsQueue.add(
+    this.logger.debug(
+      'Getting exchange details for offer ' + event.data.offer.id + '...',
+    );
+
+    const bot = await this.heartbeatService.getBot(steamid);
+
+    const details = await this.getExchangeDetails(
+      bot,
       event.data.offer.id,
+      true,
+    );
+
+    this.logger.debug(
+      'Publishing exchange details for offer ' + event.data.offer.id + '...',
+    );
+
+    await this.eventsService.publish(
+      EXCHANGE_DETAILS_EVENT,
       {
         offer: event.data.offer,
-        bot: steamid.getSteamID64(),
-        retry: {
-          maxDelay: 60000,
-        },
-      },
-      {
-        jobId: `offer:${event.data.offer.id}`,
-      },
+        details,
+      } satisfies ExchangeDetailsEvent['data'],
+      steamid,
     );
   }
 
