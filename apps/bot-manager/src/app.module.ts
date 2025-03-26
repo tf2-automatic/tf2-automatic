@@ -24,10 +24,7 @@ import { RelayModule } from '@tf2-automatic/nestjs-relay';
 import { HttpModule } from '@nestjs/axios';
 import { ClsModule } from 'nestjs-cls';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import {
-  IdempotencyInterceptor,
-  UserAgentInterceptor,
-} from '@tf2-automatic/nestjs';
+import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
 
 @Module({
   imports: [
@@ -111,10 +108,6 @@ import {
     {
       provide: APP_INTERCEPTOR,
       useClass: UserAgentInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: IdempotencyInterceptor,
     },
   ],
 })

@@ -23,10 +23,7 @@ import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
 import { ManagerModule } from './manager/manager.module';
 import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import {
-  IdempotencyInterceptor,
-  UserAgentInterceptor,
-} from '@tf2-automatic/nestjs';
+import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
 import { ClsModule } from 'nestjs-cls';
 
 @Module({
@@ -100,10 +97,6 @@ import { ClsModule } from 'nestjs-cls';
     {
       provide: APP_INTERCEPTOR,
       useClass: UserAgentInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: IdempotencyInterceptor,
     },
   ],
 })
