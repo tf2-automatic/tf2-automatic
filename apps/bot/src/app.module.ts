@@ -17,8 +17,9 @@ import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import { getStorageConfig } from '@tf2-automatic/config';
+import { getStorageConfig, getUserAgent } from '@tf2-automatic/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { HttpModule } from '@nestjs/axios';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 
 @Module({
@@ -53,6 +54,21 @@ import { IdempotencyInterceptor } from './common/interceptors/idempotency.interc
     EscrowModule,
     ShutdownModule,
     ManagerModule,
+    HttpModule.registerAsync({
+      global: true,
+      useFactory: () => {
+        const headers: Record<string, string> = {};
+
+        const agent = getUserAgent();
+        if (agent) {
+          headers['User-Agent'] = agent;
+        }
+
+        return {
+          headers,
+        };
+      },
+    }),
   ],
 })
 export class AppModule {}

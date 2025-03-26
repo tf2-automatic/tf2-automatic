@@ -1,4 +1,3 @@
-import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { defaultJobOptions } from '../common/utils/default-job-options';
@@ -14,7 +13,6 @@ import { HealthModule } from '../health/health.module';
       name: 'schema',
       defaultJobOptions,
     }),
-    HttpModule,
     BotsModule,
     HealthModule,
   ],

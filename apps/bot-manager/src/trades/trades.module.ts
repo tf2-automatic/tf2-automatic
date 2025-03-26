@@ -1,4 +1,3 @@
-import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
@@ -19,7 +18,6 @@ import { defaultJobOptions } from '../common/utils/default-job-options';
       defaultJobOptions,
     }),
     HeartbeatsModule,
-    HttpModule,
   ],
   providers: [TradesService, ExchangeDetailsProcessor, TradesProcessor],
   controllers: [TradesController],

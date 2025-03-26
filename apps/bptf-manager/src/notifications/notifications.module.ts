@@ -3,7 +3,6 @@ import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { RedisModule } from '@songkeys/nestjs-redis';
 import { TokensModule } from '../tokens/tokens.module';
-import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { DefaultJobOptions } from 'bullmq';
 import { NotificationsProcessor } from './notifications.processor';
@@ -26,7 +25,6 @@ const defaultJobOptions: DefaultJobOptions = {
     }),
     RedisModule,
     TokensModule,
-    HttpModule,
   ],
   providers: [NotificationsService, NotificationsProcessor],
   controllers: [NotificationsController],

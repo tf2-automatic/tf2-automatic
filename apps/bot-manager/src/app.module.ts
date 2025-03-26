@@ -16,10 +16,12 @@ import {
   Redis as RedisConfig,
   getEventsConfig,
   getRelayConfig,
+  getUserAgent,
 } from '@tf2-automatic/config';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
 import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
 import { RelayModule } from '@tf2-automatic/nestjs-relay';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -76,6 +78,21 @@ import { RelayModule } from '@tf2-automatic/nestjs-relay';
         return {
           relay: getRelayConfig(),
           redis: RedisConfig.getConfig(),
+        };
+      },
+    }),
+    HttpModule.registerAsync({
+      global: true,
+      useFactory: () => {
+        const headers: Record<string, string> = {};
+
+        const agent = getUserAgent();
+        if (agent) {
+          headers['User-Agent'] = agent;
+        }
+
+        return {
+          headers,
         };
       },
     }),
