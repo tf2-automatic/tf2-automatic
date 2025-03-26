@@ -1,5 +1,6 @@
 import { OnWorkerEvent, WorkerHost } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
+import { ClsService } from 'nestjs-cls';
 import type { CustomJob, CustomWorker, JobData } from './types';
 import { customBackoffStrategy } from './backoff-strategy';
 import { AxiosError } from 'axios';
@@ -10,12 +11,23 @@ import { Logger } from '@nestjs/common';
 export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = unknown, NameType extends string = string> extends WorkerHost<CustomWorker<DataType>> {
   logger = new Logger(this.constructor.name);
 
-  constructor() {
+  #cls: ClsService
+
+  constructor(cls: ClsService) {
     super();
+
+    this.#cls = cls;
   }
 
   process(job: CustomJob<DataType, ReturnType, NameType>) {
     this.logger.log(`Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade + 1}...`);
+
+    this.#cls.enter();
+
+    for (const key in job.data.metadata) {
+      const value = job.data.metadata[key as keyof typeof job.data.metadata];
+      this.#cls.set(key, value);
+    }
 
     return this.processJobWithErrorHandler(job);
   }

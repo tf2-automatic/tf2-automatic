@@ -22,6 +22,12 @@ import { HealthModule } from './health/health.module';
 import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
 import { ManagerModule } from './manager/manager.module';
 import { HttpModule } from '@nestjs/axios';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import {
+  IdempotencyInterceptor,
+  UserAgentInterceptor,
+} from '@tf2-automatic/nestjs';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -85,8 +91,20 @@ import { HttpModule } from '@nestjs/axios';
         };
       },
     }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
   ],
-  controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserAgentInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
+    },
+  ],
 })
 export class AppModule {}

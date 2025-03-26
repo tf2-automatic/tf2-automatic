@@ -43,6 +43,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
+import { ClsService } from 'nestjs-cls';
 import { CustomJob } from '@tf2-automatic/queue';
 import { InventoryJobData } from './inventories.types';
 
@@ -77,6 +78,7 @@ export class InventoriesService
     @InjectQueue('inventories')
     private readonly inventoriesQueue: Queue<InventoryJobData>,
     private readonly relayService: RelayService,
+    private readonly cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -129,6 +131,10 @@ export class InventoriesService
       retry: dto.retry,
       metadata: {},
     };
+
+    if (this.cls.has('userAgent')) {
+      data.metadata.userAgent = this.cls.get('userAgent');
+    }
 
     const id = this.getInventoryJobId(steamid, appid, contextid);
 

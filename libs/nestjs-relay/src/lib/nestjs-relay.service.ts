@@ -9,10 +9,13 @@ import {
 import { ChainableCommander, Redis } from 'ioredis';
 import { SafeRedisLeader } from 'ts-safe-redis-leader';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { BaseEvent } from '@tf2-automatic/bot-data';
+import { BaseEvent, EventMetadata } from '@tf2-automatic/bot-data';
 import { RelayModuleConfig } from '@tf2-automatic/config';
 import { pack, unpack } from 'msgpackr';
 import { OUTBOX_KEY } from './constants';
+import { ClsService } from 'nestjs-cls';
+import SteamID from 'steamid';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -33,6 +36,7 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
     @InjectRedis()
     private readonly redis: Redis,
     @Inject('RELAY_CONFIG') config: RelayModuleConfig,
+    private readonly cls: ClsService,
   ) {
     this.subscriber = new Redis(config.redis);
     this.leaderRedis = new Redis(config.redis);
@@ -53,6 +57,10 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
       steamid64: steamid?.getSteamID64() ?? null,
       time: Math.floor(new Date().getTime() / 1000),
     };
+
+    if (this.cls.isActive() && this.cls.has('userAgent')) {
+      metadata.userAgent = this.cls.get('userAgent');
+    }
 
     const event: BaseEvent<unknown> = {
       type,

@@ -115,6 +115,9 @@ importers:
       msgpackr:
         specifier: ^1.11.2
         version: 1.11.2
+      nestjs-cls:
+        specifier: ^5.4.1
+        version: 5.4.1(@nestjs/common@11.0.11(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.0.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       node-cache:
         specifier: ^5.1.2
         version: 5.1.2
@@ -5856,6 +5859,15 @@ packages:
 
   nerf-dart@1.0.0:
     resolution: {integrity: sha512-EZSPZB70jiVsivaBLYDCyntd5eH8NTSMOn3rB+HxwdmKThGELLdYv8qVIMWvZEFy9w8ZZpW9h9OB32l1rGtj7g==}
+
+  nestjs-cls@5.4.1:
+    resolution: {integrity: sha512-hm0CQE6hRjr07yqSTcj50eQwNuZhlOHocX1W0CHpsYo9aDqsEysGkshegvAlC/4NVedTeAU6J0dVjAvNPTMrjQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@nestjs/common': '>= 10 < 12'
+      '@nestjs/core': '>= 10 < 12'
+      reflect-metadata: '*'
+      rxjs: '>= 7'
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
@@ -14668,6 +14680,13 @@ snapshots:
   neo-async@2.6.2: {}
 
   nerf-dart@1.0.0: {}
+
+  nestjs-cls@5.4.1(@nestjs/common@11.0.11(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.0.11)(reflect-metadata@0.2.2)(rxjs@7.8.2):
+    dependencies:
+      '@nestjs/common': 11.0.11(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.0.11(@nestjs/common@11.0.11(class-transformer@0.5.1)(class-validator@0.14.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.0.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata: 0.2.2
+      rxjs: 7.8.2
 
   node-abort-controller@3.1.1: {}
 

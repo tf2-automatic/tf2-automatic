@@ -22,6 +22,12 @@ import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
 import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
 import { RelayModule } from '@tf2-automatic/nestjs-relay';
 import { HttpModule } from '@nestjs/axios';
+import { ClsModule } from 'nestjs-cls';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import {
+  IdempotencyInterceptor,
+  UserAgentInterceptor,
+} from '@tf2-automatic/nestjs';
 
 @Module({
   imports: [
@@ -96,6 +102,20 @@ import { HttpModule } from '@nestjs/axios';
         };
       },
     }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserAgentInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
+    },
   ],
 })
 export class AppModule {}

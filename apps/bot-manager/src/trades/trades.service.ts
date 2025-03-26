@@ -56,6 +56,7 @@ import { InjectRedis } from '@songkeys/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -70,6 +71,7 @@ export class TradesService implements OnApplicationBootstrap {
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
     private readonly heartbeatService: HeartbeatsService,
+    private readonly cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -96,6 +98,10 @@ export class TradesService implements OnApplicationBootstrap {
         retry: dto.retry,
         metadata: {},
       };
+
+      if (this.cls.has('userAgent')) {
+        data.metadata.userAgent = this.cls.get('userAgent');
+      }
 
       const job = await this.tradesQueue.add(id, data, {
         jobId: id,

@@ -2,6 +2,7 @@ import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
 import { RelayService } from './nestjs-relay.service';
 import { RelayModuleConfig } from '@tf2-automatic/config';
 import { NestEventsModule } from '@tf2-automatic/nestjs-events';
+import { ClsModule } from 'nestjs-cls';
 
 
 @Global()
@@ -28,7 +29,7 @@ export class RelayModule {
   private static createDynamicModule(provider: Provider): DynamicModule {
     return {
       module: RelayModule,
-      imports: [NestEventsModule],
+      imports: [NestEventsModule, ClsModule.forFeature()],
       providers: [provider, RelayService],
       exports: [RelayService],
     };

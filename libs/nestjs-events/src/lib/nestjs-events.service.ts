@@ -10,6 +10,7 @@ import { EventsModuleOptions } from './nestjs-events.module';
 import { v4 as uuidv4 } from 'uuid';
 import { EventsConfigType } from '@tf2-automatic/config';
 import { Subscriber } from './subscriber.class';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class NestEventsService implements OnModuleDestroy {
@@ -18,6 +19,7 @@ export class NestEventsService implements OnModuleDestroy {
   constructor(
     @Inject('EVENTS_ENGINE') private readonly engine: CustomEventsService,
     @Inject('EVENTS_OPTIONS') private readonly options: EventsModuleOptions,
+    private readonly cls: ClsService,
   ) {}
 
   getType(): EventsConfigType {
@@ -38,6 +40,10 @@ export class NestEventsService implements OnModuleDestroy {
       steamid64: steamid?.getSteamID64() ?? null,
       time: Math.floor(new Date().getTime() / 1000),
     };
+
+    if (this.cls.isActive() && this.cls.has('userAgent')) {
+      metadata.userAgent = this.cls.get('userAgent');
+    }
 
     await this.publishEvent({
       type: event,

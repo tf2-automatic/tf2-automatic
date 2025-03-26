@@ -5,6 +5,7 @@ import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
 import { TradesProcessor } from './trades.processor';
 import { defaultJobOptions } from '@tf2-automatic/queue';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { defaultJobOptions } from '@tf2-automatic/queue';
       defaultJobOptions,
     }),
     HeartbeatsModule,
+    ClsModule.forFeature(),
   ],
   providers: [TradesService, TradesProcessor],
   controllers: [TradesController],
