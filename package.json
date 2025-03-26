@@ -98,7 +98,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "kvparser": "^1.0.2",
-    "minio": "^8.0.4",
+    "minio": "^8.0.5",
     "msgpackr": "^1.11.2",
     "nestjs-cls": "^5.4.1",
     "node-cache": "^5.1.2",
