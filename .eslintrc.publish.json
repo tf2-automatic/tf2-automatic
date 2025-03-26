@@ -9,7 +9,7 @@
           "redlock",
           "@nestjs/swagger"
         ],
-        "includeTransitiveDependencies": true,
+        "includeTransitiveDependencies": false,
         "checkMissingDependencies": true
       }
     ]
