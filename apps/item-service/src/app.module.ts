@@ -66,7 +66,12 @@ import { ClsModule } from 'nestjs-cls';
       subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],
       config: getEventsConfig(),
     }),
-    NestStorageModule.register(getStorageConfig()),
+    NestStorageModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: () => {
+        return getStorageConfig();
+      },
+    }),
     PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     HealthModule,

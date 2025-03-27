@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BotModule } from './bot/bot.module';
 import configuration from './common/config/configuration';
 import { validation } from './common/config/validation';
@@ -50,7 +50,12 @@ import { ClsModule } from 'nestjs-cls';
     }),
     EventEmitterModule.forRoot(),
     BotModule,
-    NestStorageModule.register(getStorageConfig()),
+    NestStorageModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: () => {
+        return getStorageConfig();
+      },
+    }),
     HealthModule,
     FriendsModule,
     InventoriesModule,
