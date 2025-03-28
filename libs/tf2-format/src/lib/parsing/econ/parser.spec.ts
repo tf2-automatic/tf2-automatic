@@ -316,7 +316,7 @@ describe('EconParser', () => {
       expect(extracted.killstreaker).toEqual(null);
       expect(extracted.sheen).toEqual(null);
       expect(extracted.killstreak).toEqual(1);
-      expect(extracted.target).toEqual("C.A.P.P.E.R");
+      expect(extracted.target).toEqual('C.A.P.P.E.R');
     });
 
     it('will detect elevated qualities for haunted items', () => {

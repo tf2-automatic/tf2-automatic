@@ -3282,36 +3282,39 @@ export function getCAPPERKillstreakKit() {
     id: '12724195412',
     currency: 0,
     background_color: '3C352E',
-    icon_url: 'IzMF03bi9WpSBq-S-ekoE33L-iLqGFHVaU25ZzQNQcXdEH9myp0du1AHE66AL6lNU5Fw_2yIWtaMjIpQmjATy1FfJDT5zn1ia9p8MdjSzwnEreOfG3G5OTLFfieAGgcwSrddZ22I_2Ggt7vFFj-aQrsrFQ4Ce6sN92VBNMrabgx9itAdomi_xntlTkt4PJceJUmyx3NCDqV0lXFcc5hXj32tcZW2zF9vaFhuWbjxD-GVbu7skSIkQx1vH7ZLJMvM7Cjo_JfnM6rRIKFkO690sNWV2FAXXNIVUZM_x6BBqZvzqAh8aYkuEl0jHbg8MjyfAvDulXidXea7aelb4pBRXgoSSR21mnQuXkAh7q_fbVxB5Hcm9faaqdPwkII1ldUA3Q',
-    icon_url_large: 'IzMF03bi9WpSBq-S-ekoE33L-iLqGFHVaU25ZzQNQcXdEH9myp0du1AHE66AL6lNU5Fw_2yIWtaMjIpQmjATy1FfJDT5zn1ia9p8MdjSzwnEreOfG3G5OTLFfieAGgcwSrddZ22I_2Ggt7vFFj-aQrsrFQ4Ce6sN92VBNMrabgx9itAdomi_xntlTkt4PJceJUmyx3NCDqV0lXFcc5hXj32tcZW2zF9vaFhuWbjxD-GVbu7skSIkQx1vH7ZLJMvM7Cjo_JfnM6rRIKFkO690sNWV2FAXXNIVUZM_x6BBqZvzqAh8aYkuEl0jHbg8MjyfAvDulXidXea7aelb4pBRXgoSSR21mnQuXkAh7q_fbVxB5Hcm9faaqdPwkII1ldUA3Q',
+    icon_url:
+      'IzMF03bi9WpSBq-S-ekoE33L-iLqGFHVaU25ZzQNQcXdEH9myp0du1AHE66AL6lNU5Fw_2yIWtaMjIpQmjATy1FfJDT5zn1ia9p8MdjSzwnEreOfG3G5OTLFfieAGgcwSrddZ22I_2Ggt7vFFj-aQrsrFQ4Ce6sN92VBNMrabgx9itAdomi_xntlTkt4PJceJUmyx3NCDqV0lXFcc5hXj32tcZW2zF9vaFhuWbjxD-GVbu7skSIkQx1vH7ZLJMvM7Cjo_JfnM6rRIKFkO690sNWV2FAXXNIVUZM_x6BBqZvzqAh8aYkuEl0jHbg8MjyfAvDulXidXea7aelb4pBRXgoSSR21mnQuXkAh7q_fbVxB5Hcm9faaqdPwkII1ldUA3Q',
+    icon_url_large:
+      'IzMF03bi9WpSBq-S-ekoE33L-iLqGFHVaU25ZzQNQcXdEH9myp0du1AHE66AL6lNU5Fw_2yIWtaMjIpQmjATy1FfJDT5zn1ia9p8MdjSzwnEreOfG3G5OTLFfieAGgcwSrddZ22I_2Ggt7vFFj-aQrsrFQ4Ce6sN92VBNMrabgx9itAdomi_xntlTkt4PJceJUmyx3NCDqV0lXFcc5hXj32tcZW2zF9vaFhuWbjxD-GVbu7skSIkQx1vH7ZLJMvM7Cjo_JfnM6rRIKFkO690sNWV2FAXXNIVUZM_x6BBqZvzqAh8aYkuEl0jHbg8MjyfAvDulXidXea7aelb4pBRXgoSSR21mnQuXkAh7q_fbVxB5Hcm9faaqdPwkII1ldUA3Q',
     descriptions: [
       { value: 'Killstreaks Active', color: '7ea9d1', name: 'attribute' },
       {
-        value: 'Used to add killstreak properties to an item.\n' +
+        value:
+          'Used to add killstreak properties to an item.\n' +
           '\n' +
           'Killstreak effects must be removed from an item via Restore button before a new kit can be applied.',
-        name: 'attribute'
+        name: 'attribute',
       },
       {
         value: 'This Killstreak Kit can be applied to a C.A.P.P.E.R.',
-        name: 'attribute'
+        name: 'attribute',
       },
       { value: ' ', name: 'attribute' },
       {
         value: 'This is a limited use item. Uses: 1',
         color: '00a000',
-        name: 'attribute'
+        name: 'attribute',
       },
       { value: ' ', name: 'attribute' },
       { value: '( Not Usable in Crafting )', name: 'attribute' },
-      { value: '' }
+      { value: '' },
     ],
     tradable: true,
     actions: [
       {
         link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=6527&lang=en_US',
-        name: 'Item Wiki Page...'
-      }
+        name: 'Item Wiki Page...',
+      },
     ],
     name: 'Killstreak C.A.P.P.E.R Kit',
     name_color: '7D6D00',
@@ -3328,17 +3331,17 @@ export function getCAPPERKillstreakKit() {
         name: 'Unique',
         category: 'Quality',
         color: '7D6D00',
-        category_name: 'Quality'
+        category_name: 'Quality',
       },
       {
         internal_name: 'TF_KillStreakifierToolA',
         name: 'Killstreak Kit',
         category: 'Type',
         color: '',
-        category_name: 'Type'
-      }
+        category_name: 'Type',
+      },
     ],
     is_currency: false,
-    fraudwarnings: []
+    fraudwarnings: [],
   };
 }
