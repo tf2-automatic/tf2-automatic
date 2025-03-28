@@ -308,6 +308,17 @@ describe('EconParser', () => {
       expect(extracted.target).toEqual("Hitman's Heatmaker");
     });
 
+    it('will parse C.A.P.P.E.R Kilstreak Kits', () => {
+      const item = TestData.getCAPPERKillstreakKit();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.killstreaker).toEqual(null);
+      expect(extracted.sheen).toEqual(null);
+      expect(extracted.killstreak).toEqual(1);
+      expect(extracted.target).toEqual("C.A.P.P.E.R");
+    });
+
     it('will detect elevated qualities for haunted items', () => {
       const item = TestData.getHauntedElevatedQualityItem();
 
