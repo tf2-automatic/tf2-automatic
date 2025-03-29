@@ -25,6 +25,7 @@ export class InventoriesService {
   });
 
   private attempts = 0;
+  private attemptAt = 0;
 
   constructor(private readonly botService: BotService) {}
 
@@ -36,9 +37,10 @@ export class InventoriesService {
   ): Promise<Inventory> {
     return this.limiter
       .schedule(async () => {
-        if (this.attempts > 0) {
+        const difference = this.attemptAt - Date.now();
+        if (difference > 0) {
           await new Promise((resolve) => {
-            setTimeout(resolve, calculateBackoff(this.attempts));
+            setTimeout(resolve, difference);
           });
         }
 
@@ -49,6 +51,7 @@ export class InventoriesService {
           })
           .catch((err) => {
             this.attempts++;
+            this.attemptAt = Date.now() + calculateBackoff(this.attempts);
             throw err;
           });
       })
