@@ -57,11 +57,6 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
       await job.updateData(job.data).catch(() => {
         // Ignore error
       });
-
-      if (err.response.status === 401 && !job.data.bot) {
-        // Retry loading the inventory (hopefully with a different bot)
-        throw err;
-      }
     }
   }
 
