@@ -20,9 +20,9 @@ module.exports = {
       '@semantic-release/github',
       {
         successCommentCondition: false,
-        failTitle: false
-      }
-    ]
+        failTitle: false,
+      },
+    ],
   ],
   branches: [
     'main',

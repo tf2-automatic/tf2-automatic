@@ -3,7 +3,6 @@ import { AgentsService } from './agents.service';
 import { AgentsController } from './agents.controller';
 import { BullModule } from '@nestjs/bullmq';
 import { DefaultJobOptions } from 'bullmq';
-import { HttpModule } from '@nestjs/axios';
 import { TokensModule } from '../tokens/tokens.module';
 import { RegisterAgentsProcessor } from './processors/register-agents.processor';
 import { UnregisterAgentsProcessor } from './processors/unregister-agents.processor';
@@ -20,7 +19,6 @@ const defaultJobOptions: DefaultJobOptions = {
 
 @Module({
   imports: [
-    HttpModule,
     BullModule.registerQueue({ name: 'registerAgents', defaultJobOptions }),
     BullModule.registerQueue({ name: 'unregisterAgents', defaultJobOptions }),
     TokensModule,

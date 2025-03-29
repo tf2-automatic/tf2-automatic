@@ -1,6 +1,6 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { bullWorkerSettings } from '../common/utils/backoff-strategy';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { SchemaService } from './schema.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';

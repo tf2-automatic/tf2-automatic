@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional } from 'class-validator';
-import { BaseEvent } from '../events';
+import { BaseEvent } from '@tf2-automatic/bot-data';
 import { ApiProperty } from '@nestjs/swagger';
 
 export const SCHEMA_BASE_PATH = '/schema';

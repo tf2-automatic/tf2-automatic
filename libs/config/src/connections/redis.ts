@@ -1,24 +1,11 @@
 import Joi from 'joi';
 import { getEnv, getEnvWithDefault } from '../helpers';
-import fs from 'fs';
-import path from 'path';
 import { CommonRedisOptions, SentinelConnectionOptions, StandaloneConnectionOptions } from 'ioredis';
 import { addWhenToAll } from '../joi';
+import { getAppNameAndVersion } from '../app';
 
 type RedisType = 'standalone' | 'sentinel';
 const DEFAULT_REDIS_TYPE: RedisType = 'standalone';
-
-function getAppName(): string | null {
-  if (process.env['NODE_ENV'] === 'test') {
-    return null;
-  }
-
-  const packageJson = JSON.parse(
-    fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'),
-  );
-
-  return packageJson.name;
-}
 
 export type Config = CommonRedisOptions & (SentinelConnectionOptions | StandaloneConnectionOptions) & {
   type: 'redis';
@@ -26,12 +13,12 @@ export type Config = CommonRedisOptions & (SentinelConnectionOptions | Standalon
 }
 
 export function getConfig(usePrefix = true): Config {
-  const prefix = getAppName();
+  const app = getAppNameAndVersion();
 
   const password = getEnv('REDIS_PASSWORD', 'string');
   const keyPrefix = getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') +
   ':' +
-  (usePrefix && prefix ? prefix + ':' : '');
+  (usePrefix && app ? app.name + ':' : '');
   const db = getEnv('REDIS_DB', 'integer');
 
   const commonConfig = {

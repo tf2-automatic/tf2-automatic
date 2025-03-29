@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'swagger',
   preset: '../../jest.preset.js',

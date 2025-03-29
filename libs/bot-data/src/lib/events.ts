@@ -4,6 +4,7 @@ export interface EventMetadata {
   id: string;
   steamid64: string | null;
   time: number;
+  userAgent?: string;
 }
 
 export interface BaseEvent<T, Y = unknown> {

@@ -863,7 +863,6 @@ export class BotService implements OnModuleDestroy {
 
     let attempts = 0;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       attempts++;
 

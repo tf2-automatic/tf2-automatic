@@ -12,10 +12,19 @@ import { NestEventsModule } from '@tf2-automatic/nestjs-events';
 import { BullModule } from '@nestjs/bullmq';
 import { TradesModule } from './trades/trades.module';
 import { EscrowModule } from './escrow/escrow.module';
-import { Redis as RedisConfig, getEventsConfig } from '@tf2-automatic/config';
+import {
+  Redis as RedisConfig,
+  getEventsConfig,
+  getRelayConfig,
+  getUserAgent,
+} from '@tf2-automatic/config';
 import { BOT_EXCHANGE_NAME } from '@tf2-automatic/bot-data';
 import { BOT_MANAGER_EXCHANGE_NAME } from '@tf2-automatic/bot-manager-data';
-import { RelayModule } from './relay/relay.module';
+import { RelayModule } from '@tf2-automatic/nestjs-relay';
+import { HttpModule } from '@nestjs/axios';
+import { ClsModule } from 'nestjs-cls';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
 
 @Module({
   imports: [
@@ -66,7 +75,40 @@ import { RelayModule } from './relay/relay.module';
     InventoriesModule,
     TradesModule,
     EscrowModule,
-    RelayModule.forRoot(),
+    RelayModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: () => {
+        return {
+          relay: getRelayConfig(),
+          redis: RedisConfig.getConfig(),
+        };
+      },
+    }),
+    HttpModule.registerAsync({
+      global: true,
+      useFactory: () => {
+        const headers: Record<string, string> = {};
+
+        const agent = getUserAgent();
+        if (agent) {
+          headers['User-Agent'] = agent;
+        }
+
+        return {
+          headers,
+        };
+      },
+    }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserAgentInterceptor,
+    },
   ],
 })
 export class AppModule {}

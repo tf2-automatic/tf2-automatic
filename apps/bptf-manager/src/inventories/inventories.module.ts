@@ -3,7 +3,6 @@ import { InventoriesService } from './inventories.service';
 import { InventoriesController } from './inventories.controller';
 import { BullModule } from '@nestjs/bullmq';
 import { InventoriesProcessor } from './processors/inventories.processor';
-import { HttpModule } from '@nestjs/axios';
 import { TokensModule } from '../tokens/tokens.module';
 import { EnqueueInventoriesProcessor } from './processors/enqueue.processor';
 import { RedisModule } from '@songkeys/nestjs-redis';
@@ -21,7 +20,6 @@ const defaultJobOptions: DefaultJobOptions = {
 
 @Module({
   imports: [
-    HttpModule,
     BullModule.registerQueue({
       name: 'inventories',
       defaultJobOptions,

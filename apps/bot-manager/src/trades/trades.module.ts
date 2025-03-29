@@ -1,27 +1,22 @@
-import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
-import { ExchangeDetailsProcessor } from './processors/exchange-details.processor';
 import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
-import { TradesProcessor } from './processors/trades.processor';
-import { defaultJobOptions } from '../common/utils/default-job-options';
+import { TradesProcessor } from './trades.processor';
+import { defaultJobOptions } from '@tf2-automatic/queue';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'getExchangeDetails',
-      defaultJobOptions,
-    }),
     BullModule.registerQueue({
       name: 'trades',
       defaultJobOptions,
     }),
     HeartbeatsModule,
-    HttpModule,
+    ClsModule.forFeature(),
   ],
-  providers: [TradesService, ExchangeDetailsProcessor, TradesProcessor],
+  providers: [TradesService, TradesProcessor],
   controllers: [TradesController],
 })
 export class TradesModule {}

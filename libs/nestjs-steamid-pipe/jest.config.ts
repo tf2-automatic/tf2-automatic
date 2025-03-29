@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'nestjs-steamid-pipe',
   preset: '../../jest.preset.js',

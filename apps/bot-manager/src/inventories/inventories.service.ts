@@ -5,8 +5,6 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
   OnModuleDestroy,
-  RequestTimeoutException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
@@ -39,12 +37,14 @@ import SteamID from 'steamid';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { EnqueueInventoryDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Job, Queue, QueueEvents } from 'bullmq';
-import { InventoryQueue } from './interfaces/queue.interfaces';
-import { v4 as uuidv4 } from 'uuid';
-import { redisMultiEvent } from '../common/utils/redis-multi-event';
+import { Queue } from 'bullmq';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
+import { RelayService } from '@tf2-automatic/nestjs-relay';
+import { ClsService } from 'nestjs-cls';
+import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
+import { InventoryJobData } from './inventories.types';
+import assert from 'assert';
 
 interface InventoryIdentifier {
   steamid64: string;
@@ -60,14 +60,10 @@ export class InventoriesService
 {
   private readonly locker: Locker;
 
-  private readonly inventoryQueueEvents = new QueueEvents(
-    this.inventoriesQueue.name,
-    {
-      autorun: true,
-      prefix: this.inventoriesQueue.opts.prefix,
-      connection: this.inventoriesQueue.opts.connection,
-    },
-  );
+  private readonly queueManager: QueueManagerWithEvents<
+    InventoryJobData['options'],
+    InventoryJobData
+  >;
 
   constructor(
     @InjectRedis()
@@ -75,9 +71,13 @@ export class InventoriesService
     private readonly httpService: HttpService,
     private readonly eventsService: NestEventsService,
     @InjectQueue('inventories')
-    private readonly inventoriesQueue: Queue<InventoryQueue>,
+    queue: Queue<CustomJob<InventoryJobData>>,
+    private readonly relayService: RelayService,
+    private readonly cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
+
+    this.queueManager = new QueueManagerWithEvents(queue, this.cls);
   }
 
   async onApplicationBootstrap() {
@@ -106,35 +106,26 @@ export class InventoriesService
   }
 
   async onModuleDestroy() {
-    return this.inventoryQueueEvents.close();
+    return this.queueManager.close();
   }
 
-  async addToQueue(
+  async addJob(
     steamid: SteamID,
     appid: number,
     contextid: string,
     dto: EnqueueInventoryDto,
-  ): Promise<Job<InventoryQueue>> {
-    const data: InventoryQueue = {
-      raw: {
+  ) {
+    return this.queueManager.addJob(
+      this.getInventoryJobId(steamid, appid, contextid),
+      'load',
+      {
         steamid64: steamid.getSteamID64(),
         appid,
         contextid,
+        ttl: dto.ttl,
       },
-      extra: {},
-      bot: dto.bot,
-      retry: dto.retry,
-      ttl: dto.ttl,
-    };
-
-    const id = this.getInventoryJobId(steamid, appid, contextid);
-
-    return this.inventoriesQueue.add(id, data, {
-      jobId: id,
-      backoff: {
-        type: 'custom',
-      },
-    });
+      dto,
+    );
   }
 
   private async fetchInventoryFromBot(
@@ -191,20 +182,21 @@ export class InventoriesService
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
-    await this.locker.using([key], LockDuration.SHORT, async () => {
+    await this.locker.using([key], LockDuration.SHORT, async (signal) => {
       await this.redis.hset(tempKey, object);
 
-      const multi = this.redis.multi().rename(tempKey, key);
+      if (signal.aborted) {
+        throw signal.error;
+      }
 
-      redisMultiEvent(multi, {
-        type: INVENTORY_LOADED_EVENT,
-        data: event,
-        metadata: {
-          id: uuidv4(),
-          steamid64: event.steamid64,
-          time: Math.floor(Date.now() / 1000),
-        },
-      } satisfies InventoryLoadedEvent);
+      const multi = this.redis.multi().hset(key, object);
+
+      this.relayService.publishEvent<InventoryLoadedEvent>(
+        multi,
+        INVENTORY_LOADED_EVENT,
+        event,
+        steamid,
+      );
 
       if (ttl > 0) {
         // and make it expire
@@ -226,15 +218,21 @@ export class InventoriesService
     appid: number,
     contextid: string,
   ): Promise<void> {
-    await this.inventoriesQueue.remove(
-      this.getInventoryJobId(steamid, appid, contextid),
-    );
-
     const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
 
     return this.locker.using([key], LockDuration.SHORT, async () => {
       await this.redis.del(key);
     });
+  }
+
+  async removeJob(
+    steamid: SteamID,
+    appid: number,
+    contextid: string,
+  ): Promise<void> {
+    await this.queueManager.removeJobById(
+      this.getInventoryJobId(steamid, appid, contextid),
+    );
   }
 
   async fetchInventory(
@@ -243,7 +241,7 @@ export class InventoriesService
     contextid: string,
     useCache = true,
     tradableOnly = true,
-    ttl?: number,
+    ttl = INVENTORY_EXPIRE_TIME,
   ): Promise<InventoryResponse> {
     if (useCache) {
       try {
@@ -266,28 +264,12 @@ export class InventoriesService
 
     // Add the job to the queue. I believe that if it is already in the queue
     // then it will not be replaced
-    const job = await this.addToQueue(steamid, appid, contextid, {
-      ttl: ttl ?? INVENTORY_EXPIRE_TIME,
+    const job = await this.addJob(steamid, appid, contextid, {
+      ttl,
     });
 
     // Wait for it to finish
-    await job
-      .waitUntilFinished(this.inventoryQueueEvents, 10000)
-      .catch((err: Error) => {
-        if (
-          err.message.startsWith(
-            'Job wait ' + job.id! + ' timed out before finishing',
-          )
-        ) {
-          throw new RequestTimeoutException(
-            'Inventory was not fetched in time',
-          );
-        } else if (err.message === 'Inventory is private') {
-          throw new UnauthorizedException('Inventory is private');
-        }
-
-        throw err;
-      });
+    await this.queueManager.waitUntilFinished(job, 10000);
 
     return this.getInventoryFromCache(steamid, appid, contextid, tradableOnly);
   }
@@ -322,37 +304,28 @@ export class InventoriesService
   ): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
 
-    const { timestamp, ttl, object } = await this.locker.using(
-      [key],
-      LockDuration.SHORT,
-      async (signal) => {
-        const timestamp = await this.redis.hget(key, 'timestamp');
-        if (timestamp === null) {
-          // Inventory is not in the cache
-          throw new NotFoundException('Inventory not found');
-        }
+    const [ttl, object] = await Promise.all([
+      this.redis.ttl(key),
+      this.redis.hgetallBuffer(key),
+    ]);
 
-        if (signal.aborted) {
-          throw signal.error;
-        }
-
-        const [object, ttl] = await Promise.all([
-          this.redis.hgetallBuffer(key),
-          this.redis.ttl(key),
-        ]);
-
-        return { timestamp: parseInt(timestamp, 10), ttl, object };
-      },
-    );
+    if (ttl === -2) {
+      // Inventory is not in the cache
+      throw new NotFoundException('Inventory not found');
+    }
 
     const items: Item[] = [];
-    for (const assetid in object) {
-      if (!assetid.startsWith('item:')) {
-        continue;
-      }
+    let timestamp = 0;
 
-      items.push(unpack(object[assetid]));
+    for (const key in object) {
+      if (key === 'timestamp') {
+        timestamp = parseInt(object[key].toString());
+      } else if (key.startsWith('item:')) {
+        items.push(unpack(object[key]));
+      }
     }
+
+    assert(timestamp !== 0, 'Timestamp is not set');
 
     return {
       timestamp,
@@ -618,16 +591,12 @@ export class InventoriesService
 
       for (let i = 0; i < changedEvents.length; i++) {
         const data = changedEvents[i];
-
-        redisMultiEvent(multi, {
-          type: INVENTORY_CHANGED_EVENT,
+        this.relayService.publishEvent<InventoryChangedEvent>(
+          multi,
+          INVENTORY_CHANGED_EVENT,
           data,
-          metadata: {
-            id: uuidv4(),
-            steamid64: data.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies InventoryChangedEvent);
+          new SteamID(data.steamid64),
+        );
       }
 
       await multi.exec();

@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
-import { BaseEvent } from '@tf2-automatic/bot-data';
+import { BaseEvent, EventMetadata } from '@tf2-automatic/bot-data';
 import SteamID from 'steamid';
 import {
   CustomEventsService,
@@ -10,6 +10,7 @@ import { EventsModuleOptions } from './nestjs-events.module';
 import { v4 as uuidv4 } from 'uuid';
 import { EventsConfigType } from '@tf2-automatic/config';
 import { Subscriber } from './subscriber.class';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class NestEventsService implements OnModuleDestroy {
@@ -18,10 +19,15 @@ export class NestEventsService implements OnModuleDestroy {
   constructor(
     @Inject('EVENTS_ENGINE') private readonly engine: CustomEventsService,
     @Inject('EVENTS_OPTIONS') private readonly options: EventsModuleOptions,
+    private readonly cls: ClsService,
   ) {}
 
   getType(): EventsConfigType {
     return this.options.config.type;
+  }
+
+  getExchange(): string {
+    return this.options.publishingExchange;
   }
 
   async publish(
@@ -29,14 +35,20 @@ export class NestEventsService implements OnModuleDestroy {
     data: object = {},
     steamid?: SteamID,
   ): Promise<void> {
+    const metadata: EventMetadata = {
+      id: uuidv4(),
+      steamid64: steamid?.getSteamID64() ?? null,
+      time: Math.floor(new Date().getTime() / 1000),
+    };
+
+    if (this.cls.isActive() && this.cls.has('userAgent')) {
+      metadata.userAgent = this.cls.get('userAgent');
+    }
+
     await this.publishEvent({
       type: event,
       data,
-      metadata: {
-        id: uuidv4(),
-        steamid64: steamid?.getSteamID64() ?? null,
-        time: Math.floor(new Date().getTime() / 1000),
-      },
+      metadata,
     } satisfies BaseEvent<string>);
   }
 

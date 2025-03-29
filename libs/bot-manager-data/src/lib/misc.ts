@@ -1,16 +1,10 @@
-export interface RetryOptions {
-  strategy?: 'exponential' | 'linear' | 'fixed';
-  maxTime?: number;
-  delay?: number;
-  maxDelay?: number;
-}
+import {
+  Job as BaseJob,
+  RetryOptions as QueueRetryOptions,
+} from '@tf2-automatic/queue';
 
-export interface Job {
-  id: string;
-  type: string;
-  data: unknown;
+export type RetryOptions = QueueRetryOptions;
+
+export interface Job extends BaseJob {
   bot: string;
-  attempts: number;
-  lastProcessedAt: number | null;
-  createdAt: number;
 }

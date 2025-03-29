@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'bot-data',
   preset: '../../jest.preset.js',

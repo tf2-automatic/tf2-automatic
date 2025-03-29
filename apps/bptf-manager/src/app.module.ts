@@ -11,7 +11,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { AgentsModule } from './agents/agents.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
-import { Redis } from '@tf2-automatic/config';
+import { getUserAgent, Redis } from '@tf2-automatic/config';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -55,6 +56,21 @@ import { Redis } from '@tf2-automatic/config';
     TokensModule,
     AgentsModule,
     NotificationsModule,
+    HttpModule.registerAsync({
+      global: true,
+      useFactory: () => {
+        const headers: Record<string, string> = {};
+
+        const agent = getUserAgent();
+        if (agent) {
+          headers['User-Agent'] = agent;
+        }
+
+        return {
+          headers,
+        };
+      },
+    }),
   ],
   controllers: [],
   providers: [],

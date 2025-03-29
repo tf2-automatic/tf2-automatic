@@ -11,9 +11,9 @@ import {
   HEARTBEAT_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { MetadataService } from '../metadata/metadata.service';
-import fs from 'fs';
 import { AxiosError } from 'axios';
 import { getEnv } from '@tf2-automatic/config';
+import { getAppNameAndVersion } from '@tf2-automatic/config';
 
 @Injectable()
 export class ManagerService implements OnModuleDestroy {
@@ -48,9 +48,12 @@ export class ManagerService implements OnModuleDestroy {
     }
 
     if (getEnv('NODE_ENV', 'string') === 'production') {
-      this.version = JSON.parse(
-        fs.readFileSync('package.json', 'utf8'),
-      ).version;
+      const app = getAppNameAndVersion();
+      if (app === null) {
+        throw new Error('Failed to get app name and version');
+      }
+
+      this.version = app.version;
     }
   }
 

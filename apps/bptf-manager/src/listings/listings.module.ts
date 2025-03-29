@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ListingsController } from './listings.controller';
 import { ManageListingsProcessor } from './processors/manage-listings.processor';
 import { BullModule } from '@nestjs/bullmq';
-import { HttpModule } from '@nestjs/axios';
 import { TokensModule } from '../tokens/tokens.module';
 import { AgentsModule } from '../agents/agents.module';
 import { ListingLimitsProcessor } from './processors/listing-limits.processor';
@@ -27,7 +26,6 @@ const defaultJobOptions: DefaultJobOptions = {
 
 @Module({
   imports: [
-    HttpModule,
     BullModule.registerQueue({
       name: 'manage-listings',
       defaultJobOptions,

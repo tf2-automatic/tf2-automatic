@@ -6,10 +6,11 @@
         "ignoredDependencies": [
           "@tf2-automatic/is-refined-validator",
           "@tf2-automatic/is-steamid-validator",
+          "@tf2-automatic/queue",
           "redlock",
           "@nestjs/swagger"
-        ], 
-        "includeTransitiveDependencies": true,
+        ],
+        "includeTransitiveDependencies": false,
         "checkMissingDependencies": true
       }
     ]

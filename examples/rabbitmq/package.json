@@ -1,4 +1,5 @@
 {
+  "name": "rabbitmq-example",
   "dependencies": {
     "@tf2-automatic/bot-data": "latest",
     "@tf2-automatic/bot-manager-data": "latest",

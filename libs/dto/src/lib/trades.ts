@@ -8,6 +8,7 @@ import {
   OfferFilter,
 } from '@tf2-automatic/bot-data';
 import {
+  GetTradeQueue,
   ManagerCounterTrade,
   QueueTrade,
   QueueTradeJobData,
@@ -261,4 +262,28 @@ export class GetExchangeDetailsDto {
   @IsBoolean()
   @Transform((params) => params.value === 'true')
   getDetailsIfFailed = false;
+}
+
+export class GetTradeQueueDto implements GetTradeQueue {
+  @ApiProperty({
+    description: 'The page number to get',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page = 1;
+
+  @ApiProperty({
+    description: 'The page size to get',
+    example: 10,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  pageSize = 10;
 }

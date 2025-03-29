@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'bot-manager',
   preset: '../../jest.preset.js',
