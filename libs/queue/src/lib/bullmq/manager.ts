@@ -1,6 +1,5 @@
-import { Queue, QueueEvents } from "bullmq";
-import { CustomJob, EnqueueOptions, Job, JobData, PaginatedJobs } from "./types";
-import { ClsService } from "nestjs-cls";
+import { HttpException, RequestTimeoutException } from '@nestjs/common';
+import { extractMessage } from './errors';
 
 export class QueueManager<ParameterType, DataType extends JobData, OptionsType extends EnqueueOptions = EnqueueOptions> {
   constructor(private readonly queue: Queue<CustomJob<DataType>>, private readonly cls: ClsService) {}
@@ -103,8 +102,26 @@ export class QueueManagerWithEvents<ParameterType, DataType extends JobData, Opt
     );
   }
 
-  async waitUntilFinished(job: CustomJob<DataType>, ttl?: number): Promise<void> {
-    await job.waitUntilFinished(this.queueEvents, ttl);
+  async waitUntilFinished(
+    job: CustomJob<DataType>,
+    ttl?: number,
+  ): Promise<void> {
+    await job.waitUntilFinished(this.queueEvents, ttl).catch((err) => {
+      if (
+        err.message.startsWith(
+          'Job wait ' + job.id! + ' timed out before finishing',
+        )
+      ) {
+        throw new RequestTimeoutException('Inventory was not fetched in time');
+      }
+
+      const httpError = extractMessage(err);
+      if (httpError.message) {
+        throw new HttpException(httpError.message, httpError.statusCode ?? 500);
+      }
+
+      throw err;
+    });
   }
 
   async close() {

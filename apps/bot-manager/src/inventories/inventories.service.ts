@@ -5,8 +5,6 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
   OnModuleDestroy,
-  RequestTimeoutException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   BOT_EXCHANGE_NAME,
@@ -271,23 +269,7 @@ export class InventoriesService
     });
 
     // Wait for it to finish
-    await this.queueManager
-      .waitUntilFinished(job, 10000)
-      .catch((err: Error) => {
-        if (
-          err.message.startsWith(
-            'Job wait ' + job.id! + ' timed out before finishing',
-          )
-        ) {
-          throw new RequestTimeoutException(
-            'Inventory was not fetched in time',
-          );
-        } else if (err.message === 'Inventory is private') {
-          throw new UnauthorizedException('Inventory is private');
-        }
-
-        throw err;
-      });
+    await this.queueManager.waitUntilFinished(job, 10000);
 
     return this.getInventoryFromCache(steamid, appid, contextid, tradableOnly);
   }
