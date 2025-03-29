@@ -6,6 +6,7 @@ import {
   Param,
   ValidationPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
@@ -14,7 +15,7 @@ import {
   TRADE_JOBS_PATH,
   TRADE_JOB_PATH,
 } from '@tf2-automatic/bot-manager-data';
-import { TradeQueueJobDto } from '@tf2-automatic/dto';
+import { GetTradeQueueDto, TradeQueueJobDto } from '@tf2-automatic/dto';
 import { TradesService } from './trades.service';
 
 @ApiTags('Trades')
@@ -113,10 +114,10 @@ export class TradesController {
       },
     },
   })
-  enqueueTrade(
+  addJob(
     @Body(new ValidationPipe()) dto: TradeQueueJobDto,
   ): Promise<QueueTradeResponse> {
-    return this.tradesService.enqueueJob(dto);
+    return this.tradesService.addJob(dto);
   }
 
   @Delete(TRADE_JOB_PATH)
@@ -124,8 +125,8 @@ export class TradesController {
     summary: 'Remove trade job',
     description: 'Removes a job from the queue',
   })
-  deleteQueueJob(@Param('id') id: string) {
-    return this.tradesService.dequeueJob(id).then((deleted) => {
+  removeJob(@Param('id') id: string) {
+    return this.tradesService.removeJob(id).then((deleted) => {
       return {
         deleted,
       };
@@ -138,7 +139,9 @@ export class TradesController {
     description:
       'Gets all queued trade actions (accept, decline / cancel, send, etc.)',
   })
-  getQueue() {
-    return this.tradesService.getQueue();
+  getJobs(
+    @Query(new ValidationPipe({ transform: true })) dto: GetTradeQueueDto,
+  ) {
+    return this.tradesService.getJobs(dto.page, dto.pageSize);
   }
 }

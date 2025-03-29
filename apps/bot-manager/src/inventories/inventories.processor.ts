@@ -21,7 +21,7 @@ import {
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
 import { AxiosError } from 'axios';
-import { InventoryJobData, InventoryJobState } from './inventories.types';
+import { InventoryJobData } from './inventories.types';
 
 @Processor('inventories', {
   settings: bullWorkerSettings,
@@ -41,8 +41,8 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
   }
 
   async errorHandler(
-    job: CustomJob<InventoryJobData, InventoryJobState>,
-    err,
+    job: CustomJob<InventoryJobData>,
+    err: any,
   ): Promise<void> {
     if (err instanceof AxiosError && err.response !== undefined) {
       const botsAttempted = job.data.state.botsAttempted ?? {};
@@ -65,14 +65,14 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     }
   }
 
-  async processJob(job: CustomJob<InventoryJobData, InventoryJobState>) {
+  async processJob(job: CustomJob<InventoryJobData>) {
     const bot = await this.selectBot(job);
 
     this.logger.debug(`Bot ${bot.steamid64} selected`);
 
     this.cls.set('bot', bot.steamid64);
 
-    return this.handleJob(job, bot).catch((err) => {
+    return this.handleJob(job, bot).catch(async (err) => {
       const data: (InventoryErrorEvent | InventoryFailedEvent)['data'] = {
         job: job.data.options,
         error: err.message,
@@ -83,7 +83,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
         err instanceof CustomError ||
         err instanceof CustomUnrecoverableError
       ) {
-        data.response = err.response.data;
+        data.response = err.response;
       }
 
       const unrecoverable = err instanceof UnrecoverableError;
@@ -100,9 +100,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     });
   }
 
-  private async selectBot(
-    job: CustomJob<InventoryJobData, InventoryJobState>,
-  ): Promise<Bot> {
+  private async selectBot(job: CustomJob<InventoryJobData>): Promise<Bot> {
     if (job.data.bot) {
       const botSteamID = new SteamID(job.data.bot);
 
@@ -140,7 +138,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
   }
 
   private async handleJob(
-    job: CustomJob<InventoryJobData, InventoryJobState, any>,
+    job: CustomJob<InventoryJobData>,
     bot: Bot,
   ): Promise<unknown> {
     // Get and save inventory

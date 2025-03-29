@@ -6,12 +6,16 @@ import { customBackoffStrategy } from './backoff-strategy';
 import { AxiosError } from 'axios';
 import { CustomError, CustomUnrecoverableError } from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
-import { Logger } from '@nestjs/common';
+import { HttpException, Logger } from '@nestjs/common';
 
-export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = unknown, NameType extends string = string> extends WorkerHost<CustomWorker<DataType>> {
+export abstract class CustomWorkerHost<
+  DataType extends JobData,
+  ReturnType = unknown,
+  NameType extends string = string,
+> extends WorkerHost<CustomWorker<DataType>> {
   logger = new Logger(this.constructor.name);
 
-  #cls: ClsService
+  #cls: ClsService;
 
   constructor(cls: ClsService) {
     super();
@@ -20,7 +24,11 @@ export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = un
   }
 
   process(job: CustomJob<DataType, ReturnType, NameType>) {
-    this.logger.log(`Processing job ${job.data.type} ${job.id} attempt #${job.attemptsMade + 1}...`);
+    this.logger.log(
+      `Processing job ${
+        job.data.type !== undefined ? job.data.type + ' ' : ''
+      }${job.id} attempt #${job.attemptsMade + 1}...`,
+    );
 
     this.#cls.enter();
 
@@ -32,9 +40,14 @@ export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = un
     return this.processJobWithErrorHandler(job);
   }
 
-  abstract processJob(job: CustomJob<DataType, ReturnType, NameType>): Promise<ReturnType>;
+  abstract processJob(
+    job: CustomJob<DataType, ReturnType, NameType>,
+  ): Promise<ReturnType>;
 
-  abstract errorHandler(job: CustomJob<DataType, ReturnType, NameType>, err: unknown): Promise<void>;
+  abstract errorHandler(
+    job: CustomJob<DataType, ReturnType, NameType>,
+    err: unknown,
+  ): Promise<void>;
 
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
@@ -64,7 +77,13 @@ export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = un
           response.status >= 400
         ) {
           // Don't retry on 4xx errors
-          throw new CustomUnrecoverableError(response.data.message, response);
+          throw new CustomUnrecoverableError(response.data.message, response.data);
+        }
+      } else if (err instanceof HttpException) {
+        const status = err.getStatus();
+        if (status < 500 && status >= 400) {
+          // Don't retry on 4xx errors
+          throw new CustomUnrecoverableError(err.message, err.getResponse() as object);
         }
       }
 
@@ -75,7 +94,7 @@ export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = un
           // Is axios error, throw custom unrecoverable error with axios response
           throw new CustomUnrecoverableError(
             'Job is too old to be retried',
-            err.response,
+            err.response.data,
           );
         }
 
@@ -85,7 +104,7 @@ export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = un
 
       if (err instanceof AxiosError && err.response !== undefined) {
         // Not a unrecoverable error, and is an axios error, throw custom error with axios response
-        throw new CustomError(err.response.data.message, err.response);
+        throw new CustomError(err.response.data.message, err.response.data);
       }
 
       // Unknown error
@@ -102,6 +121,13 @@ export abstract class CustomWorkerHost<DataType extends JobData, ReturnType = un
   @OnWorkerEvent('failed')
   private onFailed(job: Job, err: Error): void {
     this.logger.warn(`Failed job ${job.id}: ${err.message}`);
+    if (err instanceof AxiosError) {
+      if (err.response !== undefined) {
+        console.log(err.response.data);
+      }
+    } else if ((err instanceof HttpException)) {
+      console.log(err);
+    }
   }
 
   @OnWorkerEvent('completed')

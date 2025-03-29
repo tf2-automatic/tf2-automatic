@@ -22,6 +22,7 @@ import {
   InventoryResponse,
   INVENTORY_PATH,
   INVENTORY_FETCH_PATH,
+  INVENTORY_QUEUE_PATH,
 } from '@tf2-automatic/bot-manager-data';
 import { ParseSteamIDPipe } from '@tf2-automatic/nestjs-steamid-pipe';
 import SteamID from 'steamid';
@@ -37,7 +38,7 @@ import { ApiParamSteamID, CachedInventoryModel } from '@tf2-automatic/swagger';
 export class InventoriesController {
   constructor(private readonly inventoriesService: InventoriesService) {}
 
-  @Post(INVENTORY_PATH)
+  @Post(INVENTORY_QUEUE_PATH)
   @ApiOperation({
     summary: 'Add inventory to queue',
     description: 'Adds an inventory load job to the queue.',
@@ -53,13 +54,13 @@ export class InventoriesController {
     description: 'The contextid of the inventory',
     example: 2,
   })
-  async addInventoryToQueue(
+  async addJob(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
-    @Body(new ValidationPipe()) body: EnqueueInventoryDto,
+    @Body(new ValidationPipe({ transform: true })) body: EnqueueInventoryDto,
   ): Promise<void> {
-    await this.inventoriesService.addToQueue(steamid, appid, contextid, body);
+    await this.inventoriesService.addJob(steamid, appid, contextid, body);
   }
 
   @Get(INVENTORY_PATH)
@@ -169,9 +170,8 @@ export class InventoriesController {
 
   @Delete(INVENTORY_PATH)
   @ApiOperation({
-    summary: 'Delete cached inventory and load job if one exists',
-    description:
-      'Delete a inventory of a Steam account from the cache and queue job if one exists.',
+    summary: 'Delete cached inventory',
+    description: 'Delete the inventory of a Steam account from the cache.',
   })
   @ApiParamSteamID()
   @ApiParam({
@@ -190,5 +190,29 @@ export class InventoriesController {
     @Param('contextid') contextid: string,
   ): Promise<void> {
     return this.inventoriesService.deleteInventory(steamid, appid, contextid);
+  }
+
+  @Delete(INVENTORY_QUEUE_PATH)
+  @ApiOperation({
+    summary: 'Remove inventory from queue',
+    description: 'Remove inventory load job from the queue.',
+  })
+  @ApiParamSteamID()
+  @ApiParam({
+    name: 'appid',
+    description: 'The appid of the game',
+    example: 440,
+  })
+  @ApiParam({
+    name: 'contextid',
+    description: 'The contextid of the inventory',
+    example: 2,
+  })
+  removeJob(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Param('appid', ParseIntPipe) appid: number,
+    @Param('contextid') contextid: string,
+  ): Promise<void> {
+    return this.inventoriesService.removeJob(steamid, appid, contextid);
   }
 }

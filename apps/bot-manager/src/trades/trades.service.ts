@@ -50,30 +50,38 @@ import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { v4 as uuidv4 } from 'uuid';
-import { TradeQueue } from './interfaces/trade-queue.interface';
+import { TradeQueue } from './trades.interface';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ClsService } from 'nestjs-cls';
+import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
   private readonly logger = new Logger(TradesService.name);
+
+  private readonly queueManager: QueueManagerWithEvents<
+    TradeQueue['options'],
+    TradeQueue
+  >;
 
   private readonly locker: Locker;
 
   constructor(
     private readonly httpService: HttpService,
     @InjectQueue('trades')
-    private readonly tradesQueue: Queue<TradeQueue>,
+    queue: Queue<CustomJob<TradeQueue>>,
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
     private readonly heartbeatService: HeartbeatsService,
-    private readonly cls: ClsService,
+    cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
+
+    this.queueManager = new QueueManagerWithEvents(queue, cls);
   }
 
   async onApplicationBootstrap() {
@@ -88,30 +96,16 @@ export class TradesService implements OnApplicationBootstrap {
     );
   }
 
-  async enqueueJob(dto: QueueTradeJob): Promise<QueueTradeResponse> {
+  async addJob(dto: QueueTradeJob): Promise<QueueTradeResponse> {
     const createJob = async (id: string) => {
-      const data: TradeQueue = {
-        type: dto.type,
+      const job = await this.queueManager.addJob(id, dto.type, dto.data, {
         bot: dto.bot,
-        options: dto.data as never,
-        state: {},
         retry: dto.retry,
-        metadata: {},
-      };
-
-      if (this.cls.has('userAgent')) {
-        data.metadata.userAgent = this.cls.get('userAgent');
-      }
-
-      const job = await this.tradesQueue.add(id, data, {
-        jobId: id,
         priority: dto.priority,
       });
 
-      const jobId = job.id as string;
-
       return {
-        id: jobId,
+        id: job.id!,
       };
     };
 
@@ -143,7 +137,7 @@ export class TradesService implements OnApplicationBootstrap {
     const jobId = 'trades:' + offerId;
 
     return this.locker.using([jobId], LockDuration.SHORT, async (signal) => {
-      const exists = await this.tradesQueue.getJob(jobId);
+      const exists = await this.queueManager.getJobById(jobId);
       if (exists) {
         throw new ConflictException('A job already exists for the offer');
       }
@@ -156,16 +150,12 @@ export class TradesService implements OnApplicationBootstrap {
     });
   }
 
-  dequeueJob(id: string): Promise<boolean> {
-    return this.tradesQueue.remove(id).then((res) => {
-      return res === 1;
-    });
+  removeJob(id: string): Promise<boolean> {
+    return this.queueManager.removeJobById(id);
   }
 
-  getQueue(): Promise<Job[]> {
-    return this.tradesQueue.getJobs().then((jobs) => {
-      return jobs.map(this.mapJob);
-    });
+  getJobs(page = 1, pageSize = 10) {
+    return this.queueManager.getJobs(page, pageSize);
   }
 
   async deleteTrade(bot: Bot, tradeId: string): Promise<void> {
@@ -390,6 +380,7 @@ export class TradesService implements OnApplicationBootstrap {
     return {
       id: job.id as string,
       type: job.data.type,
+      priority: job.priority,
       data: job.data.options,
       bot: job.data.bot!,
       attempts: job.attemptsMade,

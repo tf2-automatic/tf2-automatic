@@ -23,7 +23,7 @@ import {
   CreateTradeJob,
   DeleteTradeJob,
   TradeQueue,
-} from './interfaces/trade-queue.interface';
+} from './trades.interface';
 import { TradesService } from './trades.service';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
@@ -68,7 +68,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         err instanceof CustomError ||
         err instanceof CustomUnrecoverableError
       ) {
-        data.response = err.response.data;
+        data.response = err.response;
       }
 
       const unrecoverable = err instanceof UnrecoverableError;
@@ -282,7 +282,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
           data.eresult !== SteamUser.EResult.Fail
         ) {
           // Fail when receiving eresult that can't be recovered from
-          throw new CustomUnrecoverableError(data.message, response);
+          throw new CustomUnrecoverableError(data.message, response.data);
         }
       }
     }
