@@ -77,13 +77,19 @@ export abstract class CustomWorkerHost<
           response.status >= 400
         ) {
           // Don't retry on 4xx errors
-          throw new CustomUnrecoverableError(response.data.message, response.data);
+            throw new CustomUnrecoverableError(
+              response.data.message,
+              response.data,
+            );
         }
       } else if (err instanceof HttpException) {
         const status = err.getStatus();
         if (status < 500 && status >= 400) {
           // Don't retry on 4xx errors
-          throw new CustomUnrecoverableError(err.message, err.getResponse() as object);
+            throw new CustomUnrecoverableError(
+              err.message,
+              err.getResponse() as object,
+            );
         }
       }
 
@@ -125,7 +131,7 @@ export abstract class CustomWorkerHost<
       if (err.response !== undefined) {
         console.log(err.response.data);
       }
-    } else if ((err instanceof HttpException)) {
+    } else if (err instanceof HttpException) {
       console.log(err);
     }
   }

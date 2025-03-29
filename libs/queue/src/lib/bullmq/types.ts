@@ -1,4 +1,4 @@
-import type { Job as BullJob, Worker } from "bullmq";
+import type { Job as BullJob, Worker } from 'bullmq';
 
 export type JobData<OptionsType = any, StateType = any, TypeType = string> = {
   type: TypeType;
@@ -7,14 +7,21 @@ export type JobData<OptionsType = any, StateType = any, TypeType = string> = {
   state: StateType;
   metadata: {
     userAgent?: string;
-  },
+  };
   retry?: RetryOptions;
 };
 
-export type CustomWorker<DataType extends JobData = JobData, ResultType = any, NameType extends string = string> = Worker<DataType, ResultType, NameType>;
+export type CustomWorker<
+  DataType extends JobData = JobData,
+  ResultType = any,
+  NameType extends string = string,
+> = Worker<DataType, ResultType, NameType>;
 
-export type CustomJob<DataType extends JobData = JobData, ReturnType = unknown, NameType extends string = string> = 
-BullJob<DataType, ReturnType, NameType>;
+export type CustomJob<
+  DataType extends JobData = JobData,
+  ReturnType = unknown,
+  NameType extends string = string,
+> = BullJob<DataType, ReturnType, NameType>;
 
 export interface Job {
   id: string;

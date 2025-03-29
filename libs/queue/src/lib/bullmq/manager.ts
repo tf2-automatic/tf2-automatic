@@ -1,8 +1,24 @@
+import { Queue, QueueEvents } from 'bullmq';
+import {
+  CustomJob,
+  EnqueueOptions,
+  Job,
+  JobData,
+  PaginatedJobs,
+} from './types';
+import { ClsService } from 'nestjs-cls';
 import { HttpException, RequestTimeoutException } from '@nestjs/common';
 import { extractMessage } from './errors';
 
-export class QueueManager<ParameterType, DataType extends JobData, OptionsType extends EnqueueOptions = EnqueueOptions> {
-  constructor(private readonly queue: Queue<CustomJob<DataType>>, private readonly cls: ClsService) {}
+export class QueueManager<
+  ParameterType,
+  DataType extends JobData,
+  OptionsType extends EnqueueOptions = EnqueueOptions,
+> {
+  constructor(
+    private readonly queue: Queue<CustomJob<DataType>>,
+    private readonly cls: ClsService,
+  ) {}
 
   async getJobById(id: string): Promise<CustomJob<DataType> | null> {
     return this.queue.getJob(id).then((job) => {
@@ -49,14 +65,16 @@ export class QueueManager<ParameterType, DataType extends JobData, OptionsType e
   async getJobs(page: number, pageSize: number): Promise<PaginatedJobs> {
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
-    
+
     const totalPromise = this.queue.getJobCounts().then((counts) => {
       return Object.values(counts).reduce((acc, count) => acc + count, 0);
     });
 
-    const jobsPromise = this.queue.getJobs(undefined, start, end).then((jobs) => {
-      return jobs.map(this.mapJob);
-    });
+    const jobsPromise = this.queue
+      .getJobs(undefined, start, end)
+      .then((jobs) => {
+        return jobs.map(this.mapJob);
+      });
 
     const [items, total] = await Promise.all([jobsPromise, totalPromise]);
 
@@ -66,7 +84,7 @@ export class QueueManager<ParameterType, DataType extends JobData, OptionsType e
       totalPages: Math.ceil(total / pageSize),
       page,
       perPage: pageSize,
-    }
+    };
   }
 
   private mapJob(job: CustomJob<DataType>): Job {
@@ -86,20 +104,21 @@ export class QueueManager<ParameterType, DataType extends JobData, OptionsType e
   }
 }
 
-export class QueueManagerWithEvents<ParameterType, DataType extends JobData, OptionsType extends EnqueueOptions = EnqueueOptions> extends QueueManager<ParameterType, DataType, OptionsType> {
+export class QueueManagerWithEvents<
+  ParameterType,
+  DataType extends JobData,
+  OptionsType extends EnqueueOptions = EnqueueOptions,
+> extends QueueManager<ParameterType, DataType, OptionsType> {
   private readonly queueEvents: QueueEvents;
-  
+
   constructor(queue: Queue<CustomJob<DataType>>, cls: ClsService) {
     super(queue, cls);
 
-    this.queueEvents  = new QueueEvents(
-      queue.name,
-      {
-        autorun: true,
-        prefix: queue.opts.prefix,
-        connection: queue.opts.connection,
-      },
-    );
+    this.queueEvents = new QueueEvents(queue.name, {
+      autorun: true,
+      prefix: queue.opts.prefix,
+      connection: queue.opts.connection,
+    });
   }
 
   async waitUntilFinished(

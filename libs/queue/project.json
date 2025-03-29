@@ -22,6 +22,13 @@
         "jestConfig": "libs/queue/jest.config.ts",
         "passWithNoTests": true
       }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/queue/**/*.ts"]
+      }
     }
   }
 }
