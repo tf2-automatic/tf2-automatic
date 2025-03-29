@@ -7,7 +7,7 @@ import {
   PaginatedJobs,
 } from './types';
 import { ClsService } from 'nestjs-cls';
-import { HttpException, RequestTimeoutException } from '@nestjs/common';
+import { GatewayTimeoutException, HttpException } from '@nestjs/common';
 import { extractMessage } from './errors';
 
 export class QueueManager<
@@ -131,7 +131,7 @@ export class QueueManagerWithEvents<
           'Job wait ' + job.id! + ' timed out before finishing',
         )
       ) {
-        throw new RequestTimeoutException('Inventory was not fetched in time');
+        throw new GatewayTimeoutException('Inventory was not fetched in time');
       }
 
       const httpError = extractMessage(err);
