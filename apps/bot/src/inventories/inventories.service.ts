@@ -50,8 +50,13 @@ export class InventoriesService {
             return inventory;
           })
           .catch((err) => {
-            this.attempts++;
-            this.attemptAt = Date.now() + calculateBackoff(this.attempts);
+            if (err instanceof UnauthorizedException) {
+              this.attempts = 0;
+            } else {
+              this.attempts++;
+              this.attemptAt = Date.now() + calculateBackoff(this.attempts);
+            }
+
             throw err;
           });
       })
@@ -82,7 +87,10 @@ export class InventoriesService {
         const inventory = items as unknown as Inventory;
 
         if (err) {
-          if (err.message === 'HTTP error 401') {
+          if (
+            err.message === 'HTTP error 401' ||
+            err.message === 'This profile is private.'
+          ) {
             this.logger.warn(
               `Error getting inventory: ${err.message} (inventory is private)`,
             );
