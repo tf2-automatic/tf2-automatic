@@ -98,7 +98,7 @@ export class EscrowService implements OnModuleDestroy {
     );
 
     try {
-      const cached = await this.getEscrowFromCache(steamid);
+      const cached = await this.getEscrowFromCache(steamid, query);
       return cached;
     } catch (err) {
       if (!(err instanceof NotFoundException)) {
@@ -135,7 +135,10 @@ export class EscrowService implements OnModuleDestroy {
     return response.data;
   }
 
-  async getEscrowFromCache(steamid: SteamID): Promise<EscrowResponse> {
+  async getEscrowFromCache(
+    steamid: SteamID,
+    dto?: GetEscrowDto,
+  ): Promise<EscrowResponse> {
     const key = this.getKey(steamid);
 
     const [ttl, object] = await Promise.all([
@@ -144,6 +147,15 @@ export class EscrowService implements OnModuleDestroy {
     ]);
 
     if (ttl === -2 || object === null) {
+      throw new NotFoundException('Escrow not found');
+    }
+
+    // Check if the dto matches the cached data and throw an error if it doesn't
+    if (
+      dto &&
+      ((dto.bot && dto.bot.getSteamID64() !== object.bot.toString()) ||
+        (dto.token && dto.token !== object.token?.toString()))
+    ) {
       throw new NotFoundException('Escrow not found');
     }
 
@@ -169,6 +181,8 @@ export class EscrowService implements OnModuleDestroy {
 
     const save: EscrowData = {
       timestamp: result.timestamp,
+      bot: result.bot,
+      token: result.token,
     };
 
     if (result.result) {

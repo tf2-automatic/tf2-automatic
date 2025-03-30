@@ -23,10 +23,14 @@ export interface EscrowResultData {
 
 export type EscrowResult = (EscrowErrorData | EscrowResultData) & {
   timestamp: number;
+  bot: string;
+  token?: string;
 };
 
 export interface EscrowData {
   timestamp: number;
   error?: Buffer;
   result?: Buffer;
+  bot: string;
+  token?: string;
 }
