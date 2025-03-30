@@ -11,16 +11,16 @@ import {
   InventoryFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import assert from 'node:assert';
 import {
   CustomJob,
   CustomWorkerHost,
   CustomError,
   CustomUnrecoverableError,
   bullWorkerSettings,
+  selectBot,
+  botAttemptErrorHandler,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
-import { AxiosError } from 'axios';
 import { InventoryJobData } from './inventories.types';
 
 @Processor('inventories', {
@@ -44,20 +44,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     job: CustomJob<InventoryJobData>,
     err: any,
   ): Promise<void> {
-    if (err instanceof AxiosError && err.response !== undefined) {
-      const botsAttempted = job.data.state.botsAttempted ?? {};
-
-      const bot: string | undefined = this.cls.get('bot');
-      assert(bot !== undefined, 'Bot is not set');
-
-      botsAttempted[bot] = (botsAttempted[bot] ?? 0) + 1;
-
-      job.data.state.botsAttempted = botsAttempted;
-
-      await job.updateData(job.data).catch(() => {
-        // Ignore error
-      });
-    }
+    return botAttemptErrorHandler(this.cls, err, job);
   }
 
   async processJob(job: CustomJob<InventoryJobData>) {
@@ -106,30 +93,8 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
 
     // Get list of bots
     const bots = await this.heartbeatsService.getRunningBots();
-    if (bots.length === 0) {
-      throw new Error('No bots available');
-    }
 
-    let minAttempts = Number.MAX_SAFE_INTEGER;
-    let minAttemptsBots: Bot[] = [];
-
-    for (const bot of bots) {
-      const attempts = job.data.state.botsAttempted?.[bot.steamid64] ?? 0;
-
-      if (attempts < minAttempts) {
-        minAttempts = attempts;
-        minAttemptsBots = [bot];
-      } else if (attempts === minAttempts) {
-        minAttemptsBots.push(bot);
-      }
-    }
-
-    assert(minAttemptsBots.length > 0, 'No bots after filtering by attempts');
-
-    // TODO: Filter bots by who they are friends with
-
-    // Select bots with the least attempts made
-    return minAttemptsBots[Math.floor(Math.random() * minAttemptsBots.length)];
+    return selectBot(job, bots);
   }
 
   private async handleJob(

@@ -83,10 +83,15 @@ export abstract class CustomWorkerHost<
           const status = err.getStatus();
           if (status < 500 && status >= 400) {
             // Don't retry on 4xx errors
-            throw new CustomUnrecoverableError(
-              err.message,
-              err.getResponse() as object,
-            );
+            const response = err.getResponse();
+            if (typeof response === 'object') {
+              throw new CustomUnrecoverableError(err.message, response);
+            } else {
+              throw new CustomUnrecoverableError(err.message, {
+                message: response,
+                statusCode: status,
+              });
+            }
           }
         }
 

@@ -1,5 +1,9 @@
 import type { Job as BullJob, Worker } from 'bullmq';
 
+export interface BotsAttemptedState {
+  botsAttempted?: Record<string, number>;
+}
+
 export type JobData<OptionsType = any, StateType = any, TypeType = string> = {
   type: TypeType;
   options: OptionsType;
