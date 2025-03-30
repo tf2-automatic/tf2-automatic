@@ -1,4 +1,4 @@
-import { RetryOptions } from './types';
+import { RetryOptions } from '@tf2-automatic/common-data';
 import { AdvancedOptions, MinimalJob } from 'bullmq';
 
 type BackoffStrategy = (

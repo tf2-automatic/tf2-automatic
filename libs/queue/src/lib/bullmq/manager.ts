@@ -1,14 +1,9 @@
 import { Queue, QueueEvents } from 'bullmq';
-import {
-  CustomJob,
-  EnqueueOptions,
-  Job,
-  JobData,
-  PaginatedJobs,
-} from './types';
+import { CustomJob, EnqueueOptions, JobData } from './types';
 import { ClsService } from 'nestjs-cls';
 import { GatewayTimeoutException, HttpException } from '@nestjs/common';
 import { extractMessage } from './errors';
+import { PaginatedJobs, Job } from '@tf2-automatic/common-data';
 
 export class QueueManager<
   ParameterType,

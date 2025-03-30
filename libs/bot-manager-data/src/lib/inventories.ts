@@ -1,5 +1,5 @@
 import { BaseEvent, HttpError, Item } from '@tf2-automatic/bot-data';
-import { RetryOptions } from './misc';
+import { RetryOptions } from '@tf2-automatic/common-data';
 
 export const INVENTORIES_BASE_URL = '/inventories';
 export const INVENTORY_PATH = '/:steamid/:appid/:contextid';

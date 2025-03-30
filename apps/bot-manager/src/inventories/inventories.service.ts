@@ -73,11 +73,11 @@ export class InventoriesService
     @InjectQueue('inventories')
     queue: Queue<CustomJob<InventoryJobData>>,
     private readonly relayService: RelayService,
-    private readonly cls: ClsService,
+    cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
 
-    this.queueManager = new QueueManagerWithEvents(queue, this.cls);
+    this.queueManager = new QueueManagerWithEvents(queue, cls);
   }
 
   async onApplicationBootstrap() {

@@ -36,7 +36,6 @@ import {
 import {
   Bot,
   QueueTradeResponse,
-  Job,
   QueueTradeJob,
   EXCHANGE_DETAILS_EVENT,
   ExchangeDetailsEvent,
@@ -58,6 +57,7 @@ import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ClsService } from 'nestjs-cls';
 import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
+import { JobWithBot } from '@tf2-automatic/common-data';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -376,7 +376,7 @@ export class TradesService implements OnApplicationBootstrap {
     ).then((res) => res.data);
   }
 
-  mapJob(job: BullJob<TradeQueue>): Job {
+  mapJob(job: BullJob<TradeQueue>): JobWithBot {
     return {
       id: job.id as string,
       type: job.data.type,

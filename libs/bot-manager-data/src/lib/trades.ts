@@ -6,8 +6,11 @@ import {
   TradeOfferExchangeDetails,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
-import { Job, RetryOptions } from './misc';
-import { PaginationOptions } from '@tf2-automatic/queue';
+import {
+  Job,
+  PaginationOptions,
+  RetryOptions,
+} from '@tf2-automatic/common-data';
 
 export const TRADES_BASE_URL = '/trades';
 export const TRADE_JOBS_PATH = `/`;

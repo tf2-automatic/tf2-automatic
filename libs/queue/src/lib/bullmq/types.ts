@@ -1,3 +1,4 @@
+import { RetryOptions } from '@tf2-automatic/common-data';
 import type { Job as BullJob, Worker } from 'bullmq';
 
 export interface BotsAttemptedState {
@@ -27,39 +28,8 @@ export type CustomJob<
   NameType extends string = string,
 > = BullJob<DataType, ReturnType, NameType>;
 
-export interface Job {
-  id: string;
-  type: string;
-  priority: number;
-  data: unknown;
-  retry?: RetryOptions;
-  attempts: number;
-  lastProcessedAt: number | null;
-  createdAt: number;
-}
-
-export interface PaginatedJobs {
-  data: Job[];
-  page: number;
-  perPage: number;
-  total: number;
-  totalPages: number;
-}
-
 export interface EnqueueOptions {
   priority?: number;
   retry?: RetryOptions;
   bot?: string;
-}
-
-export interface RetryOptions {
-  strategy?: 'exponential' | 'linear' | 'fixed';
-  maxTime?: number;
-  delay?: number;
-  maxDelay?: number;
-}
-
-export interface PaginationOptions {
-  page?: number;
-  pageSize?: number;
 }
