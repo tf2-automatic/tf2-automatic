@@ -32,6 +32,8 @@ export abstract class CustomWorkerHost<
 
     this.#cls.enter();
 
+    this.#cls.set('timestamp', Math.floor(Date.now() / 1000));
+
     for (const key in job.data.metadata) {
       const value = job.data.metadata[key as keyof typeof job.data.metadata];
       this.#cls.set(key, value);
@@ -44,10 +46,19 @@ export abstract class CustomWorkerHost<
     job: CustomJob<DataType, ReturnType, NameType>,
   ): Promise<ReturnType>;
 
-  abstract errorHandler(
+  preErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
-  ): Promise<void>;
+  ): Promise<void> {
+    return Promise.resolve();
+  }
+
+  postErrorHandler(
+    job: CustomJob<DataType, ReturnType, NameType>,
+    err: unknown,
+  ): Promise<void> {
+    return Promise.resolve();
+  }
 
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
@@ -62,7 +73,7 @@ export abstract class CustomWorkerHost<
 
     return this.processJob(job)
       .catch(async (err) => {
-        await this.errorHandler(job, err);
+        await this.preErrorHandler(job, err);
 
         if (err instanceof AxiosError) {
           const response =
@@ -98,7 +109,9 @@ export abstract class CustomWorkerHost<
         // Unknown error
         throw err;
       })
-      .catch((err) => {
+      .catch(async (err) => {
+        await this.postErrorHandler(job, err);
+
         // Check if job will be too old when it can be retried again
         const delay = customBackoffStrategy(job.attemptsMade, job);
         if (job.timestamp < Date.now() + delay - maxTime) {

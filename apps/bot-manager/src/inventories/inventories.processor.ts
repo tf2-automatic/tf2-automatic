@@ -40,7 +40,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     super(cls);
   }
 
-  async errorHandler(
+  async preErrorHandler(
     job: CustomJob<InventoryJobData>,
     err: any,
   ): Promise<void> {

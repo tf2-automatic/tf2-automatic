@@ -185,7 +185,12 @@ export class EscrowService implements OnModuleDestroy {
       }
     }
 
-    await this.redis.pipeline().del(key).hset(key, save).expire(key, ttl).exec();
+    await this.redis
+      .pipeline()
+      .del(key)
+      .hset(key, save)
+      .expire(key, ttl)
+      .exec();
   }
 
   async deleteEscrow(steamid: SteamID): Promise<void> {

@@ -31,11 +31,31 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
     super(cls);
   }
 
-  async errorHandler(
+  async preErrorHandler(
     job: CustomJob<EscrowJobData>,
     err: unknown,
   ): Promise<void> {
     return botAttemptErrorHandler(this.cls, err, job);
+  }
+
+  async postErrorHandler(
+    job: CustomJob<EscrowJobData, unknown, string>,
+    err,
+  ): Promise<void> {
+    if (!(err instanceof CustomUnrecoverableError)) {
+      return;
+    }
+
+    await this.escrowService.saveEscrow(
+      new SteamID(job.data.options.steamid64),
+      {
+        timestamp: this.cls.get('timestamp'),
+        error: err.response,
+        result: null,
+        bot: this.cls.get('bot'),
+        token: job.data.options.token,
+      },
+    );
   }
 
   async processJob(job: Job<EscrowJobData>): Promise<void> {
