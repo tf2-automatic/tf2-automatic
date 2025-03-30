@@ -50,7 +50,7 @@ import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
 import { v4 as uuidv4 } from 'uuid';
-import { TradeQueue } from './trades.interface';
+import { TradeQueue } from './trades.types';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';

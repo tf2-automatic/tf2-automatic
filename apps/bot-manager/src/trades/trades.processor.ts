@@ -23,7 +23,7 @@ import {
   CreateTradeJob,
   DeleteTradeJob,
   TradeQueue,
-} from './trades.interface';
+} from './trades.types';
 import { TradesService } from './trades.service';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
