@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamID from 'steamid';
 import { FriendsService } from '../friends/friends.service';
@@ -37,6 +41,24 @@ export class EscrowService {
     return new Promise((resolve, reject) => {
       offer.getUserDetails((err, me, them) => {
         if (err) {
+          if (
+            err.message.endsWith(
+              `'s inventory privacy is set to "Private".  They are unable to receive trade offers.`,
+            )
+          ) {
+            return reject(new UnauthorizedException('Inventory is private'));
+          } else if (err.message.endsWith(' because they have a trade ban.')) {
+            return reject(new BadRequestException('User is trade banned'));
+          } else if (
+            err.message.startsWith(
+              'This Trade URL is no longer valid for sending a trade offer to ',
+            )
+          ) {
+            return reject(
+              new BadRequestException('Trade offer token is invalid'),
+            );
+          }
+
           return reject(err);
         }
 
