@@ -64,6 +64,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
         error: err.response,
         result: null,
         bot: this.cls.get('bot'),
+        ttl: job.data.options.ttl,
       },
     );
   }
@@ -140,6 +141,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
         error: null,
         result: inventory,
         bot: bot.steamid64,
+        ttl: job.data.options.ttl,
       },
     );
   }
