@@ -21,7 +21,7 @@
     "@nx-tools/nx-container": "^6.2.0",
     "@nx/devkit": "20.4.6",
     "@nx/eslint-plugin": "20.4.6",
-    "@nx/jest": "20.4.6",
+    "@nx/jest": "20.7.1",
     "@nx/js": "20.4.6",
     "@nx/linter": "19.8.4",
     "@nx/nest": "20.4.6",
