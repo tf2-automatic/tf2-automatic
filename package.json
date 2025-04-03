@@ -91,6 +91,7 @@
     "bullmq": "^5.41.7",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dataloader": "^2.2.3",
     "express": "^4.21.2",
     "fastq": "^1.19.1",
     "ioredis": "^5.6.0",

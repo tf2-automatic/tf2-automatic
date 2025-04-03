@@ -171,7 +171,6 @@ export class InventoriesService
     object['timestamp'] = now;
 
     const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
-    const tempKey = key + ':temp';
 
     const event = {
       steamid64: steamid.getSteamID64(),
@@ -182,14 +181,8 @@ export class InventoriesService
     } satisfies InventoryLoadedEvent['data'];
 
     // Save inventory in Redis and event in outbox
-    await this.locker.using([key], LockDuration.SHORT, async (signal) => {
-      await this.redis.hset(tempKey, object);
-
-      if (signal.aborted) {
-        throw signal.error;
-      }
-
-      const multi = this.redis.multi().hset(key, object);
+    await this.locker.using([key], LockDuration.SHORT, async () => {
+      const multi = this.redis.multi().del(key).hset(key, object);
 
       this.relayService.publishEvent<InventoryLoadedEvent>(
         multi,

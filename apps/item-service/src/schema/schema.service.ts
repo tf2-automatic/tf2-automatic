@@ -43,6 +43,13 @@ import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
 import { mergeDefinitionPrefab } from './schema.utils';
 import { S3StorageEngine } from '@tf2-automatic/nestjs-storage';
+import {
+  EconParser,
+  EconParserSchema,
+  TF2Parser,
+  TF2ParserSchema,
+} from '@tf2-automatic/tf2-format';
+import Dataloader from 'dataloader';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
@@ -74,6 +81,26 @@ const LAST_CHECKED_KEY = 'schema:last-checked';
 const OVERVIEW_FILE = 'schema-overview.json';
 // The name of the items game file
 const ITEMS_GAME_FILE = 'items_game.txt';
+
+const SHEENS = {
+  'Team Shine': 1,
+  'Deadly Daffodil': 2,
+  Manndarin: 3,
+  'Mean Green': 4,
+  'Agonizing Emerald': 5,
+  'Villainous Violet': 6,
+  'Hot Rod': 7,
+};
+
+const KILLSTREAKERS = {
+  'Fire Horns': 2002,
+  'Cerebral Discharge': 2003,
+  Tornado: 2004,
+  Flames: 2005,
+  Singularity: 2006,
+  Incinerator: 2007,
+  'Hypno-Beam': 2008,
+};
 
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
@@ -213,7 +240,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
   private async getValuesByField(
     key: SchemaKeys,
-    fields: string[],
+    fields: readonly string[],
     time?: number,
   ): Promise<Record<string, any>> {
     const schema = await this.getClosestSchemaByTime(time);
@@ -247,7 +274,7 @@ export class SchemaService implements OnApplicationBootstrap {
   ): Promise<SchemaItem>;
   async getItemByDefindex(
     defindex: string,
-    useItemsGame: boolean,
+    useItemsGame?: boolean,
     time?: number,
   ): Promise<SchemaItem | ItemsGameItem>;
   async getItemByDefindex(
@@ -991,5 +1018,202 @@ export class SchemaService implements OnApplicationBootstrap {
 
   private getKey(key: string, prefix: any) {
     return prefix + ':' + key;
+  }
+
+  private getTF2ParserSchema(time?: number): TF2ParserSchema {
+    const itemLoader = new Dataloader<number, ItemsGameItem>(
+      async (defindexes) => {
+        const strings = defindexes.map((defindex) => defindex.toString());
+
+        const match = await this.getItemsByDefindexes(strings, true, time);
+
+        const items = new Array(defindexes.length);
+
+        for (let i = 0; i < defindexes.length; i++) {
+          const defindex = defindexes[i];
+          if (!match[defindex]) {
+            throw new NotFoundException('Item not found');
+          }
+
+          items[i] = match[defindex];
+        }
+
+        return items;
+      },
+    );
+
+    const paintLoader = new Dataloader<string, number>(
+      async ([color]) => {
+        return [
+          await this.getPaintByColor(color, time).then(
+            (paint) => paint.defindex,
+          ),
+        ];
+      },
+      {
+        batch: false,
+      },
+    );
+
+    return {
+      getItemByDefindex: () => undefined,
+      fetchItemByDefindex: async (defindex: number) =>
+        itemLoader.load(defindex),
+      getPaintByColor: () => undefined,
+      fetchPaintByColor: (color: string) => paintLoader.load(color),
+      getSpellById: () => undefined,
+      fetchSpellById: async () => -1,
+      getStrangePartById: () => undefined,
+      fetchStrangePartById: (id: number) =>
+        this.getStrangePartByScoreType(id.toString()).then(
+          (part) => part.defindex,
+        ),
+    };
+  }
+
+  getTF2Parser(time?: number): TF2Parser {
+    return new TF2Parser(this.getTF2ParserSchema(time));
+  }
+
+  getEconParserSchema(time?: number): EconParserSchema {
+    const itemByDefindexLoader = new Dataloader<number, ItemsGameItem>(
+      async (defindexes) => {
+        const items = await this.getItemsByDefindexes(
+          defindexes.map((defindex) => defindex.toString()),
+          true,
+          time,
+        );
+
+        const result = new Array(defindexes.length);
+
+        for (let i = 0; i < defindexes.length; i++) {
+          const defindex = defindexes[i];
+          const match = items[defindex];
+          result[i] = match ? match : new Error('Item not found');
+        }
+
+        return result;
+      },
+    );
+
+    const itemByNameLoader = new Dataloader<string, number>(
+      async ([name]) => {
+        const items = await this.getItemsByName(name, false, time);
+
+        let match = items[0];
+
+        for (let i = 0; i < items.length; i++) {
+          const element = items[i];
+          if (
+            element.name ===
+            'Upgradeable ' + element.item_class.toUpperCase()
+          ) {
+            match = element;
+            break;
+          }
+        }
+
+        return [match.defindex];
+      },
+      { batch: false },
+    );
+
+    const qualityLoader = new Dataloader<string, Quality>(
+      async ([name]) => {
+        return [await this.getQualityByName(name, time)];
+      },
+      {
+        batch: false,
+      },
+    );
+
+    const effectLoader = new Dataloader<string, number>(
+      async ([name]) => {
+        return this.getEffectByName(name, time).then((effect) => [effect.id]);
+      },
+      {
+        batch: false,
+      },
+    );
+
+    const paintkitLoader = new Dataloader<string, number>(async (names) => {
+      return this.getValuesByField(SchemaKeys.PAINTKIT_NAME, names, time).then(
+        (paintkits) => {
+          return names.map((name) =>
+            paintkits[name]
+              ? paintkits[name].id
+              : new Error('Paintkit not found'),
+          );
+        },
+      );
+    });
+
+    const spellLoader = new Dataloader<string, number>(async (names) => {
+      return this.getValuesByField(SchemaKeys.SPELLS_NAME, names, time).then(
+        (spells) => {
+          return names.map((name) =>
+            spells[name] ? spells[name].id : new Error('Spell not found'),
+          );
+        },
+      );
+    });
+
+    const strangePartLoader = new Dataloader<string, number | null>(
+      async ([name]) => {
+        return this.getStrangePartByScoreTypeName(name, time)
+          .then((part) => [part.defindex])
+          .catch((err) => {
+            if (err instanceof NotFoundException) {
+              return [null];
+            }
+
+            throw err;
+          });
+      },
+      { batch: false },
+    );
+
+    return {
+      getItemByDefindex: () => undefined,
+      fetchItemByDefindex: async (defindex: number) => {
+        return itemByDefindexLoader.load(defindex);
+      },
+      getDefindexByName: () => undefined,
+      fetchDefindexByName: async (name: string) => {
+        return itemByNameLoader.load(name);
+      },
+      getQualityByName: () => undefined,
+      fetchQualityByName: async (name: string) => {
+        return qualityLoader.load(name).then((quality) => quality.id);
+      },
+      getEffectByName: () => undefined,
+      fetchEffectByName: async (name: string) => {
+        return effectLoader.load(name);
+      },
+      getTextureByName: () => undefined,
+      fetchTextureByName: async (name: string) => {
+        return paintkitLoader.load(name);
+      },
+      getStrangePartByScoreType: () => undefined,
+      fetchStrangePartByScoreType: async (name: string) => {
+        return strangePartLoader.load(name);
+      },
+      getSpellByName: () => undefined,
+      fetchSpellByName: async (name: string) => {
+        return spellLoader.load(name);
+      },
+      getSheenByName: (name: string) => SHEENS[name],
+      fetchSheenByName: () => {
+        throw new Error('Method not implemented.');
+      },
+      getKillstreakerByName: (name: string) => KILLSTREAKERS[name],
+      fetchKillstreakerByName: () => {
+        throw new Error('Method not implemented.');
+      },
+    };
+  }
+
+  getEconParser(time?: number): EconParser {
+    return new EconParser(this.getEconParserSchema(time));
   }
 }
