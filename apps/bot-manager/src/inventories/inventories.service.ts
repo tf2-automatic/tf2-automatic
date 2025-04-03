@@ -175,6 +175,7 @@ export class InventoriesService
     }
 
     const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
+    const tempKey = key + ':temp';
 
     // Save inventory in Redis and event in outbox
     await this.locker.using([key], LockDuration.SHORT, async () => {

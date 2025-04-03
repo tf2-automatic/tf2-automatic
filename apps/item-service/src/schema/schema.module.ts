@@ -18,6 +18,5 @@ import { HealthModule } from '../health/health.module';
   ],
   providers: [SchemaService, SchemaProcessor],
   controllers: [SchemaController],
-  exports: [SchemaService],
 })
 export class SchemaModule {}

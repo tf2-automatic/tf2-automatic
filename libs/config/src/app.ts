@@ -16,16 +16,11 @@ export function getAppNameAndVersion(): { name: string, version: string, } | nul
   };
 }
 
-export function getUserAgent(version = true): string | null {
+export function getUserAgent(): string | null {
   const app = getAppNameAndVersion();
   if (app === null) {
     return null;
   }
 
-  let userAgent = `tf2-automatic/${app.name}`;
-  if (version) {
-    userAgent += ` v${app.version}`;
-  }
-
-  return userAgent;
+  return `tf2-automatic/${app.name} v${app.version}`;
 }
