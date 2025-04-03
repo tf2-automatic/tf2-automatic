@@ -79,6 +79,7 @@ export class EscrowService implements OnModuleDestroy {
       {
         steamid64: steamid.getSteamID64(),
         token: dto.token,
+        ttl: dto.ttl,
       },
       options,
     );
@@ -189,22 +190,23 @@ export class EscrowService implements OnModuleDestroy {
       save.result = pack(result.result);
     }
 
-    let ttl = ESCROW_EXPIRE_TIME;
+    let ttl = result.ttl ?? ESCROW_EXPIRE_TIME;
 
     if (result.error) {
       save.error = pack(result.error);
       if (result.error.statusCode === 400) {
         // Error 400 should not be retried so we set a longer ttl
-        ttl = ESCROW_EXPIRE_TIME_LONG;
+        ttl = result.ttl ?? ESCROW_EXPIRE_TIME_LONG;
       }
     }
 
-    await this.redis
-      .pipeline()
-      .del(key)
-      .hset(key, save)
-      .expire(key, ttl)
-      .exec();
+    const multi = this.redis.multi().del(key).hset(key, save);
+
+    if (ttl > 0) {
+      multi.expire(key, ttl);
+    }
+
+    await multi.exec();
   }
 
   async deleteEscrow(steamid: SteamID): Promise<void> {

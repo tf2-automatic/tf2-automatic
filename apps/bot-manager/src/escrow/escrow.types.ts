@@ -5,6 +5,7 @@ export type EscrowJobData = JobData<
   {
     steamid64: string;
     token?: string;
+    ttl?: number;
   },
   {
     botsAttempted: Record<string, number>;
@@ -25,6 +26,7 @@ export type EscrowResult = (EscrowErrorData | EscrowResultData) & {
   timestamp: number;
   bot: string;
   token?: string;
+  ttl?: number;
 };
 
 export interface EscrowData {

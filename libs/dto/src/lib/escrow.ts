@@ -1,7 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Transform } from 'class-transformer';
-import { IsString, ValidateIf } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 import SteamID from 'steamid';
 
 export class GetEscrowDto {
@@ -25,4 +32,16 @@ export class GetEscrowDto {
   @IsString()
   @ValidateIf((o) => !o.bot)
   token?: string;
+
+  @ApiProperty({
+    description:
+      'The time that the result will be cached for in seconds. -1 means forever.',
+    example: 3600,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(-1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  ttl?: number;
 }
