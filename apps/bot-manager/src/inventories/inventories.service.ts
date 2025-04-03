@@ -1,6 +1,7 @@
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import {
+  HttpException,
   Injectable,
   NotFoundException,
   OnApplicationBootstrap,
@@ -43,7 +44,11 @@ import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
 import { ClsService } from 'nestjs-cls';
 import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
-import { InventoryJobData } from './inventories.types';
+import {
+  InventoryData,
+  InventoryJobData,
+  InventoryResult,
+} from './inventories.types';
 import assert from 'assert';
 
 interface InventoryIdentifier {
@@ -128,7 +133,7 @@ export class InventoriesService
     );
   }
 
-  private async fetchInventoryFromBot(
+  async getInventoryFromBot(
     bot: Bot,
     steamid: SteamID,
     appid: number,
@@ -147,63 +152,59 @@ export class InventoriesService
     return response.data;
   }
 
-  async getInventoryFromBot(
-    bot: Bot,
+  async saveInventory(
     steamid: SteamID,
     appid: number,
     contextid: string,
-    ttl: number = INVENTORY_EXPIRE_TIME,
-  ): Promise<InventoryResponse> {
-    const now = Math.floor(Date.now() / 1000);
+    result: InventoryResult,
+  ): Promise<void> {
+    const save: InventoryData = {
+      timestamp: result.timestamp,
+      bot: result.bot,
+    };
 
-    const items = await this.fetchInventoryFromBot(
-      bot,
-      steamid,
-      appid,
-      contextid,
-    );
+    if (result.result) {
+      for (let i = 0; i < result.result.length; i++) {
+        const item = result.result[i];
+        save[`item:${item.assetid}`] = pack(item);
+      }
+    }
 
-    const object = items.reduce((acc, item) => {
-      acc[`item:${item.assetid}`] = pack(item);
-      return acc;
-    }, {});
-
-    object['timestamp'] = now;
+    if (result.error) {
+      save.error = pack(result.error);
+    }
 
     const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
 
-    const event = {
-      steamid64: steamid.getSteamID64(),
-      appid,
-      contextid,
-      timestamp: now,
-      itemCount: items.length,
-    } satisfies InventoryLoadedEvent['data'];
-
     // Save inventory in Redis and event in outbox
     await this.locker.using([key], LockDuration.SHORT, async () => {
-      const multi = this.redis.multi().del(key).hset(key, object);
+      const ttl = result.ttl ?? INVENTORY_EXPIRE_TIME;
 
-      this.relayService.publishEvent<InventoryLoadedEvent>(
-        multi,
-        INVENTORY_LOADED_EVENT,
-        event,
-        steamid,
-      );
+      const multi = this.redis
+        .multi()
+        .del(key)
+        .hset(key, save)
+        .expire(key, ttl);
 
-      if (ttl > 0) {
-        // and make it expire
-        multi.expire(key, ttl);
+      if (result.result) {
+        const event = {
+          steamid64: steamid.getSteamID64(),
+          appid,
+          contextid,
+          timestamp: result.timestamp,
+          itemCount: result.result.length,
+        } satisfies InventoryLoadedEvent['data'];
+
+        this.relayService.publishEvent<InventoryLoadedEvent>(
+          multi,
+          INVENTORY_LOADED_EVENT,
+          event,
+          steamid,
+        );
       }
 
       await multi.exec();
     });
-
-    return {
-      timestamp: now,
-      ttl,
-      items,
-    };
   }
 
   async deleteInventory(
@@ -302,9 +303,14 @@ export class InventoriesService
       this.redis.hgetallBuffer(key),
     ]);
 
-    if (ttl === -2) {
+    if (ttl === -2 || object === null) {
       // Inventory is not in the cache
       throw new NotFoundException('Inventory not found');
+    }
+
+    if (object.error) {
+      const error = unpack(object.error);
+      throw new HttpException(error.message, error.statusCode);
     }
 
     const items: Item[] = [];

@@ -47,6 +47,27 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     return botAttemptErrorHandler(this.cls, err, job);
   }
 
+  async postErrorHandler(
+    job: CustomJob<InventoryJobData>,
+    err: any,
+  ): Promise<void> {
+    if (!(err instanceof CustomUnrecoverableError)) {
+      return;
+    }
+
+    await this.inventoriesService.saveInventory(
+      new SteamID(job.data.options.steamid64),
+      job.data.options.appid,
+      job.data.options.contextid,
+      {
+        timestamp: this.cls.get('timestamp'),
+        error: err.response,
+        result: null,
+        bot: this.cls.get('bot'),
+      },
+    );
+  }
+
   async processJob(job: CustomJob<InventoryJobData>) {
     const bot = await this.selectBot(job);
 
@@ -100,16 +121,26 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
   private async handleJob(
     job: CustomJob<InventoryJobData>,
     bot: Bot,
-  ): Promise<unknown> {
-    // Get and save inventory
+  ): Promise<void> {
+    const steamid = new SteamID(job.data.options.steamid64);
+
     const inventory = await this.inventoriesService.getInventoryFromBot(
       bot,
-      new SteamID(job.data.options.steamid64),
+      steamid,
       job.data.options.appid,
       job.data.options.contextid,
-      job.data.options.ttl,
     );
 
-    return inventory.timestamp;
+    await this.inventoriesService.saveInventory(
+      steamid,
+      job.data.options.appid,
+      job.data.options.contextid,
+      {
+        timestamp: this.cls.get('timestamp'),
+        error: null,
+        result: inventory,
+        bot: bot.steamid64,
+      },
+    );
   }
 }
