@@ -15,17 +15,17 @@ export interface InventoryJobState {
 
 export type InventoryJobData = JobData<InventoryJobOptions, InventoryJobState>;
 
-export interface EscrowErrorData {
+export interface InventoryErrorData {
   error: HttpError;
   result: null;
 }
 
-export interface EscrowResultData {
+export interface InventoryResultData {
   result: Inventory;
   error: null;
 }
 
-export type InventoryResult = (EscrowErrorData | EscrowResultData) & {
+export type InventoryResult = (InventoryErrorData | InventoryResultData) & {
   timestamp: number;
   bot: string;
   ttl?: number;
