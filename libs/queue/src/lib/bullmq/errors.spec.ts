@@ -2,7 +2,7 @@ import { UnrecoverableError } from 'bullmq';
 import {
   CustomError,
   CustomUnrecoverableError,
-  extractMessage,
+  extractErrorMessage,
 } from './errors';
 
 describe('Errors', () => {
@@ -65,13 +65,13 @@ describe('Errors', () => {
     });
   });
 
-  describe('extractMessage', () => {
+  describe('extractErrorMessage', () => {
     it('should extract the message from an upstream error without a http status', () => {
       const error = new CustomError('Upstream', {
         message: 'Something something',
       });
 
-      expect(extractMessage(error)).toEqual({
+      expect(extractErrorMessage(error)).toEqual({
         message: 'Something something',
       });
     });
@@ -82,7 +82,7 @@ describe('Errors', () => {
         statusCode: 500,
       });
 
-      expect(extractMessage(error)).toEqual({
+      expect(extractErrorMessage(error)).toEqual({
         message: 'Something something',
         statusCode: 500,
       });
@@ -91,7 +91,7 @@ describe('Errors', () => {
     it('should return an empty object if it is not an upstream error', () => {
       const error = new Error('Test error');
 
-      expect(extractMessage(error)).toEqual({});
+      expect(extractErrorMessage(error)).toEqual({});
     });
   });
 });

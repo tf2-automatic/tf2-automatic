@@ -1,7 +1,7 @@
 import type { HttpError } from '@tf2-automatic/bot-data';
 import { UnrecoverableError } from 'bullmq';
 
-function createMessage(message: string, response: HttpError) {
+export function createErrorMessage(message: string, response: HttpError) {
   let errorMessage = `Upstream error: ${response.message ?? message}`;
 
   if (response.statusCode) {
@@ -11,7 +11,7 @@ function createMessage(message: string, response: HttpError) {
   return errorMessage;
 }
 
-export function extractMessage(error: Error): HttpError {
+export function extractErrorMessage(error: Error): HttpError {
   if (!error.message.startsWith('Upstream error: ')) {
     return {};
   }
@@ -35,7 +35,7 @@ export class CustomUnrecoverableError extends UnrecoverableError {
   public readonly response: HttpError;
 
   constructor(message: string, response: HttpError) {
-    super(createMessage(message, response));
+    super(createErrorMessage(message, response));
     this.response = response;
   }
 }
@@ -44,7 +44,7 @@ export class CustomError extends Error {
   public readonly response: HttpError;
 
   constructor(message: string, response: HttpError) {
-    super(createMessage(message, response));
+    super(createErrorMessage(message, response));
     this.response = response;
   }
 }

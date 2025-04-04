@@ -2,7 +2,7 @@ import { Queue, QueueEvents } from 'bullmq';
 import { CustomJob, EnqueueOptions, JobData } from './types';
 import { ClsService } from 'nestjs-cls';
 import { GatewayTimeoutException, HttpException } from '@nestjs/common';
-import { extractMessage } from './errors';
+import { extractErrorMessage } from './errors';
 import { PaginatedJobs, Job } from '@tf2-automatic/common-data';
 
 export class QueueManager<
@@ -129,7 +129,7 @@ export class QueueManagerWithEvents<
         throw new GatewayTimeoutException('Inventory was not fetched in time');
       }
 
-      const httpError = extractMessage(err);
+      const httpError = extractErrorMessage(err);
       if (httpError.message) {
         throw new HttpException(httpError.message, httpError.statusCode ?? 500);
       }
