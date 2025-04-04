@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'tf2-format',
   preset: '../../jest.preset.js',

@@ -3,6 +3,7 @@ import { DynamicModule, Global, Logger, Module } from '@nestjs/common';
 import { EventsConfig, RabbitMQ } from '@tf2-automatic/config';
 import { NestEventsService } from './nestjs-events.service';
 import { RabbitMQEventsService } from './custom/rabbitmq.service';
+import { ClsModule } from 'nestjs-cls';
 
 export interface EventsModuleOptions<T extends EventsConfig = EventsConfig> {
   publishingExchange: string;
@@ -65,6 +66,7 @@ function rabbitmq(options: EventsModuleOptions): DynamicModule {
           };
         },
       }),
+      ClsModule.forFeature(),
     ],
     providers: [
       NestEventsService,

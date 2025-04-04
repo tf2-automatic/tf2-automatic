@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import {
   ConflictException,
   Injectable,
+  Logger,
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import {
@@ -35,8 +36,9 @@ import {
 import {
   Bot,
   QueueTradeResponse,
-  Job,
   QueueTradeJob,
+  EXCHANGE_DETAILS_EVENT,
+  ExchangeDetailsEvent,
 } from '@tf2-automatic/bot-manager-data';
 import {
   CreateTradeDto,
@@ -46,28 +48,40 @@ import {
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
-import { ExchangeDetailsQueueData } from './interfaces/exchange-details-queue.interface';
 import { v4 as uuidv4 } from 'uuid';
-import { TradeQueue } from './interfaces/trade-queue.interface';
+import { TradeQueue } from './trades.types';
 import { Redis } from 'ioredis';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
+import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import { ClsService } from 'nestjs-cls';
+import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
+import { JobWithBot } from '@tf2-automatic/common-data';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(TradesService.name);
+
+  private readonly queueManager: QueueManagerWithEvents<
+    TradeQueue['options'],
+    TradeQueue
+  >;
+
   private readonly locker: Locker;
 
   constructor(
     private readonly httpService: HttpService,
-    @InjectQueue('getExchangeDetails')
-    private readonly exchangeDetailsQueue: Queue<ExchangeDetailsQueueData>,
     @InjectQueue('trades')
-    private readonly tradesQueue: Queue<TradeQueue>,
+    queue: Queue<CustomJob<TradeQueue>>,
     @InjectRedis() private readonly redis: Redis,
     private readonly eventsService: NestEventsService,
+    private readonly heartbeatService: HeartbeatsService,
+    cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
+
+    this.queueManager = new QueueManagerWithEvents(queue, cls);
   }
 
   async onApplicationBootstrap() {
@@ -82,25 +96,16 @@ export class TradesService implements OnApplicationBootstrap {
     );
   }
 
-  async enqueueJob(dto: QueueTradeJob): Promise<QueueTradeResponse> {
+  async addJob(dto: QueueTradeJob): Promise<QueueTradeResponse> {
     const createJob = async (id: string) => {
-      const data: TradeQueue = {
-        type: dto.type,
-        raw: dto.data as never,
-        extra: {},
+      const job = await this.queueManager.addJob(id, dto.type, dto.data, {
         bot: dto.bot,
         retry: dto.retry,
-      };
-
-      const job = await this.tradesQueue.add(id, data, {
-        jobId: id,
         priority: dto.priority,
       });
 
-      const jobId = job.id as string;
-
       return {
-        id: jobId,
+        id: job.id!,
       };
     };
 
@@ -132,7 +137,7 @@ export class TradesService implements OnApplicationBootstrap {
     const jobId = 'trades:' + offerId;
 
     return this.locker.using([jobId], LockDuration.SHORT, async (signal) => {
-      const exists = await this.tradesQueue.getJob(jobId);
+      const exists = await this.queueManager.getJobById(jobId);
       if (exists) {
         throw new ConflictException('A job already exists for the offer');
       }
@@ -145,16 +150,12 @@ export class TradesService implements OnApplicationBootstrap {
     });
   }
 
-  dequeueJob(id: string): Promise<boolean> {
-    return this.tradesQueue.remove(id).then((res) => {
-      return res === 1;
-    });
+  removeJob(id: string): Promise<boolean> {
+    return this.queueManager.removeJobById(id);
   }
 
-  getQueue(): Promise<Job[]> {
-    return this.tradesQueue.getJobs().then((jobs) => {
-      return jobs.map(this.mapJob);
-    });
+  getJobs(page = 1, pageSize = 10) {
+    return this.queueManager.getJobs(page, pageSize);
   }
 
   async deleteTrade(bot: Bot, tradeId: string): Promise<void> {
@@ -327,18 +328,29 @@ export class TradesService implements OnApplicationBootstrap {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const steamid = new SteamID(event.metadata.steamid64!);
 
-    await this.exchangeDetailsQueue.add(
+    this.logger.debug(
+      'Getting exchange details for offer ' + event.data.offer.id + '...',
+    );
+
+    const bot = await this.heartbeatService.getBot(steamid);
+
+    const details = await this.getExchangeDetails(
+      bot,
       event.data.offer.id,
+      true,
+    );
+
+    this.logger.debug(
+      'Publishing exchange details for offer ' + event.data.offer.id + '...',
+    );
+
+    await this.eventsService.publish(
+      EXCHANGE_DETAILS_EVENT,
       {
         offer: event.data.offer,
-        bot: steamid.getSteamID64(),
-        retry: {
-          maxDelay: 60000,
-        },
-      },
-      {
-        jobId: `offer:${event.data.offer.id}`,
-      },
+        details,
+      } satisfies ExchangeDetailsEvent['data'],
+      steamid,
     );
   }
 
@@ -364,12 +376,13 @@ export class TradesService implements OnApplicationBootstrap {
     ).then((res) => res.data);
   }
 
-  mapJob(job: BullJob<TradeQueue>): Job {
+  mapJob(job: BullJob<TradeQueue>): JobWithBot {
     return {
       id: job.id as string,
       type: job.data.type,
-      data: job.data.raw,
-      bot: job.data.bot,
+      priority: job.priority,
+      data: job.data.options,
+      bot: job.data.bot!,
       attempts: job.attemptsMade,
       lastProcessedAt:
         job.processedOn === undefined

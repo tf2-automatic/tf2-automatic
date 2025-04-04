@@ -8,7 +8,9 @@ import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import {
   getEventsConfig,
+  getRelayConfig,
   getStorageConfig,
+  getUserAgent,
   Redis,
 } from '@tf2-automatic/config';
 import { NestEventsModule } from '@tf2-automatic/nestjs-events';
@@ -19,7 +21,14 @@ import { SchemaModule } from './schema/schema.module';
 import { BotsModule } from './bots/bots.module';
 import { HealthModule } from './health/health.module';
 import { NestStorageModule } from '@tf2-automatic/nestjs-storage';
+import { InventoriesModule } from './inventories/inventories.module';
 import { ManagerModule } from './manager/manager.module';
+import { RelayModule } from '@tf2-automatic/nestjs-relay';
+import { Redis as RedisConfig } from '@tf2-automatic/config';
+import { HttpModule } from '@nestjs/axios';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -61,15 +70,53 @@ import { ManagerModule } from './manager/manager.module';
       subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],
       config: getEventsConfig(),
     }),
-    NestStorageModule.register(getStorageConfig()),
+    NestStorageModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: () => {
+        return getStorageConfig();
+      },
+    }),
     PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     HealthModule,
     BotsModule,
     SchemaModule,
+    InventoriesModule,
     ManagerModule,
+    RelayModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: () => {
+        return {
+          relay: getRelayConfig(),
+          redis: RedisConfig.getConfig(),
+        };
+      },
+    }),
+    HttpModule.registerAsync({
+      global: true,
+      useFactory: () => {
+        const headers: Record<string, string> = {};
+
+        const agent = getUserAgent();
+        if (agent) {
+          headers['User-Agent'] = agent;
+        }
+
+        return {
+          headers,
+        };
+      },
+    }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
   ],
-  controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserAgentInterceptor,
+    },
+  ],
 })
 export class AppModule {}

@@ -32,6 +32,14 @@ class AddPnpmPatchedDependencies {
       generatedPackageJson.pnpm.patchedDependencies =
         originalPackageJson.pnpm.patchedDependencies;
 
+      generatedPackageJson.pnpm.overrides = originalPackageJson.pnpm.overrides;
+
+      generatedPackageJson.pnpm.onlyBuiltDependencies =
+        originalPackageJson.pnpm.onlyBuiltDependencies;
+
+      generatedPackageJson.pnpm.ignoredBuiltDependencies =
+        originalPackageJson.pnpm.ignoredBuiltDependencies;
+
       // console.log(generatedPackageJson);
 
       fs.writeFileSync(

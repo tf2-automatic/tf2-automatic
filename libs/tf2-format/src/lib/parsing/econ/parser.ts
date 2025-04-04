@@ -869,7 +869,7 @@ export class EconParser extends Parser<
             // Can probably speed this up by just slicing strings instead of
             // using regex
             const match = descriptions[i].value.match(
-              /^This .*? can be applied to a (.*?)(?=\.)/,
+              /(?:applied to a\s)(.+?)(?=\.\s|\.?$)/,
             );
 
             if (match !== null) {

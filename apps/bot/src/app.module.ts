@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BotModule } from './bot/bot.module';
 import configuration from './common/config/configuration';
 import { validation } from './common/config/validation';
@@ -17,15 +17,24 @@ import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import { getStorageConfig } from '@tf2-automatic/config';
+import { getStorageConfig, getUserAgent } from '@tf2-automatic/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
+import {
+  IdempotencyInterceptor,
+  UserAgentInterceptor,
+} from '@tf2-automatic/nestjs';
+import { HttpModule } from '@nestjs/axios';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   providers: [
     {
       provide: APP_INTERCEPTOR,
       useClass: IdempotencyInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserAgentInterceptor,
     },
   ],
   imports: [
@@ -41,7 +50,12 @@ import { IdempotencyInterceptor } from './common/interceptors/idempotency.interc
     }),
     EventEmitterModule.forRoot(),
     BotModule,
-    NestStorageModule.register(getStorageConfig()),
+    NestStorageModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: () => {
+        return getStorageConfig();
+      },
+    }),
     HealthModule,
     FriendsModule,
     InventoriesModule,
@@ -53,6 +67,25 @@ import { IdempotencyInterceptor } from './common/interceptors/idempotency.interc
     EscrowModule,
     ShutdownModule,
     ManagerModule,
+    HttpModule.registerAsync({
+      global: true,
+      useFactory: () => {
+        const headers: Record<string, string> = {};
+
+        const agent = getUserAgent();
+        if (agent) {
+          headers['User-Agent'] = agent;
+        }
+
+        return {
+          headers,
+        };
+      },
+    }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: { mount: true },
+    }),
   ],
 })
 export class AppModule {}

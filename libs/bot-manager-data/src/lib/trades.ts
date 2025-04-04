@@ -6,7 +6,11 @@ import {
   TradeOfferExchangeDetails,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
-import { Job, RetryOptions } from './misc';
+import {
+  Job,
+  PaginationOptions,
+  RetryOptions,
+} from '@tf2-automatic/common-data';
 
 export const TRADES_BASE_URL = '/trades';
 export const TRADE_JOBS_PATH = `/`;
@@ -93,3 +97,5 @@ export type TradeFailedEventType = 'trades.failed';
 export const TRADE_FAILED_EVENT: TradeFailedEventType = `${TRADES_EVENT_PREFIX}.failed`;
 
 export type TradeFailedEvent = BaseEvent<TradeFailedEventType, TradeEventData>;
+
+export type GetTradeQueue = PaginationOptions;

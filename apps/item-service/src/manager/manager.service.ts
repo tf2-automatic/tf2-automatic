@@ -48,6 +48,25 @@ export class ManagerService {
     return response.data;
   }
 
+  async fetchInventoryBySteamID(
+    steamid: SteamID,
+    useCache = true,
+  ): Promise<InventoryResponse> {
+    const url = this.getManagerUrl(
+      INVENTORY_FETCH_FULL_PATH.replace(':steamid', steamid.toString())
+        .replace(':appid', '440')
+        .replace(':contextid', '2'),
+    );
+
+    const response = await firstValueFrom(
+      this.httpService.get<InventoryResponse>(url, {
+        params: { tradableOnly: false, useCache },
+      }),
+    );
+
+    return response.data;
+  }
+
   private getManagerUrl(path: string): string {
     return `${this.managerUrl}${path}`;
   }

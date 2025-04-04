@@ -29,11 +29,9 @@ import { BotHeartbeatDto } from '@tf2-automatic/dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
-import { v4 as uuidv4 } from 'uuid';
-import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import { redisMultiEvent } from '../common/utils/redis-multi-event';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
+import { RelayService } from '@tf2-automatic/nestjs-relay';
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -48,7 +46,7 @@ export class HeartbeatsService {
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
-    private readonly eventsService: NestEventsService,
+    private readonly relayService: RelayService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -172,15 +170,12 @@ export class HeartbeatsService {
           // Save bot
           .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
-        redisMultiEvent(multi, {
-          type: BOT_HEARTBEAT_EVENT,
-          data: bot,
-          metadata: {
-            id: uuidv4(),
-            steamid64: bot.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies BotHeartbeatEvent);
+        this.relayService.publishEvent<BotHeartbeatEvent>(
+          multi,
+          BOT_HEARTBEAT_EVENT,
+          bot,
+          steamid,
+        );
 
         await multi.exec();
 
@@ -219,15 +214,12 @@ export class HeartbeatsService {
           .multi()
           .set(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()), pack(bot));
 
-        redisMultiEvent(multi, {
-          type: BOT_STOPPED_EVENT,
-          data: bot,
-          metadata: {
-            id: uuidv4(),
-            steamid64: bot.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies BotStoppedEvent);
+        this.relayService.publishEvent<BotStoppedEvent>(
+          multi,
+          BOT_STOPPED_EVENT,
+          bot,
+          steamid,
+        );
 
         await multi.exec();
       },
@@ -255,15 +247,12 @@ export class HeartbeatsService {
           .multi()
           .del(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()));
 
-        redisMultiEvent(multi, {
-          type: BOT_DELETED_EVENT,
-          data: bot,
-          metadata: {
-            id: uuidv4(),
-            steamid64: bot.steamid64,
-            time: Math.floor(Date.now() / 1000),
-          },
-        } satisfies BotDeletedEvent);
+        this.relayService.publishEvent<BotDeletedEvent>(
+          multi,
+          BOT_DELETED_EVENT,
+          bot,
+          steamid,
+        );
 
         await multi.exec();
       },

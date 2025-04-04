@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { RetryOptions } from '@tf2-automatic/bot-manager-data';
+import { RetryOptions } from '@tf2-automatic/common-data';
 import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
 
 export class QueueRetryDto implements RetryOptions {

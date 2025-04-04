@@ -2,6 +2,8 @@ import { Bot as ManagerBot } from '@tf2-automatic/bot-manager-data';
 import {
   Bot,
   BOT_FULL_PATH,
+  TF2_BACKPACK_FULL_PATH,
+  TF2Item,
 } from '@tf2-automatic/bot-data';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -38,6 +40,14 @@ export class BotsService {
     const url = this.getBotUrl(bot, BOT_FULL_PATH);
 
     const response = await firstValueFrom(this.httpService.get<Bot>(url));
+
+    return response.data;
+  }
+
+  async getTF2Inventory(bot: ManagerBot): Promise<TF2Item[]> {
+    const url = this.getBotUrl(bot, TF2_BACKPACK_FULL_PATH);
+
+    const response = await firstValueFrom(this.httpService.get<TF2Item[]>(url));
 
     return response.data;
   }
