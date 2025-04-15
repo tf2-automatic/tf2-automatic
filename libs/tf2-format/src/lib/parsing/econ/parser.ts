@@ -45,12 +45,12 @@ const KILLSTREAK_TIERS = {
 const enum IdentifiableDescription {
   Skip = 0,
   All = 1,
-  // Paints, spells and parts have the same precedence because it has been shown
+  // Paints, spells, parts and effects have the same precedence because it has been shown
   // that they may appear in any order.
   Paint = 1,
   Spells = 1,
   Parts = 1,
-  Effect = 2,
+  Effect = 1,
   Festivized = 3,
   Killstreaker = 4,
   Sheen = 5,
@@ -688,6 +688,12 @@ export class EconParser extends Parser<
         case IdentifiableDescription.Paint:
           if (descriptions[i].value.startsWith('Paint Color: ')) {
             attributes.paint = descriptions[i].value.slice(13);
+            next = IdentifiableDescription.Effect;
+            i++;
+          }
+        case IdentifiableDescription.Effect:
+          if (descriptions[i].value.startsWith('\u2605 Unusual Effect: ')) {
+            attributes.effect = descriptions[i].value.slice(18);
             next = IdentifiableDescription.Spells;
             i++;
           }
@@ -734,12 +740,6 @@ export class EconParser extends Parser<
             i++;
             // Break again so we can check for more parts
             continue loop;
-          }
-        case IdentifiableDescription.Effect:
-          if (descriptions[i].value.startsWith('\u2605 Unusual Effect: ')) {
-            attributes.effect = descriptions[i].value.slice(18);
-            next = IdentifiableDescription.Festivized;
-            i++;
           }
         case IdentifiableDescription.Festivized:
           if (descriptions[i].value === 'Festivized') {

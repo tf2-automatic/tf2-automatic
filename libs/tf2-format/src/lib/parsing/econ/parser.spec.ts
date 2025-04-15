@@ -525,6 +525,19 @@ describe('EconParser', () => {
       expect(extracted.paintkit).toEqual('Frozen Aurora');
       expect(extracted.wear).toEqual('Minimal Wear');
     });
+
+    it('will parse spelled unusuals', () => {
+      const item = TestData.getSpelledUnusual();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Unusual');
+      expect(extracted.effect).toEqual('Green Energy');
+      expect(extracted.spells).toEqual([
+        'Gangreen Footprints',
+        'Voices from Below',
+      ]);
+    });
   });
 
   describe('#parse', () => {
