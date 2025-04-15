@@ -187,7 +187,9 @@ export class EconParser extends Parser<
       const isWarPaint = tags.Type === 'War Paint';
       // Set the quality of the item based on certain conditions to better match
       // how the TF2 GC stores the quality of items with a paint kit.
-      if (raw.effect !== null && !isWarPaint) {
+      if (!isWarPaint && descriptions.statclock) {
+        raw.quality = 'Strange';
+      } else if (raw.effect !== null && !isWarPaint) {
         // The quality of unusual war paints is still "Unusual", hence the check
         // for the type.
         raw.quality = 'Decorated Weapon';
@@ -658,13 +660,24 @@ export class EconParser extends Parser<
 
     // I don't like that this is outside the switch statement but it is the most
     // efficient way to do it.
-    if (tags.Rarity !== undefined) {
+    if (tags.Exterior !== undefined) {
       if (
-        tags.Exterior !== undefined &&
+        tags.Rarity !== undefined &&
         descriptions[i].value.startsWith(tags.Rarity + ' Grade ') &&
         descriptions[i].value.endsWith(' (' + tags.Exterior + ')')
       ) {
         attributes.grade = descriptions[i].value;
+        i++;
+      } else if (
+        tags.Rarity === undefined &&
+        descriptions[i].value.endsWith('(' + tags.Exterior + ')')
+      ) {
+        // This is dumb but sometimes an item does not have a rarity in the tags
+        // but it does in the description...
+        attributes.grade = descriptions[i].value.slice(
+          0,
+          descriptions[i].value.indexOf(' Grade'),
+        );
         i++;
       }
 
