@@ -766,9 +766,12 @@ export class EconParser extends Parser<
             i++;
           }
         case IdentifiableDescription.Texture: {
-          let extract = false;
-
+          // Look for paintkit collection description
           if (descriptions[i].value.endsWith('Collection')) {
+            let extract = false;
+            let found = false;
+            let paintkit: string | null = null;
+
             if (tags.Exterior !== undefined) {
               next = IdentifiableDescription.Texture;
               extract = true;
@@ -777,36 +780,42 @@ export class EconParser extends Parser<
 
             // Might be a little "dangerous" to use these while loops
             while (descriptions[i].value.charAt(0) === ' ') {
-              i++;
-            }
-          }
-
-          let paintkit: string | null = null;
-          let found = false;
-
-          if (descriptions[i].value.startsWith('\u2714 ')) {
-            paintkit = descriptions[i].value.slice(2);
-            found = true;
-          } else if (descriptions[i].value.startsWith('\u2605 ')) {
-            found = true;
-            paintkit = descriptions[i].value.slice(2);
-          }
-
-          if (found) {
-            i++;
-
-            // Skip all the other stuff if any
-            while (descriptions[i].value.charAt(0) === ' ') {
+              // Handles stupid edge case where the paintkit does not have a checkmark
+              // or star in front of it.
+              const trimmed = descriptions[i].value.trimStart();
+              if (item.market_hash_name.indexOf(trimmed) !== -1) {
+                paintkit = trimmed;
+                found = true;
+                break;
+              }
               i++;
             }
 
-            if (extract) {
-              attributes.paintkit = paintkit;
-              next = IdentifiableDescription.Uses;
+            if (!found) {
+              // If not already found, check for the checkmark or star
+              const firstChar = descriptions[i].value.charAt(0);
+              if (firstChar === '\u2714' || firstChar === '\u2605') {
+                paintkit = descriptions[i].value.slice(2);
+                found = true;
+              }
             }
 
-            // We continue the loop so that we skip to the next checks
-            continue loop;
+            if (found) {
+              i++;
+
+              // Skip all the other stuff if any
+              while (descriptions[i].value.charAt(0) === ' ') {
+                i++;
+              }
+
+              if (extract) {
+                attributes.paintkit = paintkit;
+                next = IdentifiableDescription.Uses;
+              }
+
+              // We continue the loop so that we skip to the next checks
+              continue loop;
+            }
           }
         }
         case IdentifiableDescription.Input:
