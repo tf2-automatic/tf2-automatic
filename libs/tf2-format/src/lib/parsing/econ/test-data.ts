@@ -3345,3 +3345,109 @@ export function getCAPPERKillstreakKit() {
     fraudwarnings: [],
   };
 }
+
+export function getSpelledUnusual() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15566903217',
+    classid: '11048121',
+    instanceid: '6855657082',
+    amount: 1,
+    pos: 5,
+    id: '15566903217',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEYYwsVVB7whzdFjsHlCOCzBOESnN97tJVUgWU7xlMuNuK2Zm42JFCXV_YLX_Zqp17qX3c0sZYzV4-3p-lVehKv6tUSNeZLcw',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEYYwsVVB7whzdFjsHlCOCzBOESnN97tJVUgWU7xlMuNuK2Zm42JFCXV_YLX_Zqp17qX3c0sZYzV4-3p-lVehKv6tUSNeZLcw',
+    descriptions: [
+      {
+        value: '★ Unusual Effect: Green Energy',
+        color: 'ffd700',
+        name: 'attribute',
+      },
+      {
+        value:
+          'Halloween: Gangreen Footprints (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Voices from Below (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: "Our lawyers say 'YES! YES!'",
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=378&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D2885264209715647610',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Unusual Team Captain',
+    name_color: '8650AC',
+    type: 'Level 50 Hat',
+    market_name: 'Unusual Team Captain',
+    market_hash_name: 'Unusual Team Captain',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D2885264209715647610',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'misc',
+        name: 'Cosmetic',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Soldier',
+        name: 'Soldier',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Medic',
+        name: 'Medic',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Heavy',
+        name: 'Heavy',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
