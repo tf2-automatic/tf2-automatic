@@ -538,6 +538,16 @@ describe('EconParser', () => {
         'Voices from Below',
       ]);
     });
+
+    it('will parse red rock roscoe pistol', () => {
+      const item = TestData.getRedRockRoscoePistol();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Decorated Weapon');
+      expect(extracted.wear).toEqual('Factory New');
+      expect(extracted.paintkit).toEqual('Red Rock Roscoe');
+    });
   });
 
   describe('#parse', () => {
