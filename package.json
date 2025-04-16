@@ -22,7 +22,7 @@
     "@nx/devkit": "20.7.1",
     "@nx/eslint-plugin": "20.7.1",
     "@nx/jest": "20.7.1",
-    "@nx/js": "20.7.1",
+    "@nx/js": "20.8.0",
     "@nx/linter": "19.8.4",
     "@nx/nest": "20.7.1",
     "@nx/node": "20.7.1",
