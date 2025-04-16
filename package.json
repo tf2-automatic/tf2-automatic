@@ -27,7 +27,7 @@
     "@nx/nest": "20.7.1",
     "@nx/node": "20.7.1",
     "@nx/plugin": "20.7.1",
-    "@nx/webpack": "20.7.1",
+    "@nx/webpack": "20.8.0",
     "@nx/workspace": "20.7.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/github": "^11.0.1",
