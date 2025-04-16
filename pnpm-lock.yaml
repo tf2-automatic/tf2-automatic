@@ -11,26 +11,26 @@ overrides:
   '@octokit/request@>=1.0.0 <9.2.1': '>=9.2.1'
   '@octokit/plugin-paginate-rest@>=1.0.0 <11.4.1': '>=11.4.1'
 
-pnpmfileChecksum: sha256-UNyiwJexWMAXlPraE0ZmSCIAYiZMfD+x1N6RZmfTr7I=
+pnpmfileChecksum: uw2jv7bd7uc2bprp6ktlljwbp4
 
 patchedDependencies:
   '@types/steam-tradeoffer-manager@2.11.2':
-    hash: e58d9e18fe4091b194323f7648c50bbc3eac78fd8081782ddefac4399a3d6ea2
+    hash: rj5bcpv3hj4cya6ki7qn7iqlsq
     path: patches/@types__steam-tradeoffer-manager@2.11.2.patch
   '@types/steamcommunity@3.43.8':
-    hash: 5279185a387fa33d52e31772b008a12a247b674a417a96073c103ffb64f69c21
+    hash: eolvmrr22qxhrdik2fa6srtkau
     path: patches/@types__steamcommunity@3.43.8.patch
   kvparser@1.0.2:
-    hash: eaace29f7e05cfb36a2afeec82e5c7e1bd808c449ea40f4cc3509949c69007f3
+    hash: tg6azrr7wy4iddrt5ukbyebv6q
     path: patches/kvparser@1.0.2.patch
   redlock@5.0.0-beta.2:
-    hash: 4958ecbcfae64a5f66f02db5c5f8189f127f0063fc4cedb1de6607f825e5f549
+    hash: j4o2fegdd522rw6razcgftanka
     path: patches/redlock@5.0.0-beta.2.patch
   tf2-currencies@1.2.4:
-    hash: 9cbad624be06780012c61459e0b4a14fad06b34623afb8296183eab2d733f331
+    hash: p5d7n6ut6djhlaei5sdevh2ouu
     path: patches/tf2-currencies@1.2.4.patch
   tf2@4.0.0:
-    hash: 9203a4235186bc5072d12d3cd10e8fbb48d41ffcac3e2e3a987af608474c5b3d
+    hash: juhxipbhotnhgy4rg6czyifz5m
     path: patches/tf2@4.0.0.patch
 
 importers:
@@ -111,7 +111,7 @@ importers:
         version: 9.0.2
       kvparser:
         specifier: ^1.0.2
-        version: 1.0.2(patch_hash=eaace29f7e05cfb36a2afeec82e5c7e1bd808c449ea40f4cc3509949c69007f3)
+        version: 1.0.2(patch_hash=tg6azrr7wy4iddrt5ukbyebv6q)
       minio:
         specifier: ^8.0.5
         version: 8.0.5
@@ -147,7 +147,7 @@ importers:
         version: 7.4.0
       redlock:
         specifier: 5.0.0-beta.2
-        version: 5.0.0-beta.2(patch_hash=4958ecbcfae64a5f66f02db5c5f8189f127f0063fc4cedb1de6607f825e5f549)
+        version: 5.0.0-beta.2(patch_hash=j4o2fegdd522rw6razcgftanka)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -174,10 +174,10 @@ importers:
         version: 2.1.0
       tf2:
         specifier: ^4.0.0
-        version: 4.0.0(patch_hash=9203a4235186bc5072d12d3cd10e8fbb48d41ffcac3e2e3a987af608474c5b3d)
+        version: 4.0.0(patch_hash=juhxipbhotnhgy4rg6czyifz5m)
       tf2-currencies:
         specifier: ^1.2.4
-        version: 1.2.4(patch_hash=9cbad624be06780012c61459e0b4a14fad06b34623afb8296183eab2d733f331)
+        version: 1.2.4(patch_hash=p5d7n6ut6djhlaei5sdevh2ouu)
       ts-safe-redis-leader:
         specifier: ^0.0.5
         version: 0.0.5
@@ -190,6 +190,13 @@ importers:
       write-file-atomic:
         specifier: ^6.0.0
         version: 6.0.0
+    optionalDependencies:
+      husky:
+        specifier: ^9.1.7
+        version: 9.1.7
+      is-ci:
+        specifier: ^4.1.0
+        version: 4.1.0
     devDependencies:
       '@commitlint/cli':
         specifier: ^19.8.0
@@ -301,13 +308,13 @@ importers:
         version: 2.1.2
       '@types/steam-tradeoffer-manager':
         specifier: 2.11.2
-        version: 2.11.2(patch_hash=e58d9e18fe4091b194323f7648c50bbc3eac78fd8081782ddefac4399a3d6ea2)
+        version: 2.11.2(patch_hash=rj5bcpv3hj4cya6ki7qn7iqlsq)
       '@types/steam-user':
         specifier: ^5.0.4
         version: 5.0.4
       '@types/steamcommunity':
         specifier: ^3.43.8
-        version: 3.43.8(patch_hash=5279185a387fa33d52e31772b008a12a247b674a417a96073c103ffb64f69c21)
+        version: 3.43.8(patch_hash=eolvmrr22qxhrdik2fa6srtkau)
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
@@ -372,15 +379,8 @@ importers:
         specifier: ~5.8.2
         version: 5.8.2
       typescript-eslint:
-        specifier: ^8.29.0
-        version: 8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
-    optionalDependencies:
-      husky:
-        specifier: ^9.1.7
-        version: 9.1.7
-      is-ci:
-        specifier: ^4.1.0
-        version: 4.1.0
+        specifier: ^8.30.1
+        version: 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
 
 packages:
 
@@ -1151,6 +1151,12 @@ packages:
 
   '@eslint-community/eslint-utils@4.5.1':
     resolution: {integrity: sha512-soEIOALTfTK6EjmKMMoLugwaP0rzkad90iIWd1hMO9ARkSAyjfMfkRRhLvD5qH7vvM0Cg72pieUfR6yh6XxC4w==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    peerDependencies:
+      eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
+
+  '@eslint-community/eslint-utils@4.6.0':
+    resolution: {integrity: sha512-WhCn7Z7TauhBtmzhvKpoQs0Wwb/kBcy4CwpuI0/eEIr2Lx2auxmulAzLr91wVZJaz47iUZdkXOK7WlAfxGKCnA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
@@ -2619,8 +2625,23 @@ packages:
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <5.9.0'
 
+  '@typescript-eslint/eslint-plugin@8.30.1':
+    resolution: {integrity: sha512-v+VWphxMjn+1t48/jO4t950D6KR8JaJuNXzi33Ve6P8sEmPr5k6CEXjdGwT6+LodVnEa91EQCtwjWNUCPweo+Q==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      '@typescript-eslint/parser': ^8.0.0 || ^8.0.0-alpha.0
+      eslint: ^8.57.0 || ^9.0.0
+      typescript: '>=4.8.4 <5.9.0'
+
   '@typescript-eslint/parser@8.29.0':
     resolution: {integrity: sha512-8C0+jlNJOwQso2GapCVWWfW/rzaq7Lbme+vGUFKE31djwNncIpgXD7Cd4weEsDdkoZDjH0lwwr3QDQFuyrMg9g==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+      typescript: '>=4.8.4 <5.9.0'
+
+  '@typescript-eslint/parser@8.30.1':
+    resolution: {integrity: sha512-H+vqmWwT5xoNrXqWs/fesmssOW70gxFlgcMlYcBaWNPIEWDgLa4W9nkSPmhuOgLnXq9QYgkZ31fhDyLhleCsAg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
@@ -2630,8 +2651,19 @@ packages:
     resolution: {integrity: sha512-aO1PVsq7Gm+tcghabUpzEnVSFMCU4/nYIgC2GOatJcllvWfnhrgW0ZEbnTxm36QsikmCN1K/6ZgM7fok2I7xNw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@typescript-eslint/scope-manager@8.30.1':
+    resolution: {integrity: sha512-+C0B6ChFXZkuaNDl73FJxRYT0G7ufVPOSQkqkpM/U198wUwUFOtgo1k/QzFh1KjpBitaK7R1tgjVz6o9HmsRPg==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@typescript-eslint/type-utils@8.29.0':
     resolution: {integrity: sha512-ahaWQ42JAOx+NKEf5++WC/ua17q5l+j1GFrbbpVKzFL/tKVc0aYY8rVSYUpUvt2hUP1YBr7mwXzx+E/DfUWI9Q==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+      typescript: '>=4.8.4 <5.9.0'
+
+  '@typescript-eslint/type-utils@8.30.1':
+    resolution: {integrity: sha512-64uBF76bfQiJyHgZISC7vcNz3adqQKIccVoKubyQcOnNcdJBvYOILV1v22Qhsw3tw3VQu5ll8ND6hycgAR5fEA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
@@ -2641,8 +2673,18 @@ packages:
     resolution: {integrity: sha512-wcJL/+cOXV+RE3gjCyl/V2G877+2faqvlgtso/ZRbTCnZazh0gXhe+7gbAnfubzN2bNsBtZjDvlh7ero8uIbzg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@typescript-eslint/types@8.30.1':
+    resolution: {integrity: sha512-81KawPfkuulyWo5QdyG/LOKbspyyiW+p4vpn4bYO7DM/hZImlVnFwrpCTnmNMOt8CvLRr5ojI9nU1Ekpw4RcEw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@typescript-eslint/typescript-estree@8.29.0':
     resolution: {integrity: sha512-yOfen3jE9ISZR/hHpU/bmNvTtBW1NjRbkSFdZOksL1N+ybPEE7UVGMwqvS6CP022Rp00Sb0tdiIkhSCe6NI8ow==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <5.9.0'
+
+  '@typescript-eslint/typescript-estree@8.30.1':
+    resolution: {integrity: sha512-kQQnxymiUy9tTb1F2uep9W6aBiYODgq5EMSk6Nxh4Z+BDUoYUSa029ISs5zTzKBFnexQEh71KqwjKnRz58lusQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <5.9.0'
@@ -2654,8 +2696,19 @@ packages:
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <5.9.0'
 
+  '@typescript-eslint/utils@8.30.1':
+    resolution: {integrity: sha512-T/8q4R9En2tcEsWPQgB5BQ0XJVOtfARcUvOa8yJP3fh9M/mXraLxZrkCfGb6ChrO/V3W+Xbd04RacUEqk1CFEQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+      typescript: '>=4.8.4 <5.9.0'
+
   '@typescript-eslint/visitor-keys@8.29.0':
     resolution: {integrity: sha512-Sne/pVz8ryR03NFK21VpN88dZ2FdQXOlq3VIklbrTYEt8yXtRFr9tvUhqvCeKjqYk5FSim37sHbooT6vzBTZcg==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/visitor-keys@8.30.1':
+    resolution: {integrity: sha512-aEhgas7aJ6vZnNFC7K4/vMGDGyOiqWcYZPpIWrTKuTAlsvDNKy2GFDqh9smL+iq069ZvR0YzEeq0B8NJlLzjFA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@webassemblyjs/ast@1.14.1':
@@ -7713,8 +7766,8 @@ packages:
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
 
-  typescript-eslint@8.29.0:
-    resolution: {integrity: sha512-ep9rVd9B4kQsZ7ZnWCVxUE/xDLUUUsRzE0poAeNu+4CkFErLfuvPt/qtm2EpnSyfvsR0S6QzDFSrPCFBwf64fg==}
+  typescript-eslint@8.30.1:
+    resolution: {integrity: sha512-D7lC0kcehVH7Mb26MRQi64LMyRJsj3dToJxM1+JVTl53DQSV5/7oUGWQLcKl1C1KnoVHxMMU2FNQMffr7F3Row==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
@@ -9095,6 +9148,11 @@ snapshots:
       tslib: 2.8.1
 
   '@eslint-community/eslint-utils@4.5.1(eslint@9.23.0(jiti@2.4.2))':
+    dependencies:
+      eslint: 9.23.0(jiti@2.4.2)
+      eslint-visitor-keys: 3.4.3
+
+  '@eslint-community/eslint-utils@4.6.0(eslint@9.23.0(jiti@2.4.2))':
     dependencies:
       eslint: 9.23.0(jiti@2.4.2)
       eslint-visitor-keys: 3.4.3
@@ -10896,12 +10954,12 @@ snapshots:
     dependencies:
       '@types/node': 22.14.0
 
-  '@types/steam-tradeoffer-manager@2.11.2(patch_hash=e58d9e18fe4091b194323f7648c50bbc3eac78fd8081782ddefac4399a3d6ea2)':
+  '@types/steam-tradeoffer-manager@2.11.2(patch_hash=rj5bcpv3hj4cya6ki7qn7iqlsq)':
     dependencies:
       '@types/file-manager': 2.0.3
       '@types/steam': 0.0.34
       '@types/steam-user': 5.0.4
-      '@types/steamcommunity': 3.43.8(patch_hash=5279185a387fa33d52e31772b008a12a247b674a417a96073c103ffb64f69c21)
+      '@types/steamcommunity': 3.43.8(patch_hash=eolvmrr22qxhrdik2fa6srtkau)
 
   '@types/steam-user@5.0.4':
     dependencies:
@@ -10913,7 +10971,7 @@ snapshots:
     dependencies:
       '@types/node': 22.14.0
 
-  '@types/steamcommunity@3.43.8(patch_hash=5279185a387fa33d52e31772b008a12a247b674a417a96073c103ffb64f69c21)':
+  '@types/steamcommunity@3.43.8(patch_hash=eolvmrr22qxhrdik2fa6srtkau)':
     dependencies:
       '@types/node': 22.14.0
       '@types/request': 2.48.12
@@ -10955,6 +11013,23 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/eslint-plugin@8.30.1(@typescript-eslint/parser@8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)':
+    dependencies:
+      '@eslint-community/regexpp': 4.12.1
+      '@typescript-eslint/parser': 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/scope-manager': 8.30.1
+      '@typescript-eslint/type-utils': 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/visitor-keys': 8.30.1
+      eslint: 9.23.0(jiti@2.4.2)
+      graphemer: 1.4.0
+      ignore: 5.3.2
+      natural-compare: 1.4.0
+      ts-api-utils: 2.1.0(typescript@5.8.2)
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/parser@8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)':
     dependencies:
       '@typescript-eslint/scope-manager': 8.29.0
@@ -10967,10 +11042,27 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/parser@8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)':
+    dependencies:
+      '@typescript-eslint/scope-manager': 8.30.1
+      '@typescript-eslint/types': 8.30.1
+      '@typescript-eslint/typescript-estree': 8.30.1(typescript@5.8.2)
+      '@typescript-eslint/visitor-keys': 8.30.1
+      debug: 4.4.0
+      eslint: 9.23.0(jiti@2.4.2)
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/scope-manager@8.29.0':
     dependencies:
       '@typescript-eslint/types': 8.29.0
       '@typescript-eslint/visitor-keys': 8.29.0
+
+  '@typescript-eslint/scope-manager@8.30.1':
+    dependencies:
+      '@typescript-eslint/types': 8.30.1
+      '@typescript-eslint/visitor-keys': 8.30.1
 
   '@typescript-eslint/type-utils@8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)':
     dependencies:
@@ -10983,12 +11075,39 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/type-utils@8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)':
+    dependencies:
+      '@typescript-eslint/typescript-estree': 8.30.1(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      debug: 4.4.0
+      eslint: 9.23.0(jiti@2.4.2)
+      ts-api-utils: 2.1.0(typescript@5.8.2)
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/types@8.29.0': {}
+
+  '@typescript-eslint/types@8.30.1': {}
 
   '@typescript-eslint/typescript-estree@8.29.0(typescript@5.8.2)':
     dependencies:
       '@typescript-eslint/types': 8.29.0
       '@typescript-eslint/visitor-keys': 8.29.0
+      debug: 4.4.0
+      fast-glob: 3.3.3
+      is-glob: 4.0.3
+      minimatch: 9.0.5
+      semver: 7.7.1
+      ts-api-utils: 2.1.0(typescript@5.8.2)
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/typescript-estree@8.30.1(typescript@5.8.2)':
+    dependencies:
+      '@typescript-eslint/types': 8.30.1
+      '@typescript-eslint/visitor-keys': 8.30.1
       debug: 4.4.0
       fast-glob: 3.3.3
       is-glob: 4.0.3
@@ -11010,9 +11129,25 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/utils@8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)':
+    dependencies:
+      '@eslint-community/eslint-utils': 4.6.0(eslint@9.23.0(jiti@2.4.2))
+      '@typescript-eslint/scope-manager': 8.30.1
+      '@typescript-eslint/types': 8.30.1
+      '@typescript-eslint/typescript-estree': 8.30.1(typescript@5.8.2)
+      eslint: 9.23.0(jiti@2.4.2)
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/visitor-keys@8.29.0':
     dependencies:
       '@typescript-eslint/types': 8.29.0
+      eslint-visitor-keys: 4.2.0
+
+  '@typescript-eslint/visitor-keys@8.30.1':
+    dependencies:
+      '@typescript-eslint/types': 8.30.1
       eslint-visitor-keys: 4.2.0
 
   '@webassemblyjs/ast@1.14.1':
@@ -14192,7 +14327,7 @@ snapshots:
 
   klona@2.0.6: {}
 
-  kvparser@1.0.2(patch_hash=eaace29f7e05cfb36a2afeec82e5c7e1bd808c449ea40f4cc3509949c69007f3): {}
+  kvparser@1.0.2(patch_hash=tg6azrr7wy4iddrt5ukbyebv6q): {}
 
   languages@0.1.3: {}
 
@@ -15472,7 +15607,7 @@ snapshots:
     dependencies:
       redis-errors: 1.2.0
 
-  redlock@5.0.0-beta.2(patch_hash=4958ecbcfae64a5f66f02db5c5f8189f127f0063fc4cedb1de6607f825e5f549):
+  redlock@5.0.0-beta.2(patch_hash=j4o2fegdd522rw6razcgftanka):
     dependencies:
       node-abort-controller: 3.1.1
 
@@ -16091,7 +16226,7 @@ snapshots:
       '@doctormckay/stdlib': 2.10.0
       '@doctormckay/user-agents': 1.0.0
       debug: 4.4.0
-      kvparser: 1.0.2(patch_hash=eaace29f7e05cfb36a2afeec82e5c7e1bd808c449ea40f4cc3509949c69007f3)
+      kvparser: 1.0.2(patch_hash=tg6azrr7wy4iddrt5ukbyebv6q)
       node-bignumber: 1.2.2
       protobufjs: 7.4.0
       socks-proxy-agent: 7.0.0
@@ -16128,7 +16263,7 @@ snapshots:
       binarykvparser: 2.3.0
       bytebuffer: 5.0.1
       file-manager: 2.0.1
-      kvparser: 1.0.2(patch_hash=eaace29f7e05cfb36a2afeec82e5c7e1bd808c449ea40f4cc3509949c69007f3)
+      kvparser: 1.0.2(patch_hash=tg6azrr7wy4iddrt5ukbyebv6q)
       lzma: 2.3.2
       protobufjs: 7.4.0
       socks-proxy-agent: 7.0.0
@@ -16380,15 +16515,15 @@ snapshots:
 
   text-extensions@2.4.0: {}
 
-  tf2-currencies@1.2.4(patch_hash=9cbad624be06780012c61459e0b4a14fad06b34623afb8296183eab2d733f331):
+  tf2-currencies@1.2.4(patch_hash=p5d7n6ut6djhlaei5sdevh2ouu):
     dependencies:
       pluralize: 7.0.0
 
-  tf2@4.0.0(patch_hash=9203a4235186bc5072d12d3cd10e8fbb48d41ffcac3e2e3a987af608474c5b3d):
+  tf2@4.0.0(patch_hash=juhxipbhotnhgy4rg6czyifz5m):
     dependencies:
       '@doctormckay/stdlib': 2.10.0
       bytebuffer: 5.0.1
-      kvparser: 1.0.2(patch_hash=eaace29f7e05cfb36a2afeec82e5c7e1bd808c449ea40f4cc3509949c69007f3)
+      kvparser: 1.0.2(patch_hash=tg6azrr7wy4iddrt5ukbyebv6q)
       protobufjs: 7.4.0
       steamid: 2.1.0
 
@@ -16604,11 +16739,11 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typescript-eslint@8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2):
+  typescript-eslint@8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.29.0(@typescript-eslint/parser@8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
-      '@typescript-eslint/parser': 8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
-      '@typescript-eslint/utils': 8.29.0(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.30.1(@typescript-eslint/parser@8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/parser': 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.30.1(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
       eslint: 9.23.0(jiti@2.4.2)
       typescript: 5.8.2
     transitivePeerDependencies:
