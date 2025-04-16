@@ -77,7 +77,7 @@
     "@golevelup/nestjs-rabbitmq": "^5.7.0",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/bullmq": "^11.0.2",
-    "@nestjs/common": "^11.0.13",
+    "@nestjs/common": "^11.0.19",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.13",
     "@nestjs/event-emitter": "^3.0.1",
