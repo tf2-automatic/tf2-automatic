@@ -187,7 +187,9 @@ export class EconParser extends Parser<
       const isWarPaint = tags.Type === 'War Paint';
       // Set the quality of the item based on certain conditions to better match
       // how the TF2 GC stores the quality of items with a paint kit.
-      if (raw.effect !== null && !isWarPaint) {
+      if (!isWarPaint && descriptions.statclock) {
+        raw.quality = 'Strange';
+      } else if (raw.effect !== null && !isWarPaint) {
         // The quality of unusual war paints is still "Unusual", hence the check
         // for the type.
         raw.quality = 'Decorated Weapon';
@@ -658,13 +660,24 @@ export class EconParser extends Parser<
 
     // I don't like that this is outside the switch statement but it is the most
     // efficient way to do it.
-    if (tags.Rarity !== undefined) {
+    if (tags.Exterior !== undefined) {
       if (
-        tags.Exterior !== undefined &&
+        tags.Rarity !== undefined &&
         descriptions[i].value.startsWith(tags.Rarity + ' Grade ') &&
         descriptions[i].value.endsWith(' (' + tags.Exterior + ')')
       ) {
         attributes.grade = descriptions[i].value;
+        i++;
+      } else if (
+        tags.Rarity === undefined &&
+        descriptions[i].value.endsWith('(' + tags.Exterior + ')')
+      ) {
+        // This is dumb but sometimes an item does not have a rarity in the tags
+        // but it does in the description...
+        attributes.grade = descriptions[i].value.slice(
+          0,
+          descriptions[i].value.indexOf(' Grade'),
+        );
         i++;
       }
 
@@ -766,9 +779,12 @@ export class EconParser extends Parser<
             i++;
           }
         case IdentifiableDescription.Texture: {
-          let extract = false;
-
+          // Look for paintkit collection description
           if (descriptions[i].value.endsWith('Collection')) {
+            let extract = false;
+            let found = false;
+            let paintkit: string | null = null;
+
             if (tags.Exterior !== undefined) {
               next = IdentifiableDescription.Texture;
               extract = true;
@@ -777,36 +793,42 @@ export class EconParser extends Parser<
 
             // Might be a little "dangerous" to use these while loops
             while (descriptions[i].value.charAt(0) === ' ') {
-              i++;
-            }
-          }
-
-          let paintkit: string | null = null;
-          let found = false;
-
-          if (descriptions[i].value.startsWith('\u2714 ')) {
-            paintkit = descriptions[i].value.slice(2);
-            found = true;
-          } else if (descriptions[i].value.startsWith('\u2605 ')) {
-            found = true;
-            paintkit = descriptions[i].value.slice(2);
-          }
-
-          if (found) {
-            i++;
-
-            // Skip all the other stuff if any
-            while (descriptions[i].value.charAt(0) === ' ') {
+              // Handles stupid edge case where the paintkit does not have a checkmark
+              // or star in front of it.
+              const trimmed = descriptions[i].value.trimStart();
+              if (item.market_hash_name.indexOf(trimmed) !== -1) {
+                paintkit = trimmed;
+                found = true;
+                break;
+              }
               i++;
             }
 
-            if (extract) {
-              attributes.paintkit = paintkit;
-              next = IdentifiableDescription.Uses;
+            if (!found) {
+              // If not already found, check for the checkmark or star
+              const firstChar = descriptions[i].value.charAt(0);
+              if (firstChar === '\u2714' || firstChar === '\u2605') {
+                paintkit = descriptions[i].value.slice(2);
+                found = true;
+              }
             }
 
-            // We continue the loop so that we skip to the next checks
-            continue loop;
+            if (found) {
+              i++;
+
+              // Skip all the other stuff if any
+              while (descriptions[i].value.charAt(0) === ' ') {
+                i++;
+              }
+
+              if (extract) {
+                attributes.paintkit = paintkit;
+                next = IdentifiableDescription.Uses;
+              }
+
+              // We continue the loop so that we skip to the next checks
+              continue loop;
+            }
           }
         }
         case IdentifiableDescription.Input:

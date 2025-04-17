@@ -3451,3 +3451,495 @@ export function getSpelledUnusual() {
     fraudwarnings: [],
   };
 }
+
+export function getRedRockRoscoePistol() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14781586726',
+    classid: '6104845699',
+    instanceid: '11040671',
+    amount: 1,
+    pos: 20,
+    id: '14781586726',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPfflDz5zdwmTVPAPD8ot8Qn-WGkxvMRgBtaypOIFeF7m4oLFYuQlYdlETZSGC6eOY1yov05u1PJVKZGJvmqxikgbldh0',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPfflDz5zdwmTVPAPD8ot8Qn-WGkxvMRgBtaypOIFeF7m4oLFYuQlYdlETZSGC6eOY1yov05u1PJVKZGJvmqxikgbldh0',
+    descriptions: [
+      {
+        value: 'Elite Grade Pistol (Factory New)',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: 'Team Colored Decorated Weapon',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Hypno-Beam',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Agonizing Emerald',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'Concealed Killer Collection',
+        name: 'attribute',
+      },
+      {
+        value: '    Sand Cannon Rocket Launcher',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Red Rock Roscoe Pistol',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Psychedelic Slugger Revolver',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Purple Range Sniper Rifle',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Sudden Flurry Stickybomb Launcher',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Night Terror Scattergun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Carpet Bomber Stickybomb Launcher',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Woodland Warrior Rocket Launcher',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Wrapped Reviver Medi Gun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Night Owl Sniper Rifle',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Woodsy Widowmaker SMG',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Backwoods Boomstick Shotgun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    King of the Jungle Minigun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Masked Mender Medi Gun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Forest Fire Flame Thrower',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=15013&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D14338329498559064007',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Red Rock Roscoe Pistol',
+    name_color: 'FAFAFA',
+    type: '',
+    market_name: 'Professional Killstreak Red Rock Roscoe Pistol (Factory New)',
+    market_hash_name:
+      'Professional Killstreak Red Rock Roscoe Pistol (Factory New)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D14338329498559064007',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'paintkitweapon',
+        name: 'Decorated Weapon',
+        category: 'Quality',
+        color: 'FAFAFA',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'secondary',
+        name: 'Secondary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Scout',
+        name: 'Scout',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Engineer',
+        name: 'Engineer',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Rarity_Ancient',
+        name: 'Elite',
+        category: 'Rarity',
+        color: 'eb4b4b',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'concealedkiller_collection',
+        name: 'Concealed Killer Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FactoryNew',
+        name: 'Factory New',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getStrangeAppliedWarpaint() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15567713416',
+    classid: '6875155395',
+    instanceid: '6961165889',
+    amount: 1,
+    pos: 108,
+    id: '15567713416',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnaWFYexDHDPIPCcot8Qn-Wmkz7pNhV9PjoLpeeAS6soPPN-YoZo4fGJGFD_PSZAv5408-0qlZJ5favmqximVL15ub',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnaWFYexDHDPIPCcot8Qn-Wmkz7pNhV9PjoLpeeAS6soPPN-YoZo4fGJGFD_PSZAv5408-0qlZJ5favmqximVL15ub',
+    descriptions: [
+      {
+        value: 'Mercenary Grade Flame Thrower (Field-Tested)',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+        name: 'attribute',
+      },
+      {
+        value: '     Kills: 4063',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Cloaked Spies Killed: 91',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Projectiles Reflected: 1007',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Teammates Extinguished: 319',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '★ Unusual Effect: Hot',
+        color: 'ffd700',
+        name: 'attribute',
+      },
+      {
+        value: 'This weapon holsters 30% faster',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'This weapon deploys 60% faster',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Extinguishing teammates restores 20 health',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Singularity',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Manndarin',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: '-66% afterburn damage penalty',
+        color: 'd83636',
+        name: 'attribute',
+      },
+      {
+        value: '+25% airblast cost',
+        color: 'd83636',
+        name: 'attribute',
+      },
+      {
+        type: 'usertext',
+        value: "''If you are reading this, that airblast was 100% calculated''",
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: "The Gas Jockey's Gear",
+        color: 'e1e10f',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'The Degreaser',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'The Powerjack',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'The Attendant',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'Item Set Bonus:',
+        color: 'e1e10f',
+        name: 'attribute',
+      },
+      {
+        value: 'Leave a Calling Card on your victims',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'Scream Fortress XIII Collection',
+        name: 'attribute',
+      },
+      {
+        value: '    Misfortunate War Paint',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Party Phantoms War Paint',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Broken Bones War Paint',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Swashbuckled War Paint',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Neon-ween War Paint',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Polter-Guised War Paint',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Necromanced War Paint',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Skull Cracked War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Simple Spirits War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Potent Poison War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Searing Souls War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '★ Kiln and Conquer War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Sarsaparilla Sprayed War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=215&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D10155133839288036721',
+        name: 'Inspect in Game...',
+      },
+    ],
+    fraudwarnings: ['This item has been renamed.\nOriginal name: "Degreaser"'],
+    name: "''A Moment of Self Reflection''",
+    name_color: '8650AC',
+    type: '',
+    market_name:
+      'Strange Unusual Professional Killstreak Kiln and Conquer Degreaser (Field-Tested)',
+    market_hash_name:
+      'Strange Unusual Professional Killstreak Kiln and Conquer Degreaser (Field-Tested)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D10155133839288036721',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Pyro',
+        name: 'Pyro',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FieldTested',
+        name: 'Field-Tested',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+  };
+}
