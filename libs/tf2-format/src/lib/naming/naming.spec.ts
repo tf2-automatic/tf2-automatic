@@ -195,5 +195,39 @@ describe('NameGenerator', () => {
 
       expect(name).toBe('Strange Circling Heart Hong Kong Cone');
     });
+
+    it('will create the name of a normal quality item', async () => {
+      schema.getItemByDefindex.mockReturnValueOnce({
+        item_name: 'Minigun',
+        proper_name: false,
+        item_quality: 0,
+      });
+      schema.getQualityById.mockReturnValueOnce('Normal');
+
+      const name = await generator.getName({
+        defindex: 202,
+        quality: 0,
+      });
+
+      expect(name).toBe('Normal Minigun');
+    });
+
+    it('will create the name of a Red Rock Roscoe Pistol', async () => {
+      schema.getItemByDefindex.mockReturnValueOnce({
+        item_name: 'Pistol',
+        proper_name: true,
+        item_quality: 15,
+      });
+      schema.getPaintkitById.mockReturnValueOnce('Red Rock Roscoe');
+
+      const name = await generator.getName({
+        defindex: 15013,
+        quality: 15,
+        wear: 1,
+        paintkit: 0,
+      });
+
+      expect(name).toBe('Red Rock Roscoe Pistol (Factory New)');
+    });
   });
 });
