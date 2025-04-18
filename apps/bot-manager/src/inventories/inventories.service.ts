@@ -180,10 +180,11 @@ export class InventoriesService
     await this.locker.using([key], LockDuration.SHORT, async () => {
       const ttl = result.ttl ?? INVENTORY_EXPIRE_TIME;
 
-      const multi = this.redis.multi().del(key).hset(key, save);
-      if (ttl > -1) {
-        multi.expire(key, ttl);
-      }
+      const multi = this.redis
+        .multi()
+        .del(key)
+        .hset(key, save)
+        .expire(key, ttl);
 
       if (result.result) {
         const event = {
