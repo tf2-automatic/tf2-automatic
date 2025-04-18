@@ -37,6 +37,16 @@ services:
       retries: 3
     volumes:
       - 'minio:/data'
+  mc:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set minio http://minio:9000 minioadmin minioadmin && \
+      mc mb minio/tf2-automatic --ignore-existing && \
+      mc anonymous set public minio/tf2-automatic
+      "
   redis:
     image: redis:7.2.4-alpine
     command: redis-server --requirepass test --appendonly yes --maxmemory-policy noeviction
@@ -46,6 +56,48 @@ services:
       - redis:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 1s
+      retries: 3
+  item-service:
+    image: ghcr.io/tf2-automatic/item-service:latest
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      bot-manager:
+        condition: service_healthy
+      mc:
+        condition: service_completed_successfully
+    expose:
+      - '3000'
+    ports:
+      - '3003:3000'
+    environment:
+      REDIS_HOST: 'redis'
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: 'test'
+      RABBITMQ_HOST: 'rabbitmq'
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: 'test'
+      RABBITMQ_PASSWORD: 'test'
+      RABBITMQ_VHOST: ''
+      STORAGE_TYPE: 's3'
+      STORAGE_S3_ENDPOINT: 'minio'
+      STORAGE_S3_PORT: 9000
+      STORAGE_S3_USE_SSL: false
+      STORAGE_S3_PATH: '/'
+      STORAGE_S3_BUCKET: 'tf2-automatic'
+      STORAGE_S3_ACCESS_KEY_ID: 'minioadmin'
+      STORAGE_S3_SECRET_ACCESS_KEY: 'minioadmin'
+      BOT_MANAGER_URL: 'http://bot-manager:3000'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-S', 'http://localhost:3000/health']
       interval: 5s
       timeout: 1s
       retries: 3
@@ -88,6 +140,8 @@ services:
         condition: service_healthy
       bot-manager:
         condition: service_healthy
+      mc:
+        condition: service_completed_successfully
     expose:
       - '3000'
     ports:
