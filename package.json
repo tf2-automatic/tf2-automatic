@@ -5,9 +5,9 @@
   "scripts": {
     "prepare": "is-ci || husky",
     "commit": "cz",
-    "start": "nx serve",
-    "build": "nx build",
-    "test": "nx test"
+    "start": "node ./scripts/nx.js serve",
+    "build": "node ./scripts/nx.js build",
+    "test": "node ./scripts/nx.js test"
   },
   "private": true,
   "devDependencies": {
