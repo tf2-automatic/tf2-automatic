@@ -14,6 +14,7 @@ import {
   KILLSTREAK_FABRICATORS,
 } from './constants';
 import protobuf from 'protobufjs/light';
+import assert from 'assert';
 
 enum AttributeTokens {
   'cannot trade' = 153,
@@ -123,6 +124,7 @@ export class TF2Parser extends Parser<
 
       defindexes.add(attribute.def_index);
 
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       const value = Buffer.from(attribute.value_bytes as any);
 
       switch (attribute.def_index) {
@@ -207,13 +209,18 @@ export class TF2Parser extends Parser<
             if (
               component.componentFlags & DynamicRecipeFlags.PARAM_ITEM_DEF_SET
             ) {
-              input.defindex = component.defIndex!;
+              assert(component.defIndex !== undefined, 'defIndex is undefined');
+              input.defindex = component.defIndex;
             }
 
             if (
               component.componentFlags & DynamicRecipeFlags.PARAM_QUALITY_SET
             ) {
-              input.quality = component.itemQuality!;
+              assert(
+                component.itemQuality !== undefined,
+                'itemQuality is undefined',
+              );
+              input.quality = component.itemQuality;
             }
 
             if (attribsMap[AttributeTokens['killstreak tier']]) {
@@ -239,8 +246,13 @@ export class TF2Parser extends Parser<
               attributes.killstreak = 3;
             }
 
-            attributes.outputQuality = component.itemQuality!;
-            attributes.output = component.defIndex!;
+            assert(
+              component.itemQuality !== undefined,
+              'itemQuality is undefined',
+            );
+            assert(component.defIndex !== undefined, 'defIndex is undefined');
+            attributes.outputQuality = component.itemQuality;
+            attributes.output = component.defIndex;
           }
 
           break;

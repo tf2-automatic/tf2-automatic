@@ -7,6 +7,7 @@ import { AxiosError } from 'axios';
 import { CustomError, CustomUnrecoverableError } from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
 import { HttpException, Logger } from '@nestjs/common';
+import { AssertionError } from 'assert';
 
 export abstract class CustomWorkerHost<
   DataType extends JobData,
@@ -46,6 +47,8 @@ export abstract class CustomWorkerHost<
     job: CustomJob<DataType, ReturnType, NameType>,
   ): Promise<ReturnType>;
 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+
   preErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
@@ -59,6 +62,8 @@ export abstract class CustomWorkerHost<
   ): Promise<void> {
     return Promise.resolve();
   }
+
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
@@ -104,6 +109,11 @@ export abstract class CustomWorkerHost<
               });
             }
           }
+        } else if (err instanceof AssertionError) {
+          // This is a bug in the code, not a recoverable error
+          this.logger.error('Assertion failed in worker');
+          console.error(err);
+          throw new UnrecoverableError(err.message);
         }
 
         // Unknown error

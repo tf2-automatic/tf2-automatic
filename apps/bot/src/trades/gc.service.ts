@@ -5,6 +5,7 @@ import { Config, SteamTradeConfig } from '../common/config/configuration';
 import { TradeOfferData } from './types';
 import TradeOffer from 'steam-tradeoffer-manager/lib/classes/TradeOffer';
 import * as helpers from './helpers';
+import assert from 'assert';
 
 @Injectable()
 export class GarbageCollectorService {
@@ -30,7 +31,9 @@ export class GarbageCollectorService {
     const missing: string[] = [];
 
     const deleteMissingKey = (offer: TradeOffer) => {
-      const offerData = this.manager.pollData.offerData[offer.id!];
+      assert(offer.id, 'Offer ID is missing');
+
+      const offerData = this.manager.pollData.offerData[offer.id];
       if (offerData) {
         delete offerData.missing;
       }
@@ -51,8 +54,7 @@ export class GarbageCollectorService {
     findMissing(Object.keys(this.manager.pollData.received), received);
 
     const now = Date.now();
-    let changed = false,
-      removed = 0;
+    let changed = false;
 
     const checkOffer = (id: string): void => {
       const offerData: TradeOfferData = this.manager.pollData.offerData[id];
@@ -75,7 +77,6 @@ export class GarbageCollectorService {
       this.logger.debug(`Removing trade offer ${id}`);
 
       changed = true;
-      removed++;
 
       // Remove offer data
       delete this.manager.pollData.sent[id];

@@ -11,6 +11,7 @@ import {
   SchemaOverviewResponse,
 } from './schema.types';
 import configuration from '../common/config/configuration';
+import assert from 'assert';
 
 @Processor('schema', {
   settings: bullWorkerSettings,
@@ -96,7 +97,8 @@ export class SchemaProcessor extends WorkerHost {
   }
 
   private async updateItemsGame(job: Job) {
-    const result = await this.getVDFFromUrl(job.data.items_game_url!);
+    assert(job.data.items_game_url, 'items_game_url is not set');
+    const result = await this.getVDFFromUrl(job.data.items_game_url);
     await this.schemaService.updateItemsGame(job, result);
   }
 

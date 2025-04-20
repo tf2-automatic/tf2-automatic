@@ -50,7 +50,7 @@ import {
   InventoryResult,
 } from './inventories.types';
 import { ClsService } from 'nestjs-cls';
-import { getUserAgent } from '@tf2-automatic/config';
+import { getUserAgentOrThrow } from '@tf2-automatic/config';
 
 export const INVENTORY_EXPIRE_TIME = 600;
 
@@ -63,7 +63,7 @@ const DEFAULT_EXTRA_KEYS: (keyof Item)[] = [
 
 const DEFAULT_ITEM = SKU.getDefault();
 
-const USER_AGENT = getUserAgent(false)!;
+const USER_AGENT = getUserAgentOrThrow(false);
 
 @Injectable()
 export class InventoriesService
@@ -306,7 +306,7 @@ export class InventoriesService
           if (exists) {
             for (const assetid of items[sku]) {
               attributes[assetid] = attributes[assetid] ?? {};
-              attributes[assetid][key] = value as any;
+              (attributes[assetid][key] as unknown) = value;
             }
           }
         }
@@ -456,7 +456,7 @@ export class InventoriesService
 
         let hasExtra = false;
 
-        const extra: Record<string, any> = {};
+        const extra: Record<string, Item[keyof Item]> = {};
 
         for (const key of DEFAULT_EXTRA_KEYS) {
           const [exists, value] = this.extractValueAndDeleteKey(item, key);

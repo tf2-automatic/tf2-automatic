@@ -460,7 +460,7 @@ export class BotService implements OnModuleDestroy {
 
     try {
       return new Date(ratelimited);
-    } catch (_) {
+    } catch {
       return null;
     }
   }

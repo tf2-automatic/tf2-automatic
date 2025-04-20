@@ -36,6 +36,7 @@ import {
 } from './interfaces/get-listings.queue.interface';
 import { DesiredListing } from './classes/desired-listing.class';
 import { pack, unpack } from 'msgpackr';
+import assert from 'assert';
 
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
@@ -102,6 +103,8 @@ export class CurrentListingsService {
     limit?: number,
     delay?: number,
   ): Promise<void> {
+    assert(job.parent, 'Job has no parent');
+
     await this.queue.add(
       job.name,
       {
@@ -123,8 +126,8 @@ export class CurrentListingsService {
           limit,
         delay,
         parent: {
-          id: job.parent!.id,
-          queue: job.queueQualifiedName!,
+          id: job.parent.id,
+          queue: job.queueQualifiedName,
         },
       },
     );

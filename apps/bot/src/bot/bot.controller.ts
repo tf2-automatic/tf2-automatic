@@ -5,6 +5,7 @@ import {
   BOT_BASE_URL,
   BOT_WEBSESSION_PATH,
   BOT_PATH,
+  BotWebSession,
 } from '@tf2-automatic/bot-data';
 import { BotService } from './bot.service';
 
@@ -27,7 +28,7 @@ export class BotController {
     summary: 'Get bot web session',
     description: "Get the bot's web session which contains the cookies.",
   })
-  async getWebSession(): Promise<any> {
+  async getWebSession(): Promise<BotWebSession> {
     return this.botService.getWebSession();
   }
 }

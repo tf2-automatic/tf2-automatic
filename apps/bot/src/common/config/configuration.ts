@@ -1,6 +1,7 @@
 import {
   EventsConfig,
   getEnv,
+  getEnvOrThrow,
   getEnvWithDefault,
   getEnvWithDefaultAllowEmptyString,
   getEventsConfig,
@@ -46,7 +47,7 @@ export interface ManagerConfig {
 
 export default (): Config => {
   return {
-    port: getEnv('PORT', 'integer')!,
+    port: getEnvOrThrow('PORT', 'integer'),
     // The bot has long lived requests so we don't want to timeout
     keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 0),
     ip: getEnv('IP_ADDRESS', 'string'),
@@ -56,12 +57,12 @@ export default (): Config => {
       10 * 60 * 1000,
     ),
     steam: {
-      username: getEnv('STEAM_USERNAME', 'string')!,
-      password: getEnv('STEAM_PASSWORD', 'string')!,
-      sharedSecret: getEnv('STEAM_SHARED_SECRET', 'string')!,
-      identitySecret: getEnv('STEAM_IDENTITY_SECRET', 'string')!,
-      proxyUrl: getEnv('STEAM_PROXY_URL', 'string'),
-      apiKey: getEnv('STEAM_API_KEY', 'string'),
+      username: getEnvOrThrow('STEAM_USERNAME', 'string'),
+      password: getEnvOrThrow('STEAM_PASSWORD', 'string'),
+      sharedSecret: getEnvOrThrow('STEAM_SHARED_SECRET', 'string'),
+      identitySecret: getEnvOrThrow('STEAM_IDENTITY_SECRET', 'string'),
+      proxyUrl: getEnvOrThrow('STEAM_PROXY_URL', 'string'),
+      apiKey: getEnvOrThrow('STEAM_API_KEY', 'string'),
       defaultGame: getEnvWithDefaultAllowEmptyString(
         'STEAM_DEFAULT_GAME',
         'integer',

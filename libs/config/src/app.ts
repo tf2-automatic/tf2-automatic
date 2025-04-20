@@ -16,6 +16,14 @@ export function getAppNameAndVersion(): { name: string, version: string, } | nul
   };
 }
 
+export function getUserAgentOrThrow(version = true): string {
+  const userAgent = getUserAgent(version);
+  if (userAgent === null) {
+    throw new Error('Unable to get user agent');
+  }
+  return userAgent;
+}
+
 export function getUserAgent(version = true): string | null {
   const app = getAppNameAndVersion();
   if (app === null) {

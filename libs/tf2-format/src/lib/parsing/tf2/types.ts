@@ -38,7 +38,27 @@ export interface ValueBytes {
 }
 
 export interface Attributes {
-  [key: string]: any;
+  elevated: boolean;
+  australium: boolean;
+  festivized: boolean;
+  effect: number | null;
+  wear: number | null;
+  primaryPaint: number | null;
+  secondaryPaint: number | null;
+  killstreak: number;
+  sheen: number | null;
+  killstreaker: number | null;
+  /**
+   * Either the defindex of the spell, or an array with the defindex and value
+   * of the attribute.
+   */
+  spells: (number | [number, number])[];
+  parts: number[];
+  paintkit: number | null;
+  inputs: RecipeInput[] | null;
+  output: number | null;
+  outputQuality: number | null;
+  target: number | null;
 }
 
 /**

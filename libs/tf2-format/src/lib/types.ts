@@ -21,14 +21,14 @@ export interface PrimaryItemAttributes {
   australium: boolean;
   festivized: boolean;
   killstreak: number;
-  effect: number | null;
-  paintkit: number | null;
-  wear: number | null;
-  target: number | null;
-  output: number | null;
-  outputQuality: number | null;
+  effect: NumberOrNull;
+  paintkit: NumberOrNull;
+  wear: NumberOrNull;
+  target: NumberOrNull;
+  output: NumberOrNull;
+  outputQuality: NumberOrNull;
   elevated: boolean;
-  crateSeries: number | null;
+  crateSeries: NumberOrNull;
 }
 
 export interface RecipeInput {
@@ -42,11 +42,11 @@ export interface RecipeInput {
  * Extra attributes of a TF2 item.
  */
 export interface ExtraItemAttributes {
-  paint: number | null;
+  paint: NumberOrNull;
   spells: number[];
   parts: number[];
-  sheen: number | null;
-  killstreaker: number | null;
+  sheen: NumberOrNull;
+  killstreaker: NumberOrNull;
   inputs: RecipeInput[] | null;
   quantity: number;
 }
@@ -81,6 +81,10 @@ export interface SchemaItem {
   item_quality: number;
 }
 
+export type UndefinedOrError<T> = T | undefined | Error;
+export type UndefinedOrNull<T> = T | undefined | null;
+export type NumberOrNull = number | null;
+
 interface GetItemsGameItem {
   /**
    * Synchronously get an item by its defindex from items_game.txt.
@@ -91,7 +95,7 @@ interface GetItemsGameItem {
    * @example schema.getItemByDefindex(-1) -> undefined
    * @example schema.getItemByDefindex(-1) -> new Error("Item not found")
    */
-  getItemByDefindex(defindex: number): ItemsGameItem | undefined | Error;
+  getItemByDefindex(defindex: number): UndefinedOrError<ItemsGameItem>;
   /**
    * Asynchronously get an item by its defindex from items_game.txt.
    * @param defindex The defindex of the item.
@@ -117,7 +121,7 @@ export interface ItemNamingSchema {
    * @example schema.getItemByDefindex(5021) -> undefined
    * @example schema.getItemByDefindex(-1) -> new Error("Item not found")
    */
-  getItemByDefindex(defindex: number): SchemaItem | undefined | Error;
+  getItemByDefindex(defindex: number): UndefinedOrError<SchemaItem>;
   /**
    * Asynchronously get an item by its defindex from the TF2 GetItemsGame API.
    * @param defindex The defindex of the item.
@@ -135,7 +139,7 @@ export interface ItemNamingSchema {
    * @example schema.getQualityById(6) -> undefined
    * @example schema.getQualityById(-1) -> new Error("Quality not found")
    */
-  getQualityById(id: number): string | undefined | Error;
+  getQualityById(id: number): UndefinedOrError<string>;
   /**
    * Asynchronously get the name of a quality by its id.
    * @param id The id of the quality.
@@ -154,7 +158,7 @@ export interface ItemNamingSchema {
    * @example schema.getEffectById(13) -> undefined
    * @example schema.getEffectById(-1) -> new Error("Effect not found")
    */
-  getEffectById(id: number): string | undefined | Error;
+  getEffectById(id: number): UndefinedOrError<string>;
   /**
    * Asynchronously get the name of an effect by its id.
    * @param id The id of the effect.
@@ -173,7 +177,7 @@ export interface ItemNamingSchema {
    * @example schema.getTextureById(14) -> undefined
    * @example schema.getTextureById(-1) -> new Error("Texture not found")
    */
-  getPaintkitById(id: number): string | undefined | Error;
+  getPaintkitById(id: number): UndefinedOrError<string>;
   /**
    * Asynchronously get the name of a texture by its id.
    * @param id The id of the texture.
@@ -200,7 +204,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getDefindexByName("Mann Co. Supply Crate Key") -> undefined
    * @example schema.getDefindexByName("Non-existent item") -> null
    */
-  getDefindexByName(name: string): number | null | undefined;
+  getDefindexByName(name: string): UndefinedOrError<number>;
   /**
    * Asyncronously get the defindex of an item by its `item_name` using
    * the GetSchemaItems API.
@@ -210,7 +214,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.fetchDefindexByName("Mann Co. Supply Crate Key") -> Promise.resolve(5021)
    * @example schema.fetchDefindexByName("Non-existent item") -> Promise.resolve(null)
    */
-  fetchDefindexByName(name: string): Promise<number | null>;
+  fetchDefindexByName(name: string): Promise<NumberOrNull>;
   /**
    * Synchronously get the id of a quality by its name.
    * @param name The name of the quality.
@@ -220,7 +224,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getQualityByName("Non-existent quality") -> undefined
    * @example schema.getQualityByName("Non-existent quality") -> new Error("Quality not found")
    */
-  getQualityByName(name: string): number | undefined | Error;
+  getQualityByName(name: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the id of a quality by its name.
    * @param name The name of the quality.
@@ -239,7 +243,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getEffectByName("Non-existent effect") -> undefined
    * @example schema.getEffectByName("Non-existent effect") -> new Error("Effect not found")
    */
-  getEffectByName(name: string): number | undefined | Error;
+  getEffectByName(name: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the id of an effect by its name.
    * @param name The name of the effect.
@@ -258,7 +262,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getTextureByName("Non-existent texture") -> undefined
    * @example schema.getTextureByName("Non-existent texture") -> new Error("Texture not found")
    */
-  getTextureByName(name: string): number | undefined | Error;
+  getTextureByName(name: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the id of a texture by its name.
    * @param name The name of the texture.
@@ -277,7 +281,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getSpellByName("Non-existent spell") -> undefined
    * @example schema.getSpellByName("Non-existent spell") -> new Error("Spell not found")
    */
-  getSpellByName(name: string): number | undefined | Error;
+  getSpellByName(name: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the id of a spell by its name.
    * @param name The name of the spell.
@@ -298,7 +302,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getStrangePartByScoreType("Kills Under A Full Moon") -> undefined
    * @example schema.getStrangePartByScoreType("Non-existent score type") -> null
    */
-  getStrangePartByScoreType(scoreType: string): number | null | undefined;
+  getStrangePartByScoreType(scoreType: string): UndefinedOrNull<number>;
   /**
    * Asynchronously get the defindex of a strange part by its score type. Because
    * some score types may not have a corresponding strange part, e.g. "Kills", then
@@ -309,7 +313,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.fetchStrangePartByScoreType("Kills Under A Full Moon") -> Promise.resolve(6015)
    * @example schema.fetchStrangePartByScoreType("Non-existent score type") -> Promise.resolve(null)
    */
-  fetchStrangePartByScoreType(scoreType: string): Promise<number | null>;
+  fetchStrangePartByScoreType(scoreType: string): Promise<NumberOrNull>;
   /**
    * Syncronously get the id of a sheen by its name.
    * @param name The name of the sheen.
@@ -319,7 +323,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getSheenByName("Non-existent sheen") -> undefined
    * @example schema.getSheenByName("Non-existent sheen") -> new Error("Sheen not found")
    */
-  getSheenByName(name: string): number | undefined | Error;
+  getSheenByName(name: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the id of a sheen by its name.
    * @param name The name of the sheen.
@@ -338,7 +342,7 @@ export interface EconParserSchema extends GetItemsGameItem {
    * @example schema.getKillstreakerByName("Non-existent killstreaker") -> undefined
    * @example schema.getKillstreakerByName("Non-existent killstreaker") -> new Error("Killstreaker not found")
    */
-  getKillstreakerByName(name: string): number | undefined | Error;
+  getKillstreakerByName(name: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the id of a killstreaker by its name.
    * @param name The name of the killstreaker.
@@ -355,7 +359,7 @@ export interface EconParserSchema extends GetItemsGameItem {
  * This schema is used to define the getters for this information.
  */
 export interface TF2ParserSchema extends GetItemsGameItem {
-  getSpellById(defindex: number, id: number): number | undefined | Error;
+  getSpellById(defindex: number, id: number): UndefinedOrError<number>;
   /**
    * Asynchronously get the defindex of a spell by the attribute defindex and value.
    * @param defindex The defindex of the spell attribute.
@@ -375,7 +379,7 @@ export interface TF2ParserSchema extends GetItemsGameItem {
    * @example schema.getPaintByColor("e7b53b") -> undefined
    * @example schema.getPaintByColor("") -> new Error("Paint not found")
    */
-  getPaintByColor(color: string): number | undefined | Error;
+  getPaintByColor(color: string): UndefinedOrError<number>;
   /**
    * Asynchronously get the defindex of a paint by its hex color code.
    * @param color The hex color code of the paint.
@@ -394,7 +398,7 @@ export interface TF2ParserSchema extends GetItemsGameItem {
    * @example schema.getStrangePartById(27) -> undefined
    * @example schema.getStrangePartById(-1) -> new Error("Strange part not found")
    */
-  getStrangePartById(id: number): number | undefined | Error;
+  getStrangePartById(id: number): UndefinedOrError<number>;
   /**
    * Asynchronously get the defindex of a strange part by its id.
    * @param id The id of the strange part.

@@ -5,8 +5,8 @@ import { BotsAttemptedState, CustomJob, JobData } from './types';
 import { Bot } from '@tf2-automatic/bot-manager-data';
 
 export async function botAttemptErrorHandler<
-  JobDataType extends JobData<any, BotsAttemptedState>,
->(cls: ClsService, err: any, job: CustomJob<JobDataType>) {
+  JobDataType extends JobData<unknown, BotsAttemptedState>,
+>(cls: ClsService, err: unknown, job: CustomJob<JobDataType>) {
   if (err instanceof AxiosError && err.response !== undefined) {
     const botsAttempted = job.data.state.botsAttempted ?? {};
 
@@ -24,7 +24,7 @@ export async function botAttemptErrorHandler<
 }
 
 export async function selectBot<
-  JobDataType extends JobData<any, BotsAttemptedState>,
+  JobDataType extends JobData<unknown, BotsAttemptedState>,
 >(job: CustomJob<JobDataType>, bots: Bot[]) {
   if (bots.length === 0) {
     throw new Error('No bots available');

@@ -20,9 +20,9 @@ export function extractErrorMessage(error: Error): HttpError {
 
   const match = message.match(/\(HTTP (\d+)\)/);
   let statusCode: number | undefined;
-  if (match) {
+  if (match && match.index !== undefined) {
     statusCode = parseInt(match[1], 10);
-    message = message.substring(0, match.index! - 1);
+    message = message.substring(0, match.index - 1);
   }
 
   return {
