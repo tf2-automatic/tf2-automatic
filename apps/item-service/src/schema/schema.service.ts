@@ -50,6 +50,7 @@ import {
   TF2ParserSchema,
 } from '@tf2-automatic/tf2-format';
 import Dataloader from 'dataloader';
+import assert from 'assert';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
@@ -223,12 +224,12 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  private async getValueByField(
+  private async getValueByField<T>(
     key: SchemaKeys,
     hash: string,
     time?: number,
-  ): Promise<any> {
-    const matches = await this.getValuesByField(key, [hash], time);
+  ): Promise<T> {
+    const matches = await this.getValuesByField<T>(key, [hash], time);
 
     const result = matches[hash];
     if (!result) {
@@ -238,11 +239,11 @@ export class SchemaService implements OnApplicationBootstrap {
     return result;
   }
 
-  private async getValuesByField(
+  private async getValuesByField<T>(
     key: SchemaKeys,
     fields: readonly string[],
     time?: number,
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, T>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const result = await this.redis.hmgetBuffer(
@@ -250,7 +251,7 @@ export class SchemaService implements OnApplicationBootstrap {
       ...fields,
     );
 
-    const items: Record<string, any> = {};
+    const items: Record<string, T> = {};
 
     for (let i = 0; i < fields.length; i++) {
       const value = result[i];
@@ -316,7 +317,7 @@ export class SchemaService implements OnApplicationBootstrap {
     useItemsGame = false,
     time?: number,
   ): Promise<SchemaItem[] | ItemsGameItem[]> {
-    const defindexes = await this.getValueByField(
+    const defindexes = await this.getValueByField<string[]>(
       SchemaKeys.ITEMS_NAME,
       name,
       time,
@@ -487,6 +488,8 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   private createItemsJob(job: Job, start: number) {
+    assert(job.parent, 'Job has no parent');
+
     return this.queue.add(
       'items',
       {
@@ -495,8 +498,8 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       {
         parent: {
-          id: job.parent!.id,
-          queue: job.queueQualifiedName!,
+          id: job.parent.id,
+          queue: job.queueQualifiedName,
         },
       },
     );
@@ -559,10 +562,12 @@ export class SchemaService implements OnApplicationBootstrap {
    * @param job
    */
   async updateSchema(job: Job, endUrl: string) {
+    assert(job.data.items_game_url, 'Items game url is not set');
+
     const current: Schema = {
-      version: job.data.items_game_url!,
+      version: job.data.items_game_url,
       time: job.data.time,
-      consistent: job.data.items_game_url! === endUrl,
+      consistent: job.data.items_game_url === endUrl,
     };
 
     const multi = this.redis
@@ -648,11 +653,12 @@ export class SchemaService implements OnApplicationBootstrap {
     for (const attribute of result.attributes) {
       if (
         attribute.name.startsWith('SPELL: ') &&
-        attribute.description_format !== 'value_is_from_lookup_table'
+        attribute.description_format !== 'value_is_from_lookup_table' &&
+        attribute.description_string !== undefined
       ) {
         const spell = {
           id: attribute.defindex,
-          name: attribute.description_string!,
+          name: attribute.description_string,
         };
 
         const packed = pack(spell);
@@ -932,7 +938,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const key = this.getKey(SchemaKeys.ITEMS_GAME, job.data.time);
 
     while (index < keys.length) {
-      const chunk: Record<string, any> = {};
+      const chunk: Record<string, Buffer> = {};
 
       for (let i = index; i < Math.min(index + chunkSize, keys.length); i++) {
         const defindex = keys[i];
@@ -1016,8 +1022,8 @@ export class SchemaService implements OnApplicationBootstrap {
     return engine.getSignedUrl(path);
   }
 
-  private getKey(key: string, prefix: any) {
-    return prefix + ':' + key;
+  private getKey(key: string, prefix: string | number) {
+    return prefix + ':' + key.toString();
   }
 
   private getTF2ParserSchema(time?: number): TF2ParserSchema {
@@ -1137,27 +1143,31 @@ export class SchemaService implements OnApplicationBootstrap {
     );
 
     const paintkitLoader = new Dataloader<string, number>(async (names) => {
-      return this.getValuesByField(SchemaKeys.PAINTKIT_NAME, names, time).then(
-        (paintkits) => {
-          return names.map((name) =>
-            paintkits[name]
-              ? paintkits[name].id
-              : new NotFoundException('Paintkit not found'),
-          );
-        },
-      );
+      return this.getValuesByField<PaintKit>(
+        SchemaKeys.PAINTKIT_NAME,
+        names,
+        time,
+      ).then((paintkits) => {
+        return names.map((name) =>
+          paintkits[name]
+            ? paintkits[name].id
+            : new NotFoundException('Paintkit not found'),
+        );
+      });
     });
 
     const spellLoader = new Dataloader<string, number>(async (names) => {
-      return this.getValuesByField(SchemaKeys.SPELLS_NAME, names, time).then(
-        (spells) => {
-          return names.map((name) =>
-            spells[name]
-              ? spells[name].id
-              : new NotFoundException('Spell not found'),
-          );
-        },
-      );
+      return this.getValuesByField<Spell>(
+        SchemaKeys.SPELLS_NAME,
+        names,
+        time,
+      ).then((spells) => {
+        return names.map((name) =>
+          spells[name]
+            ? spells[name].id
+            : new NotFoundException('Spell not found'),
+        );
+      });
     });
 
     const strangePartLoader = new Dataloader<string, number | null>(

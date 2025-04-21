@@ -2,7 +2,7 @@ import {
   EventsConfig,
   LockConfig,
   Redis,
-  getEnv,
+  getEnvOrThrow,
   getEnvWithDefault,
   getEventsConfig,
   getLockConfig,
@@ -25,7 +25,7 @@ export interface Config {
 
 export default (): Config => {
   return {
-    port: getEnv('PORT', 'integer')!,
+    port: getEnvOrThrow('PORT', 'integer'),
     keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 60000),
     redis: Redis.getConfig(),
     events: getEventsConfig(),

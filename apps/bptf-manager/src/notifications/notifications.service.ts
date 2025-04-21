@@ -11,6 +11,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { FlowProducer, Job, Queue } from 'bullmq';
 import { JobData } from './interfaces/queue';
 import { pack, unpack } from 'msgpackr';
+import assert from 'assert';
 
 @Injectable()
 export class NotificationsService {
@@ -151,6 +152,8 @@ export class NotificationsService {
   }
 
   private async createJob(job: Job<JobData>, skip?: number, limit?: number) {
+    assert(job.parent, 'Job has no parent');
+
     await this.queue.add(
       'fetch',
       {
@@ -163,8 +166,8 @@ export class NotificationsService {
         jobId:
           job.data.steamid64 + ':' + job.data.time + ':' + skip + ':' + limit,
         parent: {
-          id: job.parent!.id,
-          queue: job.queueQualifiedName!,
+          id: job.parent.id,
+          queue: job.queueQualifiedName,
         },
       },
     );

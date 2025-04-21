@@ -58,6 +58,7 @@ import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ClsService } from 'nestjs-cls';
 import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
 import { JobWithBot } from '@tf2-automatic/common-data';
+import assert from 'assert';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -85,11 +86,11 @@ export class TradesService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap() {
-    await this.eventsService.subscribe(
+    await this.eventsService.subscribe<TradeChangedEvent>(
       'bot-manager.exchange-details',
       BOT_EXCHANGE_NAME,
       [TRADE_CHANGED_EVENT],
-      (event) => this.handleTradeChanged(event as any),
+      (event) => this.handleTradeChanged(event),
       {
         retry: true,
       },
@@ -104,8 +105,10 @@ export class TradesService implements OnApplicationBootstrap {
         priority: dto.priority,
       });
 
+      assert(job.id, 'Job ID does not exist');
+
       return {
-        id: job.id!,
+        id: job.id,
       };
     };
 
@@ -382,7 +385,7 @@ export class TradesService implements OnApplicationBootstrap {
       type: job.data.type,
       priority: job.priority,
       data: job.data.options,
-      bot: job.data.bot!,
+      bot: job.data.bot,
       attempts: job.attemptsMade,
       lastProcessedAt:
         job.processedOn === undefined

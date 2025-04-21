@@ -120,10 +120,14 @@ export class QueueManagerWithEvents<
     job: CustomJob<DataType>,
     ttl?: number,
   ): Promise<void> {
+    if (job.id === null) {
+      return Promise.resolve();
+    }
+
     await job.waitUntilFinished(this.queueEvents, ttl).catch((err) => {
       if (
         err.message.startsWith(
-          'Job wait ' + job.id! + ' timed out before finishing',
+          'Job wait ' + job.id + ' timed out before finishing',
         )
       ) {
         throw new GatewayTimeoutException('Inventory was not fetched in time');

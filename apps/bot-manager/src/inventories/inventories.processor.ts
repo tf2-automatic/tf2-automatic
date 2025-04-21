@@ -42,14 +42,14 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
 
   async preErrorHandler(
     job: CustomJob<InventoryJobData>,
-    err: any,
+    err: unknown,
   ): Promise<void> {
     return botAttemptErrorHandler(this.cls, err, job);
   }
 
   async postErrorHandler(
     job: CustomJob<InventoryJobData>,
-    err: any,
+    err: unknown,
   ): Promise<void> {
     if (!(err instanceof CustomUnrecoverableError)) {
       return;

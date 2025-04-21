@@ -29,7 +29,6 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
   bullWorkerSettings,
   CustomError,
-  CustomJob,
   CustomUnrecoverableError,
   CustomWorkerHost,
 } from '@tf2-automatic/queue';
@@ -50,10 +49,6 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     cls: ClsService,
   ) {
     super(cls);
-  }
-
-  async errorHandler(job: CustomJob<TradeQueue>, err: unknown): Promise<void> {
-    // No need to do anything extra about errors
   }
 
   async processJob(job: Job<TradeQueue>): Promise<unknown> {

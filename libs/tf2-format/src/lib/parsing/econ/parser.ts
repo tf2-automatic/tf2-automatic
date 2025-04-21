@@ -1,5 +1,10 @@
 import { Parser } from '../parser';
-import { EconParserSchema, InventoryItem, RecipeInput } from '../../types';
+import {
+  EconParserSchema,
+  InventoryItem,
+  NumberOrNull,
+  RecipeInput,
+} from '../../types';
 import {
   DescriptionAttributes,
   EconItem,
@@ -261,33 +266,45 @@ export class EconParser extends Parser<
     // Maybe start fetching and then await the promises at the end?
 
     // Get quality from some cache
-    let quality =
-      raw.quality !== null ? this.schema.getQualityByName(raw.quality) : null;
-    if (quality === undefined) {
-      // Quality is not in cache, fetch it from the schema
-      quality = await this.schema.fetchQualityByName(raw.quality!);
-    } else if (quality instanceof Error) {
-      throw quality;
+    let quality: NumberOrNull = null;
+    if (raw.quality !== null) {
+      const cached = this.schema.getQualityByName(raw.quality);
+      if (cached === undefined) {
+        // Quality is not in cache, fetch it from the schema
+        quality = await this.schema.fetchQualityByName(raw.quality);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        quality = cached;
+      }
     }
 
     if (typeof quality !== 'number') {
       throw new Error('Quality is undefined');
     }
 
-    let effect =
-      raw.effect !== null ? this.schema.getEffectByName(raw.effect) : null;
-    if (effect === undefined) {
-      effect = await this.schema.fetchEffectByName(raw.effect!);
-    } else if (effect instanceof Error) {
-      throw effect;
+    let effect: NumberOrNull = null;
+    if (raw.effect !== null) {
+      const cached = this.schema.getEffectByName(raw.effect);
+      if (cached === undefined) {
+        effect = await this.schema.fetchEffectByName(raw.effect);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        effect = cached;
+      }
     }
 
-    let paintkit =
-      raw.paintkit !== null ? this.schema.getTextureByName(raw.paintkit) : null;
-    if (paintkit === undefined) {
-      paintkit = await this.schema.fetchTextureByName(raw.paintkit!);
-    } else if (paintkit instanceof Error) {
-      throw paintkit;
+    let paintkit: NumberOrNull = null;
+    if (raw.paintkit !== null) {
+      const cached = this.schema.getTextureByName(raw.paintkit);
+      if (cached === undefined) {
+        paintkit = await this.schema.fetchTextureByName(raw.paintkit);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        paintkit = cached;
+      }
     }
 
     let wear = null;
@@ -295,23 +312,31 @@ export class EconParser extends Parser<
       wear = WEAR[raw.wear];
     }
 
-    let target =
-      raw.target !== null ? this.schema.getDefindexByName(raw.target) : null;
-    if (target === undefined) {
-      target = await this.schema.fetchDefindexByName(raw.target!);
+    let target: NumberOrNull = null;
+    if (raw.target !== null) {
+      const cached = this.schema.getDefindexByName(raw.target);
+      if (cached === undefined) {
+        target = await this.schema.fetchDefindexByName(raw.target);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        target = cached;
+      }
     }
 
-    let outputQuality =
-      raw.outputQuality !== null
-        ? this.schema.getQualityByName(raw.outputQuality)
-        : null;
-    if (outputQuality === undefined) {
-      outputQuality = await this.schema.fetchQualityByName(raw.outputQuality!);
-    } else if (outputQuality instanceof Error) {
-      throw outputQuality;
+    let outputQuality: NumberOrNull = null;
+    if (raw.outputQuality !== null) {
+      const cached = this.schema.getQualityByName(raw.outputQuality);
+      if (cached === undefined) {
+        outputQuality = await this.schema.fetchQualityByName(raw.outputQuality);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        outputQuality = cached;
+      }
     }
 
-    let output: number | null = null;
+    let output: NumberOrNull = null;
     if (raw.output !== null) {
       if (raw.output === 'Kit') {
         output = KILLSTREAK_FABRICATORS[raw.killstreak];
@@ -320,11 +345,13 @@ export class EconParser extends Parser<
       } else if (raw.defindex === 20006) {
         output = await this.schema.fetchDefindexByName(raw.output);
       } else {
-        const intermediate = this.schema.getDefindexByName(raw.output);
-        if (intermediate === undefined) {
+        const cached = this.schema.getDefindexByName(raw.output);
+        if (cached === undefined) {
           output = await this.schema.fetchDefindexByName(raw.output);
+        } else if (cached instanceof Error) {
+          throw cached;
         } else {
-          output = intermediate;
+          output = cached;
         }
       }
     }
@@ -353,30 +380,42 @@ export class EconParser extends Parser<
       }
     }
 
-    let paint =
-      raw.paint !== null ? this.schema.getDefindexByName(raw.paint) : null;
-    if (paint === undefined) {
-      paint = await this.schema.fetchDefindexByName(raw.paint!);
+    let paint: NumberOrNull = null;
+    if (raw.paint !== null) {
+      const cached = this.schema.getDefindexByName(raw.paint);
+      if (cached === undefined) {
+        paint = await this.schema.fetchDefindexByName(raw.paint);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        paint = cached;
+      }
     }
 
-    let sheen =
-      raw.sheen !== null ? this.schema.getSheenByName(raw.sheen) : null;
-    if (sheen === undefined) {
-      sheen = await this.schema.fetchSheenByName(raw.sheen!);
-    } else if (sheen instanceof Error) {
-      throw sheen;
+    let sheen: NumberOrNull = null;
+    if (raw.sheen !== null) {
+      const cached = this.schema.getSheenByName(raw.sheen);
+      if (cached === undefined) {
+        sheen = await this.schema.fetchSheenByName(raw.sheen);
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        sheen = cached;
+      }
     }
 
-    let killstreaker =
-      raw.killstreaker !== null
-        ? this.schema.getKillstreakerByName(raw.killstreaker)
-        : null;
-    if (killstreaker === undefined) {
-      killstreaker = await this.schema.fetchKillstreakerByName(
-        raw.killstreaker!,
-      );
-    } else if (killstreaker instanceof Error) {
-      throw killstreaker;
+    let killstreaker: NumberOrNull = null;
+    if (raw.killstreaker !== null) {
+      const cached = this.schema.getKillstreakerByName(raw.killstreaker);
+      if (cached === undefined) {
+        killstreaker = await this.schema.fetchKillstreakerByName(
+          raw.killstreaker,
+        );
+      } else if (cached instanceof Error) {
+        throw cached;
+      } else {
+        killstreaker = cached;
+      }
     }
 
     let inputs: RecipeInput[] | null = null;
@@ -392,12 +431,16 @@ export class EconParser extends Parser<
           rawQuality = 'Strange';
         }
 
+        let quality: NumberOrNull = null;
+
         // Get the quality
-        let quality = this.schema.getQualityByName(rawQuality);
-        if (quality === undefined) {
+        const cachedQuality = this.schema.getQualityByName(rawQuality);
+        if (cachedQuality === undefined) {
           quality = await this.schema.fetchQualityByName(rawQuality);
-        } else if (quality instanceof Error) {
-          throw quality;
+        } else if (cachedQuality instanceof Error) {
+          throw cachedQuality;
+        } else {
+          quality = cachedQuality;
         }
 
         const input: RecipeInput = {
@@ -414,12 +457,18 @@ export class EconParser extends Parser<
 
         if (name !== null) {
           // Get the defindex of the input item
-          let defindex = this.getInputByName(name);
-          if (defindex === undefined) {
+          let defindex: number | null = null;
+
+          const cached = this.getInputByName(name);
+          if (cached === undefined) {
             defindex = await this.fetchInputByName(name);
+          } else if (cached instanceof Error) {
+            throw cached;
+          } else {
+            defindex = cached;
           }
 
-          if (!defindex) {
+          if (defindex === null) {
             throw new Error(
               `Could not find the defindex of the input item "${name}"`,
             );
@@ -514,7 +563,7 @@ export class EconParser extends Parser<
     return this.schema.fetchDefindexByName(name);
   }
 
-  static getDefindex(item: EconItem): number | null {
+  static getDefindex(item: EconItem): NumberOrNull {
     for (const action of item.actions) {
       if (action.name !== 'Item Wiki Page...') {
         continue;
@@ -543,7 +592,7 @@ export class EconParser extends Parser<
     }
   }
 
-  static getCrateSeries(tags: TagAttributes, item: EconItem): number | null {
+  static getCrateSeries(tags: TagAttributes, item: EconItem): NumberOrNull {
     if (tags.Type !== 'Crate') {
       return null;
     }

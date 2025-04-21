@@ -40,7 +40,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
 
   async postErrorHandler(
     job: CustomJob<InventoryJobData>,
-    err: any,
+    err: unknown,
   ): Promise<void> {
     if (!(err instanceof CustomUnrecoverableError)) {
       return;

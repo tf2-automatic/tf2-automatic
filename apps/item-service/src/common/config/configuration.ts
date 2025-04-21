@@ -2,7 +2,7 @@ import {
   EventsConfig,
   LockConfig,
   Redis,
-  getEnv,
+  getEnvOrThrow,
   getEnvWithDefault,
   getEventsConfig,
   getLockConfig,
@@ -29,13 +29,13 @@ export interface SchemaConfig {
 
 export default (): Config => {
   return {
-    port: getEnv('PORT', 'integer')!,
+    port: getEnvOrThrow('PORT', 'integer'),
     keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 60000),
     redis: Redis.getConfig(),
     locking: getLockConfig(),
     events: getEventsConfig(),
     manager: {
-      url: getEnv('BOT_MANAGER_URL', 'string')!,
+      url: getEnvOrThrow('BOT_MANAGER_URL', 'string'),
     },
     schema: {
       updateTimeout: getEnvWithDefault(

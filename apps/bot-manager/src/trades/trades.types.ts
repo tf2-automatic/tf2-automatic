@@ -3,7 +3,7 @@ import {
   ManagerCounterTrade,
   QueueTradeType,
 } from '@tf2-automatic/bot-manager-data';
-import { JobData } from '@tf2-automatic/queue';
+import { JobDataWithBot } from '@tf2-automatic/queue';
 
 export type TradeQueue =
   | CreateTradeJob
@@ -47,4 +47,4 @@ type BaseTradeQueue<
   EventType extends QueueTradeType,
   OptionsType,
   StateType = unknown,
-> = JobData<OptionsType, StateType, EventType>;
+> = JobDataWithBot<OptionsType, StateType, EventType>;
