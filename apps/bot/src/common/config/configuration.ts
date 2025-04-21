@@ -61,7 +61,7 @@ export default (): Config => {
       password: getEnvOrThrow('STEAM_PASSWORD', 'string'),
       sharedSecret: getEnvOrThrow('STEAM_SHARED_SECRET', 'string'),
       identitySecret: getEnvOrThrow('STEAM_IDENTITY_SECRET', 'string'),
-      proxyUrl: getEnvOrThrow('STEAM_PROXY_URL', 'string'),
+      proxyUrl: getEnv('STEAM_PROXY_URL', 'string'),
       apiKey: getEnvOrThrow('STEAM_API_KEY', 'string'),
       defaultGame: getEnvWithDefaultAllowEmptyString(
         'STEAM_DEFAULT_GAME',
