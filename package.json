@@ -64,7 +64,7 @@
     "jest-environment-jsdom": "29.7.0",
     "jest-environment-node": "^29.7.0",
     "jsonc-eslint-parser": "^2.4.0",
-    "nx": "20.7.1",
+    "nx": "20.8.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.5.3",
     "semantic-release": "^24.2.3",
