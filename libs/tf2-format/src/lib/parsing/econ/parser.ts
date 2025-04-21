@@ -462,6 +462,10 @@ export class EconParser extends Parser<
           const cached = this.getInputByName(name);
           if (cached === undefined) {
             defindex = await this.fetchInputByName(name);
+          } else if (cached instanceof Error) {
+            throw cached;
+          } else {
+            defindex = cached;
           }
 
           if (defindex === null) {
