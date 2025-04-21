@@ -95,7 +95,7 @@
     "dataloader": "^2.2.3",
     "express": "^5.1.0",
     "fastq": "^1.19.1",
-    "ioredis": "^5.6.0",
+    "ioredis": "^5.6.1",
     "ip": "^2.0.1",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
