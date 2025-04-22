@@ -312,9 +312,7 @@ describe('DesiredListingsService', () => {
         },
       };
 
-      const remove: RemoveListingDto = {
-        hash: hashListing(listing),
-      };
+      const hash = hashListing(listing);
 
       const steamid = new SteamID('76561198120070906');
 
@@ -330,9 +328,9 @@ describe('DesiredListingsService', () => {
           new Map([[existingDesired.getHash(), existingDesired]]),
         );
 
-      await service.removeDesired(steamid, [remove]);
+      await service.removeDesired(steamid, [{ hash }]);
 
-      expectMockUsing(steamid, [remove.hash!]);
+      expectMockUsing(steamid, [hash]);
 
       expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
       expect(mockRedis.hdel).toHaveBeenCalledWith(

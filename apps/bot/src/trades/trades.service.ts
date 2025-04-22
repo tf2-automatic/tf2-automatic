@@ -48,6 +48,7 @@ import CEconItem from 'steamcommunity/classes/CEconItem';
 import { GarbageCollectorService } from './gc.service';
 import { TradeOfferData } from './types';
 import NodeCache from 'node-cache';
+import assert from 'assert';
 
 @Injectable()
 export class TradesService {
@@ -157,7 +158,9 @@ export class TradesService {
     }
 
     const handleOffer = (offer: ActualTradeOffer): void => {
-      this.cache.set(offer.id!, offer);
+      assert(offer.id, 'Offer ID is missing');
+
+      this.cache.set(offer.id, offer);
 
       this.ensureOfferPublishedQueue.push(offer).catch(() => {
         // Ignore error
@@ -450,8 +453,8 @@ export class TradesService {
             return reject(
               new SteamException(
                 err.message,
-                err.eresult as any,
-                err.cause as any,
+                err.eresult as EResult | undefined,
+                err.cause as string | undefined,
               ),
             );
           }
@@ -521,6 +524,7 @@ export class TradesService {
     dto: CounterTradeDto,
   ): Promise<CreateTradeResponse> {
     const offer = await this._getTrade(id);
+    assert(offer.id, 'Offer ID is missing');
     this.isActiveOrThrow(offer, true);
 
     const counter = offer.counter();
@@ -537,7 +541,7 @@ export class TradesService {
     counter.addMyItems(dto.itemsToGive as CEconItem[]);
     counter.addTheirItems(dto.itemsToReceive as CEconItem[]);
 
-    this.cache.del(offer.id!);
+    this.cache.del(offer.id);
 
     return this.sendOffer(counter);
   }
@@ -659,9 +663,11 @@ export class TradesService {
 
   private _acceptTrade(offer: ActualTradeOffer): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      this.logger.log(`Accepting trade offer #${offer.id!}...`);
+      assert(offer.id, 'Offer ID is missing');
 
-      this.cache.del(offer.id!);
+      this.logger.log(`Accepting trade offer #${offer.id}...`);
+
+      this.cache.del(offer.id);
 
       offer.accept(false, (err, state) => {
         if (err) {
@@ -789,22 +795,25 @@ export class TradesService {
   }
 
   private async _removeTrade(offer: ActualTradeOffer): Promise<void> {
-    this.logger.debug('Removing trade offer #' + offer.id! + '...');
+    const id = offer.id;
+    assert(id, 'Offer ID is missing');
 
-    this.cache.del(offer.id!);
+    this.logger.debug('Removing trade offer #' + id + '...');
+
+    this.cache.del(id);
 
     return new Promise((resolve, reject) => {
       offer.cancel((err) => {
         if (err) {
           this.logger.error(
-            `Error while removing trade offer #${offer.id}: ${err.message}${
+            `Error while removing trade offer #${id}: ${err.message}${
               err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
             }`,
           );
 
           if (
             err.message ===
-            `Offer #${offer.id} is not active, so it may not be cancelled or declined`
+            `Offer #${id} is not active, so it may not be cancelled or declined`
           ) {
             return reject(new BadRequestException('Offer is not active'));
           } else if (err.eresult !== undefined) {
@@ -819,7 +828,7 @@ export class TradesService {
           return reject(err);
         }
 
-        this.logger.debug('Removed trade offer #' + offer.id!);
+        this.logger.debug('Removed trade offer #' + id);
 
         resolve();
       });
@@ -877,7 +886,7 @@ export class TradesService {
     });
   }
 
-  private handleError(err: any): void {
+  private handleError(err: unknown): void {
     if (err instanceof Error) {
       if (err.message === 'HTTP error 500') {
         // Steam for some reason returns 500 when the session expired
@@ -906,9 +915,11 @@ export class TradesService {
   private mapOffer<T extends Item | Asset>(
     offer: ActualTradeOffer,
   ): TradeOffer<T> {
+    assert(offer.id, 'Offer ID is missing');
+
     return {
       partner: offer.partner.getSteamID64(),
-      id: offer.id!,
+      id: offer.id,
       message: offer.message,
       state: offer.state,
       itemsToGive: offer.itemsToGive as unknown as T[],

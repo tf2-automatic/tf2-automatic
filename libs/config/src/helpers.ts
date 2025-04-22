@@ -44,6 +44,23 @@ export function getEnv<T extends 'string' | 'float' | 'integer' | 'boolean'>(
   throw new Error(`Invalid type: ${type}`);
 }
 
+export function getEnvOrThrow<T extends 'string' | 'float' | 'integer' | 'boolean'>(
+  key: string,
+  type: T,
+): NonNullable<ParsedValue<T>> {
+  const value = process.env[key];
+  if (value === undefined) {
+    throw new Error(`Missing environment variable "${key}"`);
+  }
+
+  const result = getEnv(key, type);
+  if (result === undefined) {
+    throw new Error(`Invalid value for environment variable "${key}"`);
+  }
+
+  return result;
+}
+
 export function getEnvWithDefault<T extends 'string' | 'float' | 'integer' | 'boolean'>(
   key: string,
   type: T,

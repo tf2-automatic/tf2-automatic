@@ -19,8 +19,6 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   async process(job: Job<JobData>): Promise<void> {
-    const steamid = new SteamID(job.data.steamid64);
-
     switch (job.name) {
       case 'done':
         await this.done(job);

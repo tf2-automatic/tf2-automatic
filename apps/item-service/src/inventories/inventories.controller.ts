@@ -52,6 +52,10 @@ export class InventoriesController {
   }
 
   @Get(INVENTORY_FETCH_PATH)
+  @ApiOperation({
+    summary: 'Fetch inventory',
+    description: 'Fetches an inventory and stores it in the cache.',
+  })
   @ApiParamSteamID()
   fetchInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
@@ -61,6 +65,10 @@ export class InventoriesController {
   }
 
   @Get(INVENTORY_PATH)
+  @ApiOperation({
+    summary: 'Get inventory from cache',
+    description: 'Gets an inventory from the cache.',
+  })
   @ApiParamSteamID()
   async getInventory(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,

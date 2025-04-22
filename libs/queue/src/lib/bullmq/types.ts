@@ -5,7 +5,26 @@ export interface BotsAttemptedState {
   botsAttempted?: Record<string, number>;
 }
 
-export type JobData<OptionsType = any, StateType = any, TypeType = string> = {
+export type JobDataWithBot<
+  OptionsType = unknown,
+  StateType = unknown,
+  TypeType = string,
+> = {
+  type: TypeType;
+  options: OptionsType;
+  bot: string;
+  state: StateType;
+  metadata: {
+    userAgent?: string;
+  };
+  retry?: RetryOptions;
+};
+
+export type JobData<
+  OptionsType = unknown,
+  StateType = unknown,
+  TypeType = string,
+> = {
   type: TypeType;
   options: OptionsType;
   bot?: string;
@@ -18,7 +37,7 @@ export type JobData<OptionsType = any, StateType = any, TypeType = string> = {
 
 export type CustomWorker<
   DataType extends JobData = JobData,
-  ResultType = any,
+  ResultType = unknown,
   NameType extends string = string,
 > = Worker<DataType, ResultType, NameType>;
 

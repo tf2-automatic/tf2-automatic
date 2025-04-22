@@ -1,1 +1,1 @@
-pnpm nx affected --target=lint
+node ./scripts/nx.js affected --target=lint --maxWarnings=0

@@ -89,21 +89,21 @@ export class InventoriesService
     // TODO: For some reason we can't do `autorun: false` and then call
     // `this.inventoryQueueEvents.run()`
 
-    await this.eventsService.subscribe(
+    await this.eventsService.subscribe<TF2LostEvent | TradeChangedEvent>(
       'bot-manager.delete-inventory-items',
       BOT_EXCHANGE_NAME,
       [TF2_LOST_EVENT, TRADE_CHANGED_EVENT],
-      (event) => this.handleDeleteInventoryItems(event as any),
+      (event) => this.handleDeleteInventoryItems(event),
       {
         retry: true,
       },
     );
 
-    await this.eventsService.subscribe(
+    await this.eventsService.subscribe<ExchangeDetailsEvent>(
       'bot-manager.update-inventory-items',
       BOT_MANAGER_EXCHANGE_NAME,
       [EXCHANGE_DETAILS_EVENT],
-      (event) => this.handleAddInventoryItems(event as any),
+      (event) => this.handleAddInventoryItems(event),
       {
         retry: true,
       },

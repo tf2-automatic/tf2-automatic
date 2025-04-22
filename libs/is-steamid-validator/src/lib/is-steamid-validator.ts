@@ -8,7 +8,7 @@ export function isSteamID(value: unknown) {
   } else {
     try {
       steamid = new SteamID((value ?? '').toString());
-    } catch (err) {
+    } catch {
       return false;
     }
   }

@@ -696,8 +696,9 @@ export class ManageListingsService {
       }
 
       // Keep track of duplicates
-      if (duplicates.has(id)) {
-        duplicates.get(id)!.push(d);
+      const duplicate = duplicates.get(id);
+      if (duplicate !== undefined) {
+        duplicate.push(d);
       } else {
         duplicates.set(id, [d]);
       }

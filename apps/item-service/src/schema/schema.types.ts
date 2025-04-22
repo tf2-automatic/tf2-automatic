@@ -98,7 +98,7 @@ export class SchemaPaginatedDto {
   @Min(0)
   @IsOptional()
   @Type(() => Number)
-  cursor: any = 0;
+  cursor = 0;
 }
 
 export class SchemaSearchDto {
