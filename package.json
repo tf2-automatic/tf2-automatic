@@ -34,7 +34,7 @@
     "@semantic-release/release-notes-generator": "^14.0.3",
     "@swc-node/register": "1.10.10",
     "@swc/cli": "~0.6.0",
-    "@swc/core": "1.11.16",
+    "@swc/core": "1.11.18",
     "@swc/helpers": "~0.5.15",
     "@types/amqplib": "^0.10.7",
     "@types/express": "^5.0.1",
