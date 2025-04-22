@@ -25,7 +25,7 @@
     "@nx/js": "20.7.1",
     "@nx/linter": "19.8.4",
     "@nx/nest": "20.7.1",
-    "@nx/node": "20.7.1",
+    "@nx/node": "20.8.0",
     "@nx/plugin": "20.7.1",
     "@nx/webpack": "20.7.1",
     "@nx/workspace": "20.7.1",
