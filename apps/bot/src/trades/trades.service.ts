@@ -181,13 +181,13 @@ export class TradesService {
   }
 
   private handleOffer(offer: ActualTradeOffer) {
-      assert(offer.id, 'Offer ID is missing');
+    assert(offer.id, 'Offer ID is missing');
 
-      this.cache.set(offer.id, offer);
+    this.cache.set(offer.id, offer);
 
-      this.ensureOfferPublishedQueue.push(offer).catch(() => {
-        // Ignore error
-      });
+    this.ensureOfferPublishedQueue.push(offer).catch(() => {
+      // Ignore error
+    });
   }
 
   private ensurePollData(): void {
@@ -527,7 +527,7 @@ export class TradesService {
     });
   }
 
-  private getTradeAndLogError(
+  private async getTradeAndLogError(
     id: string,
     useCache = false,
   ): Promise<ActualTradeOffer> {
@@ -665,9 +665,7 @@ export class TradesService {
 
           if (err.eresult !== undefined || err.cause !== undefined) {
             return reject(
-              // FIXME: Wait for https://github.com/DefinitelyTyped/DefinitelyTyped/pull/67155 to merge
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore-error
+              // @ts-expect-error FIXME: Wait for https://github.com/DefinitelyTyped/DefinitelyTyped/pull/67155
               new SteamException(err.message, err.eresult, err.cause),
             );
           }
