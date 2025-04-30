@@ -143,6 +143,17 @@ export class GetTradesDto implements GetTrades {
   @IsEnum(OfferFilter)
   @Type(() => Number)
   filter: OfferFilter;
+
+  @ApiProperty({
+    description: 'If the trades should be fetched from the cache or not',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  useCache?: boolean;
 }
 
 @ValidatorConstraint()

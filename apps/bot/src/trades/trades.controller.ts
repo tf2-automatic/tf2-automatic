@@ -93,8 +93,11 @@ export class TradesController {
   @ApiNotFoundResponse({
     description: 'Trade offer not found',
   })
-  getTrade(@Param('id') id: string): Promise<GetTradeResponse> {
-    return this.tradesService.getTrade(id);
+  getTrade(
+    @Param('id') id: string,
+    @Query('useCache') useCache: boolean,
+  ): Promise<GetTradeResponse> {
+    return this.tradesService.getTrade(id, useCache);
   }
 
   @Post(TRADE_REFRESH_PATH)
