@@ -21,6 +21,7 @@ import {
   AcceptTradeResponse,
   DeleteTradeResponse,
   GetTradeResponse,
+  OfferFilter,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import {
@@ -411,19 +412,68 @@ export class TradesService {
       });
   }
 
-  getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
+  async getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
+    if (dto.useCache === true) {
+      return this.getTradesFromCache(dto.filter);
+    }
+
+    return this._getTrades(dto.filter);
+  }
+
+  private async getTradesFromCache(
+    filter: OfferFilter,
+  ): Promise<GetTradesResponse> {
+    const cached = this.cache.mget<ActualTradeOffer>(this.cache.keys());
+
+    const sent: ActualTradeOffer[] = [];
+    const received: ActualTradeOffer[] = [];
+
+    function addOffer(offer: ActualTradeOffer | Error) {
+      if (offer instanceof Error) {
+        return;
+      }
+
+      if (offer.isOurOffer) {
+        sent.push(offer);
+      } else {
+        received.push(offer);
+      }
+    }
+
+    for (const id in cached) {
+      const offer = cached[id];
+
+      if (filter === OfferFilter.All) {
+        addOffer(offer);
+      } else {
+        // FIXME: Is InEscrow an active or historical state?
+        const isActive =
+          offer.state === ETradeOfferState.Active ||
+          offer.state === ETradeOfferState.CreatedNeedsConfirmation;
+
+        if (isActive && filter === OfferFilter.ActiveOnly) {
+          addOffer(offer);
+        } else if (!isActive && filter === OfferFilter.HistoricalOnly) {
+          addOffer(offer);
+        }
+      }
+    }
+
+    return {
+      sent: this.mapOffers<Item>(sent),
+      received: this.mapOffers<Item>(received),
+    };
+  }
+
+  private async _getTrades(filter: OfferFilter): Promise<GetTradesResponse> {
     return new Promise<GetTradesResponse>((resolve, reject) => {
-      this.manager.getOffers(dto.filter, (err, sent, received) => {
+      this.manager.getOffers(filter, (err, sent, received) => {
         if (err) {
           return reject(err);
         }
 
-        const sentMapped = sent.map((offer) => {
-          return this.mapOffer<Item>(offer);
-        });
-        const receivedMapped = received.map((offer) => {
-          return this.mapOffer<Item>(offer);
-        });
+        const sentMapped = this.mapOffers<Item>(sent);
+        const receivedMapped = this.mapOffers<Item>(received);
 
         return resolve({ sent: sentMapped, received: receivedMapped });
       });
@@ -495,8 +545,8 @@ export class TradesService {
     });
   }
 
-  async getTrade(id: string): Promise<GetTradeResponse> {
-    const offer = await this.getTradeAndLogError(id);
+  async getTrade(id: string, useCache = false): Promise<GetTradeResponse> {
+    const offer = await this.getTradeAndLogError(id, useCache);
     return this.mapOffer(offer);
   }
 
@@ -590,6 +640,10 @@ export class TradesService {
       // Ignore error
     });
 
+    this.updateOffer(offer).catch((err) => {
+      this.logger.warn('Failed to update offer: ' + err.message);
+    });
+
     return this.mapOffer(offer);
   }
 
@@ -620,6 +674,36 @@ export class TradesService {
 
           return reject(err);
         }
+
+        assert(offer.id, 'Offer ID is missing');
+        // This means that the cached offers may not contain complete items
+        this.cache.set(offer.id, offer);
+
+        resolve();
+      });
+    });
+  }
+
+  private updateOffer(offer: ActualTradeOffer): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (offer.id === undefined) {
+        throw new Error(' Offer ID is missing');
+      }
+
+      offer.update((err) => {
+        if (err) {
+          if (err.eresult !== undefined || err.cause !== undefined) {
+            return reject(
+              // @ts-expect-error Something is not right
+              new SteamException(err.message, err.eresult, err.cause),
+            );
+          }
+          return reject(err);
+        }
+
+        // This is technically unnessesary but nice to do anyway
+        assert(offer.id, 'Offer ID is missing');
+        this.cache.set(offer.id, offer);
 
         resolve();
       });
@@ -677,8 +761,6 @@ export class TradesService {
 
       this.logger.log(`Accepting trade offer #${offer.id}...`);
 
-      this.cache.del(offer.id);
-
       offer.accept(false, (err, state) => {
         if (err) {
           this.logger.error(
@@ -699,6 +781,9 @@ export class TradesService {
 
           return reject(err);
         }
+
+        assert(offer.id, 'Offer ID is missing');
+        this.cache.set(offer.id, offer);
 
         this.logger.log(
           `Offer #${offer.id} from ${offer.partner} successfully accepted${
@@ -749,8 +834,6 @@ export class TradesService {
   private _acceptConfirmation(id: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.logger.log(`Accepting confirmation for offer #${id}...`);
-
-      this.cache.del(id);
 
       this.community.acceptConfirmationForObject(
         this.configService.getOrThrow<SteamAccountConfig>('steam')
@@ -810,8 +893,6 @@ export class TradesService {
 
     this.logger.debug('Removing trade offer #' + id + '...');
 
-    this.cache.del(id);
-
     return new Promise((resolve, reject) => {
       offer.cancel((err) => {
         if (err) {
@@ -837,6 +918,8 @@ export class TradesService {
 
           return reject(err);
         }
+
+        this.cache.del(id);
 
         this.logger.debug('Removed trade offer #' + id);
 
@@ -916,6 +999,12 @@ export class TradesService {
     ) {
       throw new BadRequestException('Offer is not active');
     }
+  }
+
+  private mapOffers<T extends Item | Asset>(
+    offers: ActualTradeOffer[],
+  ): TradeOffer<T>[] {
+    return offers.map((offer) => this.mapOffer(offer));
   }
 
   private mapOffer<T extends Item | Asset>(

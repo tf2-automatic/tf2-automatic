@@ -14,6 +14,7 @@ export enum OfferFilter {
 
 export interface GetTrades {
   filter: OfferFilter;
+  useCache?: boolean;
 }
 
 export interface ExchangeDetailsItem extends Item {
@@ -56,8 +57,10 @@ interface BaseOfferEvent<T extends Item | Asset> {
   offer: TradeOffer<T>;
 }
 
-export interface GetTradesResponse {
-  sent: TradeOfferWithItems[];
+export interface GetTradesResponse<Cached = false> {
+  sent: (Cached extends true
+    ? TradeOfferWithItems | TradeOfferWithAssets
+    : TradeOfferWithItems)[];
   received: TradeOfferWithItems[];
 }
 
