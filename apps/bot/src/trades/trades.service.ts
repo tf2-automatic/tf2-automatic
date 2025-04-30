@@ -33,7 +33,7 @@ import { Logger } from '@nestjs/common/services';
 import { EventsService } from '../events/events.service';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
-import SteamUser, { EResult } from 'steam-user';
+import { EResult, ETradeOfferState } from 'steam-user';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
 import sizeof from 'object-sizeof';
@@ -210,7 +210,7 @@ export class TradesService {
     Object.keys(this.manager.pollData.sent).forEach((id) => {
       const state = this.manager.pollData.sent[id];
 
-      if (state === SteamUser.ETradeOfferState.Active) {
+      if (state === ETradeOfferState.Active) {
         sent++;
       }
     });
@@ -218,7 +218,7 @@ export class TradesService {
     Object.keys(this.manager.pollData.received).forEach((id) => {
       const state = this.manager.pollData.received[id];
 
-      if (state === SteamUser.ETradeOfferState.Active) {
+      if (state === ETradeOfferState.Active) {
         received++;
       }
     });
@@ -281,9 +281,8 @@ export class TradesService {
       // Offer is not waiting to be confirmed
       return Promise.resolve();
     } else if (
-      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
-      offer.state !==
-        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+      offer.state !== ETradeOfferState.Active &&
+      offer.state !== ETradeOfferState.CreatedNeedsConfirmation
     ) {
       // Offer is not active or created needs confirmation
       return Promise.resolve();
@@ -321,18 +320,18 @@ export class TradesService {
 
   private handleOfferChanged(
     offer: ActualTradeOffer,
-    oldState: SteamUser.ETradeOfferState,
+    oldState: ETradeOfferState,
   ): void {
     this.logger.log(
       `Offer #${offer.id} state changed: ${
-        SteamTradeOfferManager.ETradeOfferState[oldState]
-      } -> ${SteamTradeOfferManager.ETradeOfferState[offer.state]}`,
+        ETradeOfferState[oldState]
+      } -> ${ETradeOfferState[offer.state]}`,
     );
   }
 
   private publishOffer(
     offer: ActualTradeOffer,
-    oldState: SteamUser.ETradeOfferState | null = null,
+    oldState: ETradeOfferState | null = null,
   ): Promise<void> {
     const publish = (): Promise<void> => {
       if (oldState) {
@@ -344,7 +343,7 @@ export class TradesService {
 
       if (!offer.isOurOffer) {
         // Offer was sent to us and there is no old state
-        if (offer.state === SteamTradeOfferManager.ETradeOfferState.Active) {
+        if (offer.state === ETradeOfferState.Active) {
           // Offer is active, means we received it
           return this.eventsService.publish(TRADE_RECEIVED_EVENT, {
             offer: this.mapOffer(offer),
@@ -360,17 +359,14 @@ export class TradesService {
 
       // Offer is ours and there is no old state
 
-      if (
-        offer.state ===
-        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
-      ) {
+      if (offer.state === ETradeOfferState.CreatedNeedsConfirmation) {
         // Offer is waiting for confirmation, means we sent it
         return this.eventsService.publish(TRADE_SENT_EVENT, {
           offer: this.mapOffer(offer),
         });
       }
 
-      if (offer.state === SteamTradeOfferManager.ETradeOfferState.Active) {
+      if (offer.state === ETradeOfferState.Active) {
         // Offer is active, means it is either sent now or changed
         if (offer.itemsToGive.length === 0) {
           // Offer is active and we are giving nothing, means we sent it without confirmation
@@ -569,7 +565,7 @@ export class TradesService {
 
     this.logger.log(
       `Offer #${offer.id} sent to ${offer.partner} has state ${
-        SteamTradeOfferManager.ETradeOfferState[offer.state]
+        ETradeOfferState[offer.state]
       }`,
     );
 
@@ -620,8 +616,8 @@ export class TradesService {
     const offer = await this._getTrade(id);
 
     if (
-      offer.state === SteamTradeOfferManager.ETradeOfferState.Accepted ||
-      offer.state === SteamTradeOfferManager.ETradeOfferState.InEscrow
+      offer.state === ETradeOfferState.Accepted ||
+      offer.state === ETradeOfferState.InEscrow
     ) {
       return true;
     }
@@ -768,8 +764,8 @@ export class TradesService {
     const offer = await this._getTrade(id);
 
     if (
-      offer.state === SteamTradeOfferManager.ETradeOfferState.Declined ||
-      offer.state === SteamTradeOfferManager.ETradeOfferState.Canceled
+      offer.state === ETradeOfferState.Declined ||
+      offer.state === ETradeOfferState.Canceled
     ) {
       return true;
     }
@@ -871,7 +867,7 @@ export class TradesService {
   async getReceivedItems(id: string): Promise<Item[]> {
     const offer = await this._getTrade(id);
 
-    if (offer.state !== SteamTradeOfferManager.ETradeOfferState.Accepted) {
+    if (offer.state !== ETradeOfferState.Accepted) {
       throw new BadRequestException('Offer is not accepted');
     }
 
@@ -896,17 +892,13 @@ export class TradesService {
   }
 
   private isActiveOrThrow(offer: ActualTradeOffer, onlyActive: boolean): void {
-    if (
-      onlyActive &&
-      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active
-    ) {
+    if (onlyActive && offer.state !== ETradeOfferState.Active) {
       throw new BadRequestException('Offer is not active');
     }
 
     if (
-      offer.state !== SteamTradeOfferManager.ETradeOfferState.Active &&
-      offer.state !==
-        SteamTradeOfferManager.ETradeOfferState.CreatedNeedsConfirmation
+      offer.state !== ETradeOfferState.Active &&
+      offer.state !== ETradeOfferState.CreatedNeedsConfirmation
     ) {
       throw new BadRequestException('Offer is not active');
     }
