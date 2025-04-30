@@ -137,6 +137,20 @@ export class TradesService {
       });
     };
 
+    const origGetOffer = this.manager.getOffer.bind(this.manager);
+    this.manager.getOffer = (id, callback) => {
+      origGetOffer(id, (err, offer) => {
+        if (err) {
+          // @ts-expect-error The callback expects an offer to be returned at all time
+          return callback(err);
+        }
+
+        this.handleOffer(offer);
+
+        return callback(null, offer);
+      });
+    };
+
     const origDoPoll = this.manager.doPoll.bind(this.manager);
     this.manager.doPoll = (...args) => {
       if (this.botService.isRunning() === false) {
@@ -157,7 +171,15 @@ export class TradesService {
       this.manager.pollData.offerData = {};
     }
 
-    const handleOffer = (offer: ActualTradeOffer): void => {
+    sent.forEach((offer) => this.handleOffer(offer));
+    received.forEach((offer) => this.handleOffer(offer));
+
+    if (isAll) {
+      this.gc.cleanup(sent, received);
+    }
+  }
+
+  private handleOffer(offer: ActualTradeOffer) {
       assert(offer.id, 'Offer ID is missing');
 
       this.cache.set(offer.id, offer);
@@ -165,14 +187,6 @@ export class TradesService {
       this.ensureOfferPublishedQueue.push(offer).catch(() => {
         // Ignore error
       });
-    };
-
-    sent.forEach(handleOffer);
-    received.forEach(handleOffer);
-
-    if (isAll) {
-      this.gc.cleanup(sent, received);
-    }
   }
 
   private ensurePollData(): void {
