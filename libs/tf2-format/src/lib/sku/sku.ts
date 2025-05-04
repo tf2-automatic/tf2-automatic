@@ -22,7 +22,7 @@ export class SKU {
     if (item.wear) {
       sku += `;w${item.wear}`;
     }
-    if (item.paintkit) {
+    if (item.paintkit !== null) {
       sku += `;pk${item.paintkit}`;
     }
     if (item.elevated === true) {

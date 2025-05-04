@@ -35,6 +35,13 @@ describe('SKU', () => {
 
       expect(sku).toEqual('378;5;u13;p16738740');
     });
+
+    it('will generate red rock roscoe pistol', () => {
+      const item = TestData.getRedRockRoscoePistolItem();
+
+      const sku = SKU.fromObject(item);
+      expect(sku).toEqual('15013;15;w1;pk0');
+    })
   });
 
   describe('#fromString', () => {
