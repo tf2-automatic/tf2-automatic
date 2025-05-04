@@ -78,8 +78,16 @@ export class RabbitMQEventsService
       }
     };
 
-    // @ts-ignore - The type of the handler is not compatible with the library
-    return this.amqpConnection.createSubscriber<T>(handler, messageOptions, '');
+    return this.amqpConnection.createSubscriber<T>(
+      (msg) => {
+        if (msg === undefined) {
+          return Promise.resolve();
+        }
+        return handler(msg);
+      },
+      messageOptions,
+      '',
+    );
   }
 
   async unsubscribe(identifier: Identifier): Promise<void> {
@@ -102,10 +110,9 @@ export class RabbitMQEventsService
         return false;
       }
 
-      let parsed;
       try {
-        parsed = JSON.parse(message.content.toString());
-      } catch (err) {
+        JSON.parse(message.content.toString());
+      } catch {
         this.amqpConnection.channel.nack(message, false, false);
         return null;
       }
