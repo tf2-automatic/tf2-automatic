@@ -4,7 +4,7 @@ export class SKU {
   static fromObject(item: RequiredItemAttributes): string {
     let sku = `${item.defindex};${item.quality}`;
 
-    if (item.effect) {
+    if (typeof item.effect === 'number') {
       sku += `;u${item.effect}`;
     }
     if (item.australium === true) {
@@ -22,34 +22,34 @@ export class SKU {
     if (item.wear) {
       sku += `;w${item.wear}`;
     }
-    if (item.paintkit) {
+    if (typeof item.paintkit === 'number') {
       sku += `;pk${item.paintkit}`;
     }
     if (item.elevated === true) {
       sku += ';strange';
     }
-    if (item.killstreak !== undefined && item.killstreak !== 0) {
+    if (typeof item.killstreak === 'number' && item.killstreak !== 0) {
       sku += `;kt-${item.killstreak}`;
     }
-    if (item.sheen) {
+    if (typeof item.sheen === 'number') {
       sku += `;ks-${item.sheen}`;
     }
-    if (item.killstreaker) {
+    if (typeof item.killstreaker === 'number') {
       sku += `;ke-${item.killstreaker}`;
     }
-    if (item.target) {
+    if (typeof item.target === 'number') {
       sku += `;td-${item.target}`;
     }
     if (item.festivized === true) {
       sku += ';festive';
     }
-    if (item.crateSeries) {
+    if (typeof item.crateSeries === 'number') {
       sku += `;c${item.crateSeries}`;
     }
-    if (item.output) {
+    if (typeof item.output === 'number') {
       sku += `;od-${item.output}`;
     }
-    if (item.outputQuality) {
+    if (typeof item.outputQuality === 'number') {
       sku += `;oq-${item.outputQuality}`;
     }
 
