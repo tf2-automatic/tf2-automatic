@@ -14,7 +14,6 @@ import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class NestEventsService implements OnModuleDestroy {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly subscribers: Map<string, Subscriber<any>> = new Map();
 
   constructor(
@@ -92,17 +91,10 @@ export class NestEventsService implements OnModuleDestroy {
       throw new Error('Invalid exchange');
     }
 
-    const subscriber = new Subscriber<T>(
-      this.engine,
-      name,
-      exchange,
-      events,
-      handler,
-      {
-        broadcast: settings?.broadcast ?? false,
-        retry: settings?.retry ?? false,
-      },
-    );
+    const subscriber = new Subscriber<T>(this.engine, name, exchange, events, handler, {
+      broadcast: settings?.broadcast ?? false,
+      retry: settings?.retry ?? false,
+    });
 
     this.subscribers.set(name, subscriber);
 

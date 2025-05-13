@@ -2,7 +2,7 @@
   "name": "@tf2-automatic/is-steamid-validator",
   "version": "latest",
   "dependencies": {
-    "class-validator": "^0.14.2",
+    "class-validator": "0.14.1",
     "steamid": "^2.0.0",
     "tslib": "^2.7.0"
   }
