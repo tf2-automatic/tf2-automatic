@@ -74,6 +74,10 @@ export interface Asset {
   amount?: number;
 }
 
+export interface AssetWithAmount extends Asset {
+  amount: number;
+}
+
 interface BaseTrade {
   message?: string;
   itemsToGive: Asset[];

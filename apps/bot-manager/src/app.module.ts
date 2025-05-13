@@ -25,6 +25,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ClsModule } from 'nestjs-cls';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
+import { PendingModule } from './pending/pending.module';
 
 @Module({
   imports: [
@@ -103,6 +104,7 @@ import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
       global: true,
       middleware: { mount: true },
     }),
+    PendingModule,
   ],
   providers: [
     {
