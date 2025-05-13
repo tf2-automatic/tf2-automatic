@@ -40,8 +40,8 @@ export function getRedRockRoscoePistolItem(): RequiredItemAttributes {
     defindex: 15013,
     quality: 15,
     wear: 1,
-    paintkit: 0
-  }
+    paintkit: 0,
+  };
 }
 
 export function getBasicSKU(): string {

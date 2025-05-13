@@ -16,12 +16,14 @@ import {
   TRADE_RECEIVED_EVENT,
   TRADE_SENT_EVENT,
   TRADE_CONFIRMATION_NEEDED_EVENT,
+  TRADES_POLLED_EVENT,
   ExchangeDetailsItem,
   Asset,
   AcceptTradeResponse,
   DeleteTradeResponse,
   GetTradeResponse,
   OfferFilter,
+  TradesPolledEvent,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import {
@@ -178,6 +180,19 @@ export class TradesService {
     if (isAll) {
       this.gc.cleanup(sent, received);
     }
+
+    this.eventsService
+      .publish(TRADES_POLLED_EVENT, {
+        full: isAll,
+      } satisfies TradesPolledEvent['data'])
+      .catch((err) => {
+        this.logger.warn(
+          'Failed to publish "' +
+            TRADES_POLLED_EVENT +
+            '" event: ' +
+            err.message,
+        );
+      });
   }
 
   private handleOffer(offer: ActualTradeOffer) {
