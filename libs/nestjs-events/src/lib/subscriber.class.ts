@@ -12,7 +12,7 @@ import { v4 as uuid } from 'uuid';
 export class Subscriber<T extends BaseEvent<string>> {
   private readonly logger: Logger;
 
-  private identifier: any = null;
+  private identifier: unknown = null;
 
   private name: string;
   private exchange: string;
@@ -20,10 +20,10 @@ export class Subscriber<T extends BaseEvent<string>> {
   private handler: Handler<T>;
   private settings: SubscriberSettings;
 
-  private subscribePromise: Promise<any> | null = null;
+  private subscribePromise: Promise<unknown> | null = null;
   private unsubscribePromise: Promise<void> | null = null;
 
-  private readonly breaker = new CircuitBreaker((...args: [T]) => {
+  private readonly breaker = new CircuitBreaker(async (...args: [T]) => {
     return this.handler(...args).catch((err) => {
       this.logger.error('Error in handler');
       console.error(err);
@@ -52,9 +52,7 @@ export class Subscriber<T extends BaseEvent<string>> {
     this.handler = handler;
     this.settings = settings;
 
-    this.logger = new Logger(
-      Subscriber.name + '<' + name + '>',
-    );
+    this.logger = new Logger(Subscriber.name + '<' + name + '>');
 
     this.breaker.on('open', () => {
       this.logger.warn('Circuit breaker opened');
@@ -123,7 +121,8 @@ export class Subscriber<T extends BaseEvent<string>> {
 
   async resume(): Promise<void> {
     if (this.subscribePromise) {
-      return this.subscribePromise;
+      await this.subscribePromise;
+      return;
     } else if (this.unsubscribePromise) {
       await this.unsubscribePromise;
     }
@@ -132,27 +131,25 @@ export class Subscriber<T extends BaseEvent<string>> {
       return;
     }
 
-    this.subscribePromise = new Promise(async (resolve) => {
-      this.logger.debug(
-        `Subscribing to "${
-          this.exchange
-        }" with events [${this.events
-          .map((event) => `"${event}"`)
-          .join(',')}]`,
-      );
+    this.logger.debug(
+      `Subscribing to "${this.exchange}" with events [${this.events
+        .map((event) => `"${event}"`)
+        .join(',')}]`,
+    );
 
-      this.identifier = await this.engine.subscribe<T>(
+    this.subscribePromise = this.engine
+      .subscribe<T>(
         this.name,
         this.exchange,
         this.events,
         this.breaker.fire.bind(this.breaker),
         this.settings,
-      );
+      )
+      .finally(() => {
+        this.subscribePromise = null;
+      });
 
-      resolve(this.identifier);
-    }).finally(() => {
-      this.subscribePromise = null;
-    });
+    this.identifier = await this.subscribePromise;
   }
 
   async pause(): Promise<void> {
@@ -166,15 +163,15 @@ export class Subscriber<T extends BaseEvent<string>> {
       return;
     }
 
-    await new Promise(async (resolve) => {
-      this.logger.debug(`Unsubscribing from "${this.exchange}"`);
+    this.logger.debug(`Unsubscribing from "${this.exchange}"`);
 
-      await this.engine.unsubscribe(this.identifier);
+    this.unsubscribePromise = this.engine
+      .unsubscribe(this.identifier)
+      .finally(() => {
+        this.unsubscribePromise = null;
+      });
 
-      this.identifier = null;
-    }).finally(() => {
-      this.unsubscribePromise = null;
-    });
+    await this.unsubscribePromise;
   }
 
   async attempt(): Promise<boolean> {

@@ -2,7 +2,7 @@
   "name": "@tf2-automatic/is-refined-validator",
   "version": "latest",
   "dependencies": {
-    "class-validator": "0.14.1",
+    "class-validator": "^0.14.2",
     "tf2-currencies": "1.2.4",
     "tslib": "^2.7.0"
   }

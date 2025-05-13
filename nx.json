@@ -48,5 +48,8 @@
         "extensions": ["ts", "tsx", "js", "jsx", "html", "vue"]
       }
     }
-  ]
+  ],
+  "tui": {
+    "enabled": false
+  }
 }
