@@ -25,6 +25,7 @@ import { pack, unpack } from 'msgpackr';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 
 type TradeOffer = TradeOfferWithItems | TradeOfferWithAssets;
+type TradeOfferWithOwner = TradeOffer & { owner: string };
 
 @Injectable()
 export class PendingService implements OnApplicationBootstrap {
@@ -61,9 +62,7 @@ export class PendingService implements OnApplicationBootstrap {
     );
   }
 
-  async getPendingOffers(
-    steamid: SteamID,
-  ): Promise<(TradeOfferWithItems | TradeOfferWithAssets)[]> {
+  async getPendingOffers(steamid: SteamID): Promise<TradeOfferWithOwner[]> {
     const bot = await this.botsService.getCachedBot(steamid);
     if (bot !== null) {
       return this.getPendingBotOffers(steamid);
@@ -90,13 +89,14 @@ export class PendingService implements OnApplicationBootstrap {
     for (let i = 0; i < offers.length; i++) {
       const offer = offers[i];
 
+      const owner = new SteamID(offer.owner);
+      const partner = new SteamID(offer.partner);
+
       const isPartner = offer.partner === steamid.getSteamID64();
 
       for (let j = 0; j < offer.itemsToGive.length; j++) {
-        add(offer.itemsToGive[j], steamid, !isPartner ? lose : gain);
+        add(offer.itemsToGive[j], owner, !isPartner ? lose : gain);
       }
-
-      const partner = new SteamID(offer.partner);
 
       for (let j = 0; j < offer.itemsToReceive.length; j++) {
         add(offer.itemsToReceive[j], partner, !isPartner ? gain : lose);
@@ -106,16 +106,20 @@ export class PendingService implements OnApplicationBootstrap {
     return { gain, lose };
   }
 
-  private async getPendingBotOffers(steamid: SteamID) {
+  private async getPendingBotOffers(
+    steamid: SteamID,
+  ): Promise<TradeOfferWithOwner[]> {
     const key = this.getBotKey(steamid);
 
     const result = await this.redis.hgetallBuffer(key);
 
-    const parsed: TradeOffer[] = [];
+    const parsed: TradeOfferWithOwner[] = [];
+
+    const steamid64 = steamid.getSteamID64();
 
     for (const id in result) {
-      const offer = unpack(result[id]);
-      parsed.push(offer);
+      const offer: TradeOffer = unpack(result[id]);
+      parsed.push({ ...offer, owner: steamid64 });
     }
 
     return parsed;
@@ -123,7 +127,7 @@ export class PendingService implements OnApplicationBootstrap {
 
   private async getPendingPartnerOffers(
     steamid: SteamID,
-  ): Promise<TradeOffer[]> {
+  ): Promise<TradeOfferWithOwner[]> {
     const theirKey = this.getPartnerKey(steamid);
 
     const relations = await this.redis.hgetall(theirKey);
@@ -138,7 +142,10 @@ export class PendingService implements OnApplicationBootstrap {
 
     const pipeline = this.redis.pipeline();
 
-    for (const steamid64 in steamid64ToIds) {
+    const steamid64s = Object.keys(steamid64ToIds);
+
+    for (let i = 0; i < steamid64s.length; i++) {
+      const steamid64 = steamid64s[i];
       const ids = steamid64ToIds[steamid64];
 
       const ourKey = this.getBotKey(new SteamID(steamid64));
@@ -150,7 +157,7 @@ export class PendingService implements OnApplicationBootstrap {
       throw new Error('Pipeline returned null');
     }
 
-    const offers: TradeOffer[] = [];
+    const offers: TradeOfferWithOwner[] = [];
 
     for (let i = 0; i < result.length; i++) {
       const item = result[i];
@@ -163,9 +170,12 @@ export class PendingService implements OnApplicationBootstrap {
       for (let j = 0; j < matched.length; j++) {
         const match = matched[j];
         // TODO: Remove id if no match?
-        if (match !== null) {
-          offers.push(unpack(match));
+        if (match === null) {
+          continue;
         }
+
+        const offer: TradeOffer = unpack(match);
+        offers.push({ ...offer, owner: steamid64s[i] });
       }
     }
 
@@ -211,7 +221,7 @@ export class PendingService implements OnApplicationBootstrap {
 
     const offers = await this.botsService.getActiveOffers(bot);
 
-    const list: (TradeOfferWithItems | TradeOfferWithAssets)[] = [];
+    const list: TradeOffer[] = [];
 
     for (let i = 0; i < offers.sent.length; i++) {
       list.push(offers.sent[i]);
