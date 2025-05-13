@@ -80,7 +80,7 @@ export class HeartbeatsService {
     return bots.filter((bot) => bot.running === true);
   }
 
-  async getCachedBot(steamid: SteamID): Promise<Bot | null> {
+  private async getBotFromRedis(steamid: SteamID): Promise<Bot | null> {
     const bot = await this.redis
       .getBuffer(BOT_KEY.replace('STEAMID64', steamid.getSteamID64()))
       .then((result) => {
@@ -95,7 +95,7 @@ export class HeartbeatsService {
   }
 
   async getBot(steamid: SteamID): Promise<Bot> {
-    const bot = await this.getCachedBot(steamid);
+    const bot = await this.getBotFromRedis(steamid);
     if (!bot) {
       throw new NotFoundException('Bot not found');
     }
@@ -137,7 +137,7 @@ export class HeartbeatsService {
       [`bots:${steamid.getSteamID64()}`],
       LockDuration.SHORT,
       async (signal) => {
-        const existing = await this.getCachedBot(steamid);
+        const existing = await this.getBotFromRedis(steamid);
         if (existing) {
           await this.deleteHeartbeatJobIfExists(existing);
         }
@@ -190,7 +190,7 @@ export class HeartbeatsService {
       [`bots:${steamid.getSteamID64()}`],
       LockDuration.SHORT,
       async (signal) => {
-        const bot = await this.getCachedBot(steamid);
+        const bot = await this.getBotFromRedis(steamid);
         if (bot === null) {
           // Bot does not exist
           throw new NotFoundException('Bot not found');
@@ -232,7 +232,7 @@ export class HeartbeatsService {
       [`bots:${steamid.getSteamID64()}`],
       LockDuration.SHORT,
       async (signal) => {
-        const bot = await this.getCachedBot(steamid);
+        const bot = await this.getBotFromRedis(steamid);
         if (bot === null) {
           // Bot does not exist
           throw new NotFoundException('Bot not found');

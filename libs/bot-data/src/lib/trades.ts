@@ -74,10 +74,6 @@ export interface Asset {
   amount?: number;
 }
 
-export interface AssetWithAmount extends Asset {
-  amount: number;
-}
-
 interface BaseTrade {
   message?: string;
   itemsToGive: Asset[];
@@ -136,14 +132,12 @@ export type TradeSentEventType = 'trades.sent';
 export type TradeReceivedEventType = 'trades.received';
 export type TradeChangedEventType = 'trades.changed';
 export type TradeConfirmationNeededEventType = 'trades.confirmation_needed';
-export type TradesPolledEventType = 'trades.polled';
 
 export const TRADE_EVENT_PREFIX = 'trades';
 export const TRADE_SENT_EVENT: TradeSentEventType = `${TRADE_EVENT_PREFIX}.sent`;
 export const TRADE_RECEIVED_EVENT: TradeReceivedEventType = `${TRADE_EVENT_PREFIX}.received`;
 export const TRADE_CHANGED_EVENT: TradeChangedEventType = `${TRADE_EVENT_PREFIX}.changed`;
 export const TRADE_CONFIRMATION_NEEDED_EVENT: TradeConfirmationNeededEventType = `${TRADE_EVENT_PREFIX}.confirmation_needed`;
-export const TRADES_POLLED_EVENT: TradesPolledEventType = `${TRADE_EVENT_PREFIX}.polled`;
 
 export type TradeSentEvent = BaseEvent<
   TradeSentEventType,
@@ -163,9 +157,4 @@ export type TradeChangedEvent = BaseEvent<
 export type TradeConfirmationNeededEvent = BaseEvent<
   TradeConfirmationNeededEventType,
   BaseOfferEvent<Item | Asset>
->;
-
-export type TradesPolledEvent = BaseEvent<
-  TradesPolledEventType,
-  { full: boolean }
 >;

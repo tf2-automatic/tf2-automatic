@@ -41,7 +41,7 @@ describe('SKU', () => {
 
       const sku = SKU.fromObject(item);
       expect(sku).toEqual('15013;15;w1;pk0');
-    });
+    })
   });
 
   describe('#fromString', () => {

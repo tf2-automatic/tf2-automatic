@@ -31,18 +31,16 @@ export abstract class CustomEventsService {
     events: string[],
     handler: Handler<T>,
     settings?: SubscriberSettings,
-  ): Promise<unknown>;
+  ): Promise<any>;
 
-  abstract unsubscribe(identifier: unknown): Promise<void>;
+  abstract unsubscribe(identifier: any): Promise<void>;
 
   attempt<T extends BaseEvent<string>>(
-    /* eslint-disable @typescript-eslint/no-unused-vars */
     name: string,
     exchange: string,
     events: string[],
     handler: Handler<T>,
     settings?: SubscriberSettings,
-    /* eslint-enable @typescript-eslint/no-unused-vars */
   ): Promise<boolean> {
     throw new Error('Method not implemented');
   }
