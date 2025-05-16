@@ -103,6 +103,21 @@ const KILLSTREAKERS = {
   'Hypno-Beam': 2008,
 };
 
+export const SPELLS = {
+  '1004_0': 8901,
+  '1004_1': 8902,
+  '1004_2': 8900,
+  '1004_3': 8903,
+  '1004_4': 8904,
+  '1005_1': 8914,
+  '1005_2': 8920,
+  '1005_8421376': 8915,
+  '1005_3100495': 8916,
+  '1005_5322826': 8917,
+  '1005_13595446': 8918,
+  '1005_8208497': 8919,
+};
+
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SchemaService.name);
@@ -1066,9 +1081,10 @@ export class SchemaService implements OnApplicationBootstrap {
       fetchItemByDefindex: async (defindex: number) =>
         itemLoader.load(defindex),
       getPaintByColor: () => undefined,
-      fetchPaintByColor: (color: string) => paintLoader.load(color),
-      getSpellById: () => undefined,
-      fetchSpellById: async () => -1,
+      getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
+      fetchSpellById: () => {
+        throw new Error('Method not implemented.');
+      },
       getStrangePartById: () => undefined,
       fetchStrangePartById: (id: number) =>
         this.getStrangePartByScoreType(id.toString()).then(
