@@ -54,12 +54,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiQuerySchemaTime } from '@tf2-automatic/swagger';
+import { Response } from 'express';
 import {
   SchemaOptionsDto,
   SchemaPaginatedDto,
   SchemaSearchDto,
-} from './schema.types';
-import { Response } from 'express';
+} from '@tf2-automatic/dto';
 
 @ApiTags('Schema')
 @Controller(SCHEMA_BASE_PATH)
