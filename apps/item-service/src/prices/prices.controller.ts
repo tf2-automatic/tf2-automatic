@@ -81,12 +81,11 @@ export class PricesController {
 
   @Get(PRICES_SEARCH_PATH)
   @ApiOperation({
-    summary: 'Get prices by name',
-    description:
-      'Get prices by name. Prices without an asset are always first.',
+    summary: 'Search for prices',
+    description: 'Get prices by name/sku/assetid.',
   })
   getPriceByName(@Query() dto: PricesSearchDto): Promise<Price[]> {
-    return this.pricesService.getPriceByName(dto.name);
+    return this.pricesService.searchPrices(dto);
   }
 
   @Get(PRICE_PATH)

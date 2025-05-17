@@ -1,5 +1,6 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsInt,
   IsOptional,
   IsString,
@@ -61,10 +62,11 @@ export class SavePriceDto implements SavePrice {
   @ApiProperty({
     description: 'The SKU of the item',
     example: '5021;6',
-    required: true,
+    required: false,
   })
   @IsString()
-  sku: string;
+  @IsOptional()
+  sku?: string;
 
   @ApiProperty({
     description: 'A specific asset to price',
@@ -93,9 +95,17 @@ export class SavePriceDto implements SavePrice {
   @Type(() => PureDto)
   sell?: PureDto;
 
+  @ValidateIf((o) => !o.sku && !o.asset)
+  @AlwaysInvalid({ message: 'either sku or asset must be defined' })
+  private readonly skuOrAsset: undefined;
+
+  @ValidateIf((o) => o.asset && o.sku)
+  @AlwaysInvalid({ message: 'sku must not be defined if asset is defined' })
+  private readonly assetWithSku: undefined;
+
   @ValidateIf((o) => !o.buy && !o.sell)
   @AlwaysInvalid({ message: 'either buy or sell must be defined' })
-  private readonly _atLeastOne: undefined;
+  private readonly atLeastOne: undefined;
 
   @ValidateIf(
     (o) =>
@@ -129,8 +139,57 @@ export class PricesSearchDto implements PricesSearch {
   @ApiProperty({
     description: 'The name of the item to search for',
     example: 'Mann Co. Supply Crate Key',
-    required: true,
+    required: false,
   })
-  @IsString()
-  name: string;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return [value];
+    }
+    return value;
+  })
+  name?: string[];
+
+  @ApiProperty({
+    description: 'The sku of the item to search for',
+    example: '5021;6',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return [value];
+    }
+    return value;
+  })
+  sku?: string[];
+
+  @ApiProperty({
+    description: 'The assetid of the item to search for',
+    example: '1234567890',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return [value];
+    }
+    return value;
+  })
+  assetid?: string[];
+
+  @ValidateIf((o) => !o.name && !o.sku && !o.assetid)
+  @AlwaysInvalid({
+    message: 'either name, sku or assetid must be defined',
+  })
+  private readonly atLeastOne: undefined;
 }

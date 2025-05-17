@@ -34,12 +34,12 @@ export interface Price {
   /**
    * The SKU of the item.
    */
-  sku: string;
+  sku: string | null;
 
   /**
    * The name of the item used for indexing.
    */
-  name: string;
+  name: string | null;
 
   /**
    * The asset that this price is for
@@ -64,14 +64,16 @@ export interface Price {
 }
 
 export interface SavePrice {
-  sku: string;
+  sku?: string;
   asset?: PricelistAsset;
   buy?: Pure;
   sell?: Pure;
 }
 
 export interface PricesSearch {
-  name: string;
+  name?: string[];
+  sku?: string[];
+  assetid?: string[];
 }
 
 export type PriceCreatedEventType = 'prices.created';
