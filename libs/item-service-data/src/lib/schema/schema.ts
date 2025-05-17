@@ -129,3 +129,17 @@ export class SchemaModel {
   })
   consistent!: boolean;
 }
+
+export class SchemaOptions {
+  time?: number;
+  items_game = false;
+}
+
+export class SchemaPaginated {
+  count = 1000;
+  cursor = 0;
+}
+
+export class SchemaSearch {
+  name: string;
+}

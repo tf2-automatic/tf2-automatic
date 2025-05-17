@@ -6,3 +6,4 @@ export * from './lib/inventories';
 export * from './lib/heartbeats';
 export * from './lib/escrow';
 export * from './lib/misc';
+export * from './lib/schema';

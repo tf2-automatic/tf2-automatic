@@ -1,15 +1,5 @@
 import { AttachedParticle, SchemaItem } from '@tf2-automatic/item-service-data';
 import { Job } from 'bullmq';
-import { Transform, Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsDefined,
-  IsInt,
-  IsOptional,
-  IsPositive,
-  IsString,
-  Min,
-} from 'class-validator';
 
 export type JobName =
   | 'schema'
@@ -51,7 +41,7 @@ interface Attribute {
   stored_as_integer: boolean;
 }
 
-export interface KillEaterTypeScore {
+export interface KillEaterScoreType {
   type: number;
   type_name: string;
   level_data: string;
@@ -67,42 +57,6 @@ export interface SchemaOverviewResponse {
   item_sets: unknown;
   attribute_controlled_attached_particles: AttachedParticle[];
   item_levels: unknown;
-  kill_eater_score_types: KillEaterTypeScore[];
+  kill_eater_score_types: KillEaterScoreType[];
   string_lookups: unknown;
-}
-
-export class SchemaOptionsDto {
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  @Type(() => Number)
-  time?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  @Transform(({ value }) =>
-    value === 'true' ? true : value === 'false' ? false : value,
-  )
-  items_game = false;
-}
-
-export class SchemaPaginatedDto {
-  @IsInt()
-  @IsPositive()
-  @IsOptional()
-  @Type(() => Number)
-  count = 1000;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @IsOptional()
-  @Type(() => Number)
-  cursor = 0;
-}
-
-export class SchemaSearchDto {
-  @IsString()
-  @IsDefined()
-  name: string;
 }

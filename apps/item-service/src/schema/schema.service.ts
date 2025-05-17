@@ -21,7 +21,7 @@ import {
   GetSchemaItemsResponse,
   JobWithTypes as Job,
   SchemaOverviewResponse,
-  KillEaterTypeScore,
+  KillEaterScoreType,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -434,7 +434,7 @@ export class SchemaService implements OnApplicationBootstrap {
     name: string,
     time?: number,
   ): Promise<StrangePart> {
-    const killEater: KillEaterTypeScore = await this.getValueByField(
+    const killEater: KillEaterScoreType = await this.getValueByField(
       SchemaKeys.KILL_EATER_SCORE_TYPE_NAME,
       name,
       time,
