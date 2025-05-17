@@ -9,6 +9,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { BaseEvent, HttpError } from '@tf2-automatic/bot-data';
+import { ApiProperty } from '@nestjs/swagger';
 
 export const INVENTORIES_BASE_PATH = '/inventories';
 export const INVENTORIES_PATH = '/';
@@ -83,6 +84,14 @@ class IsKeyOfItemConstraint implements ValidatorConstraintInterface {
 }
 
 export class GetInventoryDto {
+  @ApiProperty({
+    description:
+      'Extracts item attributes from the SKU and instead stores them in the `attributes` object.',
+    required: false,
+    enum: Object.keys(SKU.getDefault()),
+    isArray: true,
+    example: ['killstreaker', 'sheen', 'paint'],
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
