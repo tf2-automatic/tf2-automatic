@@ -1,7 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CursorPagination } from '@tf2-automatic/common-data';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsPositive, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsPositive,
+  Min,
+  registerDecorator,
+  ValidationOptions,
+} from 'class-validator';
 
 export class CursorPaginationDto extends CursorPagination {
   @IsInt()
@@ -35,4 +42,23 @@ export class CursorPaginationResponse<T> {
     isArray: true,
   })
   items: T[];
+}
+
+export function AlwaysInvalid(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'alwaysInvalid',
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      validator: {
+        validate() {
+          return false;
+        },
+        defaultMessage() {
+          return 'invalid usage';
+        },
+      },
+    });
+  };
 }

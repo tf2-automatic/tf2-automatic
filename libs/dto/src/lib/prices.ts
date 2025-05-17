@@ -4,10 +4,8 @@ import {
   IsOptional,
   IsString,
   Min,
-  registerDecorator,
   ValidateIf,
   ValidateNested,
-  ValidationOptions,
 } from 'class-validator';
 import {
   PricelistAsset,
@@ -17,6 +15,7 @@ import {
 } from '@tf2-automatic/item-service-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { AlwaysInvalid } from './common';
 
 export class PricelistAssetDto implements PricelistAsset {
   @ApiProperty({
@@ -56,25 +55,6 @@ export class PureDto implements Pure {
   @IsInt()
   @Min(0)
   keys: number;
-}
-
-function AlwaysInvalid(validationOptions?: ValidationOptions) {
-  return function (object: object, propertyName: string) {
-    registerDecorator({
-      name: 'alwaysInvalid',
-      target: object.constructor,
-      propertyName: propertyName,
-      options: validationOptions,
-      validator: {
-        validate() {
-          return false;
-        },
-        defaultMessage() {
-          return 'invalid usage';
-        },
-      },
-    });
-  };
 }
 
 export class SavePriceDto implements SavePrice {
