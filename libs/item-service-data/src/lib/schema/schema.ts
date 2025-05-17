@@ -1,6 +1,7 @@
 import { IsEnum, IsOptional } from 'class-validator';
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import { ApiProperty } from '@nestjs/swagger';
+import { CursorPagination } from '@tf2-automatic/common-data';
 
 export const SCHEMA_BASE_PATH = '/schema';
 export const SCHEMA_PATH = '/';
@@ -135,7 +136,7 @@ export class SchemaOptions {
   items_game = false;
 }
 
-export class SchemaPaginated {
+export class SchemaPaginated extends CursorPagination {
   count = 1000;
   cursor = 0;
 }

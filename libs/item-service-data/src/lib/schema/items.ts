@@ -227,22 +227,3 @@ export class SchemaItemModel implements SchemaItem {
   })
   attributes?: Attribute[] | undefined;
 }
-
-export class SchemaPaginatedResponse<T> {
-  @ApiProperty({
-    description: 'The cursor used for the current request',
-    example: 0,
-  })
-  current: number;
-
-  @ApiProperty({
-    description: 'The cursor to use for the next request',
-    example: 1000,
-  })
-  next: number | null;
-
-  @ApiProperty({
-    isArray: true,
-  })
-  items: T[];
-}

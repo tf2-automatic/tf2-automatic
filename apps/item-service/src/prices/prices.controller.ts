@@ -1,0 +1,105 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  ValidationPipe,
+} from '@nestjs/common';
+import { PricesService } from './prices.service';
+import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  CursorPaginationDto,
+  PricesSearchDto,
+  SavePriceDto,
+} from '@tf2-automatic/dto';
+import {
+  Price,
+  PRICE_PATH,
+  PRICES_BASE_PATH,
+  PRICES_PATH,
+  PRICES_SEARCH_PATH,
+} from '@tf2-automatic/item-service-data';
+
+@ApiTags('Prices')
+@Controller(PRICES_BASE_PATH)
+export class PricesController {
+  constructor(private readonly pricesService: PricesService) {}
+
+  @Get(PRICES_PATH)
+  @ApiOperation({
+    summary: 'Get prices paginated',
+    description: 'Returns prices paginated using a cursor and count',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    description: 'The cursor to use, defaults to 0.',
+    type: 'integer',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'count',
+    description: 'The number of items to return, defaults to 1000.',
+    type: 'integer',
+    required: false,
+  })
+  async getPrices(@Query() pagination: CursorPaginationDto) {
+    return this.pricesService.getPrices(pagination.cursor, pagination.count);
+  }
+
+  @Post(PRICES_PATH)
+  @ApiOperation({
+    summary: 'Save price',
+    description: 'Save a price',
+  })
+  savePrice(
+    @Body(
+      new ValidationPipe({
+        transform: true,
+      }),
+    )
+    dto: SavePriceDto,
+  ): Promise<Price> {
+    return this.pricesService.savePrice(dto);
+  }
+
+  @Delete(PRICE_PATH)
+  @ApiOperation({
+    summary: 'Delete price',
+    description: 'Delete a price',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the price to delete',
+    example: 'c2t1OjUwMjE7Ng==',
+  })
+  deletePrice(@Param('id') id: string): Promise<void> {
+    return this.pricesService.deletePrice(id);
+  }
+
+  @Get(PRICES_SEARCH_PATH)
+  @ApiOperation({
+    summary: 'Get prices by name',
+    description:
+      'Get prices by name. Prices without an asset are always first.',
+  })
+  getPriceByName(@Query() dto: PricesSearchDto): Promise<Price[]> {
+    return this.pricesService.getPriceByName(dto.name);
+  }
+
+  @Get(PRICE_PATH)
+  @ApiOperation({
+    summary: 'Get price',
+    description: 'Get a price',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the price to delete',
+    example: 'c2t1OjUwMjE7Ng==',
+  })
+  getPrice(@Param('id') id: string): Promise<Price> {
+    return this.pricesService.getPrice(id);
+  }
+}

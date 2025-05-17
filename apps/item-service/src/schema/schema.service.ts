@@ -35,7 +35,6 @@ import {
   SCHEMA_EVENT,
   SchemaRefreshAction,
   ItemsGameItem,
-  SchemaPaginatedResponse,
   StrangePart,
   Paint,
 } from '@tf2-automatic/item-service-data';
@@ -46,11 +45,14 @@ import { S3StorageEngine } from '@tf2-automatic/nestjs-storage';
 import {
   EconParser,
   EconParserSchema,
+  ItemNamingSchema,
+  NameGenerator,
   TF2Parser,
   TF2ParserSchema,
 } from '@tf2-automatic/tf2-format';
 import Dataloader from 'dataloader';
 import assert from 'assert';
+import { CursorPaginationResponse } from '@tf2-automatic/dto';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
@@ -214,7 +216,7 @@ export class SchemaService implements OnApplicationBootstrap {
     cursor: number,
     count: number,
     time?: number,
-  ): Promise<SchemaPaginatedResponse<T>> {
+  ): Promise<CursorPaginationResponse<T>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
@@ -1175,6 +1177,31 @@ export class SchemaService implements OnApplicationBootstrap {
 
   getEconParser(time?: number): EconParser {
     return new EconParser(this.getEconParserSchema(time));
+  }
+
+  private getNameGeneratorSchema(time?: number): ItemNamingSchema {
+    const itemByDefindexLoader = this.getItemByDefindexLoader(false, time);
+    const qualityLoader = this.getQualityLoader(false, time);
+    const effectLoader = this.getEffectLoader(false, time);
+    const paintkitLoader = this.getPaintkitLoader(false, time);
+
+    return {
+      getItemByDefindex: () => undefined,
+      fetchItemByDefindex: (defindex) => itemByDefindexLoader.load(defindex),
+      getQualityById: () => undefined,
+      fetchQualityById: (id) =>
+        qualityLoader.load(id.toString()).then((quality) => quality.name),
+      getEffectById: () => undefined,
+      fetchEffectById: (id) =>
+        effectLoader.load(id.toString()).then((effect) => effect.name),
+      getPaintkitById: () => undefined,
+      fetchPaintkitById: (id) =>
+        paintkitLoader.load(id.toString()).then((paintkit) => paintkit.name),
+    };
+  }
+
+  getNameGenerator(time?: number): NameGenerator {
+    return new NameGenerator(this.getNameGeneratorSchema(time));
   }
 
   private getItemByDefindexLoader(
