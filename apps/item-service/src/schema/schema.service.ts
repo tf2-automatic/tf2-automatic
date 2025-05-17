@@ -1063,24 +1063,15 @@ export class SchemaService implements OnApplicationBootstrap {
       },
     );
 
-    const paintLoader = new Dataloader<string, number>(
-      async ([color]) => {
-        return [
-          await this.getPaintByColor(color, time).then(
-            (paint) => paint.defindex,
-          ),
-        ];
-      },
-      {
-        batch: false,
-      },
-    );
+    const paintLoader = this.getPaintLoader(time);
 
     return {
       getItemByDefindex: () => undefined,
       fetchItemByDefindex: async (defindex: number) =>
         itemLoader.load(defindex),
       getPaintByColor: () => undefined,
+      fetchPaintByColor: (color: string) =>
+        paintLoader.load(color).then((paint) => paint.defindex),
       getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
       fetchSpellById: () => {
         throw new Error('Method not implemented.');
@@ -1097,26 +1088,8 @@ export class SchemaService implements OnApplicationBootstrap {
     return new TF2Parser(this.getTF2ParserSchema(time));
   }
 
-  getEconParserSchema(time?: number): EconParserSchema {
-    const itemByDefindexLoader = new Dataloader<number, ItemsGameItem>(
-      async (defindexes) => {
-        const items = await this.getItemsByDefindexes(
-          defindexes.map((defindex) => defindex.toString()),
-          true,
-          time,
-        );
-
-        const result = new Array(defindexes.length);
-
-        for (let i = 0; i < defindexes.length; i++) {
-          const defindex = defindexes[i];
-          const match = items[defindex];
-          result[i] = match ? match : new NotFoundException('Item not found');
-        }
-
-        return result;
-      },
-    );
+  private getEconParserSchema(time?: number): EconParserSchema {
+    const itemByDefindexLoader = this.getItemByDefindexLoader(true, time);
 
     const itemByNameLoader = new Dataloader<string, number>(
       async ([name]) => {
@@ -1140,51 +1113,10 @@ export class SchemaService implements OnApplicationBootstrap {
       { batch: false },
     );
 
-    const qualityLoader = new Dataloader<string, Quality>(
-      async ([name]) => {
-        return [await this.getQualityByName(name, time)];
-      },
-      {
-        batch: false,
-      },
-    );
-
-    const effectLoader = new Dataloader<string, number>(
-      async ([name]) => {
-        return this.getEffectByName(name, time).then((effect) => [effect.id]);
-      },
-      {
-        batch: false,
-      },
-    );
-
-    const paintkitLoader = new Dataloader<string, number>(async (names) => {
-      return this.getValuesByField<PaintKit>(
-        SchemaKeys.PAINTKIT_NAME,
-        names,
-        time,
-      ).then((paintkits) => {
-        return names.map((name) =>
-          paintkits[name]
-            ? paintkits[name].id
-            : new NotFoundException('Paintkit not found'),
-        );
-      });
-    });
-
-    const spellLoader = new Dataloader<string, number>(async (names) => {
-      return this.getValuesByField<Spell>(
-        SchemaKeys.SPELLS_NAME,
-        names,
-        time,
-      ).then((spells) => {
-        return names.map((name) =>
-          spells[name]
-            ? spells[name].id
-            : new NotFoundException('Spell not found'),
-        );
-      });
-    });
+    const qualityLoader = this.getQualityLoader(true, time);
+    const effectLoader = this.getEffectLoader(true, time);
+    const paintkitLoader = this.getPaintkitLoader(true, time);
+    const spellLoader = this.getSpellLoader(true, time);
 
     const strangePartLoader = new Dataloader<string, number | null>(
       async ([name]) => {
@@ -1216,11 +1148,11 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       getEffectByName: () => undefined,
       fetchEffectByName: async (name: string) => {
-        return effectLoader.load(name);
+        return effectLoader.load(name).then((effect) => effect.id);
       },
       getTextureByName: () => undefined,
       fetchTextureByName: async (name: string) => {
-        return paintkitLoader.load(name);
+        return paintkitLoader.load(name).then((paintkit) => paintkit.id);
       },
       getStrangePartByScoreType: () => undefined,
       fetchStrangePartByScoreType: async (name: string) => {
@@ -1228,7 +1160,7 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       getSpellByName: () => undefined,
       fetchSpellByName: async (name: string) => {
-        return spellLoader.load(name);
+        return spellLoader.load(name).then((spell) => spell.id);
       },
       getSheenByName: (name: string) => SHEENS[name],
       fetchSheenByName: () => {
@@ -1243,5 +1175,81 @@ export class SchemaService implements OnApplicationBootstrap {
 
   getEconParser(time?: number): EconParser {
     return new EconParser(this.getEconParserSchema(time));
+  }
+
+  private getItemByDefindexLoader(
+    useItemsGame: true,
+    time?: number,
+  ): Dataloader<number, ItemsGameItem>;
+  private getItemByDefindexLoader(
+    useItemsGame: false,
+    time?: number,
+  ): Dataloader<number, SchemaItem>;
+  private getItemByDefindexLoader(useItemsGame: boolean, time?: number) {
+    return new Dataloader<number, SchemaItem | ItemsGameItem>(
+      async (defindexes) => {
+        const items = await this.getItemsByDefindexes(
+          defindexes.map((defindex) => defindex.toString()),
+          useItemsGame,
+          time,
+        );
+
+        const result = new Array(defindexes.length);
+
+        for (let i = 0; i < defindexes.length; i++) {
+          const defindex = defindexes[i];
+          const match = items[defindex];
+          result[i] = match ? match : new NotFoundException('Item not found');
+        }
+
+        return result;
+      },
+    );
+  }
+
+  private getQualityLoader(byName: boolean, time?: number) {
+    return this.getLoader<Quality>(
+      byName ? SchemaKeys.QUALITIES_NAME : SchemaKeys.QUALITIES_ID,
+      time,
+    );
+  }
+
+  private getEffectLoader(byName: boolean, time?: number) {
+    return this.getLoader<AttachedParticle>(
+      byName ? SchemaKeys.EFFECTS_NAME : SchemaKeys.EFFECTS_ID,
+      time,
+    );
+  }
+
+  private getPaintkitLoader(byName: boolean, time?: number) {
+    return this.getLoader<PaintKit>(
+      byName ? SchemaKeys.PAINTKIT_NAME : SchemaKeys.PAINTKIT_ID,
+      time,
+    );
+  }
+
+  private getPaintLoader(time?: number) {
+    return this.getLoader<Paint>(SchemaKeys.PAINT_COLOR, time);
+  }
+
+  private getSpellLoader(byName: boolean, time?: number) {
+    return this.getLoader<Spell>(
+      byName ? SchemaKeys.SPELLS_NAME : SchemaKeys.SPELLS_ID,
+      time,
+    );
+  }
+
+  private getLoader<T>(key: SchemaKeys, time?: number): Dataloader<string, T> {
+    return new Dataloader<string, T>(async (fields) => {
+      return this.getValuesByField<T>(key, fields, time).then((values) => {
+        return fields.map((field) =>
+          values[field]
+            ? values[field]
+            : new NotFoundException(
+                'Could not find field "' + field + '" for key "' + key + '"',
+              ),
+        );
+      });
+    });
   }
 }
