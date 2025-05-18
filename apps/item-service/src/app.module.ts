@@ -68,7 +68,11 @@ import { PricesModule } from './prices/prices.module';
     }),
     NestEventsModule.forRoot({
       publishingExchange: ITEM_SERVICE_EXCHANGE_NAME,
-      subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],
+      subscriberExchanges: [
+        BOT_EXCHANGE_NAME,
+        BOT_MANAGER_EXCHANGE_NAME,
+        ITEM_SERVICE_EXCHANGE_NAME,
+      ],
       config: getEventsConfig(),
     }),
     NestStorageModule.registerAsync({

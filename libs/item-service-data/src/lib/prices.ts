@@ -63,6 +63,10 @@ export interface Price {
   updatedAt: number;
 }
 
+export interface PriceWithAsset extends Price {
+  asset: PricelistAsset;
+}
+
 export interface SavePrice {
   sku?: string;
   asset?: PricelistAsset;

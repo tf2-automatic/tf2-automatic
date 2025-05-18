@@ -234,6 +234,26 @@ export class InventoriesService
     return parseInt(timestamp.toString());
   }
 
+  async getSkuByAsset(
+    steamid: SteamID,
+    assetid: string,
+    extract?: (keyof Item)[],
+  ): Promise<string> {
+    const inventory = await this.getInventoryFromCacheAndExtractAttributes(
+      steamid,
+      extract,
+    );
+
+    for (const sku in inventory.items) {
+      const assetids = inventory.items[sku];
+      if (assetids.includes(assetid)) {
+        return sku;
+      }
+    }
+
+    throw new NotFoundException('Asset not found');
+  }
+
   async getInventoryFromCache(steamid: SteamID): Promise<InventoryResponse> {
     const key = this.getInventoryKey(steamid.getSteamID64());
 

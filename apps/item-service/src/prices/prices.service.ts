@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { InjectRedis } from '@songkeys/nestjs-redis';
 import {
   CursorPaginationResponse,
@@ -6,31 +11,41 @@ import {
   SavePriceDto,
 } from '@tf2-automatic/dto';
 import {
+  INVENTORY_LOADED_EVENT,
+  InventoryLoadedEvent,
+  ITEM_SERVICE_EXCHANGE_NAME,
   Price,
   PRICE_CREATED_EVENT,
   PRICE_DELETED_EVENT,
   PriceCreatedEvent,
   PriceDeletedEvent,
+  PricelistAsset,
   PricesSearch,
   PricesSearchResponse,
+  PriceWithAsset,
 } from '@tf2-automatic/item-service-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
-import Redis from 'ioredis';
+import Redis, { ChainableCommander } from 'ioredis';
 import { pack, unpack } from 'msgpackr';
 import { SchemaService } from '../schema/schema.service';
 import { Locker, LockDuration } from '@tf2-automatic/locking';
-import { SKU } from '@tf2-automatic/tf2-format';
+import { SKU, Item } from '@tf2-automatic/tf2-format';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
 import assert from 'assert';
+import { InventoriesService } from '../inventories/inventories.service';
+import SteamID from 'steamid';
 
 enum PricesKeys {
   PRICES = 'prices',
   NAME_INDEX = 'price-index-name',
   SKU_INDEX = 'price-index-sku',
+  ASSET_INDEX = 'price-index-asset',
 }
 
+const EXCLUDE_FROM_SKU: (keyof Item)[] = ['killstreaker', 'sheen', 'paint'];
+
 @Injectable()
-export class PricesService {
+export class PricesService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PricesService.name);
 
   private readonly locker: Locker;
@@ -40,8 +55,21 @@ export class PricesService {
     private readonly eventsService: NestEventsService,
     private readonly schemaService: SchemaService,
     private readonly relayService: RelayService,
+    private readonly inventoriesService: InventoriesService,
   ) {
     this.locker = new Locker(redis);
+  }
+
+  async onApplicationBootstrap() {
+    await this.eventsService.subscribe<InventoryLoadedEvent>(
+      'item-service.check-priced-assets',
+      ITEM_SERVICE_EXCHANGE_NAME,
+      [INVENTORY_LOADED_EVENT],
+      async (event) => this.handleInventoryLoadedEvent(event),
+      {
+        retry: true,
+      },
+    );
   }
 
   private getKeyBySKU(sku: string): string {
@@ -50,6 +78,31 @@ export class PricesService {
 
   private getKeyByAsset(assetid: string): string {
     return Buffer.from('asset:' + assetid).toString('base64');
+  }
+
+  private async getSkuByAsset(asset: PricelistAsset): Promise<string | null> {
+    const steamid = new SteamID(asset.owner);
+
+    const sku = await this.inventoriesService
+      .getSkuByAsset(steamid, asset.id, EXCLUDE_FROM_SKU)
+      .catch((err) => {
+        if (
+          err instanceof NotFoundException &&
+          err.message === 'Inventory not found'
+        ) {
+          return null;
+        }
+
+        throw err;
+      });
+
+    if (sku === null) {
+      this.inventoriesService.addJob(steamid).catch((err) => {
+        this.logger.warn('Failed to add job', err);
+      });
+    }
+
+    return sku;
   }
 
   async savePrice(price: SavePriceDto): Promise<Price> {
@@ -89,83 +142,155 @@ export class PricesService {
 
         const multi = this.redis.multi();
 
+        let current: Price | null = null;
+
         if (currentRaw) {
-          const current = unpack(currentRaw) as Price;
+          current = unpack(currentRaw) as Price;
           save.createdAt = current.createdAt;
           save.sku = current.sku;
-
-          // We don't inherit the name because the schema might have changed
-
-          multi.srem(PricesKeys.NAME_INDEX + ':' + current.name, key);
-          multi.srem(PricesKeys.SKU_INDEX + ':' + current.sku, key);
         }
 
-        /*
-        TODO: If price is for an asset, then check if the inventory is loaded and if the asset is in it.
+        let throwOnceDone: Error | null = null;
 
-        - If it is in the inventory, then we copy the sku
-        - If it is not in the inventory, then we throw a 4xx error
-        - If the inventory is not loaded then we just continue
-        */
+        if (price.asset) {
+          // Check if the asset is in the inventory
+          const sku = await this.getSkuByAsset(price.asset).catch((err) => {
+            if (
+              err instanceof NotFoundException &&
+              err.message === 'Asset not found'
+            ) {
+              return err;
+            }
 
-        if (save.sku !== null) {
-          const naming = this.schemaService.getNameGenerator();
-          const item = SKU.fromString(save.sku);
+            throw err;
+          });
 
-          save.name = await naming.getName(item);
+          if (sku instanceof Error) {
+            if (!current) {
+              throw sku;
+            }
+
+            // Asset is not in the inventory and it is already priced
+            this.deletePriceMulti(multi, current);
+            throwOnceDone = sku;
+          } else if (sku !== null) {
+            save.sku = sku;
+          }
 
           if (signal.aborted) {
             throw signal.error;
           }
         }
 
-        // Store the new price
-        multi.hset(PricesKeys.PRICES, key, pack(save));
+        if (!throwOnceDone) {
+          if (save.sku !== null) {
+            await this.updateName(save);
+            if (signal.aborted) {
+              throw signal.error;
+            }
+          }
 
-        multi.sadd(PricesKeys.NAME_INDEX + ':' + save.name, key);
-        multi.sadd(PricesKeys.SKU_INDEX + ':' + save.sku, key);
-
-        // TODO: Add asset to another key so that we can easily check if the asset is still in the inventory and remove it if it is not.
-
-        this.relayService.publishEvent(
-          multi,
-          PRICE_CREATED_EVENT,
-          save satisfies PriceCreatedEvent['data'],
-        );
+          // Store the new price
+          this.savePriceMulti(multi, save, current);
+        }
 
         await multi.exec();
+
+        if (throwOnceDone) {
+          throw throwOnceDone;
+        }
 
         return save;
       },
     );
   }
 
+  private async updateName(price: Price): Promise<void> {
+    if (price.sku !== null) {
+      const naming = this.schemaService.getNameGenerator();
+      const item = SKU.fromString(price.sku);
+
+      price.name = await naming.getName(item);
+    }
+  }
+
+  private savePriceMulti(
+    multi: ChainableCommander,
+    price: Price,
+    old?: Price | null,
+  ) {
+    if (old) {
+      // Clean up old price
+      multi.srem(PricesKeys.NAME_INDEX + ':' + old.name, old.id);
+      multi.srem(PricesKeys.SKU_INDEX + ':' + old.sku, old.id);
+    }
+
+    // Store the new price
+    multi.hset(PricesKeys.PRICES, price.id, pack(price));
+
+    multi.sadd(PricesKeys.NAME_INDEX + ':' + price.name, price.id);
+    multi.sadd(PricesKeys.SKU_INDEX + ':' + price.sku, price.id);
+    if (price.asset) {
+      multi.sadd(PricesKeys.ASSET_INDEX + ':' + price.asset.owner, price.id);
+      multi.sadd(PricesKeys.ASSET_INDEX, price.id);
+    }
+
+    this.relayService.publishEvent(
+      multi,
+      PRICE_CREATED_EVENT,
+      price satisfies PriceCreatedEvent['data'],
+    );
+  }
+
   async deletePrice(key: string): Promise<void> {
-    await this.locker.using([key], LockDuration.SHORT, async (signal) => {
-      const raw = await this.redis.hgetBuffer('prices', key);
-      if (!raw) {
-        return;
-      }
+    return this.deletePrices([key]);
+  }
+
+  async deletePrices(keys: string[]): Promise<void> {
+    if (keys.length === 0) {
+      return;
+    }
+
+    await this.locker.using(keys, LockDuration.SHORT, async (signal) => {
+      const multi = this.redis.multi();
+
+      const result = await this.redis.hmgetBuffer(PricesKeys.PRICES, ...keys);
 
       if (signal.aborted) {
         throw signal.error;
       }
 
-      const multi = this.redis.multi();
+      for (const raw of result) {
+        if (raw === null) {
+          continue;
+        }
 
-      const current = unpack(raw) as Price;
-      multi.srem(PricesKeys.NAME_INDEX + current.name, key);
-      multi.srem(PricesKeys.SKU_INDEX + current.sku, key);
-      multi.hdel(PricesKeys.PRICES, key);
-
-      this.relayService.publishEvent(
-        multi,
-        PRICE_DELETED_EVENT,
-        current satisfies PriceDeletedEvent['data'],
-      );
+        const current = unpack(raw) as Price;
+        this.deletePriceMulti(multi, current);
+      }
 
       await multi.exec();
     });
+  }
+
+  private deletePriceMulti(multi: ChainableCommander, current: Price) {
+    multi.srem(PricesKeys.NAME_INDEX + current.name, current.id);
+    multi.srem(PricesKeys.SKU_INDEX + current.sku, current.id);
+    if (current.asset) {
+      multi.srem(
+        PricesKeys.ASSET_INDEX + ':' + current.asset.owner,
+        current.id,
+      );
+      multi.srem(PricesKeys.ASSET_INDEX, current.id);
+    }
+
+    multi.hdel(PricesKeys.PRICES, current.id);
+
+    this.relayService.publishEvent(
+      multi,
+      PRICE_DELETED_EVENT,
+      current satisfies PriceDeletedEvent['data'],
+    );
   }
 
   async getPrices(cursor: number, count: number): Promise<unknown> {
@@ -297,5 +422,135 @@ export class PricesService {
     }
 
     return { matches: newMatches, items };
+  }
+
+  private async handleInventoryLoadedEvent(event: InventoryLoadedEvent) {
+    // Check if this inventory has priced assets
+
+    const pricedAssets = await this.redis.smembers(
+      PricesKeys.ASSET_INDEX + ':' + event.data.steamid64,
+    );
+
+    if (pricedAssets.length === 0) {
+      return;
+    }
+
+    await this.locker.using(
+      Array.from(pricedAssets),
+      LockDuration.MEDIUM,
+      async (signal) => {
+        const prices = await this.redis.hmgetBuffer(
+          PricesKeys.PRICES,
+          ...pricedAssets,
+        );
+
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        const steamid = new SteamID(event.data.steamid64);
+
+        const inventory = await this.inventoriesService
+          .getInventoryFromCacheAndExtractAttributes(steamid, EXCLUDE_FROM_SKU)
+          .catch((err) => {
+            if (err instanceof NotFoundException) {
+              return null;
+            }
+
+            throw err;
+          });
+
+        if (inventory === null) {
+          return;
+        }
+
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        const assets: Map<string, string> = new Map();
+
+        for (const sku in inventory.items) {
+          for (const assetid of inventory.items[sku]) {
+            assets.set(assetid, sku);
+          }
+        }
+
+        const pricesToSave: PriceWithAsset[] = [];
+        const pricesToDelete: PriceWithAsset[] = [];
+
+        const keys = new Set<string>();
+
+        for (const raw of prices) {
+          if (raw === null) {
+            continue;
+          }
+
+          const price = unpack(raw) as PriceWithAsset;
+
+          if (price.sku === null) {
+            // Look for the sku in the inventory
+            const sku = assets.get(price.asset.id);
+            if (sku === undefined) {
+              keys.add(price.id);
+              pricesToDelete.push(price);
+            } else if (price.sku !== sku) {
+              price.sku = sku;
+
+              if (price.sku !== null) {
+                await this.updateName(price);
+              }
+
+              keys.add(price.id);
+              pricesToSave.push(price);
+            }
+          }
+        }
+
+        if (pricesToDelete.length === 0 && pricesToSave.length === 0) {
+          return;
+        }
+
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
+        this.logger.debug(
+          'Inventory was loaded and assets were checked. Updating ' +
+            pricesToSave.length +
+            ' and deleting ' +
+            pricesToDelete.length +
+            ' price(s).',
+        );
+
+        const multi = this.redis.multi();
+
+        for (const price of pricesToDelete) {
+          this.deletePriceMulti(multi, price);
+        }
+
+        for (const price of pricesToSave) {
+          const now = Math.floor(Date.now() / 1000);
+
+          const save: Price = {
+            id: price.id,
+            sku: price.sku ?? null,
+            name: price.name,
+            asset: price.asset,
+            buy: price.buy,
+            sell: price.sell,
+            createdAt: now,
+            updatedAt: now,
+          };
+
+          save.createdAt = price.createdAt;
+          save.sku = price.sku;
+
+          this.savePriceMulti(multi, save, price);
+        }
+
+        await multi.exec();
+      },
+    );
   }
 }
