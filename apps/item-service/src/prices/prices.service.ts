@@ -136,6 +136,8 @@ export class PricesService implements OnApplicationBootstrap {
           asset: price.asset,
           buy: price.buy,
           sell: price.sell,
+          min: price.min,
+          max: price.max,
           createdAt: now,
           updatedAt: now,
         };
@@ -548,6 +550,8 @@ export class PricesService implements OnApplicationBootstrap {
             asset: price.asset,
             buy: price.buy,
             sell: price.sell,
+            min: price.min,
+            max: price.max,
             createdAt: now,
             updatedAt: now,
           };

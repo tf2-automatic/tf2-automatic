@@ -95,6 +95,30 @@ export class SavePriceDto implements SavePrice {
   @Type(() => PureDto)
   sell?: PureDto;
 
+  @ApiProperty({
+    description: 'The minimum stock',
+    required: false,
+    type: 'integer',
+    minimum: 0,
+    example: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  min?: number;
+
+  @ApiProperty({
+    description: 'The maximum stock. -1 means no limit.',
+    required: false,
+    type: 'integer',
+    minimum: -1,
+    example: -1,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(-1)
+  max?: number;
+
   @ValidateIf((o) => !o.sku && !o.asset)
   @AlwaysInvalid({ message: 'either sku or asset must be defined' })
   private readonly skuOrAsset: undefined;
@@ -133,6 +157,24 @@ export class SavePriceDto implements SavePrice {
   )
   @AlwaysInvalid({ message: 'buy and sell must be different' })
   private readonly buyEqualSell: undefined;
+
+  @ValidateIf(
+    (o) =>
+      o.min !== undefined &&
+      o.max !== undefined &&
+      o.min > o.max &&
+      o.max !== -1,
+  )
+  @AlwaysInvalid({ message: 'max must be greater than or equal to min' })
+  private readonly maxMin: undefined;
+
+  @ValidateIf(
+    (o) => o.min !== undefined && o.max !== undefined && o.asset !== undefined,
+  )
+  @AlwaysInvalid({
+    message: 'min and max must not be defined when asset is defined',
+  })
+  private readonly assetMinMax: undefined;
 }
 
 export class PricesSearchDto

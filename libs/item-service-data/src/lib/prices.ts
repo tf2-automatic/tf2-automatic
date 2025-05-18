@@ -52,6 +52,14 @@ export interface Price {
    */
   sell?: Pure;
   /**
+   * The minimum stock
+   */
+  min?: number;
+  /**
+   * The maximum stock
+   */
+  max?: number;
+  /**
    * When the price was created
    */
   createdAt: number;
@@ -70,6 +78,8 @@ export interface SavePrice {
   asset?: PricelistAsset;
   buy?: Pure;
   sell?: Pure;
+  min?: number;
+  max?: number;
 }
 
 export interface PricesSearch {
