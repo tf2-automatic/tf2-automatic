@@ -1,4 +1,4 @@
-export class CursorPagination {
-  count = 1000;
-  cursor = 0;
+export interface CursorPagination {
+  count?: number;
+  cursor?: number;
 }

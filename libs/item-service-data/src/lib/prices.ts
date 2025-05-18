@@ -3,11 +3,9 @@ import { BaseEvent } from '@tf2-automatic/bot-data';
 export const PRICES_BASE_PATH = '/prices';
 export const PRICES_PATH = '/';
 export const PRICE_PATH = '/:id';
-export const PRICES_SEARCH_PATH = '/search';
 
 export const PRICES_FULL_PATH = `${PRICES_BASE_PATH}${PRICES_PATH}`;
 export const PRICE_FULL_PATH = `${PRICES_BASE_PATH}${PRICE_PATH}`;
-export const PRICES_SEARCH_FULL_PATH = `${PRICES_BASE_PATH}${PRICES_SEARCH_PATH}`;
 
 export interface Pure {
   halfScrap: number;

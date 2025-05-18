@@ -198,8 +198,8 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getItems(
-    cursor: number,
-    count: number,
+    cursor = 0,
+    count = 1000,
     time?: number,
     useItemsGame = false,
   ) {

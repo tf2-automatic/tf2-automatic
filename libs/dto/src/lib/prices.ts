@@ -16,7 +16,7 @@ import {
 } from '@tf2-automatic/item-service-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AlwaysInvalid } from './common';
+import { AlwaysInvalid, CursorPaginationDto } from './common';
 
 export class PricelistAssetDto implements PricelistAsset {
   @ApiProperty({
@@ -135,7 +135,10 @@ export class SavePriceDto implements SavePrice {
   private readonly buyEqualSell: undefined;
 }
 
-export class PricesSearchDto implements PricesSearch {
+export class PricesSearchDto
+  extends CursorPaginationDto
+  implements PricesSearch
+{
   @ApiProperty({
     description: 'The name of the item to search for',
     example: 'Mann Co. Supply Crate Key',
@@ -187,9 +190,10 @@ export class PricesSearchDto implements PricesSearch {
   })
   assetid?: string[];
 
-  @ValidateIf((o) => !o.name && !o.sku && !o.assetid)
+  @ValidateIf((o) => (o.cursor || o.count) && (o.name || o.sku || o.assetid))
   @AlwaysInvalid({
-    message: 'either name, sku or assetid must be defined',
+    message:
+      'cursor and count must not be defined if name, sku or assetid are defined',
   })
-  private readonly atLeastOne: undefined;
+  private readonly cursorAndCount: undefined;
 }

@@ -10,19 +10,19 @@ import {
   ValidationOptions,
 } from 'class-validator';
 
-export class CursorPaginationDto extends CursorPagination {
+export class CursorPaginationDto implements CursorPagination {
   @IsInt()
   @IsPositive()
   @IsOptional()
   @Type(() => Number)
-  count = 1000;
+  count?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
   @IsOptional()
   @Type(() => Number)
-  cursor = 0;
+  cursor?: number;
 }
 
 export class CursorPaginationResponse<T> {

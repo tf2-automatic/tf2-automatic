@@ -10,18 +10,12 @@ import {
 } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
-import {
-  CursorPaginationDto,
-  PricesSearchDto,
-  SavePriceDto,
-} from '@tf2-automatic/dto';
+import { PricesSearchDto, SavePriceDto } from '@tf2-automatic/dto';
 import {
   Price,
   PRICE_PATH,
   PRICES_BASE_PATH,
   PRICES_PATH,
-  PRICES_SEARCH_PATH,
-  PricesSearchResponse,
 } from '@tf2-automatic/item-service-data';
 
 @ApiTags('Prices')
@@ -31,7 +25,7 @@ export class PricesController {
 
   @Get(PRICES_PATH)
   @ApiOperation({
-    summary: 'Get prices paginated',
+    summary: 'Get prices paginated, or search for prices by name/sku/assetid',
     description: 'Returns prices paginated using a cursor and count',
   })
   @ApiQuery({
@@ -46,8 +40,8 @@ export class PricesController {
     type: 'integer',
     required: false,
   })
-  async getPrices(@Query() pagination: CursorPaginationDto) {
-    return this.pricesService.getPrices(pagination.cursor, pagination.count);
+  async getPrices(@Query() dto: PricesSearchDto) {
+    return this.pricesService.getPrices(dto);
   }
 
   @Post(PRICES_PATH)
@@ -78,15 +72,6 @@ export class PricesController {
   })
   deletePrice(@Param('id') id: string): Promise<void> {
     return this.pricesService.deletePrice(id);
-  }
-
-  @Get(PRICES_SEARCH_PATH)
-  @ApiOperation({
-    summary: 'Search for prices',
-    description: 'Get prices by name/sku/assetid.',
-  })
-  getPriceByName(@Query() dto: PricesSearchDto): Promise<PricesSearchResponse> {
-    return this.pricesService.searchPrices(dto);
   }
 
   @Get(PRICE_PATH)

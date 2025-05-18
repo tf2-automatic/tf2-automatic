@@ -293,13 +293,22 @@ export class PricesService implements OnApplicationBootstrap {
     );
   }
 
-  async getPrices(cursor: number, count: number): Promise<unknown> {
-    return this.getHashesPaginated<Price>(cursor, count);
+  async getPrices(dto: PricesSearchDto) {
+    const hasPagination = new Boolean(dto.cursor || dto.count);
+    const hasSearch = new Boolean(dto.assetid || dto.name || dto.sku);
+
+    assert(hasPagination && hasSearch, 'Cannot use both pagination and search');
+
+    if (!dto.name && !dto.sku && !dto.assetid) {
+      return this.getHashesPaginated<Price>(dto.cursor, dto.count);
+    }
+
+    return this.searchPrices(dto);
   }
 
   private async getHashesPaginated<T>(
-    cursor: number,
-    count: number,
+    cursor = 0,
+    count = 1000,
   ): Promise<CursorPaginationResponse<T>> {
     const [newCursor, elements] = await this.redis.hscanBuffer(
       PricesKeys.PRICES,
