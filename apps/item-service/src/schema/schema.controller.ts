@@ -56,8 +56,8 @@ import {
 import { ApiQuerySchemaTime } from '@tf2-automatic/swagger';
 import { Response } from 'express';
 import {
+  CursorPaginationDto,
   SchemaOptionsDto,
-  SchemaPaginatedDto,
   SchemaSearchDto,
 } from '@tf2-automatic/dto';
 
@@ -171,7 +171,7 @@ export class SchemaController {
   })
   @ApiQuerySchemaTime()
   async getItems(
-    @Query() pagination: SchemaPaginatedDto,
+    @Query() pagination: CursorPaginationDto,
     @Query() options: SchemaOptionsDto,
   ) {
     return this.schemaService.getItems(

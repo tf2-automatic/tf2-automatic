@@ -135,11 +135,6 @@ export class SchemaOptions {
   items_game = false;
 }
 
-export class SchemaPaginated {
-  count = 1000;
-  cursor = 0;
-}
-
 export class SchemaSearch {
   name: string;
 }
