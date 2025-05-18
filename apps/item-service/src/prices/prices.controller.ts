@@ -21,6 +21,7 @@ import {
   PRICES_BASE_PATH,
   PRICES_PATH,
   PRICES_SEARCH_PATH,
+  PricesSearchResponse,
 } from '@tf2-automatic/item-service-data';
 
 @ApiTags('Prices')
@@ -84,7 +85,7 @@ export class PricesController {
     summary: 'Search for prices',
     description: 'Get prices by name/sku/assetid.',
   })
-  getPriceByName(@Query() dto: PricesSearchDto): Promise<Price[]> {
+  getPriceByName(@Query() dto: PricesSearchDto): Promise<PricesSearchResponse> {
     return this.pricesService.searchPrices(dto);
   }
 

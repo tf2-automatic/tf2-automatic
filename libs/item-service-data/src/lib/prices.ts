@@ -76,6 +76,13 @@ export interface PricesSearch {
   assetid?: string[];
 }
 
+export interface PricesSearchResponse {
+  matches: {
+    [K in keyof PricesSearch]: Record<string, number[]>;
+  };
+  items: Price[];
+}
+
 export type PriceCreatedEventType = 'prices.created';
 export const PRICE_CREATED_EVENT: PriceCreatedEventType = `prices.created`;
 

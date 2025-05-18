@@ -11,6 +11,8 @@ import {
   PRICE_DELETED_EVENT,
   PriceCreatedEvent,
   PriceDeletedEvent,
+  PricesSearch,
+  PricesSearchResponse,
 } from '@tf2-automatic/item-service-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import Redis from 'ioredis';
@@ -205,19 +207,24 @@ export class PricesService {
     return unpack(raw) as Price;
   }
 
-  async searchPrices(dto: PricesSearchDto): Promise<Price[]> {
+  async searchPrices(dto: PricesSearchDto): Promise<PricesSearchResponse> {
     const chainable = this.redis.pipeline();
+    const order: { key: keyof typeof dto; value: string }[] = [];
 
     if (dto.name) {
-      dto.name.forEach((name) => {
-        chainable.smembers(PricesKeys.NAME_INDEX + ':' + name);
-      });
+      for (let i = 0; i < dto.name.length; i++) {
+        const name = dto.name[i];
+        order.push({ key: 'name', value: name });
+        chainable.smembers(`${PricesKeys.NAME_INDEX}:${name}`);
+      }
     }
 
     if (dto.sku) {
-      dto.sku.forEach((sku) => {
-        chainable.smembers(PricesKeys.SKU_INDEX + ':' + sku);
-      });
+      for (let i = 0; i < dto.sku.length; i++) {
+        const sku = dto.sku[i];
+        order.push({ key: 'sku', value: sku });
+        chainable.smembers(`${PricesKeys.SKU_INDEX}:${sku}`);
+      }
     }
 
     const results = await chainable.exec();
@@ -225,45 +232,70 @@ export class PricesService {
       throw new Error('Pipeline returned null');
     }
 
+    assert(results.length === order.length, 'Length mismatch');
+
     const keys = new Set<string>();
 
+    const matches: Partial<
+      Record<keyof PricesSearch, Record<string, string[]>>
+    > = {};
+
     if (dto.assetid) {
+      const assetidMatches = (matches.assetid = {});
       dto.assetid.forEach((assetid) => {
         const key = this.getKeyByAsset(assetid);
         keys.add(key);
+        assetidMatches[assetid] = [key];
       });
     }
 
-    for (const result of results) {
-      if (result[0] !== null) {
-        continue;
+    results.forEach(([err, result], i) => {
+      if (err) {
+        return;
       }
 
-      const ids = result[1] as string[];
-      ids.forEach((id) => {
-        keys.add(id);
-      });
-    }
+      const ids = result as string[];
+      const { key, value } = order[i];
+
+      matches[key] = matches[key] ?? {};
+      matches[key][value] = ids;
+
+      ids.forEach((id) => keys.add(id));
+    });
 
     const keysArray = Array.from(keys);
-    if (keysArray.length === 0) {
-      return [];
+    const items: Price[] = [];
+    const idToIndex: Record<string, number> = {};
+
+    if (keysArray.length > 0) {
+      const rawItems = await this.redis.hmgetBuffer(
+        PricesKeys.PRICES,
+        ...keysArray,
+      );
+      rawItems.forEach((raw) => {
+        if (raw === null) {
+          return;
+        }
+
+        const item = unpack(raw) as Price;
+        idToIndex[item.id] = items.length;
+        items.push(item);
+      });
     }
 
-    const currentRaw = await this.redis.hmgetBuffer(
-      PricesKeys.PRICES,
-      ...keysArray,
-    );
-
-    const current: Price[] = [];
-
-    for (let i = 0; i < currentRaw.length; i++) {
-      const raw = currentRaw[i];
-      if (raw !== null) {
-        current.push(unpack(raw));
+    const newMatches: PricesSearchResponse['matches'] = {};
+    for (const type in matches) {
+      newMatches[type] = {};
+      for (const key in matches[type]) {
+        newMatches[type][key] = [];
+        for (const id of matches[type][key]) {
+          if (id in idToIndex) {
+            newMatches[type][key].push(idToIndex[id]);
+          }
+        }
       }
     }
 
-    return current;
+    return { matches: newMatches, items };
   }
 }
