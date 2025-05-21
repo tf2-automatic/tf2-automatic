@@ -7,6 +7,7 @@ import {
   IsPositive,
   Min,
   registerDecorator,
+  ValidationArguments,
   ValidationOptions,
 } from 'class-validator';
 
@@ -57,6 +58,35 @@ export function AlwaysInvalid(validationOptions?: ValidationOptions) {
         },
         defaultMessage() {
           return 'invalid usage';
+        },
+      },
+    });
+  };
+}
+
+export function IsBigIntGreaterThan(
+  min: bigint,
+  validationOptions?: ValidationOptions,
+) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      name: 'isBigIntGreaterThan',
+      target: object.constructor,
+      propertyName: propertyName,
+      constraints: [min],
+      options: validationOptions,
+      validator: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        validate(value: any, args: ValidationArguments) {
+          try {
+            const num = BigInt(value);
+            return num > args.constraints[0];
+          } catch {
+            return false;
+          }
+        },
+        defaultMessage(args: ValidationArguments) {
+          return `${args.property} must be a string representing a bigint greater than ${args.constraints[0]}`;
         },
       },
     });

@@ -35,6 +35,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { QueueRetryDto } from './misc';
+import { IsBigIntGreaterThan } from './common';
 
 export class AssetDto implements Asset {
   @ApiProperty({
@@ -42,6 +43,7 @@ export class AssetDto implements Asset {
     example: '1234567890',
   })
   @IsString()
+  @IsBigIntGreaterThan(BigInt(0))
   assetid: string;
 
   @ApiProperty({
@@ -56,6 +58,7 @@ export class AssetDto implements Asset {
     example: '2',
   })
   @IsString()
+  @IsBigIntGreaterThan(BigInt(0))
   contextid: string;
 
   @ApiProperty({
