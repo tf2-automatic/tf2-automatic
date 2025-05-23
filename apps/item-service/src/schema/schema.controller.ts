@@ -54,12 +54,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ApiQuerySchemaTime } from '@tf2-automatic/swagger';
-import {
-  SchemaOptionsDto,
-  SchemaPaginatedDto,
-  SchemaSearchDto,
-} from './schema.types';
 import { Response } from 'express';
+import {
+  CursorPaginationDto,
+  SchemaOptionsDto,
+  SchemaSearchDto,
+} from '@tf2-automatic/dto';
 
 @ApiTags('Schema')
 @Controller(SCHEMA_BASE_PATH)
@@ -171,7 +171,7 @@ export class SchemaController {
   })
   @ApiQuerySchemaTime()
   async getItems(
-    @Query() pagination: SchemaPaginatedDto,
+    @Query() pagination: CursorPaginationDto,
     @Query() options: SchemaOptionsDto,
   ) {
     return this.schemaService.getItems(

@@ -24,5 +24,6 @@ import { InventoriesProcessor } from './inventories.processor';
   ],
   providers: [InventoriesService, InventoriesProcessor],
   controllers: [InventoriesController],
+  exports: [InventoriesService],
 })
 export class InventoriesModule {}

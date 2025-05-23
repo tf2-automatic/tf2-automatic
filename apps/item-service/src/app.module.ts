@@ -29,6 +29,7 @@ import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
 import { ClsModule } from 'nestjs-cls';
+import { PricesModule } from './prices/prices.module';
 
 @Module({
   imports: [
@@ -67,7 +68,11 @@ import { ClsModule } from 'nestjs-cls';
     }),
     NestEventsModule.forRoot({
       publishingExchange: ITEM_SERVICE_EXCHANGE_NAME,
-      subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],
+      subscriberExchanges: [
+        BOT_EXCHANGE_NAME,
+        BOT_MANAGER_EXCHANGE_NAME,
+        ITEM_SERVICE_EXCHANGE_NAME,
+      ],
       config: getEventsConfig(),
     }),
     NestStorageModule.registerAsync({
@@ -111,6 +116,7 @@ import { ClsModule } from 'nestjs-cls';
       global: true,
       middleware: { mount: true },
     }),
+    PricesModule,
   ],
   providers: [
     {
