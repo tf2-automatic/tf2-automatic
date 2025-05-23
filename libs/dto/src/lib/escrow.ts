@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
   IsOptional,
@@ -43,5 +43,6 @@ export class GetEscrowDto {
   @IsInt()
   @Min(-1)
   @Max(Number.MAX_SAFE_INTEGER)
+  @Type(() => Number)
   ttl?: number;
 }
