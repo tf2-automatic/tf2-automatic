@@ -116,7 +116,7 @@
     "request": "^2.88.2",
     "rxjs": "^7.8.2",
     "steam-totp": "^2.1.2",
-    "steam-tradeoffer-manager": "^2.11.7",
+    "steam-tradeoffer-manager": "^2.12.1",
     "steam-user": "^5.2.1",
     "steamcommunity": "^3.48.6",
     "steamid": "^2.1.0",

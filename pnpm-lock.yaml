@@ -159,8 +159,8 @@ importers:
         specifier: ^2.1.2
         version: 2.1.2
       steam-tradeoffer-manager:
-        specifier: ^2.11.7
-        version: 2.11.7
+        specifier: ^2.12.1
+        version: 2.12.1
       steam-user:
         specifier: ^5.2.1
         version: 5.2.1
@@ -7320,8 +7320,8 @@ packages:
     resolution: {integrity: sha512-bTKlc/NoIUQId+my+O556s55DDsNNXfVIPWFDNVu68beql7AJhV0c+GTjFxfwCDYfdc4NkAme+0WrDdnY2D2VA==}
     engines: {node: '>=6.0.0'}
 
-  steam-tradeoffer-manager@2.11.7:
-    resolution: {integrity: sha512-JUyof4+YgLg6HX9zKH7oN1XNWtAL0XQNunN8P30UL/8F65eBdYDFU+6LjQ0MDT3TZa0lFoiwVxUY7EyZ6+I1Fg==}
+  steam-tradeoffer-manager@2.12.1:
+    resolution: {integrity: sha512-r8IBArZOFuQ/CemtEgiDAxZh/EAkzck6yP/aRtb8UXRDBioUzP8srpKzfue1FM/ctHxtLK2IYrSUE/PQJNeQeQ==}
     engines: {node: '>=4.0.0'}
 
   steam-user@5.2.1:
@@ -9750,6 +9750,12 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
+  '@nrwl/devkit@19.8.14(nx@19.8.14(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
+    dependencies:
+      '@nx/devkit': 19.8.14(nx@19.8.14(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))
+    transitivePeerDependencies:
+      - nx
+
   '@nrwl/devkit@19.8.14(nx@20.8.1(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
     dependencies:
       '@nx/devkit': 19.8.14(nx@20.8.1(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))
@@ -9843,7 +9849,7 @@ snapshots:
 
   '@nx/devkit@19.8.14(nx@19.8.14(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))':
     dependencies:
-      '@nrwl/devkit': 19.8.14(nx@20.8.1(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))
+      '@nrwl/devkit': 19.8.14(nx@19.8.14(@swc-node/register@1.10.10(@swc/core@1.11.24(@swc/helpers@0.5.17))(@swc/types@0.1.21)(typescript@5.8.3))(@swc/core@1.11.24(@swc/helpers@0.5.17)))
       ejs: 3.1.10
       enquirer: 2.3.6
       ignore: 5.3.2
@@ -16253,7 +16259,7 @@ snapshots:
 
   steam-totp@2.1.2: {}
 
-  steam-tradeoffer-manager@2.11.7:
+  steam-tradeoffer-manager@2.12.1:
     dependencies:
       '@doctormckay/stdlib': 1.16.1
       async: 2.6.4
