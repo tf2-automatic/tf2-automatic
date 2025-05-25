@@ -6,7 +6,7 @@ import {
   RemoveListingDto,
 } from '@tf2-automatic/bptf-manager-data';
 import SteamID from 'steamid';
-import { getRedisToken } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { ChainableCommander } from 'ioredis';
 import { DesiredListing } from './classes/desired-listing.class';
@@ -33,8 +33,11 @@ describe('DesiredListingsService', () => {
       providers: [
         DesiredListingsService,
         {
-          provide: getRedisToken('default'),
-          useValue: mockRedis,
+          provide: RedisService,
+          useValue: {
+            getOrThrow: () => mockRedis,
+            getOrNil: () => mockRedis,
+          },
         },
       ],
       imports: [EventEmitterModule.forRoot()],
