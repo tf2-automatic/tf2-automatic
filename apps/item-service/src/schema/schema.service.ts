@@ -5,7 +5,7 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   BOT_EXCHANGE_NAME,
   TF2_SCHEMA_EVENT,
@@ -129,10 +129,12 @@ export class SchemaService implements OnApplicationBootstrap {
 
   private readonly producer: FlowProducer = new FlowProducer(this.queue.opts);
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     @InjectQueue('schema')
     private readonly queue: Queue<JobData>,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventsService: NestEventsService,
     private readonly configService: ConfigService<Config>,
     private readonly storageService: NestStorageService,
@@ -506,6 +508,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
   private createItemsJob(job: Job, start: number) {
     assert(job.parent, 'Job has no parent');
+    assert(job.parent.id, 'Parent has no id');
 
     return this.queue.add(
       'items',

@@ -1,4 +1,4 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -41,8 +41,10 @@ export class HeartbeatsService {
   private readonly logger = new Logger(HeartbeatsService.name);
   private readonly locker: Locker;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,

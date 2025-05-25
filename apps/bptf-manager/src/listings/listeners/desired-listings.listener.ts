@@ -7,14 +7,16 @@ import {
   DesiredListingsCreatedEvent,
 } from '../interfaces/events.interface';
 import { Redis } from 'ioredis';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import SteamID from 'steamid';
 
 @Injectable()
 export class DesiredListingsListener {
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     private readonly desiredListingsService: DesiredListingsService,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 

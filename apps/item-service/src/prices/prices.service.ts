@@ -4,7 +4,7 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   CursorPaginationResponse,
   PricesSearchDto,
@@ -48,17 +48,16 @@ const EXCLUDE_FROM_SKU: (keyof Item)[] = ['killstreaker', 'sheen', 'paint'];
 export class PricesService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PricesService.name);
 
-  private readonly locker: Locker;
+  private readonly redis: Redis = this.redisService.getOrThrow();
+  private readonly locker: Locker = new Locker(this.redis);
 
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventsService: NestEventsService,
     private readonly schemaService: SchemaService,
     private readonly relayService: RelayService,
     private readonly inventoriesService: InventoriesService,
-  ) {
-    this.locker = new Locker(redis);
-  }
+  ) {}
 
   async onApplicationBootstrap() {
     await this.eventsService.subscribe<InventoryLoadedEvent>(

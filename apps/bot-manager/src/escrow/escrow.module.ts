@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { EscrowService } from './escrow.service';
 import { EscrowController } from './escrow.controller';
-import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HeartbeatsModule } from '../heartbeats/heartbeats.module';
 import { BullModule } from '@nestjs/bullmq';
 import { defaultJobOptions } from '@tf2-automatic/queue';

@@ -1,5 +1,5 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   BOT_EXCHANGE_NAME,
   TRADE_CHANGED_EVENT,
@@ -31,8 +31,10 @@ type TradeOfferWithOwner = TradeOffer & { owner: string };
 export class PendingService implements OnApplicationBootstrap {
   private readonly locker: Locker;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventsService: NestEventsService,
     private readonly botsService: BotsService,
   ) {
