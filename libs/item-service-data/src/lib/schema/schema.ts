@@ -129,3 +129,12 @@ export class SchemaModel {
   })
   consistent!: boolean;
 }
+
+export class SchemaOptions {
+  time?: number;
+  items_game = false;
+}
+
+export class SchemaSearch {
+  name: string;
+}

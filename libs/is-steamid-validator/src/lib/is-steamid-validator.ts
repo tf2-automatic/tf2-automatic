@@ -13,7 +13,7 @@ export function isSteamID(value: unknown) {
     }
   }
 
-  return steamid.isValid();
+  return steamid.isValidIndividual();
 }
 
 export function IsSteamID(validationOptions?: ValidationOptions) {

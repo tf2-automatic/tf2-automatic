@@ -5,7 +5,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { InventoriesProcessor } from './processors/inventories.processor';
 import { TokensModule } from '../tokens/tokens.module';
 import { EnqueueInventoriesProcessor } from './processors/enqueue.processor';
-import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { DefaultJobOptions } from 'bullmq';
 
 const defaultJobOptions: DefaultJobOptions = {

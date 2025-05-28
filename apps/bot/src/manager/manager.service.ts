@@ -91,7 +91,12 @@ export class ManagerService implements OnModuleDestroy {
         this.attempts = 0;
       })
       .catch((err) => {
-        this.logger.warn('Failed to send heartbeat: ' + err.message);
+        let errorMessage = err.message;
+        if (err instanceof AxiosError && err.response) {
+          errorMessage = err.response.data.message ?? err.message;
+        }
+
+        this.logger.warn('Failed to send heartbeat: ' + errorMessage);
         this.attempts++;
       })
       .finally(() => {

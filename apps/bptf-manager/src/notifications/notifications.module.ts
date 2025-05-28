@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
-import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { TokensModule } from '../tokens/tokens.module';
 import { BullModule } from '@nestjs/bullmq';
 import { DefaultJobOptions } from 'bullmq';

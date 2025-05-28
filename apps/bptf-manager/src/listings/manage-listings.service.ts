@@ -6,7 +6,7 @@ import {
   DesiredListingsCreatedEvent,
   DesiredListingsRemovedEvent,
 } from './interfaces/events.interface';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { ChainableCommander, Redis } from 'ioredis';
 import SteamID from 'steamid';
 import {
@@ -40,8 +40,10 @@ enum ListingAction {
 export class ManageListingsService {
   private readonly logger = new Logger(ManageListingsService.name);
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly agentsService: AgentsService,
     private readonly desiredListingsService: DesiredListingsService,
     private readonly currentListingsService: CurrentListingsService,

@@ -15,9 +15,9 @@ import {
 } from '../interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../../agents/agents.service';
 import { ManageListingsService } from '../manage-listings.service';
-import { Redis } from '@tf2-automatic/config';
-import { InjectRedis } from '@songkeys/nestjs-redis';
-import IORedis from 'ioredis';
+import { Redis as RedisConfig } from '@tf2-automatic/config';
+import { RedisService } from '@liaoliaots/nestjs-redis';
+import Redis from 'ioredis';
 import fs from 'fs';
 import path from 'path';
 
@@ -38,13 +38,14 @@ export class ManageListingsProcessor
   private readonly deleteBatchSize = 100;
   private readonly deleteArchivedBatchSize = 100;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     private readonly manageListingsService: ManageListingsService,
     private readonly tokensService: TokensService,
     private readonly configService: ConfigService<Config>,
     private readonly agentsService: AgentsService,
-    @InjectRedis()
-    private readonly redis: IORedis,
+    private readonly redisService: RedisService,
   ) {
     super();
 
@@ -52,7 +53,8 @@ export class ManageListingsProcessor
   }
 
   private createBottlenecks(clearDatastore = false): void {
-    const redisConfig = this.configService.getOrThrow<Redis.Config>('redis');
+    const redisConfig =
+      this.configService.getOrThrow<RedisConfig.Config>('redis');
 
     this.batchGroup = new Bottleneck.Group({
       datastore: 'ioredis',

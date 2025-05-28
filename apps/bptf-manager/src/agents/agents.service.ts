@@ -6,7 +6,7 @@ import { CreateAgentDto, Token, Agent } from '@tf2-automatic/bptf-manager-data';
 import { AgentResponse } from './interfaces/agent-response.interface';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Redis } from 'ioredis';
 import { AgentJobData } from './interfaces/queue.interface';
 import { TokensService } from '../tokens/tokens.service';
@@ -21,7 +21,8 @@ const KEY = 'agents';
 
 @Injectable()
 export class AgentsService {
-  private readonly locker: Locker;
+  private readonly redis: Redis = this.redisService.getOrThrow();
+  private readonly locker: Locker = new Locker(this.redis);
 
   constructor(
     @InjectQueue('registerAgents')
@@ -30,12 +31,10 @@ export class AgentsService {
     private readonly unregisterAgentsQueue: Queue<AgentJobData>,
     private readonly httpService: HttpService,
     private readonly tokensService: TokensService,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly configService: ConfigService<Config>,
     private readonly eventEmitter: EventEmitter2,
-  ) {
-    this.locker = new Locker(redis);
-  }
+  ) {}
 
   async getAgents(): Promise<Agent[]> {
     const agents = await this.redis.hvalsBuffer(KEY);

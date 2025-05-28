@@ -5,7 +5,7 @@ import {
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   BOT_EXCHANGE_NAME,
   TF2_SCHEMA_EVENT,
@@ -21,7 +21,7 @@ import {
   GetSchemaItemsResponse,
   JobWithTypes as Job,
   SchemaOverviewResponse,
-  KillEaterTypeScore,
+  KillEaterScoreType,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -35,7 +35,6 @@ import {
   SCHEMA_EVENT,
   SchemaRefreshAction,
   ItemsGameItem,
-  SchemaPaginatedResponse,
   StrangePart,
   Paint,
 } from '@tf2-automatic/item-service-data';
@@ -46,11 +45,14 @@ import { S3StorageEngine } from '@tf2-automatic/nestjs-storage';
 import {
   EconParser,
   EconParserSchema,
+  ItemNamingSchema,
+  NameGenerator,
   TF2Parser,
   TF2ParserSchema,
 } from '@tf2-automatic/tf2-format';
 import Dataloader from 'dataloader';
 import assert from 'assert';
+import { CursorPaginationResponse } from '@tf2-automatic/dto';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
@@ -103,6 +105,21 @@ const KILLSTREAKERS = {
   'Hypno-Beam': 2008,
 };
 
+export const SPELLS = {
+  '1004_0': 8901,
+  '1004_1': 8902,
+  '1004_2': 8900,
+  '1004_3': 8903,
+  '1004_4': 8904,
+  '1005_1': 8914,
+  '1005_2': 8920,
+  '1005_8421376': 8915,
+  '1005_3100495': 8916,
+  '1005_5322826': 8917,
+  '1005_13595446': 8918,
+  '1005_8208497': 8919,
+};
+
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SchemaService.name);
@@ -112,10 +129,12 @@ export class SchemaService implements OnApplicationBootstrap {
 
   private readonly producer: FlowProducer = new FlowProducer(this.queue.opts);
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     @InjectQueue('schema')
     private readonly queue: Queue<JobData>,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventsService: NestEventsService,
     private readonly configService: ConfigService<Config>,
     private readonly storageService: NestStorageService,
@@ -181,8 +200,8 @@ export class SchemaService implements OnApplicationBootstrap {
   }
 
   async getItems(
-    cursor: number,
-    count: number,
+    cursor = 0,
+    count = 1000,
     time?: number,
     useItemsGame = false,
   ) {
@@ -199,7 +218,7 @@ export class SchemaService implements OnApplicationBootstrap {
     cursor: number,
     count: number,
     time?: number,
-  ): Promise<SchemaPaginatedResponse<T>> {
+  ): Promise<CursorPaginationResponse<T>> {
     const schema = await this.getClosestSchemaByTime(time);
 
     const [newCursor, elements] = await this.redis.hscanBuffer(
@@ -419,7 +438,7 @@ export class SchemaService implements OnApplicationBootstrap {
     name: string,
     time?: number,
   ): Promise<StrangePart> {
-    const killEater: KillEaterTypeScore = await this.getValueByField(
+    const killEater: KillEaterScoreType = await this.getValueByField(
       SchemaKeys.KILL_EATER_SCORE_TYPE_NAME,
       name,
       time,
@@ -489,6 +508,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
   private createItemsJob(job: Job, start: number) {
     assert(job.parent, 'Job has no parent');
+    assert(job.parent.id, 'Parent has no id');
 
     return this.queue.add(
       'items',
@@ -1048,27 +1068,19 @@ export class SchemaService implements OnApplicationBootstrap {
       },
     );
 
-    const paintLoader = new Dataloader<string, number>(
-      async ([color]) => {
-        return [
-          await this.getPaintByColor(color, time).then(
-            (paint) => paint.defindex,
-          ),
-        ];
-      },
-      {
-        batch: false,
-      },
-    );
+    const paintLoader = this.getPaintLoader(time);
 
     return {
       getItemByDefindex: () => undefined,
       fetchItemByDefindex: async (defindex: number) =>
         itemLoader.load(defindex),
       getPaintByColor: () => undefined,
-      fetchPaintByColor: (color: string) => paintLoader.load(color),
-      getSpellById: () => undefined,
-      fetchSpellById: async () => -1,
+      fetchPaintByColor: (color: string) =>
+        paintLoader.load(color).then((paint) => paint.defindex),
+      getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
+      fetchSpellById: () => {
+        throw new Error('Method not implemented.');
+      },
       getStrangePartById: () => undefined,
       fetchStrangePartById: (id: number) =>
         this.getStrangePartByScoreType(id.toString()).then(
@@ -1081,26 +1093,8 @@ export class SchemaService implements OnApplicationBootstrap {
     return new TF2Parser(this.getTF2ParserSchema(time));
   }
 
-  getEconParserSchema(time?: number): EconParserSchema {
-    const itemByDefindexLoader = new Dataloader<number, ItemsGameItem>(
-      async (defindexes) => {
-        const items = await this.getItemsByDefindexes(
-          defindexes.map((defindex) => defindex.toString()),
-          true,
-          time,
-        );
-
-        const result = new Array(defindexes.length);
-
-        for (let i = 0; i < defindexes.length; i++) {
-          const defindex = defindexes[i];
-          const match = items[defindex];
-          result[i] = match ? match : new NotFoundException('Item not found');
-        }
-
-        return result;
-      },
-    );
+  private getEconParserSchema(time?: number): EconParserSchema {
+    const itemByDefindexLoader = this.getItemByDefindexLoader(true, time);
 
     const itemByNameLoader = new Dataloader<string, number>(
       async ([name]) => {
@@ -1124,51 +1118,10 @@ export class SchemaService implements OnApplicationBootstrap {
       { batch: false },
     );
 
-    const qualityLoader = new Dataloader<string, Quality>(
-      async ([name]) => {
-        return [await this.getQualityByName(name, time)];
-      },
-      {
-        batch: false,
-      },
-    );
-
-    const effectLoader = new Dataloader<string, number>(
-      async ([name]) => {
-        return this.getEffectByName(name, time).then((effect) => [effect.id]);
-      },
-      {
-        batch: false,
-      },
-    );
-
-    const paintkitLoader = new Dataloader<string, number>(async (names) => {
-      return this.getValuesByField<PaintKit>(
-        SchemaKeys.PAINTKIT_NAME,
-        names,
-        time,
-      ).then((paintkits) => {
-        return names.map((name) =>
-          paintkits[name]
-            ? paintkits[name].id
-            : new NotFoundException('Paintkit not found'),
-        );
-      });
-    });
-
-    const spellLoader = new Dataloader<string, number>(async (names) => {
-      return this.getValuesByField<Spell>(
-        SchemaKeys.SPELLS_NAME,
-        names,
-        time,
-      ).then((spells) => {
-        return names.map((name) =>
-          spells[name]
-            ? spells[name].id
-            : new NotFoundException('Spell not found'),
-        );
-      });
-    });
+    const qualityLoader = this.getQualityLoader(true, time);
+    const effectLoader = this.getEffectLoader(true, time);
+    const paintkitLoader = this.getPaintkitLoader(true, time);
+    const spellLoader = this.getSpellLoader(true, time);
 
     const strangePartLoader = new Dataloader<string, number | null>(
       async ([name]) => {
@@ -1200,11 +1153,11 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       getEffectByName: () => undefined,
       fetchEffectByName: async (name: string) => {
-        return effectLoader.load(name);
+        return effectLoader.load(name).then((effect) => effect.id);
       },
       getTextureByName: () => undefined,
       fetchTextureByName: async (name: string) => {
-        return paintkitLoader.load(name);
+        return paintkitLoader.load(name).then((paintkit) => paintkit.id);
       },
       getStrangePartByScoreType: () => undefined,
       fetchStrangePartByScoreType: async (name: string) => {
@@ -1212,7 +1165,7 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       getSpellByName: () => undefined,
       fetchSpellByName: async (name: string) => {
-        return spellLoader.load(name);
+        return spellLoader.load(name).then((spell) => spell.id);
       },
       getSheenByName: (name: string) => SHEENS[name],
       fetchSheenByName: () => {
@@ -1227,5 +1180,106 @@ export class SchemaService implements OnApplicationBootstrap {
 
   getEconParser(time?: number): EconParser {
     return new EconParser(this.getEconParserSchema(time));
+  }
+
+  private getNameGeneratorSchema(time?: number): ItemNamingSchema {
+    const itemByDefindexLoader = this.getItemByDefindexLoader(false, time);
+    const qualityLoader = this.getQualityLoader(false, time);
+    const effectLoader = this.getEffectLoader(false, time);
+    const paintkitLoader = this.getPaintkitLoader(false, time);
+
+    return {
+      getItemByDefindex: () => undefined,
+      fetchItemByDefindex: (defindex) => itemByDefindexLoader.load(defindex),
+      getQualityById: () => undefined,
+      fetchQualityById: (id) =>
+        qualityLoader.load(id.toString()).then((quality) => quality.name),
+      getEffectById: () => undefined,
+      fetchEffectById: (id) =>
+        effectLoader.load(id.toString()).then((effect) => effect.name),
+      getPaintkitById: () => undefined,
+      fetchPaintkitById: (id) =>
+        paintkitLoader.load(id.toString()).then((paintkit) => paintkit.name),
+    };
+  }
+
+  getNameGenerator(time?: number): NameGenerator {
+    return new NameGenerator(this.getNameGeneratorSchema(time));
+  }
+
+  private getItemByDefindexLoader(
+    useItemsGame: true,
+    time?: number,
+  ): Dataloader<number, ItemsGameItem>;
+  private getItemByDefindexLoader(
+    useItemsGame: false,
+    time?: number,
+  ): Dataloader<number, SchemaItem>;
+  private getItemByDefindexLoader(useItemsGame: boolean, time?: number) {
+    return new Dataloader<number, SchemaItem | ItemsGameItem>(
+      async (defindexes) => {
+        const items = await this.getItemsByDefindexes(
+          defindexes.map((defindex) => defindex.toString()),
+          useItemsGame,
+          time,
+        );
+
+        const result = new Array(defindexes.length);
+
+        for (let i = 0; i < defindexes.length; i++) {
+          const defindex = defindexes[i];
+          const match = items[defindex];
+          result[i] = match ? match : new NotFoundException('Item not found');
+        }
+
+        return result;
+      },
+    );
+  }
+
+  private getQualityLoader(byName: boolean, time?: number) {
+    return this.getLoader<Quality>(
+      byName ? SchemaKeys.QUALITIES_NAME : SchemaKeys.QUALITIES_ID,
+      time,
+    );
+  }
+
+  private getEffectLoader(byName: boolean, time?: number) {
+    return this.getLoader<AttachedParticle>(
+      byName ? SchemaKeys.EFFECTS_NAME : SchemaKeys.EFFECTS_ID,
+      time,
+    );
+  }
+
+  private getPaintkitLoader(byName: boolean, time?: number) {
+    return this.getLoader<PaintKit>(
+      byName ? SchemaKeys.PAINTKIT_NAME : SchemaKeys.PAINTKIT_ID,
+      time,
+    );
+  }
+
+  private getPaintLoader(time?: number) {
+    return this.getLoader<Paint>(SchemaKeys.PAINT_COLOR, time);
+  }
+
+  private getSpellLoader(byName: boolean, time?: number) {
+    return this.getLoader<Spell>(
+      byName ? SchemaKeys.SPELLS_NAME : SchemaKeys.SPELLS_ID,
+      time,
+    );
+  }
+
+  private getLoader<T>(key: SchemaKeys, time?: number): Dataloader<string, T> {
+    return new Dataloader<string, T>(async (fields) => {
+      return this.getValuesByField<T>(key, fields, time).then((values) => {
+        return fields.map((field) =>
+          values[field]
+            ? values[field]
+            : new NotFoundException(
+                'Could not find field "' + field + '" for key "' + key + '"',
+              ),
+        );
+      });
+    });
   }
 }

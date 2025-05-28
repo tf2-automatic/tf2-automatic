@@ -34,10 +34,10 @@ const econItem: EconItem = {
 };
 
 // 1. Very fast but only extracts values as strings.
-const extracted: ExtractedEconItem = parser.extract(econitem);
+const extracted: ExtractedEconItem = parser.extract(econItem);
 
-// 2. Not as fast but converts the values to ids based on the schema.
-const item: Item = await parser.parse(raw);
+// 2. Considerably slower but converts the extracted values to ids based on the schema.
+const item: Item = await parser.parse(extracted);
 ```
 
 Parsing can be accomplished in two ways. Method 1 is designed to be fast, extracting raw values from the econ item as strings. Method 2 builds on this by parsing the extracted item into a common format.

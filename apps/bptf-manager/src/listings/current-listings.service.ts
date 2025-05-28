@@ -1,4 +1,4 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   Listing,
   ListingDto,
@@ -43,8 +43,10 @@ export class CurrentListingsService {
 
   private readonly producer: FlowProducer = new FlowProducer(this.queue.opts);
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly httpService: HttpService,
     private readonly eventEmitter: EventEmitter2,
     private readonly listingLimitsService: ListingLimitsService,
@@ -104,6 +106,7 @@ export class CurrentListingsService {
     delay?: number,
   ): Promise<void> {
     assert(job.parent, 'Job has no parent');
+    assert(job.parent.id, 'Parent has no id');
 
     await this.queue.add(
       job.name,
