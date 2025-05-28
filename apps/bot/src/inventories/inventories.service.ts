@@ -1,5 +1,6 @@
 import {
   HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -98,6 +99,19 @@ export class InventoriesService {
           }
 
           this.logger.warn(`Error getting inventory: ${err.message}`);
+
+          if (
+            err.message.startsWith('HTTP error 4') &&
+            err.message.length === 14
+          ) {
+            return reject(
+              new HttpException(
+                'Steam returned HTTP error 4xx',
+                HttpStatus.FAILED_DEPENDENCY,
+              ),
+            );
+          }
+
           return reject(err);
         }
 
