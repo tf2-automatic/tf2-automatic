@@ -106,8 +106,10 @@ export class InventoriesService {
           ) {
             return reject(
               new HttpException(
-                'Steam returned HTTP error 4xx',
-                HttpStatus.FAILED_DEPENDENCY,
+                'Steam returned ' + err.message,
+                err.message === 'HTTP error 429'
+                  ? HttpStatus.TOO_MANY_REQUESTS
+                  : HttpStatus.FAILED_DEPENDENCY,
               ),
             );
           }
