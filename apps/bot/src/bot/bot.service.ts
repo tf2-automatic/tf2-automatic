@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { OnModuleDestroy } from '@nestjs/common/interfaces';
 import SteamUser from 'steam-user';
 import SteamCommunity from 'steamcommunity';
@@ -715,7 +719,7 @@ export class BotService implements OnModuleDestroy {
 
   getApiKey(): string {
     if (!this.manager.apiKey) {
-      throw new Error('Not logged in');
+      throw new ServiceUnavailableException('API key is not set');
     }
 
     return this.manager.apiKey;
