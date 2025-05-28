@@ -165,8 +165,8 @@ importers:
         specifier: ^5.2.3
         version: 5.2.3
       steamcommunity:
-        specifier: ^3.48.6
-        version: 3.48.6
+        specifier: ^3.48.8
+        version: 3.48.8
       steamid:
         specifier: ^2.1.0
         version: 2.1.0
@@ -7329,8 +7329,8 @@ packages:
     resolution: {integrity: sha512-6Yzaa0l7fcSRaaJzHjfuqettYqAsrW3+1AEu/cj4M/lgRYXa0DfOAjuWj0/wesfkogwuXNE4N/ZMZvNir8TVtw==}
     engines: {node: '>=14.0.0'}
 
-  steamcommunity@3.48.6:
-    resolution: {integrity: sha512-hl/WTUKpn0Rb5+OrHM2UvXG97EHLnEUqwENyD+aCuln7IsY3NridaPNQJxQHFPrlgI0vWVqw45ibIXhy3XPcjA==}
+  steamcommunity@3.48.8:
+    resolution: {integrity: sha512-K5piaCVNhAm/5tuRBU7Nqj4gAJeobKQy1vi12iZhXHiVhsfaZoioUxiNQS5sbBBXXBUxtBI7kDZL1CEgcCnQdA==}
     engines: {node: '>=4.0.0'}
 
   steamid@2.1.0:
@@ -16266,7 +16266,7 @@ snapshots:
       fast-deep-equal: 2.0.1
       file-manager: 1.0.1
       languages: 0.1.3
-      steamcommunity: 3.48.6
+      steamcommunity: 3.48.8
       steamid: 2.1.0
     transitivePeerDependencies:
       - supports-color
@@ -16293,7 +16293,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  steamcommunity@3.48.6:
+  steamcommunity@3.48.8:
     dependencies:
       '@doctormckay/user-agents': 1.0.0
       async: 2.6.4

@@ -118,7 +118,7 @@
     "steam-totp": "^2.1.2",
     "steam-tradeoffer-manager": "^2.12.1",
     "steam-user": "^5.2.3",
-    "steamcommunity": "^3.48.6",
+    "steamcommunity": "^3.48.8",
     "steamid": "^2.1.0",
     "tf2": "^4.0.0",
     "tf2-currencies": "^1.2.4",
