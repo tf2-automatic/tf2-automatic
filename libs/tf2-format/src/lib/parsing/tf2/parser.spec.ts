@@ -124,12 +124,12 @@ describe('TF2Parser', () => {
       expect(extracted.defindex).toEqual(20003);
       expect(extracted.quality).toEqual(6);
       expect(extracted.inputs).toEqual([
-        { quality: 6, amount: 2, killstreak: 2 },
-        { quality: 6, amount: 13, defindex: 5706 },
-        { quality: 6, amount: 3, defindex: 5707 },
-        { quality: 6, amount: 4, defindex: 5702 },
-        { quality: 6, amount: 2, defindex: 5704 },
-        { quality: 6, amount: 3, defindex: 5701 },
+        { quality: 6, quantity: 2, killstreak: 2 },
+        { quality: 6, quantity: 13, defindex: 5706 },
+        { quality: 6, quantity: 3, defindex: 5707 },
+        { quality: 6, quantity: 4, defindex: 5702 },
+        { quality: 6, quantity: 2, defindex: 5704 },
+        { quality: 6, quantity: 3, defindex: 5701 },
       ]);
       expect(extracted.killstreak).toEqual(3);
       expect(extracted.sheen).toEqual(7);
@@ -148,37 +148,37 @@ describe('TF2Parser', () => {
       expect(extracted.quality).toEqual(6);
       expect(extracted.inputs).toEqual([
         {
-          amount: 4,
+          quantity: 4,
           defindex: 331,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 61,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 649,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 42,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 36,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 38,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 43,
           quality: 11,
         },
@@ -209,7 +209,7 @@ describe('TF2Parser', () => {
       expect(extracted.outputQuality).toEqual(14);
       expect(extracted.output).toEqual(1080);
       expect(extracted.inputs).toEqual([
-        { amount: 193, defindex: 1080, quality: 6 },
+        { quantity: 193, defindex: 1080, quality: 6 },
       ]);
     });
 

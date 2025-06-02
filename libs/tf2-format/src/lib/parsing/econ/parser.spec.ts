@@ -192,27 +192,27 @@ describe('EconParser', () => {
       expect(extracted.inputs).toEqual([
         {
           name: 'The Righteous Bison',
-          amount: 5,
+          quantity: 5,
         },
         {
           name: 'The Winger',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'The Backburner',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'The Gunboats',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'The Half-Zatoichi',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'Strange Mad Milk',
-          amount: 1,
+          quantity: 1,
         },
       ]);
 
@@ -244,7 +244,7 @@ describe('EconParser', () => {
       expect(extracted.inputs).toEqual([
         {
           name: 'Sharpened Volcano Fragment',
-          amount: 1,
+          quantity: 1,
         },
       ]);
     });
@@ -272,27 +272,27 @@ describe('EconParser', () => {
       expect(extracted.inputs).toEqual([
         {
           name: 'Unique Specialized Killstreak Item',
-          amount: 2,
+          quantity: 2,
         },
         {
           name: 'Battle-Worn Robot KB-808',
-          amount: 13,
+          quantity: 13,
         },
         {
           name: 'Battle-Worn Robot Money Furnace',
-          amount: 3,
+          quantity: 3,
         },
         {
           name: 'Reinforced Robot Emotion Detector',
-          amount: 4,
+          quantity: 4,
         },
         {
           name: 'Reinforced Robot Bomb Stabilizer',
-          amount: 2,
+          quantity: 2,
         },
         {
           name: 'Pristine Robot Brainstorm Bulb',
-          amount: 3,
+          quantity: 3,
         },
       ]);
     });
@@ -744,32 +744,32 @@ describe('EconParser', () => {
         {
           killstreak: 2,
           quality: -1,
-          amount: 2,
+          quantity: 2,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 13,
+          quantity: 13,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 3,
+          quantity: 3,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 4,
+          quantity: 4,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 2,
+          quantity: 2,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 3,
+          quantity: 3,
         },
       ]);
     });
@@ -815,32 +815,32 @@ describe('EconParser', () => {
         {
           defindex: -1,
           quality: -1,
-          amount: 5,
+          quantity: 5,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
       ]);
     });
@@ -876,7 +876,7 @@ describe('EconParser', () => {
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
       ]);
     });

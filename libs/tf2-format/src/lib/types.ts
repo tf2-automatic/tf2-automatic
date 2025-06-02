@@ -35,7 +35,7 @@ export interface RecipeInput {
   defindex?: number;
   killstreak?: number;
   quality: number;
-  amount: number;
+  quantity: number;
 }
 
 /**

@@ -441,7 +441,7 @@ export class EconParser extends Parser<
 
         const input: RecipeInput = {
           quality,
-          amount: rawInput.amount,
+          quantity: rawInput.quantity,
         };
 
         // Handle killstreak items for killstreak kit fabricators
@@ -890,12 +890,12 @@ export class EconParser extends Parser<
               const split = descriptions[i].value.lastIndexOf(' x ');
               const name = descriptions[i].value.slice(0, split);
 
-              const amount = parseInt(
+              const quantity = parseInt(
                 descriptions[i].value.slice(split + 3),
                 10,
               );
 
-              inputs.push({ name, amount });
+              inputs.push({ name, quantity });
               i++;
             }
 

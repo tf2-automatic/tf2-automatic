@@ -198,7 +198,7 @@ export class TF2Parser extends Parser<
           if (!isOutput) {
             const input: RecipeInput = {
               quality: 6,
-              amount:
+              quantity:
                 (component.numRequired ?? 0) - (component.numFulfilled ?? 0),
             };
 
