@@ -162,8 +162,8 @@ describe('EconParser', () => {
         fetchTextureByName: jest.fn(),
         getStrangePartByScoreType: jest.fn(),
         fetchStrangePartByScoreType: jest.fn(),
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getSheenByName: jest.fn(),
         fetchSheenByName: jest.fn(),
         getKillstreakerByName: jest.fn(),
@@ -578,8 +578,8 @@ describe('EconParser', () => {
       schema.fetchTextureByName.mockResolvedValue(-1);
       schema.getStrangePartByScoreType.mockReturnValue(undefined);
       schema.fetchStrangePartByScoreType.mockResolvedValue(-1);
-      schema.getItemByDefindex.mockReturnValue(undefined);
-      schema.fetchItemByDefindex.mockResolvedValue({
+      schema.getItemsGameItemByDefindex.mockReturnValue(undefined);
+      schema.fetchItemsGameItemByDefindex.mockResolvedValue({
         name: 'Decoder Ring',
       });
       schema.getSheenByName.mockReturnValue(undefined);
@@ -602,8 +602,8 @@ describe('EconParser', () => {
         fetchTextureByName: jest.fn(),
         getStrangePartByScoreType: jest.fn(),
         fetchStrangePartByScoreType: jest.fn(),
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getSheenByName: jest.fn(),
         fetchSheenByName: jest.fn(),
         getKillstreakerByName: jest.fn(),

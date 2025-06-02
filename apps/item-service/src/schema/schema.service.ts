@@ -1071,8 +1071,8 @@ export class SchemaService implements OnApplicationBootstrap {
     const paintLoader = this.getPaintLoader(time);
 
     return {
-      getItemByDefindex: () => undefined,
-      fetchItemByDefindex: async (defindex: number) =>
+      getItemsGameItemByDefindex: () => undefined,
+      fetchItemsGameItemByDefindex: async (defindex: number) =>
         itemLoader.load(defindex),
       getPaintByColor: () => undefined,
       fetchPaintByColor: (color: string) =>
@@ -1139,8 +1139,8 @@ export class SchemaService implements OnApplicationBootstrap {
     );
 
     return {
-      getItemByDefindex: () => undefined,
-      fetchItemByDefindex: async (defindex: number) => {
+      getItemsGameItemByDefindex: () => undefined,
+      fetchItemsGameItemByDefindex: async (defindex: number) => {
         return itemByDefindexLoader.load(defindex);
       },
       getDefindexByName: () => undefined,
@@ -1189,8 +1189,9 @@ export class SchemaService implements OnApplicationBootstrap {
     const paintkitLoader = this.getPaintkitLoader(false, time);
 
     return {
-      getItemByDefindex: () => undefined,
-      fetchItemByDefindex: (defindex) => itemByDefindexLoader.load(defindex),
+      getSchemaItemByDefindex: () => undefined,
+      fetchSchemaItemByDefindex: (defindex) =>
+        itemByDefindexLoader.load(defindex),
       getQualityById: () => undefined,
       fetchQualityById: (id) =>
         qualityLoader.load(id.toString()).then((quality) => quality.name),

@@ -11,8 +11,8 @@ import { EconParser, EconParserSchema, EconItem, ExtractedEconItem, Item } from 
 
 // Define getters for various schema values
 const schema: EconParserSchema = {
-  getItemByDefindex: (defindex) => ({ name: "" }),
-  fetchItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
+  getItemsGameItemByDefindex: (defindex) => ({ name: "" }),
+  fetchItemsGameItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
   getDefindexByName: (name) => 0,
   fetchDefindexByName: (name) => Promise.resolve(0),
   getQualityByName: (name) => 0,
@@ -74,8 +74,8 @@ const schema: EconParserSchema = {
       throw err;
     })
   },
-  getItemByDefindex: (defindex) => ({ name: "" }),
-  fetchItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
+  getItemsGameItemByDefindex: (defindex) => ({ name: "" }),
+  fetchItemsGameItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
   getDefindexByName: (name) => 0,
   fetchDefindexByName: (name) => Promise.resolve(0),
   getEffectByName: (name) => 0,

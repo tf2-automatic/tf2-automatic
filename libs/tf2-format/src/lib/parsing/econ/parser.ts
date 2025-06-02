@@ -516,9 +516,9 @@ export class EconParser extends Parser<
       return part;
     }
 
-    let item = this.schema.getItemByDefindex(part);
+    let item = this.schema.getItemsGameItemByDefindex(part);
     if (item === undefined) {
-      item = await this.schema.fetchItemByDefindex(part);
+      item = await this.schema.fetchItemsGameItemByDefindex(part);
     } else if (item instanceof Error) {
       throw item;
     }

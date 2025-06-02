@@ -224,8 +224,8 @@ export const SPELLS = {
 };
 
 const tf2Schema: TF2ParserSchema = {
-  getItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
-  fetchItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
+  getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
+  fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getPaintByColor: (color) => cache.get('paint:' + color),
   fetchPaintByColor: (color) => paintLoader.load(color),
   getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
@@ -236,8 +236,8 @@ const tf2Schema: TF2ParserSchema = {
 };
 
 const econSchema: EconParserSchema = {
-  getItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
-  fetchItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
+  getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
+  fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getQualityByName: (name) => cache.get('quality:' + name),
   fetchQualityByName: (name) => qualityLoader.load(name),
   getEffectByName: (name) => cache.get('effect:' + name),

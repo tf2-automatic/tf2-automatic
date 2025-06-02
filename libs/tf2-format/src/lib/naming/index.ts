@@ -20,9 +20,9 @@ export class NameGenerator {
   async getName(item: RequiredItemAttributes, proper = true): Promise<string> {
     let name = '';
 
-    let schemaItem = this.schema.getItemByDefindex(item.defindex);
+    let schemaItem = this.schema.getSchemaItemByDefindex(item.defindex);
     if (schemaItem === undefined) {
-      schemaItem = await this.schema.fetchItemByDefindex(item.defindex);
+      schemaItem = await this.schema.fetchSchemaItemByDefindex(item.defindex);
     } else if (schemaItem instanceof Error) {
       throw schemaItem;
     }
@@ -82,9 +82,9 @@ export class NameGenerator {
     }
 
     if (typeof item.target === 'number') {
-      let target = this.schema.getItemByDefindex(item.target);
+      let target = this.schema.getSchemaItemByDefindex(item.target);
       if (target === undefined) {
-        target = await this.schema.fetchItemByDefindex(item.target);
+        target = await this.schema.fetchSchemaItemByDefindex(item.target);
       } else if (target instanceof Error) {
         throw target;
       }
@@ -104,9 +104,9 @@ export class NameGenerator {
     }
 
     if (typeof item.output === 'number') {
-      let output = this.schema.getItemByDefindex(item.output);
+      let output = this.schema.getSchemaItemByDefindex(item.output);
       if (output === undefined) {
-        output = await this.schema.fetchItemByDefindex(item.output);
+        output = await this.schema.fetchSchemaItemByDefindex(item.output);
       } else if (output instanceof Error) {
         throw output;
       }

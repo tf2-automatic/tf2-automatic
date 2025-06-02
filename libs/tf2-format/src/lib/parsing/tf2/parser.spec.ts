@@ -9,8 +9,8 @@ describe('TF2Parser', () => {
 
     beforeEach(() => {
       const schema: TF2ParserSchema = {
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getSpellById: jest.fn(),
         fetchSpellById: jest.fn(),
         getPaintByColor: jest.fn(),
@@ -231,8 +231,8 @@ describe('TF2Parser', () => {
 
     beforeEach(() => {
       schema = {
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getSpellById: jest.fn(),
         fetchSpellById: jest.fn(),
         getPaintByColor: jest.fn(),
@@ -249,7 +249,7 @@ describe('TF2Parser', () => {
 
       const [extracted, context] = parser.extract(item);
 
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
         name: 'Decoder Ring',
         attributes: {
           'always tradable': {
@@ -278,7 +278,7 @@ describe('TF2Parser', () => {
 
       const [extracted, context] = parser.extract(item);
 
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
         name: "The Crone's Dome",
         capabilities: {
           paintable: '1',
@@ -302,7 +302,7 @@ describe('TF2Parser', () => {
 
       const [extracted, context] = parser.extract(item);
 
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
         name: 'The Degreaser',
       } satisfies ItemsGameItem);
 
@@ -318,7 +318,7 @@ describe('TF2Parser', () => {
 
       extracted.spells = [[1004, 1]];
 
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
         name: 'The Degreaser',
       } satisfies ItemsGameItem);
       schema.getSpellById = jest.fn().mockReturnValue(8902);

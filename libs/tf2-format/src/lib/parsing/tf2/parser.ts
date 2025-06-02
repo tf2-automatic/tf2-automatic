@@ -416,9 +416,11 @@ export class TF2Parser extends Parser<
     extracted: ExtractedTF2Item,
     context: Context,
   ): Promise<InventoryItem> {
-    let schemaItem = this.schema.getItemByDefindex(extracted.defindex);
+    let schemaItem = this.schema.getItemsGameItemByDefindex(extracted.defindex);
     if (schemaItem === undefined) {
-      schemaItem = await this.schema.fetchItemByDefindex(extracted.defindex);
+      schemaItem = await this.schema.fetchItemsGameItemByDefindex(
+        extracted.defindex,
+      );
     } else if (schemaItem instanceof Error) {
       throw schemaItem;
     }

@@ -7,13 +7,13 @@ import {
 } from './types';
 
 export interface ItemsGameItemByDefindex {
-  getItemByDefindex(defindex: number): UndefinedOrError<ItemsGameItem>;
-  fetchItemByDefindex(defindex: number): Promise<ItemsGameItem>;
+  getItemsGameItemByDefindex(defindex: number): UndefinedOrError<ItemsGameItem>;
+  fetchItemsGameItemByDefindex(defindex: number): Promise<ItemsGameItem>;
 }
 
 export interface SchemaItemByDefindex {
-  getItemByDefindex(defindex: number): UndefinedOrError<SchemaItem>;
-  fetchItemByDefindex(defindex: number): Promise<SchemaItem>;
+  getSchemaItemByDefindex(defindex: number): UndefinedOrError<SchemaItem>;
+  fetchSchemaItemByDefindex(defindex: number): Promise<SchemaItem>;
 }
 
 export interface DefindexByName {
