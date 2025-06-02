@@ -1,4 +1,4 @@
-import { InventoryItem } from '../types';
+import { InventoryItem, Item, PossibleInventoryItem } from '../types';
 
 /**
  * A parser that extracts information from an item and parses it into a common format
@@ -6,7 +6,12 @@ import { InventoryItem } from '../types';
  * @template Item A type for the raw item to parse.
  * @template ExtractedItem A type for the result of extracting information from the raw item.
  */
-export abstract class Parser<SchemaType, Item, ExtractedItem, Context = null> {
+export abstract class Parser<
+  SchemaType,
+  RawItem,
+  ExtractedItem,
+  Context = null,
+> {
   constructor(protected readonly schema: SchemaType) {}
 
   /**
@@ -15,7 +20,7 @@ export abstract class Parser<SchemaType, Item, ExtractedItem, Context = null> {
    * @returns The extracted information.
    */
   abstract extract(
-    raw: Item,
+    raw: RawItem,
   ): Context extends null ? ExtractedItem : [ExtractedItem, Context];
 
   /**
@@ -27,5 +32,5 @@ export abstract class Parser<SchemaType, Item, ExtractedItem, Context = null> {
   abstract parse(
     extracted: ExtractedItem,
     context?: Context extends null ? never : Context,
-  ): Promise<InventoryItem>;
+  ): Promise<PossibleInventoryItem | InventoryItem | Item>;
 }

@@ -11,6 +11,13 @@ export interface InventoryItem extends Item {
 }
 
 /**
+ * An annoying type I have to make to be able to parse backpack.tf listings
+ */
+export interface PossibleInventoryItem extends Item {
+  assetid: string | null;
+}
+
+/**
  * The primary attributes of a TF2 item that are used to identify it.
  */
 export interface PrimaryItemAttributes {
@@ -76,6 +83,7 @@ export interface ItemsGameItem {
 }
 
 export interface SchemaItem {
+  defindex: number;
   item_name: string;
   proper_name: boolean;
   item_quality: number;

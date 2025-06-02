@@ -105,3 +105,5 @@ export type TF2ParserSchema = ItemsGameItemByDefindex &
   SpellById &
   PaintByColor &
   StrangePartById;
+
+export type BptfParserSchema = DefindexByName & QualityByName & SpellByName;
