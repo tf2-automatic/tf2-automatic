@@ -1,18 +1,6 @@
+import { KILLSTREAK_TIERS_TO_NAMES, WEAR_LEVELS_TO_NAMES } from '../common';
 import { ItemNamingSchema } from '../schemas';
 import { RequiredItemAttributes } from '../types';
-
-const KILLSTREAKS = [
-  'Killstreak',
-  'Specialized Killstreak',
-  'Professional Killstreak',
-];
-const WEAR = [
-  'Factory New',
-  'Minimal Wear',
-  'Field-Tested',
-  'Well-Worn',
-  'Battle Scarred',
-];
 
 export class NameGenerator {
   constructor(private readonly schema: ItemNamingSchema) {}
@@ -78,7 +66,7 @@ export class NameGenerator {
     }
 
     if (item.killstreak !== undefined && item.killstreak !== 0) {
-      name += KILLSTREAKS[item.killstreak - 1] + ' ';
+      name += KILLSTREAK_TIERS_TO_NAMES[item.killstreak] + ' ';
     }
 
     if (typeof item.target === 'number') {
@@ -136,7 +124,7 @@ export class NameGenerator {
     name += schemaItem.item_name;
 
     if (item.wear) {
-      name += ' (' + WEAR[item.wear - 1] + ')';
+      name += ' (' + WEAR_LEVELS_TO_NAMES[item.wear] + ')';
     }
 
     if (typeof item.crateSeries === 'number') {

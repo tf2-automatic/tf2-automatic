@@ -1,6 +1,6 @@
 import { DefindexByName, QualityByName, SpellByName } from '../schemas';
 import { RecipeInput, NumberOrNull } from '../types';
-import { KILLSTREAK_TIERS } from './common';
+import { KILLSTREAK_NAMES_TO_TIERS } from '../common';
 import { ExtractedRecipeInput } from './econ/types';
 
 export function getInputByName(name: string, schema: DefindexByName) {
@@ -88,7 +88,7 @@ export async function parseInputs(
           name.length - 5,
         );
         name = null;
-        input.killstreak = KILLSTREAK_TIERS[killstreak];
+        input.killstreak = KILLSTREAK_NAMES_TO_TIERS[killstreak];
       }
       if (name !== null) {
         // Get the defindex of the input item

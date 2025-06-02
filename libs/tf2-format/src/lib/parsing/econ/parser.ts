@@ -8,7 +8,7 @@ import {
   ExtractedRecipeInput,
   TagAttributes,
 } from './types';
-import { KILLSTREAK_FABRICATORS } from '../common';
+import { KILLSTREAK_FABRICATORS, WEAR_NAMES_TO_LEVELS } from '../../common';
 import * as helpers from '../helpers';
 
 const TAGS_OF_INTEREST = new Set<string>([
@@ -22,14 +22,6 @@ const NON_CRAFTABLE_DESCRIPTIONS = {
   '( Not Usable in Crafting )': true,
   '( Not Tradable, Marketable, or Usable in Crafting )': true,
   '( Not Tradable, Marketable, Usable in Crafting, or Gift Wrappable )': true,
-};
-
-const WEAR = {
-  'Factory New': 1,
-  'Minimal Wear': 2,
-  'Field-Tested': 3,
-  'Well-Worn': 4,
-  'Battle Scarred': 5,
 };
 
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
@@ -293,9 +285,9 @@ export class EconParser extends Parser<
       }
     }
 
-    let wear = null;
+    let wear: number | null = null;
     if (raw.wear !== null) {
-      wear = WEAR[raw.wear];
+      wear = WEAR_NAMES_TO_LEVELS[raw.wear];
     }
 
     let target: NumberOrNull = null;
