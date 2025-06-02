@@ -1,10 +1,6 @@
 import { Parser } from '../parser';
-import {
-  EconParserSchema,
-  InventoryItem,
-  NumberOrNull,
-  RecipeInput,
-} from '../../types';
+import { InventoryItem, NumberOrNull, RecipeInput } from '../../types';
+import { EconParserSchema } from '../../schemas';
 import {
   DescriptionAttributes,
   EconItem,

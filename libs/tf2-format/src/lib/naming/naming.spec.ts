@@ -1,4 +1,4 @@
-import { ItemNamingSchema } from '../types';
+import { ItemNamingSchema } from '../schemas';
 import { NameGenerator } from './index';
 
 describe('NameGenerator', () => {

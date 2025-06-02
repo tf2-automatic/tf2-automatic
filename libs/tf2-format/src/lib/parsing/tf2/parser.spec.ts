@@ -1,6 +1,7 @@
 import { TF2Parser } from './parser';
 import * as TestData from './test-data';
-import { ItemsGameItem, TF2ParserSchema } from '../../types';
+import { ItemsGameItem } from '../../types';
+import { TF2ParserSchema } from '../../schemas';
 
 describe('TF2Parser', () => {
   describe('#extract', () => {

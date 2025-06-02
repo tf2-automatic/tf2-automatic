@@ -1,4 +1,5 @@
-import { ItemNamingSchema, RequiredItemAttributes } from '../types';
+import { ItemNamingSchema } from '../schemas';
+import { RequiredItemAttributes } from '../types';
 
 const KILLSTREAKS = [
   'Killstreak',

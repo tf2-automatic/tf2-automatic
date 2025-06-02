@@ -1,10 +1,6 @@
 import { Parser } from '../parser';
-import {
-  InventoryItem,
-  ItemsGameItem,
-  RecipeInput,
-  TF2ParserSchema,
-} from '../../types';
+import { InventoryItem, ItemsGameItem, RecipeInput } from '../../types';
+import { TF2ParserSchema } from '../../schemas';
 import { Attributes, Context, ExtractedTF2Item, TF2Item } from './types';
 import {
   CAttribute_DynamicRecipeComponent,
