@@ -1,1 +1,1 @@
-{"name":"tf2-format-benchmark","dependencies":{"@tf2autobot/tf2-sku":"^2.0.4","@types/benchmark":"^2.1.5","benchmark":"^2.1.4","dataloader":"^2.2.2","kvparser":"^1.0.2","tf2-backpack":"^1.2.1","tf2-item-format":"^5.9.21","ts-node":"^10.9.2"}}
+{"name":"tf2-format-benchmark","dependencies":{"@tf2autobot/tf2-sku":"^2.0.4","@types/benchmark":"^2.1.5","benchmark":"^2.1.4","dataloader":"^2.2.3","kvparser":"^1.0.2","tf2-backpack":"^1.2.2","tf2-item-format":"^5.9.27","ts-node":"^10.9.2"}}
