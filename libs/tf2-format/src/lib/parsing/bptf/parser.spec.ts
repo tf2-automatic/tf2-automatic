@@ -10,6 +10,8 @@ describe('BptfParser', () => {
       const schema: BptfParserSchema = {
         getDefindexByName: jest.fn(),
         fetchDefindexByName: jest.fn(),
+        getSchemaItemByDefindex: jest.fn(),
+        fetchSchemaItemByDefindex: jest.fn(),
         getQualityByName: jest.fn(),
         fetchQualityByName: jest.fn(),
         getSpellByName: jest.fn(),
@@ -191,6 +193,10 @@ describe('BptfParser', () => {
     function mockSchema() {
       schema.getDefindexByName.mockReturnValue(undefined);
       schema.fetchDefindexByName.mockResolvedValue(-1);
+      schema.getSchemaItemByDefindex.mockReturnValue(undefined);
+      schema.fetchSchemaItemByDefindex.mockResolvedValue({
+        name: '',
+      });
       schema.getQualityByName.mockReturnValue(undefined);
       schema.fetchQualityByName.mockResolvedValue(-1);
       schema.getSpellByName.mockReturnValue(undefined);
@@ -201,6 +207,8 @@ describe('BptfParser', () => {
       schema = {
         getDefindexByName: jest.fn(),
         fetchDefindexByName: jest.fn(),
+        getSchemaItemByDefindex: jest.fn(),
+        fetchSchemaItemByDefindex: jest.fn(),
         getQualityByName: jest.fn(),
         fetchQualityByName: jest.fn(),
         getSpellByName: jest.fn(),

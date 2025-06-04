@@ -60,6 +60,7 @@ import {
   SchemaOptionsDto,
   SchemaSearchDto,
 } from '@tf2-automatic/dto';
+import { SchemaLookupOptions } from './schema.types';
 
 @ApiTags('Schema')
 @Controller(SCHEMA_BASE_PATH)
@@ -123,9 +124,9 @@ export class SchemaController {
   })
   @ApiQuerySchemaTime()
   async getItemsGame(@Query() options: SchemaOptionsDto, @Res() res: Response) {
-    const url = await this.schemaService.getSchemaItemsGameUrlByTime(
-      options.time,
-    );
+    const url = await this.schemaService.getSchemaItemsGameUrl({
+      time: options.time,
+    });
     res.redirect(url);
   }
 
@@ -139,9 +140,9 @@ export class SchemaController {
     @Query() options: SchemaOptionsDto,
     @Res() res: Response,
   ) {
-    const url = await this.schemaService.getSchemaOverviewUrlByTime(
-      options.time,
-    );
+    const url = await this.schemaService.getSchemaOverviewUrl({
+      time: options.time,
+    });
     res.redirect(url);
   }
 
@@ -205,11 +206,9 @@ export class SchemaController {
     @Query() dto: SchemaSearchDto,
     @Query() options: SchemaOptionsDto,
   ): Promise<SchemaItem[] | ItemsGameItem[]> {
-    return this.schemaService.getItemsByName(
-      dto.name,
-      options.items_game,
-      options.time,
-    );
+    return this.schemaService.getItemsByName(dto.name, options.items_game, {
+      time: options.time,
+    });
   }
 
   @Get(SCHEMA_ITEM_DEFINDEX_PATH)
@@ -234,11 +233,9 @@ export class SchemaController {
     @Param('defindex') defindex: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<SchemaItem | ItemsGameItem> {
-    return this.schemaService.getItemByDefindex(
-      defindex,
-      options.items_game,
-      options.time,
-    );
+    return this.schemaService.getItemByDefindex(defindex, options.items_game, {
+      time: options.time,
+    });
   }
 
   @Get(SCHEMA_QUALITY_PATH)
@@ -257,12 +254,16 @@ export class SchemaController {
   })
   async getQuality(
     @Param('idOrName') idOrName: string,
-    @Query() options: SchemaOptionsDto,
+    @Query() query: SchemaOptionsDto,
   ): Promise<Quality> {
+    const options: SchemaLookupOptions = {
+      time: query.time,
+    };
+
     if (Number.isInteger(Number(idOrName))) {
-      return this.schemaService.getQualityById(idOrName, options.time);
+      return this.schemaService.getQualityById(idOrName, options);
     } else {
-      return this.schemaService.getQualityByName(idOrName, options.time);
+      return this.schemaService.getQualityByName(idOrName, options);
     }
   }
 
@@ -282,12 +283,16 @@ export class SchemaController {
   })
   async getEffect(
     @Param('idOrName') idOrName: string,
-    @Query() options: SchemaOptionsDto,
+    @Query() query: SchemaOptionsDto,
   ): Promise<AttachedParticle> {
+    const options: SchemaLookupOptions = {
+      time: query.time,
+    };
+
     if (Number.isInteger(Number(idOrName))) {
-      return this.schemaService.getEffectById(idOrName, options.time);
+      return this.schemaService.getEffectById(idOrName, options);
     } else {
-      return this.schemaService.getEffectByName(idOrName, options.time);
+      return this.schemaService.getEffectByName(idOrName, options);
     }
   }
 
@@ -307,12 +312,16 @@ export class SchemaController {
   })
   async getPaintkit(
     @Param('idOrName') idOrName: string,
-    @Query() options: SchemaOptionsDto,
+    @Query() query: SchemaOptionsDto,
   ): Promise<PaintKit> {
+    const options: SchemaLookupOptions = {
+      time: query.time,
+    };
+
     if (Number.isInteger(Number(idOrName))) {
-      return this.schemaService.getPaintKitById(idOrName, options.time);
+      return this.schemaService.getPaintKitById(idOrName, options);
     } else {
-      return this.schemaService.getPaintKitByName(idOrName, options.time);
+      return this.schemaService.getPaintKitByName(idOrName, options);
     }
   }
 
@@ -322,22 +331,36 @@ export class SchemaController {
     description: 'Returns a spell',
   })
   @ApiParam({
-    name: 'idOrName',
-    description: 'The id or name of the spell',
-    example: 'Exorcism',
+    name: 'attributeOrName',
+    description:
+      'The attribute defindex + attribute value, or name of the spell',
+    examples: {
+      attribute: {
+        description: 'The attribute defindex + attribute value of a spell',
+        value: '1009_1',
+      },
+      name: {
+        description: 'The name of a spell',
+        value: 'Exorcism',
+      },
+    },
   })
   @ApiQuerySchemaTime()
   @ApiResponse({
     type: SpellModel,
   })
   getSpell(
-    @Param('idOrName') idOrName: string,
-    @Query() options: SchemaOptionsDto,
+    @Param('attributeOrName') attributeOrName: string,
+    @Query() query: SchemaOptionsDto,
   ): Promise<Spell> {
-    if (Number.isInteger(Number(idOrName))) {
-      return this.schemaService.getSpellById(idOrName, options.time);
+    const options: SchemaLookupOptions = {
+      time: query.time,
+    };
+
+    if (/^\d+_\d+$/.test(attributeOrName)) {
+      return this.schemaService.getSpellByAttribute(attributeOrName, options);
     } else {
-      return this.schemaService.getSpellByName(idOrName, options.time);
+      return this.schemaService.getSpellByName(attributeOrName, options);
     }
   }
 
@@ -357,17 +380,18 @@ export class SchemaController {
   })
   getStrangePart(
     @Param('idOrName') idOrName: string,
-    @Query() options: SchemaOptionsDto,
+    @Query() query: SchemaOptionsDto,
   ): Promise<StrangePart> {
+    const options: SchemaLookupOptions = {
+      time: query.time,
+    };
+
     if (Number.isInteger(Number(idOrName))) {
-      return this.schemaService.getStrangePartByScoreType(
-        idOrName,
-        options.time,
-      );
+      return this.schemaService.getStrangePartByScoreType(idOrName, options);
     } else {
       return this.schemaService.getStrangePartByScoreTypeName(
         idOrName,
-        options.time,
+        options,
       );
     }
   }
@@ -390,9 +414,8 @@ export class SchemaController {
     @Param('color') color: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<Paint> {
-    return this.schemaService.getPaintByColor(
-      color.toLowerCase(),
-      options.time,
-    );
+    return this.schemaService.getPaintByColor(color.toLowerCase(), {
+      time: options.time,
+    });
   }
 }

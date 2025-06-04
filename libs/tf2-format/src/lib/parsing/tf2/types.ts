@@ -1,4 +1,4 @@
-import { RecipeInput } from '../../types';
+import { RecipeInput, Spell } from '../../types';
 
 export interface TF2Item {
   attribute: Attribute[];
@@ -48,11 +48,7 @@ export interface Attributes {
   killstreak: number;
   sheen: number | null;
   killstreaker: number | null;
-  /**
-   * Either the defindex of the spell, or an array with the defindex and value
-   * of the attribute.
-   */
-  spells: (number | [number, number])[];
+  spells: Spell[];
   parts: number[];
   paintkit: number | null;
   inputs: RecipeInput[] | null;
@@ -80,11 +76,7 @@ export interface ExtractedTF2Item {
   killstreak: number;
   sheen: number | null;
   killstreaker: number | null;
-  /**
-   * Either the defindex of the spell, or an array with the defindex and value
-   * of the attribute.
-   */
-  spells: (number | [number, number])[];
+  spells: Spell[];
   parts: number[];
   paintkit: number | null;
   quantity: number;

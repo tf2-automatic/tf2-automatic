@@ -60,3 +60,14 @@ export interface SchemaOverviewResponse {
   kill_eater_score_types: KillEaterScoreType[];
   string_lookups: unknown;
 }
+
+export interface TempSpell {
+  defindexes: number[];
+  attribute: number;
+  value: number;
+}
+
+export interface SchemaLookupOptions {
+  time?: number;
+  useClosestSchema?: boolean;
+}

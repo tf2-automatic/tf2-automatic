@@ -2,6 +2,7 @@ import {
   ItemsGameItem,
   NumberOrNull,
   SchemaItem,
+  Spell,
   UndefinedOrError,
   UndefinedOrNull,
 } from './types';
@@ -52,8 +53,8 @@ export interface TextureByName {
 }
 
 export interface SpellByName {
-  getSpellByName(name: string): UndefinedOrError<number>;
-  fetchSpellByName(name: string): Promise<number>;
+  getSpellByName(name: string): UndefinedOrError<Spell>;
+  fetchSpellByName(name: string): Promise<Spell>;
 }
 
 export interface StrangePartByScoreType {
@@ -69,11 +70,6 @@ export interface SheenByName {
 export interface KillstreakerByName {
   getKillstreakerByName(name: string): UndefinedOrError<number>;
   fetchKillstreakerByName(name: string): Promise<number>;
-}
-
-export interface SpellById {
-  getSpellById(defindex: number, id: number): UndefinedOrError<number>;
-  fetchSpellById(defindex: number, id: number): Promise<number>;
 }
 
 export interface PaintByColor {
@@ -102,8 +98,10 @@ export type EconParserSchema = ItemsGameItemByDefindex &
   KillstreakerByName;
 
 export type TF2ParserSchema = ItemsGameItemByDefindex &
-  SpellById &
   PaintByColor &
   StrangePartById;
 
-export type BptfParserSchema = DefindexByName & QualityByName & SpellByName;
+export type BptfParserSchema = DefindexByName &
+  QualityByName &
+  SpellByName &
+  SchemaItemByDefindex;

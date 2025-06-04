@@ -50,13 +50,15 @@ export interface RecipeInput {
  */
 export interface ExtraItemAttributes {
   paint: NumberOrNull;
-  spells: number[];
+  spells: Spell[];
   parts: number[];
   sheen: NumberOrNull;
   killstreaker: NumberOrNull;
   inputs: RecipeInput[] | null;
   quantity: number;
 }
+
+export type Spell = [defindex: number, value: number];
 
 type RequiredKeys<T extends keyof U, U> = {
   [K in T]-?: K extends keyof U ? U[K] : never; // Required keys
@@ -87,6 +89,7 @@ export interface SchemaItem {
   item_name: string;
   proper_name: boolean;
   item_quality: number;
+  used_by_classes?: string[];
 }
 
 export type UndefinedOrError<T> = T | undefined | Error;

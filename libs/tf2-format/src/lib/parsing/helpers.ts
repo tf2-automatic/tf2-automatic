@@ -1,5 +1,5 @@
 import { DefindexByName, QualityByName, SpellByName } from '../schemas';
-import { RecipeInput, NumberOrNull } from '../types';
+import { RecipeInput, NumberOrNull, Spell } from '../types';
 import { KILLSTREAK_NAMES_TO_TIERS } from '../common';
 import { ExtractedRecipeInput } from './econ/types';
 
@@ -28,8 +28,8 @@ export function fetchInputByName(name: string, schema: DefindexByName) {
 export async function getSpellByName(
   extractedSpells: string[],
   schema: SpellByName,
-): Promise<number[]> {
-  const spells: number[] = [];
+): Promise<Spell[]> {
+  const spells: Spell[] = [];
   for (const spell of extractedSpells) {
     const cached = schema.getSpellByName(spell);
     if (cached instanceof Error) {
