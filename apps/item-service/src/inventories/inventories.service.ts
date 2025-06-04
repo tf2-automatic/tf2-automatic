@@ -541,7 +541,7 @@ export class InventoriesService
     items: TF2Item[],
     time?: number,
   ): Promise<InventoryItem[]> {
-    const parser = this.schemaService.getTF2Parser(time);
+    const parser = this.schemaService.getTF2Parser({ time });
 
     const parsed: Promise<InventoryItem>[] = new Array(items.length);
 
@@ -558,7 +558,7 @@ export class InventoriesService
     items: EconItem[],
     time?: number,
   ): Promise<InventoryItem[]> {
-    const parser = this.schemaService.getEconParser(time);
+    const parser = this.schemaService.getEconParser({ time });
 
     const parsed: Promise<InventoryItem>[] = new Array(items.length);
 

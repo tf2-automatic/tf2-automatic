@@ -98,8 +98,8 @@ export const SPELLS = {
 };
 
 const schema: TF2ParserSchema = {
-  getItemByDefindex: (defindex) => cache.get('item:' + defindex),
-  fetchItemByDefindex: (defindex) => itemLoader.load(defindex),
+  getItemsGameItemByDefindex: (defindex) => cache.get('item:' + defindex),
+  fetchItemsGameItemByDefindex: (defindex) => itemLoader.load(defindex),
   getPaintByColor: (color) => cache.get('paint:' + color),
   fetchPaintByColor: (color) => paintLoader.load(color),
   getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],

@@ -11,8 +11,8 @@ import { EconParser, EconParserSchema, EconItem, ExtractedEconItem, Item } from 
 
 // Define getters for various schema values
 const schema: EconParserSchema = {
-  getItemByDefindex: (defindex) => ({ name: "" }),
-  fetchItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
+  getItemsGameItemByDefindex: (defindex) => ({ name: "" }),
+  fetchItemsGameItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
   getDefindexByName: (name) => 0,
   fetchDefindexByName: (name) => Promise.resolve(0),
   getQualityByName: (name) => 0,
@@ -74,8 +74,8 @@ const schema: EconParserSchema = {
       throw err;
     })
   },
-  getItemByDefindex: (defindex) => ({ name: "" }),
-  fetchItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
+  getItemsGameItemByDefindex: (defindex) => ({ name: "" }),
+  fetchItemsGameItemByDefindex: (defindex) => Promise.resolve({ name: "" }),
   getDefindexByName: (name) => 0,
   fetchDefindexByName: (name) => Promise.resolve(0),
   getEffectByName: (name) => 0,
@@ -107,7 +107,7 @@ Consistency is important when parsing items. If multiple processes are parsing i
 
 ## Benchmarks
 
-This library has been benchmarked against [node-tf2-item-format](https://github.com/danocmx/node-tf2-item-format) version [5.9.21](https://github.com/danocmx/node-tf2-item-format/releases/tag/v5.9.21) and [node-tf2-backpack](https://github.com/ZeusJunior/node-tf2-backpack) version [1.2.1](https://github.com/ZeusJunior/node-tf2-backpack/releases/tag/v1.2.1). The benchmarks ran on a AMD Ryzen 9 7950x with 2x16GB DDR5-6000 CL30-38-38-96.
+This library has been benchmarked against [node-tf2-item-format](https://github.com/danocmx/node-tf2-item-format) version [5.9.27](https://github.com/danocmx/node-tf2-item-format/releases/tag/v5.9.27) and [node-tf2-backpack](https://github.com/ZeusJunior/node-tf2-backpack) version [1.2.2](https://github.com/ZeusJunior/node-tf2-backpack/releases/tag/v1.2.2). The benchmarks ran on a AMD Ryzen 9 7950x with 4x16GB DDR5-6000 CL30-38-38-96 running Ubuntu 24.04 with kernel 6.11.0.
 
 The benchmark can be found [here](../../../../../benchmarks/tf2-format/).
 
@@ -116,10 +116,10 @@ The benchmark can be found [here](../../../../../benchmarks/tf2-format/).
 The items used for the benchmark was from a high-valued inventory of 3090 items which took up 5.9MB on disk.
 
 ```
-@tf2-automatic/tf2-format (strings) x 67.55 ops/sec ±12.51% (33 runs sampled)
-tf2-item-format (strings) x 5.55 ops/sec ±1.27% (18 runs sampled)
-@tf2-automatic/tf2-format (numbers) x 26.68 ops/sec ±2.77% (48 runs sampled)
-tf2-item-format (numbers) x 2.42 ops/sec ±1.50% (10 runs sampled)
+@tf2-automatic/tf2-format (strings) x 502 ops/sec ±26.18% (20 runs sampled)
+tf2-item-format (strings) x 51.72 ops/sec ±1.47% (68 runs sampled)
+@tf2-automatic/tf2-format (numbers) x 173 ops/sec ±2.86% (67 runs sampled)
+tf2-item-format (numbers) x 30.37 ops/sec ±1.36% (54 runs sampled)
 ```
 
 The string format uses the shallow parsing which only extracts the raw values from the item. The number format uses the schema to convert the raw values into ids.
@@ -129,7 +129,16 @@ The string format uses the shallow parsing which only extracts the raw values fr
 The items used for the benchmark is an inventory of only 184 items which took up 137KB on disk.
 
 ```
-@tf2-automatic/tf2-format (extract) x 36,941 ops/sec ±1.52% (92 runs sampled)
-@tf2-automatic/tf2-format (parse) x 2,941 ops/sec ±3.78% (85 runs sampled)
-tf2-backpack (parse) x 204 ops/sec ±1.44% (87 runs sampled)
+@tf2-automatic/tf2-format (extract) x 36,695 ops/sec ±1.15% (96 runs sampled)
+@tf2-automatic/tf2-format (parse) x 3,332 ops/sec ±3.22% (84 runs sampled)
+tf2-backpack (parse) x 425 ops/sec ±1.34% (90 runs sampled)
+```
+
+### Bptf parser
+
+The items used for the benchmark were retrieved from the backpack.tf websocket server and consists of 1000 random items which took up 925KB on disk.
+
+```
+@tf2-automatic/tf2-format (extract) x 2,385 ops/sec ±0.87% (95 runs sampled)
+@tf2-automatic/tf2-format (parse) x 363 ops/sec ±3.14% (79 runs sampled)
 ```

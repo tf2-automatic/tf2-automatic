@@ -1,10 +1,6 @@
 import { Parser } from '../parser';
-import {
-  EconParserSchema,
-  InventoryItem,
-  NumberOrNull,
-  RecipeInput,
-} from '../../types';
+import { InventoryItem, NumberOrNull, RecipeInput } from '../../types';
+import { EconParserSchema } from '../../schemas';
 import {
   DescriptionAttributes,
   EconItem,
@@ -12,6 +8,8 @@ import {
   ExtractedRecipeInput,
   TagAttributes,
 } from './types';
+import { KILLSTREAK_FABRICATORS, WEAR_NAMES_TO_LEVELS } from '../../common';
+import * as helpers from '../helpers';
 
 const TAGS_OF_INTEREST = new Set<string>([
   'Quality',
@@ -24,26 +22,6 @@ const NON_CRAFTABLE_DESCRIPTIONS = {
   '( Not Usable in Crafting )': true,
   '( Not Tradable, Marketable, or Usable in Crafting )': true,
   '( Not Tradable, Marketable, Usable in Crafting, or Gift Wrappable )': true,
-};
-
-const WEAR = {
-  'Factory New': 1,
-  'Minimal Wear': 2,
-  'Field-Tested': 3,
-  'Well-Worn': 4,
-  'Battle Scarred': 5,
-};
-
-const KILLSTREAK_FABRICATORS = {
-  1: 6527,
-  2: 6523,
-  3: 6526,
-};
-
-const KILLSTREAK_TIERS = {
-  Killstreak: 1,
-  'Specialized Killstreak': 2,
-  'Professional Killstreak': 3,
 };
 
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
@@ -307,9 +285,9 @@ export class EconParser extends Parser<
       }
     }
 
-    let wear = null;
+    let wear: number | null = null;
     if (raw.wear !== null) {
-      wear = WEAR[raw.wear];
+      wear = WEAR_NAMES_TO_LEVELS[raw.wear];
     }
 
     let target: NumberOrNull = null;
@@ -364,21 +342,7 @@ export class EconParser extends Parser<
       }
     }
 
-    const spells: number[] = [];
-    for (const spell of raw.spells) {
-      const cached = this.schema.getSpellByName(spell);
-      if (cached instanceof Error) {
-        throw cached;
-      } else if (cached !== undefined) {
-        spells.push(cached);
-        continue;
-      }
-
-      const fetched = await this.schema.fetchSpellByName(spell);
-      if (fetched) {
-        spells.push(fetched);
-      }
-    }
+    const spells = await helpers.getSpellByName(raw.spells, this.schema);
 
     let paint: NumberOrNull = null;
     if (raw.paint !== null) {
@@ -418,68 +382,10 @@ export class EconParser extends Parser<
       }
     }
 
-    let inputs: RecipeInput[] | null = null;
-    if (raw.inputs !== null) {
-      inputs = [];
-
-      for (const rawInput of raw.inputs) {
-        let name: string | null = rawInput.name;
-        let rawQuality = 'Unique';
-        // Handle strange items for strangifier chemistry sets
-        if (name.startsWith('Strange ') && raw.output === 'Strangifier') {
-          name = name.slice(8);
-          rawQuality = 'Strange';
-        }
-
-        let quality: NumberOrNull = null;
-
-        // Get the quality
-        const cachedQuality = this.schema.getQualityByName(rawQuality);
-        if (cachedQuality === undefined) {
-          quality = await this.schema.fetchQualityByName(rawQuality);
-        } else if (cachedQuality instanceof Error) {
-          throw cachedQuality;
-        } else {
-          quality = cachedQuality;
-        }
-
-        const input: RecipeInput = {
-          quality,
-          amount: rawInput.amount,
-        };
-
-        // Handle killstreak items for killstreak kit fabricators
-        if (name.startsWith('Unique') && name.endsWith(' Killstreak Item')) {
-          const killstreak = name.slice(7, name.length - 5);
-          name = null;
-          input.killstreak = KILLSTREAK_TIERS[killstreak];
-        }
-
-        if (name !== null) {
-          // Get the defindex of the input item
-          let defindex: number | null = null;
-
-          const cached = this.getInputByName(name);
-          if (cached === undefined) {
-            defindex = await this.fetchInputByName(name);
-          } else if (cached instanceof Error) {
-            throw cached;
-          } else {
-            defindex = cached;
-          }
-
-          if (defindex === null) {
-            throw new Error(
-              `Could not find the defindex of the input item "${name}"`,
-            );
-          }
-
-          input.defindex = defindex;
-        }
-
-        inputs.push(input);
-      }
-    }
+    const inputs: RecipeInput[] | null = await helpers.parseInputs(
+      raw.inputs,
+      this.schema,
+    );
 
     const parsed: InventoryItem = {
       assetid: raw.assetid,
@@ -520,9 +426,9 @@ export class EconParser extends Parser<
       return part;
     }
 
-    let item = this.schema.getItemByDefindex(part);
+    let item = this.schema.getItemsGameItemByDefindex(part);
     if (item === undefined) {
-      item = await this.schema.fetchItemByDefindex(part);
+      item = await this.schema.fetchItemsGameItemByDefindex(part);
     } else if (item instanceof Error) {
       throw item;
     }
@@ -539,28 +445,6 @@ export class EconParser extends Parser<
     }
 
     return part;
-  }
-
-  private getInputByName(name: string) {
-    if (name.startsWith('The ')) {
-      const input = this.schema.getDefindexByName(name.slice(4));
-      if (input) {
-        return input;
-      }
-    }
-
-    return this.schema.getDefindexByName(name);
-  }
-
-  private async fetchInputByName(name: string) {
-    if (name.startsWith('The ')) {
-      const input = await this.schema.fetchDefindexByName(name.slice(4));
-      if (input) {
-        return input;
-      }
-    }
-
-    return this.schema.fetchDefindexByName(name);
   }
 
   static getDefindex(item: EconItem): NumberOrNull {
@@ -894,12 +778,12 @@ export class EconParser extends Parser<
               const split = descriptions[i].value.lastIndexOf(' x ');
               const name = descriptions[i].value.slice(0, split);
 
-              const amount = parseInt(
+              const quantity = parseInt(
                 descriptions[i].value.slice(split + 3),
                 10,
               );
 
-              inputs.push({ name, amount });
+              inputs.push({ name, quantity });
               i++;
             }
 

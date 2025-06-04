@@ -190,8 +190,8 @@ export const KILLSTREAKERS = {
 };
 
 const schema: EconParserSchema = {
-  getItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
-  fetchItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
+  getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
+  fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getQualityByName: (name) => cache.get('quality:' + name),
   fetchQualityByName: (name) => qualityLoader.load(name),
   getEffectByName: (name) => cache.get('effect:' + name),

@@ -1,10 +1,6 @@
 import { Parser } from '../parser';
-import {
-  InventoryItem,
-  ItemsGameItem,
-  RecipeInput,
-  TF2ParserSchema,
-} from '../../types';
+import { InventoryItem, ItemsGameItem, RecipeInput } from '../../types';
+import { TF2ParserSchema } from '../../schemas';
 import { Attributes, Context, ExtractedTF2Item, TF2Item } from './types';
 import {
   CAttribute_DynamicRecipeComponent,
@@ -157,14 +153,11 @@ export class TF2Parser extends Parser<
           break;
         case 1004:
         case 1005:
-          attributes.spells.push([attribute.def_index, value.readFloatLE(0)]);
-          break;
         case 1006:
         case 1007:
         case 1008:
         case 1009:
-          // Spells
-          attributes.spells.push(attribute.def_index);
+          attributes.spells.push([attribute.def_index, value.readFloatLE(0)]);
           break;
         case 2000:
         case 2001:
@@ -202,7 +195,7 @@ export class TF2Parser extends Parser<
           if (!isOutput) {
             const input: RecipeInput = {
               quality: 6,
-              amount:
+              quantity:
                 (component.numRequired ?? 0) - (component.numFulfilled ?? 0),
             };
 
@@ -420,9 +413,11 @@ export class TF2Parser extends Parser<
     extracted: ExtractedTF2Item,
     context: Context,
   ): Promise<InventoryItem> {
-    let schemaItem = this.schema.getItemByDefindex(extracted.defindex);
+    let schemaItem = this.schema.getItemsGameItemByDefindex(extracted.defindex);
     if (schemaItem === undefined) {
-      schemaItem = await this.schema.fetchItemByDefindex(extracted.defindex);
+      schemaItem = await this.schema.fetchItemsGameItemByDefindex(
+        extracted.defindex,
+      );
     } else if (schemaItem instanceof Error) {
       throw schemaItem;
     }
@@ -435,26 +430,6 @@ export class TF2Parser extends Parser<
         paint = await this.schema.fetchPaintByColor(hex);
       } else if (paint instanceof Error) {
         throw paint;
-      }
-    }
-
-    const spells: number[] = [];
-    if (extracted.spells.length > 0) {
-      for (let i = 0; i < extracted.spells.length; i++) {
-        const spell = extracted.spells[i];
-
-        if (!Array.isArray(spell)) {
-          spells.push(spell);
-        } else {
-          let match = this.schema.getSpellById(spell[0], spell[1]);
-          if (match instanceof Error) {
-            throw match;
-          } else if (match === undefined) {
-            match = await this.schema.fetchSpellById(spell[0], spell[1]);
-          }
-
-          spells.push(match);
-        }
       }
     }
 
@@ -492,7 +467,7 @@ export class TF2Parser extends Parser<
       crateSeries: extracted.crateSeries,
       paint,
       parts,
-      spells,
+      spells: extracted.spells,
       sheen: extracted.sheen,
       killstreaker: extracted.killstreaker,
       inputs: extracted.inputs,

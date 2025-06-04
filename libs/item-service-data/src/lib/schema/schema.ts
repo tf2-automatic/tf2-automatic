@@ -17,7 +17,7 @@ export const SCHEMA_ITEMS_SEARCH_PATH = SCHEMA_ITEMS_PATH + '/search';
 export const SCHEMA_QUALITY_PATH = '/qualities/:idOrName';
 export const SCHEMA_EFFECT_PATH = '/effects/:idOrName';
 export const SCHEMA_PAINTKIT_PATH = '/paintkits/:idOrName';
-export const SCHEMA_SPELL_PATH = '/spells/:idOrName';
+export const SCHEMA_SPELL_PATH = '/spells/:attributeOrName';
 export const SCHEMA_STRANGE_PART_PATH = '/parts/:idOrName';
 export const SCHEMA_PAINT_PATH = '/paints/:color';
 
@@ -92,6 +92,11 @@ export interface ItemsGameItem {
   used_by_classes?: Record<string, Bool>;
   capabilities?: Record<string, Bool>;
   static_attrs?: Record<string, string>;
+  tool?: {
+    usage?: {
+      attributes?: Record<string, string>;
+    };
+  };
   attributes?: Record<
     string,
     {

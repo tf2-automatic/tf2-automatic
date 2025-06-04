@@ -13,9 +13,9 @@ Individual benchmarks might have additional prerequisites.
 
 ## Item parsers
 
-To run the Econ parser or TF2 parser benchmarks, use the following command `pnpm ts-node <econ/tf2>-parser.ts <item-service-url>` where you replace `<item-service-url>` with the base url to item-service (e.g `http://localhost:3000`).
+To run the Econ, TF2, or Bptf parser benchmarks, use the following command `pnpm ts-node <econ/tf2/bptf>-parser.ts <item-service-url>` where you replace `<item-service-url>` with the base url to item-service (e.g `http://localhost:3000`).
 
-You also need to create a file called `<econ/tf2>-items.json` with the econ or tf2 items for the benchmark.
+You also need to create a file called `<econ/tf2/bptf>-data.json` with the econ or tf2 items for the benchmark.
 
 There are some things to consider with the benchmark:
 
