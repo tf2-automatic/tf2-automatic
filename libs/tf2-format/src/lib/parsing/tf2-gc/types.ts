@@ -1,6 +1,6 @@
 import { RecipeInput, Spell } from '../../types';
 
-export interface TF2Item {
+export interface TF2GCItem {
   attribute: Attribute[];
   equipped_state: EquippedState[];
   id: string;
@@ -14,7 +14,7 @@ export interface TF2Item {
   origin: number;
   custom_name: string | null;
   custom_desc: string | null;
-  interior_item: TF2Item | null;
+  interior_item: TF2GCItem | null;
   in_use: boolean;
   style: number;
   original_id: string | null;
@@ -38,7 +38,6 @@ export interface ValueBytes {
 }
 
 export interface Attributes {
-  elevated: boolean;
   australium: boolean;
   festivized: boolean;
   effect: number | null;
@@ -55,12 +54,13 @@ export interface Attributes {
   output: number | null;
   outputQuality: number | null;
   target: number | null;
+  killEater: boolean;
 }
 
 /**
  * The result of extracting information from an TF2Item
  */
-export interface ExtractedTF2Item {
+export interface ExtractedTF2GCItem {
   assetid: string;
   originalId: string | null;
   level: number;

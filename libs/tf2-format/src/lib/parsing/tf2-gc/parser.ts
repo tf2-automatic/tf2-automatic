@@ -1,7 +1,7 @@
 import { Parser } from '../parser';
 import { InventoryItem, ItemsGameItem, RecipeInput } from '../../types';
 import { TF2ParserSchema } from '../../schemas';
-import { Attributes, Context, ExtractedTF2Item, TF2Item } from './types';
+import { Attributes, Context, ExtractedTF2GCItem, TF2GCItem } from './types';
 import {
   CAttribute_DynamicRecipeComponent,
   DynamicRecipeFlags,
@@ -45,39 +45,39 @@ const recipeComponentType = root.lookupType(
 );
 const ATTRIBUTE_SEPERATOR = '|\x01\x02\x01\x03|\x01\x02\x01\x03|';
 
-export class TF2Parser extends Parser<
+export class TF2GCParser extends Parser<
   TF2ParserSchema,
-  TF2Item,
-  ExtractedTF2Item,
+  TF2GCItem,
+  ExtractedTF2GCItem,
   Context
 > {
-  extract(item: TF2Item) {
-    const [attributes, defindexes] = TF2Parser.getAttributes(item);
+  extract(item: TF2GCItem) {
+    const [attributes, defindexes] = TF2GCParser.getAttributes(item);
 
-    const data: ExtractedTF2Item = {
+    const data: ExtractedTF2GCItem = {
       assetid: item.id,
       originalId: item.original_id,
       defindex: item.def_index,
       quality: item.quality,
       quantity: item.quantity,
       level: item.level,
-      elevated: attributes.elevated,
-      australium: attributes.australium,
-      festivized: attributes.festivized,
-      effect: attributes.effect,
-      wear: attributes.wear,
-      paintkit: attributes.paintkit,
-      primaryPaint: attributes.primaryPaint,
-      secondaryPaint: attributes.secondaryPaint,
-      killstreak: attributes.killstreak,
-      sheen: attributes.sheen,
-      killstreaker: attributes.killstreaker,
-      spells: attributes.spells,
-      parts: attributes.parts,
-      inputs: attributes.inputs,
-      output: attributes.output,
-      outputQuality: attributes.outputQuality,
-      target: attributes.target,
+      elevated: attributes.killEater === true && item.quality !== 11,
+      australium: attributes.australium ?? false,
+      festivized: attributes.festivized ?? false,
+      effect: attributes.effect ?? null,
+      wear: attributes.wear ?? null,
+      paintkit: attributes.paintkit ?? null,
+      primaryPaint: attributes.primaryPaint ?? null,
+      secondaryPaint: attributes.secondaryPaint ?? null,
+      killstreak: attributes.killstreak ?? 0,
+      sheen: attributes.sheen ?? null,
+      killstreaker: attributes.killstreaker ?? null,
+      spells: attributes.spells ?? [],
+      parts: attributes.parts ?? [],
+      inputs: attributes.inputs ?? null,
+      output: attributes.output ?? null,
+      outputQuality: attributes.outputQuality ?? null,
+      target: attributes.target ?? null,
       crateSeries: null,
     };
 
@@ -87,31 +87,17 @@ export class TF2Parser extends Parser<
       attributes: defindexes,
     };
 
-    const result: [ExtractedTF2Item, Context] = [data, context];
+    const result: [ExtractedTF2GCItem, Context] = [data, context];
 
     return result;
   }
 
-  static getAttributes(item: TF2Item): [Attributes, Set<number>] {
-    const attributes: Attributes = {
-      effect: null,
-      primaryPaint: null,
-      secondaryPaint: null,
-      parts: [],
-      spells: [],
-      wear: null,
-      paintkit: null,
-      killstreaker: null,
-      sheen: null,
-      killstreak: 0,
-      australium: false,
-      festivized: false,
-      target: null,
-      inputs: null,
-      output: null,
-      outputQuality: null,
-      elevated: false,
-    };
+  static getAttributes(item: TF2GCItem): [Partial<Attributes>, Set<number>] {
+    const result: Partial<Attributes> = {};
+
+    const parts: number[] = [];
+    const spells: [number, number][] = [];
+    const inputs: RecipeInput[] = [];
 
     const defindexes = new Set<number>();
 
@@ -126,30 +112,28 @@ export class TF2Parser extends Parser<
       switch (attribute.def_index) {
         case 142:
           // Paint color for RED/BLU if universal and RED if team color
-          attributes.primaryPaint = value.readFloatLE(0);
+          result.primaryPaint = value.readFloatLE(0);
           break;
         case 261:
           // Paint color for BLU
-          attributes.secondaryPaint = value.readFloatLE(0);
+          result.secondaryPaint = value.readFloatLE(0);
           break;
         case 214:
         case 294:
         case 494:
-          if (item.quality !== 11) {
-            attributes.elevated = true;
-          }
+          result.killEater = true;
           break;
         case 134:
         case 2041:
-          attributes.effect = value.readFloatLE(0);
+          result.effect = value.readFloatLE(0);
           break;
         case 2053:
-          attributes.festivized = value.readFloatLE(0) > 0;
+          result.festivized = value.readFloatLE(0) > 0;
           break;
         case 380:
         case 382:
         case 384:
-          attributes.parts.push(Math.round(value.readFloatLE(0)));
+          parts.push(Math.round(value.readFloatLE(0)));
           break;
         case 1004:
         case 1005:
@@ -157,7 +141,7 @@ export class TF2Parser extends Parser<
         case 1007:
         case 1008:
         case 1009:
-          attributes.spells.push([attribute.def_index, value.readFloatLE(0)]);
+          spells.push([attribute.def_index, value.readFloatLE(0)]);
           break;
         case 2000:
         case 2001:
@@ -169,10 +153,6 @@ export class TF2Parser extends Parser<
         case 2007:
         case 2008:
         case 2009: {
-          if (attributes.inputs === null) {
-            attributes.inputs = [];
-          }
-
           // Fabricator inputs
           const component = recipeComponentType
             .decode(value)
@@ -220,23 +200,22 @@ export class TF2Parser extends Parser<
               input.killstreak = attribsMap[AttributeTokens['killstreak tier']];
             }
 
-            attributes.inputs.push(input);
+            inputs.push(input);
           } else {
             if (attribsMap[AttributeTokens['tool target item']]) {
-              attributes.target =
-                attribsMap[AttributeTokens['tool target item']];
+              result.target = attribsMap[AttributeTokens['tool target item']];
             }
 
             if (attribsMap[AttributeTokens['killstreak idleeffect']]) {
-              attributes.sheen =
+              result.sheen =
                 attribsMap[AttributeTokens['killstreak idleeffect']];
-              attributes.killstreak = 2;
+              result.killstreak = 2;
             }
 
             if (attribsMap[AttributeTokens['killstreak effect']]) {
-              attributes.killstreaker =
+              result.killstreaker =
                 attribsMap[AttributeTokens['killstreak effect']];
-              attributes.killstreak = 3;
+              result.killstreak = 3;
             }
 
             assert(
@@ -244,32 +223,32 @@ export class TF2Parser extends Parser<
               'itemQuality is undefined',
             );
             assert(component.defIndex !== undefined, 'defIndex is undefined');
-            attributes.outputQuality = component.itemQuality;
-            attributes.output = component.defIndex;
+            result.outputQuality = component.itemQuality;
+            result.output = component.defIndex;
           }
 
           break;
         }
         case 2012:
-          attributes.target = value.readFloatLE(0);
+          result.target = value.readFloatLE(0);
           break;
         case 2013:
-          attributes.killstreaker = value.readFloatLE(0);
+          result.killstreaker = value.readFloatLE(0);
           break;
         case 2014:
-          attributes.sheen = value.readFloatLE(0);
+          result.sheen = value.readFloatLE(0);
           break;
         case 2025:
-          attributes.killstreak = value.readFloatLE(0);
+          result.killstreak = value.readFloatLE(0);
           break;
         case 2027:
-          attributes.australium = value.readFloatLE(0) > 0;
+          result.australium = value.readFloatLE(0) > 0;
           break;
         case 725:
-          attributes.wear = Math.round(value.readFloatLE(0) / 0.2);
+          result.wear = Math.round(value.readFloatLE(0) / 0.2);
           break;
         case 834:
-          attributes.paintkit = value.readUInt32LE(0);
+          result.paintkit = value.readUInt32LE(0);
           break;
         default:
           break;
@@ -278,10 +257,22 @@ export class TF2Parser extends Parser<
 
     const killstreak = KILLSTREAK_FABRICATORS[item.def_index];
     if (killstreak) {
-      attributes.killstreak = killstreak;
+      result.killstreak = killstreak;
     }
 
-    return [attributes, defindexes];
+    if (spells.length > 0) {
+      result.spells = spells;
+    }
+
+    if (parts.length > 0) {
+      result.parts = parts;
+    }
+
+    if (inputs.length > 0) {
+      result.inputs = inputs;
+    }
+
+    return [result, defindexes];
   }
 
   private static isCraftable(
@@ -291,7 +282,7 @@ export class TF2Parser extends Parser<
     // Always craftable
     if (
       context.attributes.has(AttributeTokens['always tradable']) ||
-      TF2Parser.hasAttribute('always tradable', schemaItem)
+      TF2GCParser.hasAttribute('always tradable', schemaItem)
     ) {
       return true;
     }
@@ -299,7 +290,7 @@ export class TF2Parser extends Parser<
     // Never craftable
     if (
       context.attributes.has(AttributeTokens['never craftable']) ||
-      TF2Parser.hasAttribute('never craftable', schemaItem)
+      TF2GCParser.hasAttribute('never craftable', schemaItem)
     ) {
       return false;
     }
@@ -307,7 +298,7 @@ export class TF2Parser extends Parser<
     // Temporary item
     if (
       context.attributes.has(AttributeTokens['expiration date']) ||
-      TF2Parser.hasAttribute('expiration date', schemaItem)
+      TF2GCParser.hasAttribute('expiration date', schemaItem)
     ) {
       return false;
     }
@@ -343,7 +334,7 @@ export class TF2Parser extends Parser<
 
   private static isTradable(
     schemaItem: ItemsGameItem,
-    extracted: ExtractedTF2Item,
+    extracted: ExtractedTF2GCItem,
     context: Context,
   ): boolean {
     if (
@@ -410,7 +401,7 @@ export class TF2Parser extends Parser<
   }
 
   async parse(
-    extracted: ExtractedTF2Item,
+    extracted: ExtractedTF2GCItem,
     context: Context,
   ): Promise<InventoryItem> {
     let schemaItem = this.schema.getItemsGameItemByDefindex(extracted.defindex);
@@ -452,8 +443,8 @@ export class TF2Parser extends Parser<
       assetid: extracted.assetid,
       defindex: extracted.defindex,
       quality: extracted.quality,
-      craftable: TF2Parser.isCraftable(schemaItem, context),
-      tradable: TF2Parser.isTradable(schemaItem, extracted, context),
+      craftable: TF2GCParser.isCraftable(schemaItem, context),
+      tradable: TF2GCParser.isTradable(schemaItem, extracted, context),
       australium: extracted.australium,
       festivized: extracted.festivized,
       effect: extracted.effect,
@@ -478,4 +469,4 @@ export class TF2Parser extends Parser<
   }
 }
 
-export * from './types';
+export { ExtractedTF2GCItem, TF2GCItem } from './types';

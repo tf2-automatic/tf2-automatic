@@ -51,7 +51,7 @@ import {
   EconParserSchema,
   ItemNamingSchema,
   NameGenerator,
-  TF2Parser,
+  TF2GCParser,
   TF2ParserSchema,
 } from '@tf2-automatic/tf2-format';
 import Dataloader from 'dataloader';
@@ -1304,8 +1304,8 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  getTF2Parser(options?: SchemaLookupOptions): TF2Parser {
-    return new TF2Parser(this.getTF2ParserSchema(options));
+  getTF2Parser(options?: SchemaLookupOptions): TF2GCParser {
+    return new TF2GCParser(this.getTF2ParserSchema(options));
   }
 
   private getEconParserSchema(options?: SchemaLookupOptions): EconParserSchema {
