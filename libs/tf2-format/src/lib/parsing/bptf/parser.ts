@@ -60,19 +60,7 @@ export class BptfParser extends Parser<
       }
     }
 
-    const spells: number[] = [];
-    for (const spell of extracted.spells) {
-      const cached = this.schema.getSpellByName(spell);
-      if (cached instanceof Error) {
-        throw cached;
-      } else if (cached !== undefined) {
-        spells.push(cached);
-        continue;
-      }
-
-      const fetched = await this.schema.fetchSpellByName(spell);
-      spells.push(fetched);
-    }
+    const spells = await helpers.getSpellByName(extracted.spells, this.schema);
 
     const inputs: RecipeInput[] | null = await helpers.parseInputs(
       extracted.inputs,

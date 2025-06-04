@@ -11,8 +11,6 @@ describe('TF2Parser', () => {
       const schema: TF2ParserSchema = {
         getItemsGameItemByDefindex: jest.fn(),
         fetchItemsGameItemByDefindex: jest.fn(),
-        getSpellById: jest.fn(),
-        fetchSpellById: jest.fn(),
         getPaintByColor: jest.fn(),
         fetchPaintByColor: jest.fn(),
         getStrangePartById: jest.fn(),
@@ -102,7 +100,7 @@ describe('TF2Parser', () => {
       expect(extracted.assetid).toEqual('15446477485');
       expect(extracted.defindex).toEqual(215);
       expect(extracted.quality).toEqual(6);
-      expect(extracted.spells).toEqual([1009]);
+      expect(extracted.spells).toEqual([[1009, 1]]);
     });
 
     it('will parse festivized items', () => {
@@ -233,8 +231,6 @@ describe('TF2Parser', () => {
       schema = {
         getItemsGameItemByDefindex: jest.fn(),
         fetchItemsGameItemByDefindex: jest.fn(),
-        getSpellById: jest.fn(),
-        fetchSpellById: jest.fn(),
         getPaintByColor: jest.fn(),
         fetchPaintByColor: jest.fn(),
         getStrangePartById: jest.fn(),
@@ -295,39 +291,6 @@ describe('TF2Parser', () => {
       expect(parsed.craftable).toEqual(true);
       expect(parsed.tradable).toEqual(true);
       expect(parsed.paint).toEqual(211);
-    });
-
-    it('will parse exorcism spelled items', async () => {
-      const item = TestData.getExorcismSpelledItem();
-
-      const [extracted, context] = parser.extract(item);
-
-      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
-        name: 'The Degreaser',
-      } satisfies ItemsGameItem);
-
-      const parsed = await parser.parse(extracted, context);
-
-      expect(parsed.spells).toEqual([1009]);
-    });
-
-    it('will parse weird spells', async () => {
-      const item = TestData.getExorcismSpelledItem();
-
-      const [extracted, context] = parser.extract(item);
-
-      extracted.spells = [[1004, 1]];
-
-      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
-        name: 'The Degreaser',
-      } satisfies ItemsGameItem);
-      schema.getSpellById = jest.fn().mockReturnValue(8902);
-
-      const parsed = await parser.parse(extracted, context);
-
-      expect(schema.getSpellById).toHaveBeenCalledWith(1004, 1);
-
-      expect(parsed.spells).toEqual([8902]);
     });
   });
 });

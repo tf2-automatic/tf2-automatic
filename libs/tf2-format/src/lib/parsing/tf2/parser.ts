@@ -153,14 +153,11 @@ export class TF2Parser extends Parser<
           break;
         case 1004:
         case 1005:
-          attributes.spells.push([attribute.def_index, value.readFloatLE(0)]);
-          break;
         case 1006:
         case 1007:
         case 1008:
         case 1009:
-          // Spells
-          attributes.spells.push(attribute.def_index);
+          attributes.spells.push([attribute.def_index, value.readFloatLE(0)]);
           break;
         case 2000:
         case 2001:
@@ -436,26 +433,6 @@ export class TF2Parser extends Parser<
       }
     }
 
-    const spells: number[] = [];
-    if (extracted.spells.length > 0) {
-      for (let i = 0; i < extracted.spells.length; i++) {
-        const spell = extracted.spells[i];
-
-        if (!Array.isArray(spell)) {
-          spells.push(spell);
-        } else {
-          let match = this.schema.getSpellById(spell[0], spell[1]);
-          if (match instanceof Error) {
-            throw match;
-          } else if (match === undefined) {
-            match = await this.schema.fetchSpellById(spell[0], spell[1]);
-          }
-
-          spells.push(match);
-        }
-      }
-    }
-
     const parts: number[] = [];
     if (extracted.parts.length > 0) {
       for (let i = 0; i < extracted.parts.length; i++) {
@@ -490,7 +467,7 @@ export class TF2Parser extends Parser<
       crateSeries: extracted.crateSeries,
       paint,
       parts,
-      spells,
+      spells: extracted.spells,
       sheen: extracted.sheen,
       killstreaker: extracted.killstreaker,
       inputs: extracted.inputs,

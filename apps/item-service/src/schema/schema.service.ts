@@ -1,5 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -13,7 +14,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { FlowProducer, Queue } from 'bullmq';
-import Redis from 'ioredis';
+import Redis, { ChainableCommander } from 'ioredis';
 import { Config, SchemaConfig } from '../common/config/configuration';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -22,6 +23,8 @@ import {
   JobWithTypes as Job,
   SchemaOverviewResponse,
   KillEaterScoreType,
+  TempSpell,
+  SchemaLookupOptions,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -37,6 +40,7 @@ import {
   ItemsGameItem,
   StrangePart,
   Paint,
+  SchemaAttribute,
 } from '@tf2-automatic/item-service-data';
 import { parse as vdf } from 'kvparser';
 import { NestStorageService } from '@tf2-automatic/nestjs-storage';
@@ -53,6 +57,8 @@ import {
 import Dataloader from 'dataloader';
 import assert from 'assert';
 import { CursorPaginationResponse } from '@tf2-automatic/dto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 enum SchemaKeys {
   ITEMS = 'schema:items',
@@ -66,6 +72,7 @@ enum SchemaKeys {
   PAINTKIT_NAME = 'schema:paintkit:name',
   SPELLS_ID = 'schema:spells:id',
   SPELLS_NAME = 'schema:spells:name',
+  SPELLS_TEMP = 'schema:spells:temp',
   // Strange part defindex by kill eater score type
   STRANGE_PART_ID = 'schema:part:id',
   // Kill eater score type by name
@@ -105,21 +112,6 @@ const KILLSTREAKERS = {
   'Hypno-Beam': 2008,
 };
 
-export const SPELLS = {
-  '1004_0': 8901,
-  '1004_1': 8902,
-  '1004_2': 8900,
-  '1004_3': 8903,
-  '1004_4': 8904,
-  '1005_1': 8914,
-  '1005_2': 8920,
-  '1005_8421376': 8915,
-  '1005_3100495': 8916,
-  '1005_5322826': 8917,
-  '1005_13595446': 8918,
-  '1005_8208497': 8919,
-};
-
 @Injectable()
 export class SchemaService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SchemaService.name);
@@ -138,6 +130,7 @@ export class SchemaService implements OnApplicationBootstrap {
     private readonly eventsService: NestEventsService,
     private readonly configService: ConfigService<Config>,
     private readonly storageService: NestStorageService,
+    private readonly httpService: HttpService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -246,9 +239,9 @@ export class SchemaService implements OnApplicationBootstrap {
   private async getValueByField<T>(
     key: SchemaKeys,
     hash: string,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<T> {
-    const matches = await this.getValuesByField<T>(key, [hash], time);
+    const matches = await this.getValuesByField<T>(key, [hash], options);
 
     const result = matches[hash];
     if (!result) {
@@ -258,15 +251,17 @@ export class SchemaService implements OnApplicationBootstrap {
     return result;
   }
 
-  private async getValuesByField<T>(
+  private async getValuesByFieldAndTime<T>(
     key: SchemaKeys,
     fields: readonly string[],
-    time?: number,
+    time: number,
   ): Promise<Record<string, T>> {
-    const schema = await this.getClosestSchemaByTime(time);
+    if (fields.length === 0) {
+      return {};
+    }
 
     const result = await this.redis.hmgetBuffer(
-      this.getKey(key, schema.time),
+      this.getKey(key, time),
       ...fields,
     );
 
@@ -275,37 +270,60 @@ export class SchemaService implements OnApplicationBootstrap {
     for (let i = 0; i < fields.length; i++) {
       const value = result[i];
       if (value !== null) {
-        items[fields[i]] = unpack(value);
+        items[fields[i]] = unpack(value) as T;
       }
     }
 
     return items;
   }
 
+  private async getValuesByField<T>(
+    key: SchemaKeys,
+    fields: readonly string[],
+    options?: SchemaLookupOptions,
+  ): Promise<Record<string, T>> {
+    if (fields.length === 0) {
+      return {};
+    }
+
+    assert(
+      options?.time !== undefined || options?.useClosestSchema !== false,
+      'Either time must be set or useClosestSchema must not be set to false',
+    );
+
+    let time = options?.time;
+    if (options?.useClosestSchema !== false || time === undefined) {
+      const schema = await this.getClosestSchemaByTime(options?.time);
+      time = schema.time;
+    }
+
+    return this.getValuesByFieldAndTime<T>(key, fields, time);
+  }
+
   async getItemByDefindex(
     defindex: string,
     useItemsGame: true,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<ItemsGameItem>;
   async getItemByDefindex(
     defindex: string,
     useItemsGame: false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<SchemaItem>;
   async getItemByDefindex(
     defindex: string,
     useItemsGame?: boolean,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<SchemaItem | ItemsGameItem>;
   async getItemByDefindex(
     defindex: string,
     useItemsGame = false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<SchemaItem | ItemsGameItem> {
     const items = await this.getItemsByDefindexes(
       [defindex],
       useItemsGame,
-      time,
+      options,
     );
 
     const match = items[defindex];
@@ -319,33 +337,93 @@ export class SchemaService implements OnApplicationBootstrap {
   async getItemsByName(
     name: string,
     useItemsGame: true,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<ItemsGameItem[]>;
   async getItemsByName(
     name: string,
     useItemsGame: false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<SchemaItem[]>;
   async getItemsByName(
     name: string,
     useItemsGame: boolean,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<SchemaItem[] | ItemsGameItem[]>;
   async getItemsByName(
     name: string,
     useItemsGame = false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<SchemaItem[] | ItemsGameItem[]> {
-    const defindexes = await this.getValueByField<string[]>(
+    const matches = await this.getItemsByNames([name], useItemsGame, options);
+    return matches[name] ?? [];
+  }
+
+  async getItemsByNames(
+    names: readonly string[],
+    useItemsGame: true,
+    options?: SchemaLookupOptions,
+  ): Promise<Record<string, ItemsGameItem[]>>;
+  async getItemsByNames(
+    names: readonly string[],
+    useItemsGame: false,
+    options?: SchemaLookupOptions,
+  ): Promise<Record<string, SchemaItem[]>>;
+  async getItemsByNames(
+    names: readonly string[],
+    useItemsGame: boolean,
+    options?: SchemaLookupOptions,
+  ): Promise<Record<string, SchemaItem[]> | Record<string, ItemsGameItem[]>>;
+  async getItemsByNames(
+    names: readonly string[],
+    useItemsGame = false,
+    options?: SchemaLookupOptions,
+  ): Promise<Record<string, (SchemaItem | ItemsGameItem)[]>> {
+    const defindexesByName = await this.getValuesByField<string[]>(
       SchemaKeys.ITEMS_NAME,
-      name,
-      time,
-    );
-    const result: SchemaItem[] = Object.values(
-      await this.getItemsByDefindexes(defindexes, useItemsGame, time),
+      names,
+      options,
     );
 
-    result.sort((a, b) => a.defindex - b.defindex);
+    const defindexes = new Set<string>();
+    for (const name in defindexesByName) {
+      const defindexesForName = defindexesByName[name] ?? [];
+      defindexesForName.forEach((defindex) =>
+        defindexes.add(defindex.toString()),
+      );
+    }
+
+    const items = await this.getItemsByDefindexes(
+      Array.from(defindexes.values()),
+      useItemsGame,
+      options,
+    );
+
+    const result:
+      | Record<string, SchemaItem[]>
+      | Record<string, ItemsGameItem[]> = {};
+
+    for (const name of names) {
+      const defindexesForName = defindexesByName[name] ?? [];
+      const resultForName: SchemaItem[] | ItemsGameItem[] = [];
+
+      for (let i = 0; i < defindexesForName.length; i++) {
+        const defindex = defindexesForName[i];
+        const item = items[defindex];
+        if (item) {
+          resultForName.push(item as never);
+        }
+      }
+
+      if (useItemsGame) {
+        (resultForName as ItemsGameItem[]).sort(
+          (a, b) => Number(a.def_index) - Number(b.def_index),
+        );
+      } else {
+        (resultForName as SchemaItem[]).sort((a, b) => a.defindex - b.defindex);
+      }
+
+      result[name] = resultForName;
+    }
 
     return result;
   }
@@ -353,106 +431,149 @@ export class SchemaService implements OnApplicationBootstrap {
   private async getItemsByDefindexes(
     defindexes: string[],
     useItemsGame: true,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<Record<string, ItemsGameItem>>;
   private async getItemsByDefindexes(
     defindexes: string[],
     useItemsGame: false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<Record<string, SchemaItem>>;
   private async getItemsByDefindexes(
     defindexes: string[],
     useItemsGame: boolean,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<Record<string, SchemaItem> | Record<string, ItemsGameItem>>;
   private async getItemsByDefindexes(
     defindexes: string[],
     useItemsGame = false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<Record<string, SchemaItem | ItemsGameItem>> {
-    const schema = await this.getClosestSchemaByTime(time);
-
-    const match = await this.redis.hmgetBuffer(
-      this.getKey(
-        useItemsGame ? SchemaKeys.ITEMS_GAME : SchemaKeys.ITEMS,
-        schema.time,
-      ),
-      ...defindexes,
+    return this.getValuesByField<SchemaItem | ItemsGameItem>(
+      useItemsGame ? SchemaKeys.ITEMS_GAME : SchemaKeys.ITEMS,
+      defindexes,
+      options,
     );
-
-    const items: Record<string, SchemaItem> = {};
-
-    for (let i = 0; i < defindexes.length; i++) {
-      const value = match[i];
-      if (value !== null) {
-        items[defindexes[i]] = unpack(value);
-      }
-    }
-
-    return items;
   }
 
-  async getQualityById(id: string, time?: number): Promise<Quality> {
-    return this.getValueByField(SchemaKeys.QUALITIES_ID, id, time);
+  async getQualityById(
+    id: string,
+    options?: SchemaLookupOptions,
+  ): Promise<Quality> {
+    return this.getValueByField(SchemaKeys.QUALITIES_ID, id, options);
   }
 
-  async getQualityByName(name: string, time?: number): Promise<Quality> {
-    return this.getValueByField(SchemaKeys.QUALITIES_NAME, name, time);
+  async getQualityByName(
+    name: string,
+    options?: SchemaLookupOptions,
+  ): Promise<Quality> {
+    return this.getValueByField(SchemaKeys.QUALITIES_NAME, name, options);
   }
 
-  async getEffectById(id: string, time?: number): Promise<AttachedParticle> {
-    return this.getValueByField(SchemaKeys.EFFECTS_ID, id, time);
+  async getEffectById(
+    id: string,
+    options?: SchemaLookupOptions,
+  ): Promise<AttachedParticle> {
+    return this.getValueByField(SchemaKeys.EFFECTS_ID, id, options);
   }
 
   async getEffectByName(
     name: string,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<AttachedParticle> {
-    return this.getValueByField(SchemaKeys.EFFECTS_NAME, name, time);
+    return this.getValueByField(SchemaKeys.EFFECTS_NAME, name, options);
   }
 
-  async getPaintKitById(id: string, time?: number): Promise<PaintKit> {
-    return this.getValueByField(SchemaKeys.PAINTKIT_ID, id, time);
+  async getPaintKitById(
+    id: string,
+    options?: SchemaLookupOptions,
+  ): Promise<PaintKit> {
+    return this.getValueByField(SchemaKeys.PAINTKIT_ID, id, options);
   }
 
-  async getPaintKitByName(name: string, time?: number): Promise<PaintKit> {
-    return this.getValueByField(SchemaKeys.PAINTKIT_NAME, name, time);
+  async getPaintKitByName(
+    name: string,
+    options?: SchemaLookupOptions,
+  ): Promise<PaintKit> {
+    return this.getValueByField(SchemaKeys.PAINTKIT_NAME, name, options);
   }
 
-  async getSpellById(id: string, time?: number): Promise<Spell> {
-    return this.getValueByField(SchemaKeys.SPELLS_ID, id, time);
+  async getSpellByAttribute(
+    id: string,
+    options?: SchemaLookupOptions,
+  ): Promise<Spell> {
+    return this.getValueByField(SchemaKeys.SPELLS_ID, id, options);
   }
 
-  async getSpellByName(name: string, time?: number): Promise<Spell> {
-    return this.getValueByField(SchemaKeys.SPELLS_NAME, name, time);
+  async getSpellByName(
+    name: string,
+    options?: SchemaLookupOptions,
+  ): Promise<Spell> {
+    return this.getValueByField<Spell>(SchemaKeys.SPELLS_NAME, name, options);
   }
 
   async getStrangePartByScoreType(
     id: string,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<StrangePart> {
-    return this.getValueByField(SchemaKeys.STRANGE_PART_ID, id, time);
+    return this.getValueByField(SchemaKeys.STRANGE_PART_ID, id, options);
   }
 
   async getStrangePartByScoreTypeName(
     name: string,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Promise<StrangePart> {
-    const killEater: KillEaterScoreType = await this.getValueByField(
-      SchemaKeys.KILL_EATER_SCORE_TYPE_NAME,
-      name,
-      time,
-    );
+    const matches = await this.getStrangePartsByScoreTypeName([name], options);
 
-    return this.getValueByField(
-      SchemaKeys.STRANGE_PART_ID,
-      killEater.type.toString(),
-      time,
-    );
+    const result = matches[name];
+    if (result instanceof Error) {
+      throw result;
+    }
+
+    return result;
   }
 
-  async getPaintByColor(color: string, time?: number): Promise<Paint> {
-    return this.getValueByField(SchemaKeys.PAINT_COLOR, color, time);
+  async getStrangePartsByScoreTypeName(
+    names: readonly string[],
+    options?: SchemaLookupOptions,
+  ): Promise<Record<string, StrangePart | Error>> {
+    const killEater = await this.getValuesByField<KillEaterScoreType>(
+      SchemaKeys.KILL_EATER_SCORE_TYPE_NAME,
+      names,
+      options,
+    );
+
+    const parts = await this.getValuesByField<StrangePart>(
+      SchemaKeys.STRANGE_PART_ID,
+      Object.values(killEater).map((part) => part.type.toString()),
+      options,
+    );
+
+    const result: Record<string, StrangePart | Error> = {};
+
+    for (const name of names) {
+      const scoreType = killEater[name];
+      if (!scoreType) {
+        result[name] = new BadRequestException(`Not found`);
+        continue;
+      }
+
+      const part = parts[scoreType.type.toString()];
+      if (!part) {
+        result[name] = new BadRequestException(`Not found`);
+        continue;
+      }
+
+      result[name] = part;
+    }
+
+    return result;
+  }
+
+  async getPaintByColor(
+    color: string,
+    options?: SchemaLookupOptions,
+  ): Promise<Paint> {
+    return this.getValueByField(SchemaKeys.PAINT_COLOR, color, options);
   }
 
   async createJobsIfNewUrl(url: string): Promise<void> {
@@ -577,6 +698,91 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
+  private async finishSpells(
+    multi: ChainableCommander,
+    time: number,
+  ): Promise<void> {
+    // Get all temp spells
+    const tempSpells = await this.redis
+      .hvalsBuffer(this.getKey(SchemaKeys.SPELLS_TEMP, time))
+      .then((values) => values.map((value) => unpack(value) as TempSpell));
+
+    const options: SchemaLookupOptions = {
+      time,
+      // We want to use the exact time because the schema is not yet created
+      useClosestSchema: false,
+    };
+
+    // Get attributes by their defindex
+    const attributes = await this.getSchemaOverviewUrl(options)
+      .then((url) => {
+        return firstValueFrom(
+          this.httpService.get<SchemaOverviewResponse>(url),
+        );
+      })
+      .then((response) => {
+        const attributes = response.data.attributes;
+        const attributesByDefindex: Record<number, SchemaAttribute> = {};
+        for (const attribute of attributes) {
+          attributesByDefindex[attribute.defindex] = attribute;
+        }
+        return attributesByDefindex;
+      });
+
+    const spellsByName: Record<string, Buffer> = {};
+    const spellsByAttribute: Record<string, Buffer> = {};
+
+    // Create list of spells based on the temp spells and the matching items
+    for (const tempSpell of tempSpells) {
+      const attribute = attributes[tempSpell.attribute];
+      if (!attribute) {
+        // This should not happen
+        this.logger.warn(
+          `Spell attribute with defindex ${tempSpell.attribute} not found?`,
+        );
+        continue;
+      }
+
+      let name = '';
+
+      if (
+        attribute.description_format === 'value_is_from_lookup_table' &&
+        tempSpell.defindexes.length > 0
+      ) {
+        // Get name from defindexes (I am lazy and just do it one at a time...)
+        const item = await this.getItemByDefindex(
+          tempSpell.defindexes[0].toString(),
+          false,
+          options,
+        );
+        // Remove "Halloween Spell: "
+        name = item.item_name.slice(17);
+      } else if (
+        attribute.description_format === 'value_is_additive' &&
+        attribute.description_string
+      ) {
+        // Should be defined, but we check it anyway
+        name = attribute.description_string;
+      }
+
+      const spell: Spell = {
+        defindexes: tempSpell.defindexes,
+        name,
+        attribute: tempSpell.attribute,
+        value: tempSpell.value,
+      };
+
+      const packed = pack(spell);
+      spellsByName[spell.name] = packed;
+      spellsByAttribute[spell.attribute + '_' + spell.value] = packed;
+    }
+
+    multi
+      .hmset(this.getKey(SchemaKeys.SPELLS_NAME, time), spellsByName)
+      .hmset(this.getKey(SchemaKeys.SPELLS_ID, time), spellsByAttribute)
+      .del(this.getKey(SchemaKeys.SPELLS_TEMP, time));
+  }
+
   /**
    * This method is called when all schema jobs have finished
    * @param job
@@ -593,6 +799,8 @@ export class SchemaService implements OnApplicationBootstrap {
     const multi = this.redis
       .multi()
       .hset(SCHEMAS_KEY, current.time, pack(current));
+
+    await this.finishSpells(multi, current.time);
 
     const newest = await this.getSchemaOrNull();
     if (!newest || newest.time <= current.time) {
@@ -667,27 +875,6 @@ export class SchemaService implements OnApplicationBootstrap {
       effectsById[effect.id.toString()] = packed;
     }
 
-    const spellsByName: Record<string, Buffer> = {};
-    const spellsById: Record<string, Buffer> = {};
-
-    for (const attribute of result.attributes) {
-      if (
-        attribute.name.startsWith('SPELL: ') &&
-        attribute.description_format !== 'value_is_from_lookup_table' &&
-        attribute.description_string !== undefined
-      ) {
-        const spell = {
-          id: attribute.defindex,
-          name: attribute.description_string,
-        };
-
-        const packed = pack(spell);
-
-        spellsByName[spell.name] = packed;
-        spellsById[spell.id.toString()] = packed;
-      }
-    }
-
     const scoreTypesByName: Record<string, Buffer> = {};
 
     for (const attribute of result.kill_eater_score_types) {
@@ -706,8 +893,6 @@ export class SchemaService implements OnApplicationBootstrap {
       .hmset(this.getKey(SchemaKeys.QUALITIES_ID, time), qualitiesById)
       .hmset(this.getKey(SchemaKeys.EFFECTS_NAME, time), effectsByName)
       .hmset(this.getKey(SchemaKeys.EFFECTS_ID, time), effectsById)
-      .hmset(this.getKey(SchemaKeys.SPELLS_NAME, time), spellsByName)
-      .hmset(this.getKey(SchemaKeys.SPELLS_ID, time), spellsById)
       .hmset(
         this.getKey(SchemaKeys.KILL_EATER_SCORE_TYPE_NAME, time),
         scoreTypesByName,
@@ -726,8 +911,6 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const strangePartByScoreType: Record<string, Buffer> = {};
     const paintByColor: Record<string, Buffer> = {};
-    const spellsByName: Record<string, Buffer> = {};
-    const spellsById: Record<string, Buffer> = {};
 
     for (const item of result.items) {
       const defindex = item.defindex;
@@ -787,19 +970,6 @@ export class SchemaService implements OnApplicationBootstrap {
           }
         }
       }
-
-      if (
-        item.item_type_name === 'TF_SpellTool' &&
-        item.item_name.startsWith('Halloween Spell: ')
-      ) {
-        const spell = {
-          id: item.defindex,
-          name: item.item_name.slice(17),
-        };
-
-        spellsByName[spell.name] = pack(spell);
-        spellsById[spell.id.toString()] = pack(spell);
-      }
     }
 
     // Save the schema items
@@ -819,36 +989,6 @@ export class SchemaService implements OnApplicationBootstrap {
         this.getKey(SchemaKeys.PAINT_COLOR, job.data.time),
         paintByColor,
       );
-    }
-
-    // Only save spells that are not already in the schema
-
-    const spellsByNameKeys = Object.keys(spellsByName);
-    if (spellsByNameKeys.length > 0) {
-      const existing = await this.redis.hmgetBuffer(
-        this.getKey(SchemaKeys.SPELLS_NAME, job.data.time),
-        ...spellsByNameKeys,
-      );
-
-      for (let i = 0; i < spellsByNameKeys.length; i++) {
-        const key = spellsByNameKeys[i];
-        const previous = existing[i];
-        if (previous) {
-          delete spellsByName[key];
-        }
-      }
-
-      if (Object.keys(spellsByName).length > 0) {
-        multi.hmset(
-          this.getKey(SchemaKeys.SPELLS_NAME, job.data.time),
-          spellsByName,
-        );
-      }
-    }
-
-    // We (probably) don't need to check for existing spells by id here... right?
-    if (Object.keys(spellsById).length > 0) {
-      multi.hmset(this.getKey(SchemaKeys.SPELLS_ID, job.data.time), spellsById);
     }
 
     const keys = Object.keys(nameToDefindex);
@@ -949,6 +1089,23 @@ export class SchemaService implements OnApplicationBootstrap {
       string,
       Partial<ItemsGameItem>
     >;
+    const attributes = parsed.items_game.attributes as Record<
+      string,
+      {
+        name: string;
+      }
+    >;
+
+    const attributeByName: Record<string, number> = {};
+    for (const defindexString in attributes) {
+      const defindex = parseInt(defindexString, 10);
+      if (isNaN(defindex)) {
+        continue;
+      }
+
+      const attribute = attributes[defindexString];
+      attributeByName[attribute.name] = defindex;
+    }
 
     const chunkSize = 100;
 
@@ -957,21 +1114,58 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const key = this.getKey(SchemaKeys.ITEMS_GAME, job.data.time);
 
+    const spellsByAttributeKey: Record<string, TempSpell> = {};
+
     while (index < keys.length) {
       const chunk: Record<string, Buffer> = {};
 
       for (let i = index; i < Math.min(index + chunkSize, keys.length); i++) {
-        const defindex = keys[i];
-        const element = items[defindex];
+        const defindexString = keys[i];
+        const defindex = parseInt(defindexString, 10);
+        if (isNaN(defindex)) {
+          continue;
+        }
+
+        const element = items[defindexString];
 
         const item: Partial<ItemsGameItem> = {};
 
         mergeDefinitionPrefab(item, element, prefabs);
 
-        item.def_index = defindex;
+        item.def_index = defindexString;
         delete item.prefab;
 
         chunk[defindex] = pack(item);
+
+        if (
+          item.name?.startsWith('Halloween Spell: ') &&
+          item?.tool?.usage?.attributes !== undefined
+        ) {
+          // Look for attributes starting with "SPELL: "
+          for (const name in item.tool.usage.attributes) {
+            if (!name.startsWith('SPELL: ')) {
+              continue;
+            }
+
+            const attributeValue = parseInt(item.tool.usage.attributes[name]);
+            if (isNaN(attributeValue)) {
+              continue;
+            }
+
+            const key = attributeByName[name] + '_' + attributeValue;
+
+            let existing = spellsByAttributeKey[key];
+            if (!existing) {
+              existing = spellsByAttributeKey[key] = {
+                defindexes: [],
+                attribute: attributeByName[name],
+                value: attributeValue,
+              };
+            }
+            existing.defindexes.push(defindex);
+            break;
+          }
+        }
       }
 
       await this.redis.hmset(key, chunk);
@@ -980,6 +1174,19 @@ export class SchemaService implements OnApplicationBootstrap {
 
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
+
+    const multi = this.redis.multi();
+
+    if (Object.keys(spellsByAttributeKey).length > 0) {
+      const save: Record<string, Buffer> = {};
+      for (const key in spellsByAttributeKey) {
+        save[key] = pack(spellsByAttributeKey[key]);
+      }
+
+      multi.hmset(this.getKey(SchemaKeys.SPELLS_TEMP, job.data.time), save);
+    }
+
+    await multi.exec();
   }
 
   private async saveSchemaOverviewFile(
@@ -1019,13 +1226,6 @@ export class SchemaService implements OnApplicationBootstrap {
     return schemas[schemas.length - 1];
   }
 
-  async getSchemaOverviewUrlByTime(time?: number): Promise<string> {
-    const schema = await this.getClosestSchemaByTime(time);
-    const engine = this.storageService.getEngine() as S3StorageEngine;
-    const path = this.storageService.getPath(schema.time + '.' + OVERVIEW_FILE);
-    return engine.getSignedUrl(path);
-  }
-
   private async saveSchemaItemsGameFile(
     result: string,
     time: number,
@@ -1033,12 +1233,31 @@ export class SchemaService implements OnApplicationBootstrap {
     await this.storageService.write(time + '.' + ITEMS_GAME_FILE, result);
   }
 
-  async getSchemaItemsGameUrlByTime(time?: number): Promise<string> {
-    const schema = await this.getClosestSchemaByTime(time);
-    const engine = this.storageService.getEngine() as S3StorageEngine;
-    const path = this.storageService.getPath(
-      schema.time + '.' + ITEMS_GAME_FILE,
+  async getSchemaOverviewUrl(options?: SchemaLookupOptions): Promise<string> {
+    return this.getSignedUrl(OVERVIEW_FILE, options);
+  }
+
+  async getSchemaItemsGameUrl(options?: SchemaLookupOptions): Promise<string> {
+    return this.getSignedUrl(ITEMS_GAME_FILE, options);
+  }
+
+  private async getSignedUrl(
+    file: string,
+    options?: SchemaLookupOptions,
+  ): Promise<string> {
+    assert(
+      options?.time !== undefined || options?.useClosestSchema !== false,
+      'Either time must be set or useClosestSchema must not be set to false',
     );
+
+    let time = options?.time;
+    if (options?.useClosestSchema !== false || time === undefined) {
+      const schema = await this.getClosestSchemaByTime(options?.time);
+      time = schema.time;
+    }
+
+    const engine = this.storageService.getEngine() as S3StorageEngine;
+    const path = this.storageService.getPath(time + '.' + file);
     return engine.getSignedUrl(path);
   }
 
@@ -1046,12 +1265,12 @@ export class SchemaService implements OnApplicationBootstrap {
     return prefix + ':' + key.toString();
   }
 
-  private getTF2ParserSchema(time?: number): TF2ParserSchema {
+  private getTF2ParserSchema(options?: SchemaLookupOptions): TF2ParserSchema {
     const itemLoader = new Dataloader<number, ItemsGameItem>(
       async (defindexes) => {
         const strings = defindexes.map((defindex) => defindex.toString());
 
-        const match = await this.getItemsByDefindexes(strings, true, time);
+        const match = await this.getItemsByDefindexes(strings, true, options);
 
         const items = new Array(defindexes.length);
 
@@ -1068,7 +1287,7 @@ export class SchemaService implements OnApplicationBootstrap {
       },
     );
 
-    const paintLoader = this.getPaintLoader(time);
+    const paintLoader = this.getPaintLoader(options);
 
     return {
       getItemsGameItemByDefindex: () => undefined,
@@ -1077,10 +1296,6 @@ export class SchemaService implements OnApplicationBootstrap {
       getPaintByColor: () => undefined,
       fetchPaintByColor: (color: string) =>
         paintLoader.load(color).then((paint) => paint.defindex),
-      getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
-      fetchSpellById: () => {
-        throw new Error('Method not implemented.');
-      },
       getStrangePartById: () => undefined,
       fetchStrangePartById: (id: number) =>
         this.getStrangePartByScoreType(id.toString()).then(
@@ -1089,53 +1304,79 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  getTF2Parser(time?: number): TF2Parser {
-    return new TF2Parser(this.getTF2ParserSchema(time));
+  getTF2Parser(options?: SchemaLookupOptions): TF2Parser {
+    return new TF2Parser(this.getTF2ParserSchema(options));
   }
 
-  private getEconParserSchema(time?: number): EconParserSchema {
-    const itemByDefindexLoader = this.getItemByDefindexLoader(true, time);
+  private getEconParserSchema(options?: SchemaLookupOptions): EconParserSchema {
+    const itemByDefindexLoader = this.getItemByDefindexLoader(true, options);
 
     const itemByNameLoader = new Dataloader<string, number>(
-      async ([name]) => {
-        const items = await this.getItemsByName(name, false, time);
+      async (names) => {
+        const matches = await this.getItemsByNames(names, false, options);
 
-        let match = items[0];
+        const result: (number | Error)[] = new Array(names.length);
 
-        for (let i = 0; i < items.length; i++) {
-          const element = items[i];
-          if (
-            element.name ===
-            'Upgradeable ' + element.item_class.toUpperCase()
-          ) {
-            match = element;
-            break;
+        for (let i = 0; i < names.length; i++) {
+          const name = names[i];
+          const items = matches[name];
+
+          if (items.length === 0) {
+            result[i] = new BadRequestException(
+              `Item with name "${name}" not found`,
+            );
+          }
+
+          let match = items[0];
+
+          for (let i = 0; i < items.length; i++) {
+            const element = items[i];
+            if (
+              element.name ===
+              'Upgradeable ' + element.item_class.toUpperCase()
+            ) {
+              match = element;
+              break;
+            }
+          }
+
+          result[i] = match.defindex;
+        }
+
+        return result;
+      },
+      { batch: true },
+    );
+
+    const qualityLoader = this.getQualityLoader(true, options);
+    const effectLoader = this.getEffectLoader(true, options);
+    const paintkitLoader = this.getPaintkitLoader(true, options);
+    const spellLoader = this.getSpellLoader(true, options);
+
+    const strangePartLoader = new Dataloader<string, number | null>(
+      async (names) => {
+        const matches = await this.getStrangePartsByScoreTypeName(
+          names,
+          options,
+        );
+
+        const result: (number | null)[] = new Array(names.length);
+        for (let i = 0; i < names.length; i++) {
+          const name = names[i];
+
+          const match = matches[name];
+          if (match instanceof BadRequestException) {
+            result[i] = null;
+          } else if (match instanceof Error) {
+            throw match;
+          } else {
+            result[i] = match.defindex;
           }
         }
 
-        return [match.defindex];
+        return result;
       },
-      { batch: false },
-    );
-
-    const qualityLoader = this.getQualityLoader(true, time);
-    const effectLoader = this.getEffectLoader(true, time);
-    const paintkitLoader = this.getPaintkitLoader(true, time);
-    const spellLoader = this.getSpellLoader(true, time);
-
-    const strangePartLoader = new Dataloader<string, number | null>(
-      async ([name]) => {
-        return this.getStrangePartByScoreTypeName(name, time)
-          .then((part) => [part.defindex])
-          .catch((err) => {
-            if (err instanceof NotFoundException) {
-              return [null];
-            }
-
-            throw err;
-          });
-      },
-      { batch: false },
+      { batch: true },
     );
 
     return {
@@ -1165,7 +1406,9 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       getSpellByName: () => undefined,
       fetchSpellByName: async (name: string) => {
-        return spellLoader.load(name).then((spell) => spell.id);
+        return spellLoader
+          .load(name)
+          .then((spell) => [spell.attribute, spell.value]);
       },
       getSheenByName: (name: string) => SHEENS[name],
       fetchSheenByName: () => {
@@ -1178,15 +1421,17 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  getEconParser(time?: number): EconParser {
-    return new EconParser(this.getEconParserSchema(time));
+  getEconParser(options?: SchemaLookupOptions): EconParser {
+    return new EconParser(this.getEconParserSchema(options));
   }
 
-  private getNameGeneratorSchema(time?: number): ItemNamingSchema {
-    const itemByDefindexLoader = this.getItemByDefindexLoader(false, time);
-    const qualityLoader = this.getQualityLoader(false, time);
-    const effectLoader = this.getEffectLoader(false, time);
-    const paintkitLoader = this.getPaintkitLoader(false, time);
+  private getNameGeneratorSchema(
+    options?: SchemaLookupOptions,
+  ): ItemNamingSchema {
+    const itemByDefindexLoader = this.getItemByDefindexLoader(false, options);
+    const qualityLoader = this.getQualityLoader(false, options);
+    const effectLoader = this.getEffectLoader(false, options);
+    const paintkitLoader = this.getPaintkitLoader(false, options);
 
     return {
       getSchemaItemByDefindex: () => undefined,
@@ -1204,25 +1449,28 @@ export class SchemaService implements OnApplicationBootstrap {
     };
   }
 
-  getNameGenerator(time?: number): NameGenerator {
-    return new NameGenerator(this.getNameGeneratorSchema(time));
+  getNameGenerator(options?: SchemaLookupOptions): NameGenerator {
+    return new NameGenerator(this.getNameGeneratorSchema(options));
   }
 
   private getItemByDefindexLoader(
     useItemsGame: true,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Dataloader<number, ItemsGameItem>;
   private getItemByDefindexLoader(
     useItemsGame: false,
-    time?: number,
+    options?: SchemaLookupOptions,
   ): Dataloader<number, SchemaItem>;
-  private getItemByDefindexLoader(useItemsGame: boolean, time?: number) {
+  private getItemByDefindexLoader(
+    useItemsGame: boolean,
+    options?: SchemaLookupOptions,
+  ) {
     return new Dataloader<number, SchemaItem | ItemsGameItem>(
       async (defindexes) => {
         const items = await this.getItemsByDefindexes(
           defindexes.map((defindex) => defindex.toString()),
           useItemsGame,
-          time,
+          options,
         );
 
         const result = new Array(defindexes.length);
@@ -1238,41 +1486,44 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
-  private getQualityLoader(byName: boolean, time?: number) {
+  private getQualityLoader(byName: boolean, options?: SchemaLookupOptions) {
     return this.getLoader<Quality>(
       byName ? SchemaKeys.QUALITIES_NAME : SchemaKeys.QUALITIES_ID,
-      time,
+      options,
     );
   }
 
-  private getEffectLoader(byName: boolean, time?: number) {
+  private getEffectLoader(byName: boolean, options?: SchemaLookupOptions) {
     return this.getLoader<AttachedParticle>(
       byName ? SchemaKeys.EFFECTS_NAME : SchemaKeys.EFFECTS_ID,
-      time,
+      options,
     );
   }
 
-  private getPaintkitLoader(byName: boolean, time?: number) {
+  private getPaintkitLoader(byName: boolean, options?: SchemaLookupOptions) {
     return this.getLoader<PaintKit>(
       byName ? SchemaKeys.PAINTKIT_NAME : SchemaKeys.PAINTKIT_ID,
-      time,
+      options,
     );
   }
 
-  private getPaintLoader(time?: number) {
-    return this.getLoader<Paint>(SchemaKeys.PAINT_COLOR, time);
+  private getPaintLoader(options?: SchemaLookupOptions) {
+    return this.getLoader<Paint>(SchemaKeys.PAINT_COLOR, options);
   }
 
-  private getSpellLoader(byName: boolean, time?: number) {
+  private getSpellLoader(byName: boolean, options?: SchemaLookupOptions) {
     return this.getLoader<Spell>(
       byName ? SchemaKeys.SPELLS_NAME : SchemaKeys.SPELLS_ID,
-      time,
+      options,
     );
   }
 
-  private getLoader<T>(key: SchemaKeys, time?: number): Dataloader<string, T> {
+  private getLoader<T>(
+    key: SchemaKeys,
+    options?: SchemaLookupOptions,
+  ): Dataloader<string, T> {
     return new Dataloader<string, T>(async (fields) => {
-      return this.getValuesByField<T>(key, fields, time).then((values) => {
+      return this.getValuesByField<T>(key, fields, options).then((values) => {
         return fields.map((field) =>
           values[field]
             ? values[field]
