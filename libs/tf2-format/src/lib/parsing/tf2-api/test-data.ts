@@ -585,3 +585,40 @@ export function getProfessionalKillstreakKit() {
     ],
   };
 }
+
+export function getItemWithBuggedWear() {
+  return {
+    id: 6422121129,
+    original_id: 6270791978,
+    defindex: 201,
+    level: 99,
+    quality: 15,
+    inventory: 2147485100,
+    quantity: 1,
+    origin: 28,
+    style: 0,
+    attributes: [
+      {
+        defindex: 211,
+        value: 1513324800,
+        float_value: 12631464457797632,
+      },
+      { defindex: 725, value: 0, float_value: 0 },
+      { defindex: 834, value: 390, float_value: 5.4650640108667866e-43 },
+      {
+        defindex: 866,
+        value: 1975813521,
+        float_value: 4.982418129070686e32,
+      },
+      { defindex: 867, value: 1, float_value: 1.401298464324817e-45 },
+      { defindex: 719, value: 'models/weapons/c_models/stattrack.mdl' },
+      { defindex: 731, value: 1065353216, float_value: 1 },
+      {
+        defindex: 724,
+        value: 1059917398,
+        float_value: 0.6759999990463257,
+      },
+      { defindex: 796, value: '10 0 -10' },
+    ],
+  };
+}

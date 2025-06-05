@@ -1,4 +1,4 @@
-import { RecipeInput, Spell } from '../../types';
+import { ExtractedTF2Item } from '../tf2/types';
 
 export interface TF2GCItem {
   attribute: Attribute[];
@@ -37,55 +37,10 @@ export interface ValueBytes {
   data: number[];
 }
 
-export interface Attributes {
-  australium: boolean;
-  festivized: boolean;
-  effect: number | null;
-  wear: number | null;
-  primaryPaint: number | null;
-  secondaryPaint: number | null;
-  killstreak: number;
-  sheen: number | null;
-  killstreaker: number | null;
-  spells: Spell[];
-  parts: number[];
-  paintkit: number | null;
-  inputs: RecipeInput[] | null;
-  output: number | null;
-  outputQuality: number | null;
-  target: number | null;
-  killEater: boolean;
-}
-
 /**
  * The result of extracting information from an TF2Item
  */
-export interface ExtractedTF2GCItem {
-  assetid: string;
-  originalId: string | null;
-  level: number;
-  defindex: number;
-  quality: number;
-  elevated: boolean;
-  australium: boolean;
-  festivized: boolean;
-  effect: number | null;
-  wear: number | null;
-  primaryPaint: number | null;
-  secondaryPaint: number | null;
-  killstreak: number;
-  sheen: number | null;
-  killstreaker: number | null;
-  spells: Spell[];
-  parts: number[];
-  paintkit: number | null;
-  quantity: number;
-  inputs: RecipeInput[] | null;
-  output: number | null;
-  outputQuality: number | null;
-  target: number | null;
-  crateSeries: number | null;
-}
+export type ExtractedTF2GCItem = ExtractedTF2Item;
 
 export interface Context {
   origin: number;

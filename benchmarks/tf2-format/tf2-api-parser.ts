@@ -1,14 +1,12 @@
 import {
   ItemsGameItem,
-  TF2Parser,
+  TF2APIParser,
   TF2ParserSchema,
 } from '../../dist/libs/tf2-format';
-import { BackpackParser } from 'tf2-backpack';
 import axios from 'axios';
 import DataLoader from 'dataloader';
 import Benchmark from 'benchmark';
 import fs from 'node:fs';
-import { parse } from 'kvparser';
 
 const itemServiceUrl = process.argv[2];
 if (itemServiceUrl === undefined) {
@@ -82,36 +80,18 @@ const partLoader = new DataLoader<number, number | null>(
   },
 );
 
-export const SPELLS = {
-  '1004_0': 8901,
-  '1004_1': 8902,
-  '1004_2': 8900,
-  '1004_3': 8903,
-  '1004_4': 8904,
-  '1005_1': 8914,
-  '1005_2': 8920,
-  '1005_8421376': 8915,
-  '1005_3100495': 8916,
-  '1005_5322826': 8917,
-  '1005_13595446': 8918,
-  '1005_8208497': 8919,
-};
-
 const schema: TF2ParserSchema = {
   getItemsGameItemByDefindex: (defindex) => cache.get('item:' + defindex),
   fetchItemsGameItemByDefindex: (defindex) => itemLoader.load(defindex),
   getPaintByColor: (color) => cache.get('paint:' + color),
   fetchPaintByColor: (color) => paintLoader.load(color),
-  getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
-  fetchSpellById: (defindex, id) =>
-    Promise.resolve(SPELLS[`${defindex}_${id}`]),
   getStrangePartById: (id) => cache.get('part:' + id),
   fetchStrangePartById: (id) => partLoader.load(id),
 };
 
-const tf2FormatParser = new TF2Parser(schema);
+const tf2FormatParser = new TF2APIParser(schema);
 
-const items = JSON.parse(fs.readFileSync('./tf2-data.json', 'utf-8'));
+const items = JSON.parse(fs.readFileSync('./tf2-api-data.json', 'utf-8'));
 
 const suite = new Benchmark.Suite({
   initCount: 1,
@@ -121,8 +101,6 @@ const suite = new Benchmark.Suite({
   const itemsGame = await axios
     .get(itemServiceUrl + '/schema/items_game')
     .then((res) => res.data);
-
-  const tf2BackpackParser = new BackpackParser(parse(itemsGame).items_game);
 
   suite
     .add('@tf2-automatic/tf2-format (extract)', () => {
@@ -141,13 +119,6 @@ const suite = new Benchmark.Suite({
       }
 
       await Promise.all(parsed);
-    })
-    .add('tf2-backpack (parse)', () => {
-      const parsed = new Array(items.length);
-
-      for (let i = 0; i < items.length; i++) {
-        parsed[i] = tf2BackpackParser.parseItem(items[i], false);
-      }
     })
     .on('cycle', async function (event: Benchmark.Event) {
       console.log(String(event.target));

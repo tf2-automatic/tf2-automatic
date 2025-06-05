@@ -3943,3 +3943,1284 @@ export function getStrangeAppliedWarpaint() {
     is_currency: false,
   };
 }
+
+export function getEdgeCasePartsFestivizedSpellsItem() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15571790951',
+    classid: '2652007477',
+    instanceid: '626468036',
+    amount: 1,
+    pos: 1474,
+    id: '15571790951',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEcUxUeXhDnrDRCncblBfeeN-cPl94K6ZFH3jMlwgcsNeaxZDYwcQWbA_BbDvZprArqXSJluJ5hUYPur-xRKlnq4daUO65sbo8Wbc6SlA',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEcUxUeXhDnrDRCncblBfeeN-cPl94K6ZFH3jMlwgcsNeaxZDYwcQWbA_BbDvZprArqXSJluJ5hUYPur-xRKlnq4daUO65sbo8Wbc6SlA',
+    descriptions: [
+      {
+        value: '(Gib Kills: 0)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: 'Festivized',
+        color: 'ffd700',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Pumpkin Bombs (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Exorcism (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Incinerator',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Mean Green',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        type: 'usertext',
+        value: "''이 로켓으로 자랑을 하고다니세요''",
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=205&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D14604646402409028357',
+        name: 'Inspect in Game...',
+      },
+    ],
+    fraudwarnings: [
+      'This item has been renamed.\nOriginal name: "Rocket Launcher"',
+    ],
+    name: "''Golden Blast''",
+    name_color: 'CF6A32',
+    type: 'Strange Rocket Launcher - Kills: 0',
+    market_name:
+      'Strange Festivized Professional Killstreak Australium Rocket Launcher',
+    market_hash_name:
+      'Strange Festivized Professional Killstreak Australium Rocket Launcher',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D14604646402409028357',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'strange',
+        name: 'Strange',
+        category: 'Quality',
+        color: 'CF6A32',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Soldier',
+        name: 'Soldier',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+    ],
+    is_currency: false,
+  };
+}
+
+export function getStrangeUniqueItem() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14591015687',
+    classid: '6002327324',
+    instanceid: '11074451',
+    amount: 1,
+    pos: 166,
+    id: '14591015687',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEIUwIfWAnloQdHmsHoBs2ACfIHnpQwscNXgTQ6lQciZOG3YGQwKlfDAqMKD6NuoQy-WXUz7MVnBNPu871WZ0yx45puAgH_',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEIUwIfWAnloQdHmsHoBs2ACfIHnpQwscNXgTQ6lQciZOG3YGQwKlfDAqMKD6NuoQy-WXUz7MVnBNPu871WZ0yx45puAgH_',
+    descriptions: [
+      {
+        value: 'Sheen: Deadly Daffodil',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value:
+          'Drink to become invulnerable for 8 seconds.  Cannot attack during this time.\nDamage absorbed will slow you when the effect ends.',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=46&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+    ],
+    name: 'Strange Specialized Killstreak Bonk! Atomic Punch',
+    name_color: '7D6D00',
+    type: 'Strange Lunch Box - Food Items Eaten: 321',
+    market_name: 'Strange Specialized Killstreak Bonk! Atomic Punch',
+    market_hash_name: 'Strange Specialized Killstreak Bonk! Atomic Punch',
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'Unique',
+        name: 'Unique',
+        category: 'Quality',
+        color: '7D6D00',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'secondary',
+        name: 'Secondary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Scout',
+        name: 'Scout',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getUnusualWithInvalidEffect() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15714070832',
+    classid: '7055059905',
+    instanceid: '11042094',
+    amount: 1,
+    pos: 1514,
+    id: '15714070832',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEfbRIfSSTgrSpQnMvuCOGYDfI_l9sn4pUb2zdpyFUiN-LgZ29mIF2XBPYLWfdorAntWiJiupEwVoXv9eJQegjp55yGbeexEq8o_Q',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEfbRIfSSTgrSpQnMvuCOGYDfI_l9sn4pUb2zdpyFUiN-LgZ29mIF2XBPYLWfdorAntWiJiupEwVoXv9eJQegjp55yGbeexEq8o_Q',
+    descriptions: [
+      {
+        value: 'Assassin Grade Special Taunt',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '★ Unusual Effect: Invalid Particle',
+        color: 'ffd700',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Community Created All Class Taunt',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'Confidential Collection',
+        name: 'attribute',
+      },
+      {
+        value: '    Batsaber',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Space Hamster Hammy',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '★ Taunt: Burstchester',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    The C.A.P.P.E.R',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Phononaut',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Jupiter Jetpack',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    The Space Diver',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Cadet Visor',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    The Graylien',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    A Head Full of Hot Air',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=30621&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D7904111026013468417',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Unusual Professional Killstreak Taunt: Burstchester',
+    name_color: '8650AC',
+    type: 'Level 71 Special Taunt',
+    market_name: 'Unusual Professional Killstreak Taunt: Burstchester',
+    market_hash_name: 'Unusual Professional Killstreak Taunt: Burstchester',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D7904111026013468417',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'taunt',
+        name: 'Taunt 1',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Scout',
+        name: 'Scout',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Sniper',
+        name: 'Sniper',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Soldier',
+        name: 'Soldier',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Demoman',
+        name: 'Demoman',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Medic',
+        name: 'Medic',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Heavy',
+        name: 'Heavy',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Pyro',
+        name: 'Pyro',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Spy',
+        name: 'Spy',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Engineer',
+        name: 'Engineer',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Rarity_Legendary',
+        name: 'Assassin',
+        category: 'Rarity',
+        color: 'd32ce6',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'Invasion_collection_02',
+        name: 'Confidential Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getStrangeDecoratedWithCollection() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14285369456',
+    classid: '5764928340',
+    instanceid: '5924252202',
+    amount: 1,
+    pos: 3063,
+    id: '14285369456',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffiDz5zdwmTVPAOC8ot8Qn-WGlgv8QxUI6y8utReV_vtdbHYbJ_NNhJS8HSC__SZAv940o5hqMLLpWPvmqxih8KrVWy',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffiDz5zdwmTVPAOC8ot8Qn-WGlgv8QxUI6y8utReV_vtdbHYbJ_NNhJS8HSC__SZAv940o5hqMLLpWPvmqxih8KrVWy',
+    descriptions: [
+      {
+        value: 'Assassin Grade Sniper Rifle (Factory New)',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+        name: 'attribute',
+      },
+      { value: '     Kills: 17', color: '756b5e', name: 'attribute' },
+      {
+        value: '     Damage Dealt: 4138',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Headshot Kills: 11',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Airborne Enemy Kills: 1',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Exorcism (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Incinerator',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Villainous Violet',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      { value: 'Killstreaks Active', color: '7ea9d1', name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      { value: 'Concealed Killer Collection', name: 'attribute' },
+      {
+        value: '    Sand Cannon Rocket Launcher',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Red Rock Roscoe Pistol',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Psychedelic Slugger Revolver',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '✔ Purple Range Sniper Rifle',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Sudden Flurry Stickybomb Launcher',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Night Terror Scattergun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Carpet Bomber Stickybomb Launcher',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Woodland Warrior Rocket Launcher',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Wrapped Reviver Medi Gun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Night Owl Sniper Rifle',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Woodsy Widowmaker SMG',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Backwoods Boomstick Shotgun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    King of the Jungle Minigun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Masked Mender Medi Gun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Forest Fire Flame Thrower',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      { value: '' },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=15007&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D3034826057605004597',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Strange Professional Killstreak Purple Range Sniper Rifle',
+    name_color: 'CF6A32',
+    type: '',
+    market_name:
+      'Strange Professional Killstreak Purple Range Sniper Rifle (Factory New)',
+    market_hash_name:
+      'Strange Professional Killstreak Purple Range Sniper Rifle (Factory New)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D3034826057605004597',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'strange',
+        name: 'Strange',
+        category: 'Quality',
+        color: 'CF6A32',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Sniper',
+        name: 'Sniper',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Rarity_Legendary',
+        name: 'Assassin',
+        category: 'Rarity',
+        color: 'd32ce6',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'concealedkiller_collection',
+        name: 'Concealed Killer Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FactoryNew',
+        name: 'Factory New',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getStrangeDecoratedWithoutCollection() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15721410370',
+    classid: '6692653657',
+    instanceid: '7057198483',
+    amount: 1,
+    pos: 3945,
+    id: '15721410370',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZGBYexDHDPIPCcot8Qn-XWk0v5QxBIfmoOIHcF-6ttOSYuZ4MdAYHciEX_SONA-ouExpgKMJKcGNvmqxikflkVRk',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPffnZGBYexDHDPIPCcot8Qn-XWk0v5QxBIfmoOIHcF-6ttOSYuZ4MdAYHciEX_SONA-ouExpgKMJKcGNvmqxikflkVRk',
+    descriptions: [
+      {
+        value: 'Assassin Grade Flame Thrower (Well-Worn)',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+        name: 'attribute',
+      },
+      { value: '     Kills: 0', color: '756b5e', name: 'attribute' },
+      {
+        value: '     Damage Dealt: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Projectiles Reflected: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Teammates Extinguished: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: 'This weapon holsters 30% faster',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'This weapon deploys 60% faster',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Extinguishing teammates restores 20 health',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      { value: 'Sheen: Team Shine', color: '7ea9d1', name: 'attribute' },
+      { value: 'Killstreaks Active', color: '7ea9d1', name: 'attribute' },
+      {
+        value: '-66% afterburn damage penalty',
+        color: 'd83636',
+        name: 'attribute',
+      },
+      { value: '+25% airblast cost', color: 'd83636', name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      {
+        value: "The Gas Jockey's Gear",
+        color: 'e1e10f',
+        name: 'attribute',
+      },
+      { value: ' ', name: 'attribute' },
+      { value: 'The Degreaser', color: '8b8989', name: 'attribute' },
+      { value: 'The Powerjack', color: '8b8989', name: 'attribute' },
+      { value: 'The Attendant', color: '8b8989', name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      { value: 'Item Set Bonus:', color: 'e1e10f', name: 'attribute' },
+      {
+        value: 'Leave a Calling Card on your victims',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      { value: ' ', name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      { value: 'Winter 2019 Collection', name: 'attribute' },
+      {
+        value: '    Winterland Wrapped War Paint',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '✔ Smissmas Village War Paint',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Smissmas Camo War Paint',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Frost Ornamented War Paint',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Snow Covered War Paint',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: "    Sleighin' Style War Paint",
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Igloo War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Seriously Snowed War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Gift Wrapped War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Alpine War Paint',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      { value: '' },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=215&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D7975004557391005599',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Strange Specialized Killstreak Smissmas Village Degreaser',
+    name_color: 'CF6A32',
+    type: '',
+    market_name:
+      'Strange Specialized Killstreak Smissmas Village Degreaser (Well-Worn)',
+    market_hash_name:
+      'Strange Specialized Killstreak Smissmas Village Degreaser (Well-Worn)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D7975004557391005599',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'strange',
+        name: 'Strange',
+        category: 'Quality',
+        color: 'CF6A32',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Pyro',
+        name: 'Pyro',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_WellWorn',
+        name: 'Well-Worn',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getStrangeDecoratedWithCollectionButNotElevated() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15083685971',
+    classid: '6062710290',
+    instanceid: '75064694',
+    amount: 1,
+    pos: 963,
+    id: '15083685971',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPfftYAhuZgHPUPUPCaUF4w3tG3Z8uJE1BtPv9b1eKAi54IbDM-UqMoxNS8TVDKWObwuvvE04hPIJKsPYoDSvg3qGSebHGA',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPfftYAhuZgHPUPUPCaUF4w3tG3Z8uJE1BtPv9b1eKAi54IbDM-UqMoxNS8TVDKWObwuvvE04hPIJKsPYoDSvg3qGSebHGA',
+    descriptions: [
+      {
+        value: 'Elite Grade Rocket Launcher (Factory New)',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+        name: 'attribute',
+      },
+      { value: '     Kills: 0', color: '756b5e', name: 'attribute' },
+      { value: '     Gib Kills: 0', color: '756b5e', name: 'attribute' },
+      {
+        value: '     Dominations: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Damage Dealt: 895',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Fire Horns',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      { value: 'Sheen: Team Shine', color: '7ea9d1', name: 'attribute' },
+      { value: 'Killstreaks Active', color: '7ea9d1', name: 'attribute' },
+      { type: 'usertext', value: "''「REDACTED」''", name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      { value: ' ', name: 'attribute' },
+      { value: 'Warbird Collection', name: 'attribute' },
+      {
+        value: '    Killer Bee Scattergun',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '✔ Warhawk Rocket Launcher',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Warhawk Grenade Launcher',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Red Bear Shotgun',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Warhawk Flame Thrower',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Butcher Bird Minigun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Airwolf Sniper Rifle',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Stickybomb Launcher',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Corsair Medi Gun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      { value: '    Airwolf Knife', color: '8847ff', name: 'attribute' },
+      {
+        value: '    Blitzkrieg Medi Gun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Pistol',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Revolver',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      { value: '    Blitzkrieg SMG', color: '4b69ff', name: 'attribute' },
+      { value: '    Airwolf Wrench', color: '4b69ff', name: 'attribute' },
+      {
+        value: '    Corsair Scattergun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Butcher Bird Grenade Launcher',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Knife',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      { value: '' },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=15150&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D789702885139600852',
+        name: 'Inspect in Game...',
+      },
+    ],
+    fraudwarnings: [
+      'This item has been renamed.\nOriginal name: "Rocket Launcher"',
+    ],
+    name: "''X-804''",
+    name_color: 'CF6A32',
+    type: '',
+    market_name:
+      'Strange Professional Killstreak Warhawk Rocket Launcher (Factory New)',
+    market_hash_name:
+      'Strange Professional Killstreak Warhawk Rocket Launcher (Factory New)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D789702885139600852',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'strange',
+        name: 'Strange',
+        category: 'Quality',
+        color: 'CF6A32',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Soldier',
+        name: 'Soldier',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Rarity_Ancient',
+        name: 'Elite',
+        category: 'Rarity',
+        color: 'eb4b4b',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'tough_break_case_collection_02',
+        name: 'Warbird Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FactoryNew',
+        name: 'Factory New',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+  };
+}
+
+export function getItemWithHeadshotKillsStrangePart() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '15324188610',
+    classid: '6380331815',
+    instanceid: '237042063',
+    amount: 1,
+    pos: 3925,
+    id: '15324188610',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEcUxQfVAvnqipKjsTjMv6NGucF1Yln48ECjDQ5x1grYuaxMmJiJlDGWfUMDPdv8g3tDyYxvpJgVY7h9OJIOVK4tSW1UdY',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEcUxQfVAvnqipKjsTjMv6NGucF1Yln48ECjDQ5x1grYuaxMmJiJlDGWfUMDPdv8g3tDyYxvpJgVY7h9OJIOVK4tSW1UdY',
+    descriptions: [
+      {
+        value: '(Headshot Kills (only Harvest): 0)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Exorcism (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Deadly Daffodil',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      { value: 'Killstreaks Active', color: '7ea9d1', name: 'attribute' },
+      {
+        type: 'usertext',
+        value: "''The quickest way to put an idea into other people`s heads.''",
+        name: 'attribute',
+      },
+      { value: '' },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=201&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D7261605825228469803',
+        name: 'Inspect in Game...',
+      },
+    ],
+    fraudwarnings: [
+      'This item has been renamed.\nOriginal name: "Sniper Rifle"',
+    ],
+    name: "''SP7 AJ93CE B4R''",
+    name_color: 'CF6A32',
+    type: 'Strange Fresh Sniper Rifle - Kills (only Harvest): 0',
+    market_name: 'Strange Specialized Killstreak Sniper Rifle',
+    market_hash_name: 'Strange Specialized Killstreak Sniper Rifle',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D7261605825228469803',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'strange',
+        name: 'Strange',
+        category: 'Quality',
+        color: 'CF6A32',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'primary',
+        name: 'Primary weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Sniper',
+        name: 'Sniper',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+    ],
+    is_currency: false,
+  };
+}
+
+export function getKillstreakKillstreakKitFabricator() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '11861963069',
+    classid: '1099433962',
+    instanceid: '237183785',
+    amount: 1,
+    pos: 1496,
+    id: '11861963069',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEbfggXWAjxsTdNicTZBvuYN_IBid8K6ZFH3jMlklkiNbfkZjYwcF2aBKIMWqE891roUXBi7MQ2VdPko-NUfFjovYaUNq5sbo_LBg11eA',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEbfggXWAjxsTdNicTZBvuYN_IBid8K6ZFH3jMlklkiNbfkZjYwcF2aBKIMWqE891roUXBi7MQ2VdPko-NUfFjovYaUNq5sbo_LBg11eA',
+    descriptions: [
+      {
+        value: 'Sheen: Manndarin DONT USE THIS',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value:
+          "This item has a set of inputs that, once fulfilled, will\nreward you with what's listed in its outputs.",
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'The following are the inputs that must be fulfilled.',
+        name: 'attribute',
+      },
+      {
+        value: 'Unique Specialized Killstreak Item x 2',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'Battle-Worn Robot KB-808 x 7',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'Battle-Worn Robot Taunt Processor x 9',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'Reinforced Robot Bomb Stabilizer x 5',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'Reinforced Robot Humor Suppression Pump x 1',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'Pristine Robot Brainstorm Bulb x 2',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: 'Pristine Robot Currency Digester x 1',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value:
+          'You will receive all of the following outputs once all of the inputs are fulfilled.',
+        name: 'attribute',
+      },
+      {
+        value: 'Professional Killstreak Bat Kit',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: '(Killstreaker: Tornado, Sheen: Manndarin)',
+        color: '8b8989',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'This is a limited use item. Uses: 1',
+        color: '00a000',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=20003&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+    ],
+    name: 'Specialized Killstreak Professional Killstreak Bat Kit Fabricator',
+    name_color: '7D6D00',
+    type: 'Level 5 Recipe',
+    market_name:
+      'Specialized Killstreak Professional Killstreak Bat Kit Fabricator',
+    market_hash_name:
+      'Specialized Killstreak Professional Killstreak Bat Kit Fabricator',
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'Unique',
+        name: 'Unique',
+        category: 'Quality',
+        color: '7D6D00',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'TF_ItemDynamicRecipeTool',
+        name: 'Recipe',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}

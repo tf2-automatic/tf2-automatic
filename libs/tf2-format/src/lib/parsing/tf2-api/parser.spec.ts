@@ -22,7 +22,7 @@ describe('TF2APIParser', () => {
     it('will parse basic attributes', () => {
       const item = TestData.getBasicItem();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15681438682');
       expect(extracted.originalId).toEqual('11373475188');
@@ -35,7 +35,7 @@ describe('TF2APIParser', () => {
     it('will parse professional killstreak items', () => {
       const item = TestData.getProfessionalKillstreakItem();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15497962225');
       expect(extracted.defindex).toEqual(154);
@@ -48,7 +48,7 @@ describe('TF2APIParser', () => {
     it('will parse killstreak fabricators', () => {
       const item = TestData.getProfessionalKillstreakKitFabricator();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15443117973');
       expect(extracted.defindex).toEqual(20003);
@@ -71,7 +71,7 @@ describe('TF2APIParser', () => {
     it('will parse strangifier chemistry sets', () => {
       const item = TestData.getStrangifierChemistrySet();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15510439400');
       expect(extracted.defindex).toEqual(20005);
@@ -119,7 +119,7 @@ describe('TF2APIParser', () => {
     it('will parse dueling minigames', () => {
       const item = TestData.getDuelingMinigame();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15568852549');
       expect(extracted.defindex).toEqual(241);
@@ -130,7 +130,7 @@ describe('TF2APIParser', () => {
     it('will parse spelled items', () => {
       const item = TestData.getSpelledItem();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('7453028434');
       expect(extracted.defindex).toEqual(44);
@@ -142,7 +142,7 @@ describe('TF2APIParser', () => {
     it('will parse killstreak, strange parts and spells', () => {
       const item = TestData.getProfessionalKillstreakItemWithSpellAndParts();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15795067590');
       expect(extracted.defindex).toEqual(191);
@@ -157,7 +157,7 @@ describe('TF2APIParser', () => {
     it('will parse elevated unusual skin', () => {
       const item = TestData.getElevatedUnusualSkin();
 
-      const extracted = parser.extract(item);
+      const [extracted] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15544141666');
       expect(extracted.defindex).toEqual(15052);
@@ -178,16 +178,24 @@ describe('TF2APIParser', () => {
     it('will parse professional killstreak kit', () => {
       const item = TestData.getProfessionalKillstreakKit();
 
-      const extracted = parser.extract(item);
+      const [extracted, context] = parser.extract(item);
 
       expect(extracted.assetid).toEqual('15080836060');
       expect(extracted.defindex).toEqual(6526);
       expect(extracted.quality).toEqual(6);
-      expect(extracted.craftable).toEqual(false);
+      expect(context.craftable).toEqual(false);
       expect(extracted.killstreak).toEqual(3);
       expect(extracted.sheen).toEqual(1);
       expect(extracted.killstreaker).toEqual(2002);
       expect(extracted.target).toEqual(128);
+    });
+
+    it('will parse items with bugged wear', () => {
+      const item = TestData.getItemWithBuggedWear();
+
+      const [extracted] = parser.extract(item);
+
+      expect(extracted.wear).toEqual(1);
     });
   });
 });

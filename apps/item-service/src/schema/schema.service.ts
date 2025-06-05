@@ -1,6 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
-  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -22,9 +21,10 @@ import {
   GetSchemaItemsResponse,
   JobWithTypes as Job,
   SchemaOverviewResponse,
-  KillEaterScoreType,
   TempSpell,
   SchemaLookupOptions,
+  TempStrangePart,
+  KillEaterScoreType,
 } from './schema.types';
 import { unpack, pack } from 'msgpackr';
 import {
@@ -73,10 +73,10 @@ enum SchemaKeys {
   SPELLS_ID = 'schema:spells:id',
   SPELLS_NAME = 'schema:spells:name',
   SPELLS_TEMP = 'schema:spells:temp',
-  // Strange part defindex by kill eater score type
-  STRANGE_PART_ID = 'schema:part:id',
-  // Kill eater score type by name
-  KILL_EATER_SCORE_TYPE_NAME = 'schema:kill-eater-score-type:name',
+  STRANGE_PART_KILLEATER_ID = 'schema:part:kill-eater:id',
+  STRANGE_PART_KILLEATER_NAME = 'schema:part:kill-eater:name',
+  KILL_EATER_ID_TEMP = 'schema:kill-eater:id:temp',
+  STRANGE_PART_ID_TEMP = 'schema:part:id:temp',
   PAINT_COLOR = 'schema:paint:color',
 }
 
@@ -272,6 +272,21 @@ export class SchemaService implements OnApplicationBootstrap {
       if (value !== null) {
         items[fields[i]] = unpack(value) as T;
       }
+    }
+
+    return items;
+  }
+
+  private async getValuesByTime<T>(
+    key: SchemaKeys,
+    time: number,
+  ): Promise<Record<string, T>> {
+    const result = await this.redis.hgetallBuffer(this.getKey(key, time));
+
+    const items: Record<string, T> = {};
+
+    for (const field in result) {
+      items[field] = unpack(result[field]) as T;
     }
 
     return items;
@@ -515,58 +530,22 @@ export class SchemaService implements OnApplicationBootstrap {
     id: string,
     options?: SchemaLookupOptions,
   ): Promise<StrangePart> {
-    return this.getValueByField(SchemaKeys.STRANGE_PART_ID, id, options);
+    return this.getValueByField(
+      SchemaKeys.STRANGE_PART_KILLEATER_ID,
+      id,
+      options,
+    );
   }
 
   async getStrangePartByScoreTypeName(
     name: string,
     options?: SchemaLookupOptions,
   ): Promise<StrangePart> {
-    const matches = await this.getStrangePartsByScoreTypeName([name], options);
-
-    const result = matches[name];
-    if (result instanceof Error) {
-      throw result;
-    }
-
-    return result;
-  }
-
-  async getStrangePartsByScoreTypeName(
-    names: readonly string[],
-    options?: SchemaLookupOptions,
-  ): Promise<Record<string, StrangePart | Error>> {
-    const killEater = await this.getValuesByField<KillEaterScoreType>(
-      SchemaKeys.KILL_EATER_SCORE_TYPE_NAME,
-      names,
+    return this.getValueByField(
+      SchemaKeys.STRANGE_PART_KILLEATER_NAME,
+      name,
       options,
     );
-
-    const parts = await this.getValuesByField<StrangePart>(
-      SchemaKeys.STRANGE_PART_ID,
-      Object.values(killEater).map((part) => part.type.toString()),
-      options,
-    );
-
-    const result: Record<string, StrangePart | Error> = {};
-
-    for (const name of names) {
-      const scoreType = killEater[name];
-      if (!scoreType) {
-        result[name] = new BadRequestException(`Not found`);
-        continue;
-      }
-
-      const part = parts[scoreType.type.toString()];
-      if (!part) {
-        result[name] = new BadRequestException(`Not found`);
-        continue;
-      }
-
-      result[name] = part;
-    }
-
-    return result;
   }
 
   async getPaintByColor(
@@ -783,6 +762,66 @@ export class SchemaService implements OnApplicationBootstrap {
       .del(this.getKey(SchemaKeys.SPELLS_TEMP, time));
   }
 
+  private async finishStrangeParts(
+    multi: ChainableCommander,
+    time: number,
+  ): Promise<void> {
+    const [tempParts, killEaterScoreTypes] = await Promise.all([
+      this.getValuesByTime<TempStrangePart>(
+        SchemaKeys.STRANGE_PART_ID_TEMP,
+        time,
+      ),
+      this.getValuesByTime<KillEaterScoreType>(
+        SchemaKeys.KILL_EATER_ID_TEMP,
+        time,
+      ),
+    ]);
+
+    const strangePartsById: Record<string, Buffer> = {};
+    const strangePartsByName: Record<string, Buffer> = {};
+
+    for (const id in tempParts) {
+      const tempPart = tempParts[id];
+      const scoreType = killEaterScoreTypes[tempPart.id.toString()];
+      if (!scoreType) {
+        // This should not happen, but we check it anyway
+        this.logger.warn(
+          `Kill eater score type with id ${tempPart.id} not found?`,
+        );
+        continue;
+      }
+
+      const strangePart: StrangePart = {
+        id: tempPart.id,
+        defindex: tempPart.defindex,
+        type: scoreType.type_name,
+      };
+
+      const packed = pack(strangePart);
+
+      strangePartsById[strangePart.id.toString()] = packed;
+      strangePartsByName[strangePart.type] = packed;
+    }
+
+    multi
+      .del(this.getKey(SchemaKeys.STRANGE_PART_ID_TEMP, time))
+      .del(this.getKey(SchemaKeys.KILL_EATER_ID_TEMP, time));
+
+    if (Object.keys(strangePartsById).length > 0) {
+      multi.hmset(
+        this.getKey(SchemaKeys.STRANGE_PART_KILLEATER_ID, time),
+        strangePartsById,
+      );
+    }
+
+    if (Object.keys(strangePartsByName).length > 0) {
+      multi.hmset(
+        this.getKey(SchemaKeys.STRANGE_PART_KILLEATER_NAME, time),
+        strangePartsByName,
+      );
+    }
+  }
+
   /**
    * This method is called when all schema jobs have finished
    * @param job
@@ -800,7 +839,10 @@ export class SchemaService implements OnApplicationBootstrap {
       .multi()
       .hset(SCHEMAS_KEY, current.time, pack(current));
 
-    await this.finishSpells(multi, current.time);
+    await Promise.all([
+      this.finishSpells(multi, current.time),
+      this.finishStrangeParts(multi, current.time),
+    ]);
 
     const newest = await this.getSchemaOrNull();
     if (!newest || newest.time <= current.time) {
@@ -871,15 +913,23 @@ export class SchemaService implements OnApplicationBootstrap {
     for (const effect of result.attribute_controlled_attached_particles) {
       const packed = pack(effect);
 
-      effectsByName[effect.name] = packed;
+      if (
+        effectsByName[effect.name] === undefined ||
+        effect.system.endsWith('teamcolor_red')
+      ) {
+        // Some effects have the same name, but different "system" because they depend on the team
+        // In TF2 the red team is for some reason prioritized, also for paints...
+        effectsByName[effect.name] = packed;
+      }
+
       effectsById[effect.id.toString()] = packed;
     }
 
-    const scoreTypesByName: Record<string, Buffer> = {};
+    const scoreTypesById: Record<string, Buffer> = {};
 
     for (const attribute of result.kill_eater_score_types) {
       const packed = pack(attribute);
-      scoreTypesByName[attribute.type_name] = packed;
+      scoreTypesById[attribute.type.toString()] = packed;
     }
 
     // Wait for the overview to be saved
@@ -893,10 +943,7 @@ export class SchemaService implements OnApplicationBootstrap {
       .hmset(this.getKey(SchemaKeys.QUALITIES_ID, time), qualitiesById)
       .hmset(this.getKey(SchemaKeys.EFFECTS_NAME, time), effectsByName)
       .hmset(this.getKey(SchemaKeys.EFFECTS_ID, time), effectsById)
-      .hmset(
-        this.getKey(SchemaKeys.KILL_EATER_SCORE_TYPE_NAME, time),
-        scoreTypesByName,
-      )
+      .hmset(this.getKey(SchemaKeys.KILL_EATER_ID_TEMP, time), scoreTypesById)
       .exec();
   }
 
@@ -938,7 +985,7 @@ export class SchemaService implements OnApplicationBootstrap {
           strangePartByScoreType[scoreType.value.toString()] = pack({
             id: scoreType.value,
             defindex,
-          } satisfies StrangePart);
+          } satisfies TempStrangePart);
         }
       }
 
@@ -979,7 +1026,7 @@ export class SchemaService implements OnApplicationBootstrap {
 
     if (Object.keys(strangePartByScoreType).length > 0) {
       multi.hmset(
-        this.getKey(SchemaKeys.STRANGE_PART_ID, job.data.time),
+        this.getKey(SchemaKeys.STRANGE_PART_ID_TEMP, job.data.time),
         strangePartByScoreType,
       );
     }
@@ -1322,7 +1369,7 @@ export class SchemaService implements OnApplicationBootstrap {
           const items = matches[name];
 
           if (items.length === 0) {
-            result[i] = new BadRequestException(
+            result[i] = new NotFoundException(
               `Item with name "${name}" not found`,
             );
           }
@@ -1352,32 +1399,7 @@ export class SchemaService implements OnApplicationBootstrap {
     const effectLoader = this.getEffectLoader(true, options);
     const paintkitLoader = this.getPaintkitLoader(true, options);
     const spellLoader = this.getSpellLoader(true, options);
-
-    const strangePartLoader = new Dataloader<string, number | null>(
-      async (names) => {
-        const matches = await this.getStrangePartsByScoreTypeName(
-          names,
-          options,
-        );
-
-        const result: (number | null)[] = new Array(names.length);
-        for (let i = 0; i < names.length; i++) {
-          const name = names[i];
-
-          const match = matches[name];
-          if (match instanceof BadRequestException) {
-            result[i] = null;
-          } else if (match instanceof Error) {
-            throw match;
-          } else {
-            result[i] = match.defindex;
-          }
-        }
-
-        return result;
-      },
-      { batch: true },
-    );
+    const strangePartLoader = this.getStrangePartLoader(true, options);
 
     return {
       getItemsGameItemByDefindex: () => undefined,
@@ -1402,7 +1424,9 @@ export class SchemaService implements OnApplicationBootstrap {
       },
       getStrangePartByScoreType: () => undefined,
       fetchStrangePartByScoreType: async (name: string) => {
-        return strangePartLoader.load(name);
+        return strangePartLoader
+          .load(name)
+          .then((part) => part?.defindex ?? null);
       },
       getSpellByName: () => undefined,
       fetchSpellByName: async (name: string) => {
@@ -1518,18 +1542,41 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
+  private getStrangePartLoader(byName: boolean, options?: SchemaLookupOptions) {
+    return this.getLoader<StrangePart>(
+      byName
+        ? SchemaKeys.STRANGE_PART_KILLEATER_NAME
+        : SchemaKeys.STRANGE_PART_KILLEATER_ID,
+      options,
+      true,
+    );
+  }
+
   private getLoader<T>(
     key: SchemaKeys,
     options?: SchemaLookupOptions,
-  ): Dataloader<string, T> {
-    return new Dataloader<string, T>(async (fields) => {
+    nullable?: false,
+  ): Dataloader<string, T>;
+  private getLoader<T>(
+    key: SchemaKeys,
+    options?: SchemaLookupOptions,
+    nullable?: true,
+  ): Dataloader<string, T | null>;
+  private getLoader<T>(
+    key: SchemaKeys,
+    options?: SchemaLookupOptions,
+    nullable?: boolean,
+  ): Dataloader<string, T | null> {
+    return new Dataloader<string, T | null>(async (fields) => {
       return this.getValuesByField<T>(key, fields, options).then((values) => {
         return fields.map((field) =>
           values[field]
             ? values[field]
-            : new NotFoundException(
-                'Could not find field "' + field + '" for key "' + key + '"',
-              ),
+            : nullable
+              ? null
+              : new NotFoundException(
+                  'Could not find field "' + field + '" for key "' + key + '"',
+                ),
         );
       });
     });

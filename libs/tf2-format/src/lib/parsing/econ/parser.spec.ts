@@ -559,6 +559,52 @@ describe('EconParser', () => {
       expect(extracted.paintkit).toEqual('Kiln and Conquer');
       expect(extracted.elevated).toEqual(false);
     });
+
+    it('will handle weird edge case with parts, festivized, spells', () => {
+      const item = TestData.getEdgeCasePartsFestivizedSpellsItem();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.parts).toEqual(['Gib Kills']);
+      expect(extracted.festivized).toEqual(true);
+      expect(extracted.spells).toEqual(['Pumpkin Bombs', 'Exorcism']);
+    });
+
+    it('will handle strange uniques', () => {
+      const item = TestData.getStrangeUniqueItem();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Unique');
+      expect(extracted.elevated).toEqual(true);
+    });
+
+    it('will handle handle invalid effects', () => {
+      const item = TestData.getUnusualWithInvalidEffect();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.effect).toEqual('Invalid Particle');
+    });
+
+    it('will handle Headshot Kills strange part', () => {
+      const item = TestData.getItemWithHeadshotKillsStrangePart();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.parts).toEqual(['Headshot Kills']);
+    });
+
+    it('will handle killstreak killstreak kit fabricators', () => {
+      const item = TestData.getKillstreakKillstreakKitFabricator();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.killstreak).toEqual(3);
+      expect(extracted.sheen).toEqual('Manndarin');
+      expect(extracted.killstreaker).toEqual('Tornado');
+      expect(extracted.output).toEqual('Kit');
+    });
   });
 
   describe('#parse', () => {
@@ -895,6 +941,66 @@ describe('EconParser', () => {
       expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Normal');
 
       expect(parsed.quality).toEqual(0);
+    });
+
+    it('will handle handle invalid effects', async () => {
+      const item = TestData.getUnusualWithInvalidEffect();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(parsed.effect).toEqual(0);
+    });
+
+    it('will handle strange skin with collection', async () => {
+      const item = TestData.getStrangeDecoratedWithCollection();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Strange');
+
+      expect(parsed.quality).toEqual(-1);
+      expect(parsed.paintkit).toEqual(-1);
+      // TF2 GC says it is decorated elevated strange but I can't figure out why.
+      expect(parsed.elevated).toEqual(false);
+    });
+
+    it('will handle strange skin without collection', async () => {
+      const item = TestData.getStrangeDecoratedWithoutCollection();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Strange');
+
+      expect(parsed.quality).toEqual(-1);
+      expect(parsed.paintkit).toEqual(-1);
+      expect(parsed.elevated).toEqual(false);
+    });
+
+    it('will handle strange skin with collection but not elevated', async () => {
+      const item = TestData.getStrangeDecoratedWithCollectionButNotElevated();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Strange');
+
+      expect(parsed.quality).toEqual(-1);
+      expect(parsed.paintkit).toEqual(-1);
+      expect(parsed.elevated).toEqual(false);
     });
   });
 });

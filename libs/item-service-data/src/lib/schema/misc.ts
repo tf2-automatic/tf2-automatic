@@ -29,6 +29,7 @@ export interface Spell {
 export interface StrangePart {
   id: number;
   defindex: number;
+  type: string;
 }
 
 export interface Paint {
@@ -137,6 +138,11 @@ export class StrangePartModel implements StrangePart {
     example: 6015,
   })
   defindex!: number;
+
+  @ApiProperty({
+    example: 'Kills Under A Full Moon',
+  })
+  type!: string;
 }
 
 export class PaintModel implements Paint {

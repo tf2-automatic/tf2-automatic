@@ -37,7 +37,7 @@ export class NameGenerator {
     if (
       (item.quality === 6 && item.elevated === true) ||
       (item.quality !== 6 && item.quality !== 15 && item.quality !== 5) ||
-      (item.quality === 5 && !item.effect) ||
+      (item.quality === 5 && item.effect === undefined) ||
       schemaItem.item_quality === 5
     ) {
       let quality = this.schema.getQualityById(item.quality);
@@ -51,11 +51,17 @@ export class NameGenerator {
     }
 
     if (typeof item.effect === 'number') {
-      let effect = this.schema.getEffectById(item.effect);
-      if (effect === undefined) {
-        effect = await this.schema.fetchEffectById(item.effect);
-      } else if (effect instanceof Error) {
-        throw effect;
+      let effect: undefined | Error | string = undefined;
+
+      if (item.effect === 0) {
+        effect = 'Invalid Particle';
+      } else {
+        effect = this.schema.getEffectById(item.effect);
+        if (effect === undefined) {
+          effect = await this.schema.fetchEffectById(item.effect);
+        } else if (effect instanceof Error) {
+          throw effect;
+        }
       }
 
       name += effect + ' ';

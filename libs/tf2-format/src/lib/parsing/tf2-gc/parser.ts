@@ -1,7 +1,5 @@
-import { Parser } from '../parser';
 import { InventoryItem, ItemsGameItem, RecipeInput } from '../../types';
-import { TF2ParserSchema } from '../../schemas';
-import { Attributes, Context, ExtractedTF2GCItem, TF2GCItem } from './types';
+import { Context, ExtractedTF2GCItem, TF2GCItem } from './types';
 import {
   CAttribute_DynamicRecipeComponent,
   DynamicRecipeFlags,
@@ -11,6 +9,8 @@ import {
 } from './constants';
 import protobuf from 'protobufjs/light';
 import assert from 'assert';
+import { Attributes } from '../tf2/types';
+import { TF2Parser } from '../tf2/parser';
 
 enum AttributeTokens {
   'cannot trade' = 153,
@@ -45,58 +45,23 @@ const recipeComponentType = root.lookupType(
 );
 const ATTRIBUTE_SEPERATOR = '|\x01\x02\x01\x03|\x01\x02\x01\x03|';
 
-export class TF2GCParser extends Parser<
-  TF2ParserSchema,
-  TF2GCItem,
-  ExtractedTF2GCItem,
-  Context
-> {
-  extract(item: TF2GCItem) {
-    const [attributes, defindexes] = TF2GCParser.getAttributes(item);
+export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
+  extract(item: TF2GCItem): [ExtractedTF2GCItem, Context] {
+    const [attributes, defindexes] = this.getAttributes(item);
 
-    const data: ExtractedTF2GCItem = {
-      assetid: item.id,
-      originalId: item.original_id,
-      defindex: item.def_index,
-      quality: item.quality,
-      quantity: item.quantity,
-      level: item.level,
-      elevated: attributes.killEater === true && item.quality !== 11,
-      australium: attributes.australium ?? false,
-      festivized: attributes.festivized ?? false,
-      effect: attributes.effect ?? null,
-      wear: attributes.wear ?? null,
-      paintkit: attributes.paintkit ?? null,
-      primaryPaint: attributes.primaryPaint ?? null,
-      secondaryPaint: attributes.secondaryPaint ?? null,
-      killstreak: attributes.killstreak ?? 0,
-      sheen: attributes.sheen ?? null,
-      killstreaker: attributes.killstreaker ?? null,
-      spells: attributes.spells ?? [],
-      parts: attributes.parts ?? [],
-      inputs: attributes.inputs ?? null,
-      output: attributes.output ?? null,
-      outputQuality: attributes.outputQuality ?? null,
-      target: attributes.target ?? null,
-      crateSeries: null,
-    };
-
-    const context: Context = {
-      flags: item.flags,
-      origin: item.origin,
-      attributes: defindexes,
-    };
-
-    const result: [ExtractedTF2GCItem, Context] = [data, context];
-
-    return result;
+    return [
+      this.createExtractedItem(item, attributes),
+      {
+        flags: item.flags,
+        origin: item.origin,
+        attributes: defindexes,
+      },
+    ];
   }
 
-  static getAttributes(item: TF2GCItem): [Partial<Attributes>, Set<number>] {
+  private getAttributes(item: TF2GCItem): [Partial<Attributes>, Set<number>] {
     const result: Partial<Attributes> = {};
 
-    const parts: number[] = [];
-    const spells: [number, number][] = [];
     const inputs: RecipeInput[] = [];
 
     const defindexes = new Set<number>();
@@ -110,39 +75,6 @@ export class TF2GCParser extends Parser<
       const value = Buffer.from(attribute.value_bytes as any);
 
       switch (attribute.def_index) {
-        case 142:
-          // Paint color for RED/BLU if universal and RED if team color
-          result.primaryPaint = value.readFloatLE(0);
-          break;
-        case 261:
-          // Paint color for BLU
-          result.secondaryPaint = value.readFloatLE(0);
-          break;
-        case 214:
-        case 294:
-        case 494:
-          result.killEater = true;
-          break;
-        case 134:
-        case 2041:
-          result.effect = value.readFloatLE(0);
-          break;
-        case 2053:
-          result.festivized = value.readFloatLE(0) > 0;
-          break;
-        case 380:
-        case 382:
-        case 384:
-          parts.push(Math.round(value.readFloatLE(0)));
-          break;
-        case 1004:
-        case 1005:
-        case 1006:
-        case 1007:
-        case 1008:
-        case 1009:
-          spells.push([attribute.def_index, value.readFloatLE(0)]);
-          break;
         case 2000:
         case 2001:
         case 2002:
@@ -229,28 +161,8 @@ export class TF2GCParser extends Parser<
 
           break;
         }
-        case 2012:
-          result.target = value.readFloatLE(0);
-          break;
-        case 2013:
-          result.killstreaker = value.readFloatLE(0);
-          break;
-        case 2014:
-          result.sheen = value.readFloatLE(0);
-          break;
-        case 2025:
-          result.killstreak = value.readFloatLE(0);
-          break;
-        case 2027:
-          result.australium = value.readFloatLE(0) > 0;
-          break;
-        case 725:
-          result.wear = Math.round(value.readFloatLE(0) / 0.2);
-          break;
-        case 834:
-          result.paintkit = value.readUInt32LE(0);
-          break;
         default:
+          TF2Parser.extractSimpleAttribute(attribute.def_index, value, result);
           break;
       }
     }
@@ -258,14 +170,6 @@ export class TF2GCParser extends Parser<
     const killstreak = KILLSTREAK_FABRICATORS[item.def_index];
     if (killstreak) {
       result.killstreak = killstreak;
-    }
-
-    if (spells.length > 0) {
-      result.spells = spells;
-    }
-
-    if (parts.length > 0) {
-      result.parts = parts;
     }
 
     if (inputs.length > 0) {
@@ -413,14 +317,39 @@ export class TF2GCParser extends Parser<
       throw schemaItem;
     }
 
+    let quantity: number | null = extracted.quantity;
+    if (
+      extracted.quantity !== undefined &&
+      schemaItem.attributes &&
+      schemaItem.attributes['unlimited quantity']?.value === '1'
+    ) {
+      quantity = -1;
+    }
+
+    let crateSeries: number | null = extracted.crateSeries;
+    // TF2 GC may not provide crate series, so we have to manually retrieve it
+    if (
+      crateSeries === null &&
+      schemaItem.static_attrs &&
+      schemaItem.static_attrs['set supply crate series'] !== undefined
+    ) {
+      crateSeries = Number(schemaItem.static_attrs['set supply crate series']);
+    }
+
     let paint: number | undefined | null | Error = null;
     if (extracted.primaryPaint) {
       const hex = extracted.primaryPaint.toString(16);
-      paint = this.schema.getPaintByColor(hex);
-      if (paint === undefined) {
-        paint = await this.schema.fetchPaintByColor(hex);
-      } else if (paint instanceof Error) {
-        throw paint;
+
+      if (hex === '1') {
+        // Glitched legacy paint
+        paint = 5046;
+      } else {
+        paint = this.schema.getPaintByColor(hex);
+        if (paint === undefined) {
+          paint = await this.schema.fetchPaintByColor(hex);
+        } else if (paint instanceof Error) {
+          throw paint;
+        }
       }
     }
 
@@ -435,37 +364,21 @@ export class TF2GCParser extends Parser<
           match = await this.schema.fetchStrangePartById(part);
         }
 
-        parts.push(match);
+        if (match !== null) {
+          parts.push(match);
+        }
       }
     }
 
-    const parsed: InventoryItem = {
-      assetid: extracted.assetid,
-      defindex: extracted.defindex,
-      quality: extracted.quality,
-      craftable: TF2GCParser.isCraftable(schemaItem, context),
-      tradable: TF2GCParser.isTradable(schemaItem, extracted, context),
-      australium: extracted.australium,
-      festivized: extracted.festivized,
-      effect: extracted.effect,
-      wear: extracted.wear,
-      paintkit: extracted.paintkit,
-      killstreak: extracted.killstreak,
-      target: extracted.target,
-      output: extracted.output,
-      outputQuality: extracted.outputQuality,
-      elevated: extracted.elevated,
-      crateSeries: extracted.crateSeries,
-      paint,
+    return this.createParsedItem(
+      extracted,
       parts,
-      spells: extracted.spells,
-      sheen: extracted.sheen,
-      killstreaker: extracted.killstreaker,
-      inputs: extracted.inputs,
-      quantity: extracted.quantity,
-    };
-
-    return parsed;
+      paint,
+      crateSeries,
+      quantity,
+      TF2GCParser.isTradable(schemaItem, extracted, context),
+      TF2GCParser.isCraftable(schemaItem, context),
+    );
   }
 }
 
