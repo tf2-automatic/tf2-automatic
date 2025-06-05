@@ -55,7 +55,7 @@ export interface MarketAction {
 
 export interface ExtractedRecipeInput {
   name: string;
-  amount: number;
+  quantity: number;
 }
 
 export interface TagAttributes {

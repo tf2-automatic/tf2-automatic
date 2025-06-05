@@ -1,6 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Notification, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
 import { firstValueFrom } from 'rxjs';
@@ -17,8 +17,10 @@ import assert from 'assert';
 export class NotificationsService {
   private readonly producer = new FlowProducer(this.queue.opts);
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly httpService: HttpService,
     @InjectQueue('notifications')
     private readonly queue: Queue<JobData>,
@@ -153,6 +155,7 @@ export class NotificationsService {
 
   private async createJob(job: Job<JobData>, skip?: number, limit?: number) {
     assert(job.parent, 'Job has no parent');
+    assert(job.parent.id, 'Parent has no id');
 
     await this.queue.add(
       'fetch',

@@ -1,17 +1,6 @@
-import { ItemNamingSchema, RequiredItemAttributes } from '../types';
-
-const KILLSTREAKS = [
-  'Killstreak',
-  'Specialized Killstreak',
-  'Professional Killstreak',
-];
-const WEAR = [
-  'Factory New',
-  'Minimal Wear',
-  'Field-Tested',
-  'Well-Worn',
-  'Battle Scarred',
-];
+import { KILLSTREAK_TIERS_TO_NAMES, WEAR_LEVELS_TO_NAMES } from '../common';
+import { ItemNamingSchema } from '../schemas';
+import { RequiredItemAttributes } from '../types';
 
 export class NameGenerator {
   constructor(private readonly schema: ItemNamingSchema) {}
@@ -19,9 +8,9 @@ export class NameGenerator {
   async getName(item: RequiredItemAttributes, proper = true): Promise<string> {
     let name = '';
 
-    let schemaItem = this.schema.getItemByDefindex(item.defindex);
+    let schemaItem = this.schema.getSchemaItemByDefindex(item.defindex);
     if (schemaItem === undefined) {
-      schemaItem = await this.schema.fetchItemByDefindex(item.defindex);
+      schemaItem = await this.schema.fetchSchemaItemByDefindex(item.defindex);
     } else if (schemaItem instanceof Error) {
       throw schemaItem;
     }
@@ -48,7 +37,7 @@ export class NameGenerator {
     if (
       (item.quality === 6 && item.elevated === true) ||
       (item.quality !== 6 && item.quality !== 15 && item.quality !== 5) ||
-      (item.quality === 5 && !item.effect) ||
+      (item.quality === 5 && item.effect === undefined) ||
       schemaItem.item_quality === 5
     ) {
       let quality = this.schema.getQualityById(item.quality);
@@ -62,11 +51,17 @@ export class NameGenerator {
     }
 
     if (typeof item.effect === 'number') {
-      let effect = this.schema.getEffectById(item.effect);
-      if (effect === undefined) {
-        effect = await this.schema.fetchEffectById(item.effect);
-      } else if (effect instanceof Error) {
-        throw effect;
+      let effect: undefined | Error | string = undefined;
+
+      if (item.effect === 0) {
+        effect = 'Invalid Particle';
+      } else {
+        effect = this.schema.getEffectById(item.effect);
+        if (effect === undefined) {
+          effect = await this.schema.fetchEffectById(item.effect);
+        } else if (effect instanceof Error) {
+          throw effect;
+        }
       }
 
       name += effect + ' ';
@@ -77,13 +72,13 @@ export class NameGenerator {
     }
 
     if (item.killstreak !== undefined && item.killstreak !== 0) {
-      name += KILLSTREAKS[item.killstreak - 1] + ' ';
+      name += KILLSTREAK_TIERS_TO_NAMES[item.killstreak] + ' ';
     }
 
     if (typeof item.target === 'number') {
-      let target = this.schema.getItemByDefindex(item.target);
+      let target = this.schema.getSchemaItemByDefindex(item.target);
       if (target === undefined) {
-        target = await this.schema.fetchItemByDefindex(item.target);
+        target = await this.schema.fetchSchemaItemByDefindex(item.target);
       } else if (target instanceof Error) {
         throw target;
       }
@@ -103,9 +98,9 @@ export class NameGenerator {
     }
 
     if (typeof item.output === 'number') {
-      let output = this.schema.getItemByDefindex(item.output);
+      let output = this.schema.getSchemaItemByDefindex(item.output);
       if (output === undefined) {
-        output = await this.schema.fetchItemByDefindex(item.output);
+        output = await this.schema.fetchSchemaItemByDefindex(item.output);
       } else if (output instanceof Error) {
         throw output;
       }
@@ -135,7 +130,7 @@ export class NameGenerator {
     name += schemaItem.item_name;
 
     if (item.wear) {
-      name += ' (' + WEAR[item.wear - 1] + ')';
+      name += ' (' + WEAR_LEVELS_TO_NAMES[item.wear] + ')';
     }
 
     if (typeof item.crateSeries === 'number') {

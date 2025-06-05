@@ -1,4 +1,4 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import {
   HttpException,
@@ -70,9 +70,10 @@ export class InventoriesService
     InventoryJobData
   >;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly httpService: HttpService,
     private readonly eventsService: NestEventsService,
     @InjectQueue('inventories')

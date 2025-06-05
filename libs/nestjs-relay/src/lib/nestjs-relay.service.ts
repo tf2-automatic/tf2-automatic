@@ -1,4 +1,4 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   Injectable,
   OnApplicationBootstrap,
@@ -28,13 +28,13 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
 
   private readonly outboxChannel: string;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
   private readonly leaderRedis: Redis;
   private readonly subscriber: Redis;
 
   constructor(
     private readonly eventsService: NestEventsService,
-    @InjectRedis()
-    private readonly redis: Redis,
+    private readonly redisService: RedisService,
     @Inject('RELAY_CONFIG') config: RelayModuleConfig,
     private readonly cls: ClsService,
   ) {
@@ -51,7 +51,12 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
     this.outboxChannel = this.eventsService.getExchange() + ':' + OUTBOX_KEY;
   }
 
-  publishEvent<Event extends BaseEvent<unknown>>(multi: ChainableCommander, type: Event["type"], data: Event["data"], steamid?: SteamID) {
+  publishEvent<Event extends BaseEvent<unknown>>(
+    multi: ChainableCommander,
+    type: Event['type'],
+    data: Event['data'],
+    steamid?: SteamID,
+  ) {
     const metadata: EventMetadata = {
       id: uuidv4(),
       steamid64: steamid?.getSteamID64() ?? null,

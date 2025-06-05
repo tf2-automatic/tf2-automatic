@@ -1,4 +1,4 @@
-import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { Module } from '@nestjs/common';
 import { HeartbeatsController } from './heartbeats.controller';
 import { HeartbeatsService } from './heartbeats.service';

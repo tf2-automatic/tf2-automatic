@@ -51,7 +51,7 @@ import SteamID from 'steamid';
 import { v4 as uuidv4 } from 'uuid';
 import { TradeQueue } from './trades.types';
 import { Redis } from 'ioredis';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
@@ -71,11 +71,13 @@ export class TradesService implements OnApplicationBootstrap {
 
   private readonly locker: Locker;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     private readonly httpService: HttpService,
     @InjectQueue('trades')
     queue: Queue<CustomJob<TradeQueue>>,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventsService: NestEventsService,
     private readonly heartbeatService: HeartbeatsService,
     cls: ClsService,

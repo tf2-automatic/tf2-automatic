@@ -1,7 +1,7 @@
 import { EconParser } from './parser';
 import { EconItem, Tag } from './types';
 import * as TestData from './test-data';
-import { EconParserSchema } from '../../types';
+import { EconParserSchema } from '../../schemas';
 
 describe('EconParser', () => {
   describe('#getDefindex', () => {
@@ -162,8 +162,8 @@ describe('EconParser', () => {
         fetchTextureByName: jest.fn(),
         getStrangePartByScoreType: jest.fn(),
         fetchStrangePartByScoreType: jest.fn(),
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getSheenByName: jest.fn(),
         fetchSheenByName: jest.fn(),
         getKillstreakerByName: jest.fn(),
@@ -192,27 +192,27 @@ describe('EconParser', () => {
       expect(extracted.inputs).toEqual([
         {
           name: 'The Righteous Bison',
-          amount: 5,
+          quantity: 5,
         },
         {
           name: 'The Winger',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'The Backburner',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'The Gunboats',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'The Half-Zatoichi',
-          amount: 1,
+          quantity: 1,
         },
         {
           name: 'Strange Mad Milk',
-          amount: 1,
+          quantity: 1,
         },
       ]);
 
@@ -244,7 +244,7 @@ describe('EconParser', () => {
       expect(extracted.inputs).toEqual([
         {
           name: 'Sharpened Volcano Fragment',
-          amount: 1,
+          quantity: 1,
         },
       ]);
     });
@@ -272,27 +272,27 @@ describe('EconParser', () => {
       expect(extracted.inputs).toEqual([
         {
           name: 'Unique Specialized Killstreak Item',
-          amount: 2,
+          quantity: 2,
         },
         {
           name: 'Battle-Worn Robot KB-808',
-          amount: 13,
+          quantity: 13,
         },
         {
           name: 'Battle-Worn Robot Money Furnace',
-          amount: 3,
+          quantity: 3,
         },
         {
           name: 'Reinforced Robot Emotion Detector',
-          amount: 4,
+          quantity: 4,
         },
         {
           name: 'Reinforced Robot Bomb Stabilizer',
-          amount: 2,
+          quantity: 2,
         },
         {
           name: 'Pristine Robot Brainstorm Bulb',
-          amount: 3,
+          quantity: 3,
         },
       ]);
     });
@@ -559,6 +559,52 @@ describe('EconParser', () => {
       expect(extracted.paintkit).toEqual('Kiln and Conquer');
       expect(extracted.elevated).toEqual(false);
     });
+
+    it('will handle weird edge case with parts, festivized, spells', () => {
+      const item = TestData.getEdgeCasePartsFestivizedSpellsItem();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.parts).toEqual(['Gib Kills']);
+      expect(extracted.festivized).toEqual(true);
+      expect(extracted.spells).toEqual(['Pumpkin Bombs', 'Exorcism']);
+    });
+
+    it('will handle strange uniques', () => {
+      const item = TestData.getStrangeUniqueItem();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Unique');
+      expect(extracted.elevated).toEqual(true);
+    });
+
+    it('will handle handle invalid effects', () => {
+      const item = TestData.getUnusualWithInvalidEffect();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.effect).toEqual('Invalid Particle');
+    });
+
+    it('will handle Headshot Kills strange part', () => {
+      const item = TestData.getItemWithHeadshotKillsStrangePart();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.parts).toEqual(['Headshot Kills']);
+    });
+
+    it('will handle killstreak killstreak kit fabricators', () => {
+      const item = TestData.getKillstreakKillstreakKitFabricator();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.killstreak).toEqual(3);
+      expect(extracted.sheen).toEqual('Manndarin');
+      expect(extracted.killstreaker).toEqual('Tornado');
+      expect(extracted.output).toEqual('Kit');
+    });
   });
 
   describe('#parse', () => {
@@ -578,8 +624,8 @@ describe('EconParser', () => {
       schema.fetchTextureByName.mockResolvedValue(-1);
       schema.getStrangePartByScoreType.mockReturnValue(undefined);
       schema.fetchStrangePartByScoreType.mockResolvedValue(-1);
-      schema.getItemByDefindex.mockReturnValue(undefined);
-      schema.fetchItemByDefindex.mockResolvedValue({
+      schema.getItemsGameItemByDefindex.mockReturnValue(undefined);
+      schema.fetchItemsGameItemByDefindex.mockResolvedValue({
         name: 'Decoder Ring',
       });
       schema.getSheenByName.mockReturnValue(undefined);
@@ -602,8 +648,8 @@ describe('EconParser', () => {
         fetchTextureByName: jest.fn(),
         getStrangePartByScoreType: jest.fn(),
         fetchStrangePartByScoreType: jest.fn(),
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getSheenByName: jest.fn(),
         fetchSheenByName: jest.fn(),
         getKillstreakerByName: jest.fn(),
@@ -744,32 +790,32 @@ describe('EconParser', () => {
         {
           killstreak: 2,
           quality: -1,
-          amount: 2,
+          quantity: 2,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 13,
+          quantity: 13,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 3,
+          quantity: 3,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 4,
+          quantity: 4,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 2,
+          quantity: 2,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 3,
+          quantity: 3,
         },
       ]);
     });
@@ -815,32 +861,32 @@ describe('EconParser', () => {
         {
           defindex: -1,
           quality: -1,
-          amount: 5,
+          quantity: 5,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
       ]);
     });
@@ -876,7 +922,7 @@ describe('EconParser', () => {
         {
           defindex: -1,
           quality: -1,
-          amount: 1,
+          quantity: 1,
         },
       ]);
     });
@@ -895,6 +941,66 @@ describe('EconParser', () => {
       expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Normal');
 
       expect(parsed.quality).toEqual(0);
+    });
+
+    it('will handle handle invalid effects', async () => {
+      const item = TestData.getUnusualWithInvalidEffect();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(parsed.effect).toEqual(0);
+    });
+
+    it('will handle strange skin with collection', async () => {
+      const item = TestData.getStrangeDecoratedWithCollection();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Strange');
+
+      expect(parsed.quality).toEqual(-1);
+      expect(parsed.paintkit).toEqual(-1);
+      // TF2 GC says it is decorated elevated strange but I can't figure out why.
+      expect(parsed.elevated).toEqual(false);
+    });
+
+    it('will handle strange skin without collection', async () => {
+      const item = TestData.getStrangeDecoratedWithoutCollection();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Strange');
+
+      expect(parsed.quality).toEqual(-1);
+      expect(parsed.paintkit).toEqual(-1);
+      expect(parsed.elevated).toEqual(false);
+    });
+
+    it('will handle strange skin with collection but not elevated', async () => {
+      const item = TestData.getStrangeDecoratedWithCollectionButNotElevated();
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(schema.getQualityByName).toHaveBeenCalledTimes(1);
+      expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Strange');
+
+      expect(parsed.quality).toEqual(-1);
+      expect(parsed.paintkit).toEqual(-1);
+      expect(parsed.elevated).toEqual(false);
     });
   });
 });

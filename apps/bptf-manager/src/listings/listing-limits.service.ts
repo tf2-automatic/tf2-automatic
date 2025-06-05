@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import SteamID from 'steamid';
 import { ChainableCommander, Redis } from 'ioredis';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -12,10 +12,12 @@ import { setTimeout } from 'timers/promises';
 export class ListingLimitsService {
   private readonly logger = new Logger(ListingLimitsService.name);
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     @InjectQueue('listing-limits')
     private readonly listingLimitsQueue: Queue,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
   ) {}
 
   async getLimits(steamid: SteamID): Promise<ListingLimits> {

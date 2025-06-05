@@ -26,16 +26,19 @@ No validations are made by the `SKU` class. But this is not a problem because th
 
 ## Benchmarks
 
-This library has been benchmarked against [node-tf2-item-format](https://github.com/danocmx/node-tf2-item-format) version [5.9.21](https://github.com/danocmx/node-tf2-item-format/releases/tag/v5.9.21) and [@tf2autobot/node-tf2-sku](https://github.com/tf2autobot/node-tf2-sku) version [2.0.4](https://github.com/TF2Autobot/node-tf2-sku/releases/tag/v2.0.4). The benchmarks ran on a AMD Ryzen 9 7950x with 2x16GB DDR5-6000 CL30-38-38-96.
+This library has been benchmarked against [node-tf2-item-format](https://github.com/danocmx/node-tf2-item-format) version [5.9.27](https://github.com/danocmx/node-tf2-item-format/releases/tag/v5.9.27) and [@tf2autobot/node-tf2-sku](https://github.com/tf2autobot/node-tf2-sku) version [2.0.4](https://github.com/TF2Autobot/node-tf2-sku/releases/tag/v2.0.4). The benchmarks ran on a AMD Ryzen 9 7950x with 4x16GB DDR5-6000 CL30-38-38-96 running Ubuntu 24.04 with kernel 6.11.0.
 
 ```
-@tf2-automatic/tf2-format (short) x 40,827,265 ops/sec ±1.45% (96 runs sampled)
-tf2-item-format (short) x 12,373,981 ops/sec ±1.09% (96 runs sampled)
-@tf2autobot/tf2-sku (short) x 978,569 ops/sec ±1.43% (91 runs sampled)
-@tf2-automatic/tf2-format (long) x 15,141,405 ops/sec ±1.93% (96 runs sampled)
-tf2-item-format (long) x 3,628,330 ops/sec ±1.12% (96 runs sampled)
-@tf2autobot/tf2-sku (long) x 776,522 ops/sec ±1.42% (95 runs sampled)
+@tf2-automatic/tf2-format (short) x 32,976,951 ops/sec ±1.54% (89 runs sampled)
+tf2-item-format (short) x 27,810,896 ops/sec ±1.08% (92 runs sampled)
+@tf2autobot/tf2-sku (short) x 1,067,726 ops/sec ±1.17% (93 runs sampled)
+@tf2-automatic/tf2-format (long) x 16,458,223 ops/sec ±0.72% (97 runs sampled)
+tf2-item-format (long) x 7,374,172 ops/sec ±0.77% (94 runs sampled)
+@tf2autobot/tf2-sku (long) x 967,170 ops/sec ±1.27% (93 runs sampled)
 ```
+
+The SKU parser is **~20% faster** than the fastest alternative for short SKUs, and over **2x faster** for long SKUs.
+
 
 The string `5021;6` was used in the benchmarks using short strings, which is a Mann Co. Supply Crate Key. For the benchmarks with the longer string, the string `205;11;u702;w5;pk279;kt-3` was used, which is an item with the name Strange Professional Killstreak Isotope Frozen Aurora Rocket Launcher (Battle Scarred).
 

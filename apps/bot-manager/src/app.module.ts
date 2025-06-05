@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration, { Config } from './common/config/configuration';
 import { validation } from './common/config/validation';
 import { BotsModule } from './bots/bots.module';
-import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HealthModule } from './health/health.module';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
