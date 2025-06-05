@@ -1335,6 +1335,7 @@ export class SchemaService implements OnApplicationBootstrap {
     );
 
     const paintLoader = this.getPaintLoader(options);
+    const strangePartLoader = this.getStrangePartLoader(false, options);
 
     return {
       getItemsGameItemByDefindex: () => undefined,
@@ -1345,9 +1346,9 @@ export class SchemaService implements OnApplicationBootstrap {
         paintLoader.load(color).then((paint) => paint.defindex),
       getStrangePartById: () => undefined,
       fetchStrangePartById: (id: number) =>
-        this.getStrangePartByScoreType(id.toString()).then(
-          (part) => part.defindex,
-        ),
+        strangePartLoader
+          .load(id.toString())
+          .then((strangePart) => strangePart?.defindex ?? null),
     };
   }
 
