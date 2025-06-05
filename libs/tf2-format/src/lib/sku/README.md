@@ -37,6 +37,9 @@ tf2-item-format (long) x 7,374,172 ops/sec ±0.77% (94 runs sampled)
 @tf2autobot/tf2-sku (long) x 967,170 ops/sec ±1.27% (93 runs sampled)
 ```
 
+The SKU parser is **~20% faster** than the fastest alternative for short SKUs, and over **2x faster** for long SKUs.
+
+
 The string `5021;6` was used in the benchmarks using short strings, which is a Mann Co. Supply Crate Key. For the benchmarks with the longer string, the string `205;11;u702;w5;pk279;kt-3` was used, which is an item with the name Strange Professional Killstreak Isotope Frozen Aurora Rocket Launcher (Battle Scarred).
 
 The benchmark can be found [here](../../../../../benchmarks/tf2-format/).
