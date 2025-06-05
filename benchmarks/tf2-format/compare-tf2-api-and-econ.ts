@@ -2,7 +2,8 @@ import {
   EconParser,
   EconParserSchema,
   ItemsGameItem,
-  TF2Parser,
+  Spell,
+  TF2APIParser,
   TF2ParserSchema,
 } from '../../dist/libs/tf2-format';
 import axios from 'axios';
@@ -132,12 +133,12 @@ const itemLoader = new DataLoader<string, number | null>(
   },
 );
 
-const spellLoader = new DataLoader<string, number | null>(
+const spellLoader = new DataLoader<string, Spell | null>(
   ([spell]) => {
     return axios
       .get('http://localhost:3003/schema/spells/' + spell)
       .then((res) => {
-        const result = res.data.id;
+        const result = [res.data.attribute, res.data.value];
         cache.set('spell:' + spell, result);
         return [result];
       });
@@ -208,29 +209,11 @@ export const KILLSTREAKERS = {
   'Hypno-Beam': 2008,
 };
 
-export const SPELLS = {
-  '1004_0': 8901,
-  '1004_1': 8902,
-  '1004_2': 8900,
-  '1004_3': 8903,
-  '1004_4': 8904,
-  '1005_1': 8914,
-  '1005_2': 8920,
-  '1005_8421376': 8915,
-  '1005_3100495': 8916,
-  '1005_5322826': 8917,
-  '1005_13595446': 8918,
-  '1005_8208497': 8919,
-};
-
 const tf2Schema: TF2ParserSchema = {
   getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
   fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getPaintByColor: (color) => cache.get('paint:' + color),
   fetchPaintByColor: (color) => paintLoader.load(color),
-  getSpellById: (defindex, id) => SPELLS[`${defindex}_${id}`],
-  fetchSpellById: (defindex, id) =>
-    Promise.resolve(SPELLS[`${defindex}_${id}`]),
   getStrangePartById: (id) => cache.get('part:id:' + id),
   fetchStrangePartById: (id) => partLoader.load(id),
 };
@@ -257,10 +240,12 @@ const econSchema: EconParserSchema = {
 };
 
 const econParser = new EconParser(econSchema);
-const tf2Parser = new TF2Parser(tf2Schema);
+const tf2Parser = new TF2APIParser(tf2Schema);
 
-const econItems = JSON.parse(fs.readFileSync('./econ-data.json', 'utf-8'));
-const tf2Items = JSON.parse(fs.readFileSync('./tf2-data.json', 'utf-8'));
+const econItems = JSON.parse(
+  fs.readFileSync('./econ-edgecases-data.json', 'utf-8'),
+);
+const tf2Items = JSON.parse(fs.readFileSync('./tf2-api-data.json', 'utf-8'));
 
 // Create map of the items
 
@@ -285,17 +270,41 @@ for (const item of tf2Items) {
 
 (async () => {
   for (const item in items) {
-    const econExtracted = econParser.extract(items[item].econ);
-    const econParsed = await econParser.parse(econExtracted);
+    if (!items[item].econ || !items[item].tf2) {
+      console.log(items[item]);
+      throw new Error('Missing item');
+    }
+
+    const [econExtracted, context] = econParser.extract(items[item].econ);
+    const econParsed = await econParser.parse(econExtracted, context);
 
     const [tf2Extracted, tf2ExtractedContext] = tf2Parser.extract(
       items[item].tf2,
     );
+
     const tf2Parsed = await tf2Parser.parse(tf2Extracted, tf2ExtractedContext);
 
-    // Hacky way to fix quantities but it seems to work?
-    if (tf2Parsed.quantity === 25) {
-      tf2Parsed.quantity = -1;
+    if (tf2Extracted.primaryPaint === 1) {
+      // Glitched legacy paint, just ignore it
+      tf2Parsed.paint = null;
+    }
+
+    if (econParsed.paintkit !== null || econParsed.wear !== null) {
+      if (
+        (econParsed.elevated || econParsed.quality === 11) &&
+        (tf2Parsed.elevated || tf2Parsed.quality === 11)
+      ) {
+        econParsed.quality = -1;
+        econParsed.elevated = false;
+        tf2Parsed.quality = -1;
+        tf2Parsed.elevated = false;
+      } else if (
+        (econParsed.quality === 5 || econParsed.effect !== null) &&
+        (tf2Parsed.quality === 5 || tf2Parsed.effect !== null)
+      ) {
+        econParsed.quality = 5;
+        tf2Parsed.quality = 5;
+      }
     }
 
     const equal = JSON.stringify(econParsed) === JSON.stringify(tf2Parsed);

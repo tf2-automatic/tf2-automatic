@@ -1,11 +1,11 @@
-import { TF2Parser } from './parser';
+import { TF2GCParser } from './parser';
 import * as TestData from './test-data';
 import { ItemsGameItem } from '../../types';
 import { TF2ParserSchema } from '../../schemas';
 
-describe('TF2Parser', () => {
+describe('TF2GCParser', () => {
   describe('#extract', () => {
-    let parser: TF2Parser;
+    let parser: TF2GCParser;
 
     beforeEach(() => {
       const schema: TF2ParserSchema = {
@@ -17,7 +17,7 @@ describe('TF2Parser', () => {
         fetchStrangePartById: jest.fn(),
       };
 
-      parser = new TF2Parser(schema);
+      parser = new TF2GCParser(schema);
     });
 
     it('will parse basic attributes', () => {
@@ -224,7 +224,7 @@ describe('TF2Parser', () => {
   });
 
   describe('#parse', () => {
-    let parser: TF2Parser;
+    let parser: TF2GCParser;
     let schema: TF2ParserSchema;
 
     beforeEach(() => {
@@ -237,7 +237,7 @@ describe('TF2Parser', () => {
         fetchStrangePartById: jest.fn(),
       };
 
-      parser = new TF2Parser(schema);
+      parser = new TF2GCParser(schema);
     });
 
     it('will parse a basic item', async () => {

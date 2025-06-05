@@ -229,5 +229,25 @@ describe('NameGenerator', () => {
 
       expect(name).toBe('Red Rock Roscoe Pistol (Factory New)');
     });
+
+    it('will handle Invalid Particle effect', async () => {
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
+        item_name: 'Hong Kong Cone',
+        proper_name: false,
+        item_quality: 6,
+      });
+      schema.getEffectById.mockRejectedValueOnce(
+        new Error('Invalid particle effect'),
+      );
+      schema.getQualityById.mockReturnValueOnce('Unusual');
+
+      const name = await generator.getName({
+        defindex: 30177,
+        quality: 5,
+        effect: 0,
+      });
+
+      expect(name).toBe('Invalid Particle Hong Kong Cone');
+    });
   });
 });

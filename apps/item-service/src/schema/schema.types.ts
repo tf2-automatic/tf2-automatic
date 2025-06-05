@@ -67,6 +67,11 @@ export interface TempSpell {
   value: number;
 }
 
+export interface TempStrangePart {
+  id: number;
+  defindex: number;
+}
+
 export interface SchemaLookupOptions {
   time?: number;
   useClosestSchema?: boolean;

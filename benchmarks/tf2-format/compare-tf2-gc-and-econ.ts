@@ -1,13 +1,13 @@
 import {
   EconParser,
-  ItemsGameItem,
   EconParserSchema,
+  ItemsGameItem,
   Spell,
+  TF2GCParser,
+  TF2ParserSchema,
 } from '../../dist/libs/tf2-format';
-import { parseEconItem } from 'tf2-item-format/static';
 import axios from 'axios';
 import DataLoader from 'dataloader';
-import Benchmark from 'benchmark';
 import fs from 'node:fs';
 
 const itemServiceUrl = process.argv[2];
@@ -101,13 +101,14 @@ const itemLoader = new DataLoader<string, number | null>(
       })
       .then((res) => {
         // Look for upgradable if one is in the list, if not then take the first
+
         let match = res.data[0];
 
         for (let i = 0; i < res.data.length; i++) {
           const element = res.data[i];
           if (
             element.name ===
-            'Upgradable ' + element.item_class.toUpperCase()
+            'Upgradeable ' + element.item_class.toUpperCase()
           ) {
             match = element;
             break;
@@ -147,23 +148,41 @@ const spellLoader = new DataLoader<string, Spell | null>(
   },
 );
 
-const partLoader = new DataLoader<string, number | null>(
+const partLoader = new DataLoader<string | number, number | null>(
   ([part]) => {
     return axios
       .get('http://localhost:3003/schema/parts/' + part)
       .then((res) => {
         const result = res.data.defindex;
-        cache.set('part:' + part, result);
+        cache.set('part:id:' + result.id, result);
+        cache.set('part:name:' + result.name, result);
         return [result];
       })
       .catch((err) => {
         if (err.response.status === 404) {
-          cache.set('part:' + part, null);
+          if (typeof part === 'string') {
+            cache.set('part:name:' + part, null);
+          } else {
+            cache.set('part:id:' + part, null);
+          }
           return [null];
         }
 
         throw err;
       });
+  },
+  {
+    batch: false,
+  },
+);
+
+const paintLoader = new DataLoader<string, number | null>(
+  ([paint]) => {
+    return axios.get(itemServiceUrl + '/schema/paints/' + paint).then((res) => {
+      const result = res.data.defindex;
+      cache.set('paint:' + paint, result);
+      return [result];
+    });
   },
   {
     batch: false,
@@ -190,7 +209,16 @@ export const KILLSTREAKERS = {
   'Hypno-Beam': 2008,
 };
 
-const schema: EconParserSchema = {
+const tf2Schema: TF2ParserSchema = {
+  getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
+  fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
+  getPaintByColor: (color) => cache.get('paint:' + color),
+  fetchPaintByColor: (color) => paintLoader.load(color),
+  getStrangePartById: (id) => cache.get('part:id:' + id),
+  fetchStrangePartById: (id) => partLoader.load(id),
+};
+
+const econSchema: EconParserSchema = {
   getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
   fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getQualityByName: (name) => cache.get('quality:' + name),
@@ -203,7 +231,7 @@ const schema: EconParserSchema = {
   fetchDefindexByName: (defindex) => itemLoader.load(defindex),
   getSpellByName: (name) => cache.get('spell:' + name),
   fetchSpellByName: (name) => spellLoader.load(name),
-  getStrangePartByScoreType: (name) => cache.get('part:' + name),
+  getStrangePartByScoreType: (name) => cache.get('part:name:' + name),
   fetchStrangePartByScoreType: (name) => partLoader.load(name),
   getSheenByName: (name) => SHEENS[name],
   fetchSheenByName: (name) => Promise.resolve(SHEENS[name]),
@@ -211,47 +239,50 @@ const schema: EconParserSchema = {
   fetchKillstreakerByName: (name) => Promise.resolve(KILLSTREAKERS[name]),
 };
 
-const parser = new EconParser(schema);
+const econParser = new EconParser(econSchema);
+const tf2Parser = new TF2GCParser(tf2Schema);
 
-const items = JSON.parse(fs.readFileSync('./econ-data.json', 'utf-8'));
+const econItems = JSON.parse(fs.readFileSync('./econ-data.json', 'utf-8'));
+const tf2Items = JSON.parse(fs.readFileSync('./tf2-data.json', 'utf-8'));
 
-const suite = new Benchmark.Suite({
-  initCount: 1,
-});
+// Create map of the items
 
-suite
-  .add('@tf2-automatic/tf2-format (strings)', () => {
-    const parsed = new Array(items.length);
+const items = {};
 
-    for (let i = 0; i < items.length; i++) {
-      parsed[i] = parser.extract(items[i]);
+for (const item of econItems) {
+  items[item.assetid] = items[item.defindex] ?? {};
+
+  items[item.assetid] = {
+    econ: item,
+  };
+}
+
+for (const item of tf2Items) {
+  items[item.id] = items[item.id] ?? {};
+
+  items[item.id] = {
+    ...items[item.id],
+    tf2: item,
+  };
+}
+
+(async () => {
+  for (const item in items) {
+    const [econExtracted, context] = econParser.extract(items[item].econ);
+    const econParsed = await econParser.parse(econExtracted, context);
+
+    const [tf2Extracted, tf2ExtractedContext] = tf2Parser.extract(
+      items[item].tf2,
+    );
+    const tf2Parsed = await tf2Parser.parse(tf2Extracted, tf2ExtractedContext);
+
+    const equal = JSON.stringify(econParsed) === JSON.stringify(tf2Parsed);
+
+    if (!equal) {
+      console.log('Not equal');
+      console.log(econParsed);
+      console.log(tf2Parsed);
+      break;
     }
-  })
-  .add('tf2-item-format (strings)', () => {
-    const parsed = new Array(items.length);
-
-    for (let i = 0; i < items.length; i++) {
-      parsed[i] = parseEconItem(items[i], false, false);
-    }
-  })
-  .add('@tf2-automatic/tf2-format (numbers)', async () => {
-    const parsed = new Array(items.length);
-
-    for (let i = 0; i < items.length; i++) {
-      const extracted = parser.extract(items[i]);
-      parsed[i] = parser.parse(extracted);
-    }
-
-    await Promise.all(parsed);
-  })
-  .add('tf2-item-format (numbers)', () => {
-    const parsed = new Array(items.length);
-
-    for (let i = 0; i < items.length; i++) {
-      parsed[i] = parseEconItem(items[i], true, true);
-    }
-  })
-  .on('cycle', async function (event: Benchmark.Event) {
-    console.log(String(event.target));
-  })
-  .run({ async: true });
+  }
+})();

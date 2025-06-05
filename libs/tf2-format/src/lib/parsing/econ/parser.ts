@@ -8,10 +8,14 @@ import {
   ExtractedRecipeInput,
   TagAttributes,
 } from './types';
-import { KILLSTREAK_FABRICATORS, WEAR_NAMES_TO_LEVELS } from '../../common';
+import {
+  KILLSTREAK_FABRICATORS,
+  KILLSTREAK_TIERS_TO_NAMES,
+  WEAR_NAMES_TO_LEVELS,
+} from '../../common';
 import * as helpers from '../helpers';
 
-const TAGS_OF_INTEREST = new Set<string>([
+const TAGS_OF_INTEREST = new Set<keyof TagAttributes>([
   'Quality',
   'Exterior',
   'Rarity',
@@ -24,17 +28,11 @@ const NON_CRAFTABLE_DESCRIPTIONS = {
   '( Not Tradable, Marketable, Usable in Crafting, or Gift Wrappable )': true,
 };
 
-/* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 const enum IdentifiableDescription {
   Skip = 0,
   All = 1,
-  // Paints, spells, parts and effects have the same precedence because it has been shown
+  // Paints, spells, parts, effects and festivized have the same precedence because it has been shown
   // that they may appear in any order.
-  Paint = 1,
-  Spells = 1,
-  Parts = 1,
-  Effect = 1,
-  Festivized = 3,
   Killstreaker = 4,
   Sheen = 5,
   Killstreak = 6,
@@ -45,7 +43,6 @@ const enum IdentifiableDescription {
   Uses = 11,
   Craftable = 12,
 }
-/* eslint-enable @typescript-eslint/no-duplicate-enum-values */
 
 /**
  * This is a mapping from the item type to the description that we want to
@@ -55,7 +52,7 @@ enum TypeToIdentifiableDescription {
   // Cosmetics can have many different descriptions so we will check for all
   'Cosmetic' = IdentifiableDescription.All,
   // Taunts may have effects, so we will check for that
-  'Taunt 1' = IdentifiableDescription.Effect,
+  'Taunt 1' = IdentifiableDescription.All,
   // Nothing interesting in these items (except for uses I guess?)
   'Party Favor' = IdentifiableDescription.Uses,
   'Action' = IdentifiableDescription.Uses,
@@ -72,7 +69,7 @@ enum TypeToIdentifiableDescription {
   // Start checking for the target
   'Strangifier' = IdentifiableDescription.Target,
   // War paints may have effects
-  'War Paint' = IdentifiableDescription.Effect,
+  'War Paint' = IdentifiableDescription.All,
   // Start checking for inputs
   'Recipe' = IdentifiableDescription.Input,
   // We know what we should look for in Killstreak Kits
@@ -80,12 +77,12 @@ enum TypeToIdentifiableDescription {
   'Specialized Killstreak Kit' = IdentifiableDescription.Sheen,
   'Killstreak Kit' = IdentifiableDescription.Killstreak,
   // Start by checking for parts on any weapons
-  'Primary weapon' = IdentifiableDescription.Parts,
-  'Secondary weapon' = IdentifiableDescription.Parts,
-  'Melee weapon' = IdentifiableDescription.Parts,
-  'Building' = IdentifiableDescription.Parts,
-  'Primary PDA' = IdentifiableDescription.Parts,
-  'Secondary PDA' = IdentifiableDescription.Parts,
+  'Primary weapon' = IdentifiableDescription.All,
+  'Secondary weapon' = IdentifiableDescription.All,
+  'Melee weapon' = IdentifiableDescription.All,
+  'Building' = IdentifiableDescription.All,
+  'Primary PDA' = IdentifiableDescription.All,
+  'Secondary PDA' = IdentifiableDescription.All,
 }
 
 const WEAPON_TYPES = new Set([
@@ -96,13 +93,12 @@ const WEAPON_TYPES = new Set([
   'Primary PDA',
   'Secondary PDA',
 ]);
-
 export class EconParser extends Parser<
   EconParserSchema,
   EconItem,
   ExtractedEconItem
 > {
-  extract(item: EconItem) {
+  extract(item: EconItem): ExtractedEconItem {
     const tags = EconParser.getTagAttributes(item);
 
     let start: IdentifiableDescription | undefined;
@@ -133,7 +129,7 @@ export class EconParser extends Parser<
       effect: descriptions.effect,
       wear: tags.Exterior ?? null,
       paint: descriptions.paint,
-      killstreak: EconParser.getKillstreak(descriptions),
+      killstreak: EconParser.getKillstreak(item.market_hash_name, descriptions),
       sheen: descriptions.sheen,
       killstreaker: descriptions.killstreaker,
       spells: descriptions.spells,
@@ -216,10 +212,13 @@ export class EconParser extends Parser<
 
       if (raw.killstreak !== 0) {
         // Handle Killstreak Kit Fabricators
-        raw.target = raw.output.slice(
+        const target = raw.output.slice(
           raw.output.indexOf('Killstreak ') + 11,
           raw.output.lastIndexOf(' Kit'),
         );
+        if (target !== '') {
+          raw.target = target;
+        }
         raw.output = 'Kit';
       } else if (raw.output.endsWith('Strangifier')) {
         // Handle Strangifier Chemistry Sets
@@ -262,7 +261,9 @@ export class EconParser extends Parser<
     }
 
     let effect: NumberOrNull = null;
-    if (raw.effect !== null) {
+    if (raw.effect === 'Invalid Particle') {
+      effect = 0;
+    } else if (raw.effect !== null) {
       const cached = this.schema.getEffectByName(raw.effect);
       if (cached === undefined) {
         effect = await this.schema.fetchEffectByName(raw.effect);
@@ -387,6 +388,23 @@ export class EconParser extends Parser<
       this.schema,
     );
 
+    let crateSeries: number | null = raw.crateSeries;
+    if (crateSeries === null && raw.type === 'Crate') {
+      let item = this.schema.getItemsGameItemByDefindex(raw.defindex);
+      if (item === undefined) {
+        item = await this.schema.fetchItemsGameItemByDefindex(raw.defindex);
+      } else if (item instanceof Error) {
+        throw item;
+      }
+
+      if (
+        item.static_attrs &&
+        item.static_attrs['set supply crate series'] !== undefined
+      ) {
+        crateSeries = Number(item.static_attrs['set supply crate series']);
+      }
+    }
+
     const parsed: InventoryItem = {
       assetid: raw.assetid,
       defindex: raw.defindex,
@@ -403,7 +421,7 @@ export class EconParser extends Parser<
       output,
       outputQuality,
       elevated: raw.elevated,
-      crateSeries: raw.crateSeries,
+      crateSeries,
       paint,
       parts,
       spells,
@@ -464,12 +482,24 @@ export class EconParser extends Parser<
     return null;
   }
 
-  static getKillstreak(descriptions: DescriptionAttributes): number {
-    if (descriptions.killstreaker !== null) {
+  static getKillstreak(
+    name: string,
+    descriptions: DescriptionAttributes,
+  ): number {
+    if (
+      descriptions.killstreaker !== null ||
+      name.includes(KILLSTREAK_TIERS_TO_NAMES[3])
+    ) {
       return 3;
-    } else if (descriptions.sheen !== null) {
+    } else if (
+      descriptions.sheen !== null ||
+      name.includes(KILLSTREAK_TIERS_TO_NAMES[2])
+    ) {
       return 2;
-    } else if (descriptions.killstreak) {
+    } else if (
+      descriptions.killstreak ||
+      name.includes(KILLSTREAK_TIERS_TO_NAMES[1])
+    ) {
       return 1;
     } else {
       return 0;
@@ -522,7 +552,7 @@ export class EconParser extends Parser<
 
     let tagCount = 0;
     for (const tag of item.tags) {
-      if (TAGS_OF_INTEREST.has(tag.category)) {
+      if (TAGS_OF_INTEREST.has(tag.category as never)) {
         tagCount++;
         tags[tag.category] = tag.name;
         if (tagCount === TAGS_OF_INTEREST.size) {
@@ -557,7 +587,7 @@ export class EconParser extends Parser<
   static getDescriptionAttributes(
     item: EconItem,
     tags: TagAttributes,
-    start = IdentifiableDescription.Paint,
+    start = IdentifiableDescription.All,
   ): DescriptionAttributes {
     const attributes: DescriptionAttributes = {
       craftable: true,
@@ -618,6 +648,12 @@ export class EconParser extends Parser<
         attributes.statclock = true;
         i++;
       }
+    } else if (
+      tags.Type === 'Tool' &&
+      descriptions[i].value === 'Used to paint other items.'
+    ) {
+      // It would be easier to just take the defindex of the item, but meh
+      attributes.paint = item.market_hash_name;
     }
 
     loop: while (i < descriptions.length - 1) {
@@ -628,22 +664,25 @@ export class EconParser extends Parser<
         continue;
       }
 
+      let matchedAll = false;
+
       /* eslint-disable no-fallthrough */
       switch (next) {
-        case IdentifiableDescription.All:
-        case IdentifiableDescription.Paint:
+        case IdentifiableDescription.All: {
           if (descriptions[i].value.startsWith('Paint Color: ')) {
             attributes.paint = descriptions[i].value.slice(13);
-            next = IdentifiableDescription.Effect;
+            next = IdentifiableDescription.All;
             i++;
+            matchedAll = true;
           }
-        case IdentifiableDescription.Effect:
+
           if (descriptions[i].value.startsWith('\u2605 Unusual Effect: ')) {
             attributes.effect = descriptions[i].value.slice(18);
-            next = IdentifiableDescription.Spells;
+            next = IdentifiableDescription.All;
             i++;
+            matchedAll = true;
           }
-        case IdentifiableDescription.Spells:
+
           if (descriptions[i].value.startsWith('Halloween: ')) {
             attributes.spells.push(
               descriptions[i].value.slice(
@@ -654,45 +693,55 @@ export class EconParser extends Parser<
               ),
             );
             // This is redundant
-            next = IdentifiableDescription.Spells;
+            next = IdentifiableDescription.All;
             i++;
+            matchedAll = true;
             // We break because that might be the best to do if there are more spells
-            continue loop;
           }
-        case IdentifiableDescription.Parts:
+
+          let partIndex = -1;
           if (
             descriptions[i].value.startsWith('(') &&
             // Make sure it does not match Craftable/Tradable/Marketable descriptions
             descriptions[i].value.charAt(1) !== ' '
           ) {
-            attributes.parts.push(
-              descriptions[i].value.slice(
-                1,
-                descriptions[i].value.lastIndexOf(': '),
-              ),
-            );
-            next = IdentifiableDescription.Parts;
-            i++;
-            // Break again so we can check for more parts
-            continue loop;
+            partIndex = 1;
           } else if (descriptions[i].value.startsWith('     ')) {
-            attributes.parts.push(
-              descriptions[i].value.slice(
-                5,
-                descriptions[i].value.lastIndexOf(': '),
-              ),
+            partIndex = 5;
+          }
+
+          if (partIndex !== -1) {
+            const killEater = descriptions[i].value.slice(
+              partIndex,
+              descriptions[i].value.lastIndexOf(': '),
             );
-            next = IdentifiableDescription.Parts;
+
+            // TODO: Do we care about strange filters?
+            const killEaterFilterIndex = killEater.indexOf(' (');
+            let end = killEater.length;
+            if (killEaterFilterIndex !== -1) {
+              end = killEaterFilterIndex;
+            }
+
+            attributes.parts.push(killEater.slice(0, end));
+            next = IdentifiableDescription.All;
             i++;
+            matchedAll = true;
             // Break again so we can check for more parts
             continue loop;
           }
-        case IdentifiableDescription.Festivized:
+
           if (descriptions[i].value === 'Festivized') {
             attributes.festivized = true;
-            next = IdentifiableDescription.Killstreaker;
+            next = IdentifiableDescription.All;
             i++;
+            matchedAll = true;
           }
+
+          if (matchedAll) {
+            continue loop;
+          }
+        }
         case IdentifiableDescription.Killstreaker:
           if (descriptions[i].value.startsWith('Killstreaker: ')) {
             attributes.killstreaker = descriptions[i].value.slice(14);

@@ -78,8 +78,8 @@ export interface PaintByColor {
 }
 
 export interface StrangePartById {
-  getStrangePartById(id: number): UndefinedOrError<number>;
-  fetchStrangePartById(id: number): Promise<number>;
+  getStrangePartById(id: number): UndefinedOrError<NumberOrNull>;
+  fetchStrangePartById(id: number): Promise<NumberOrNull>;
 }
 
 export type ItemNamingSchema = SchemaItemByDefindex &

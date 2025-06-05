@@ -1,6 +1,6 @@
-import { TF2Item } from './types';
+import { TF2GCItem } from './types';
 
-export function getBasicItem(): TF2Item {
+export function getBasicItem(): TF2GCItem {
   return {
     attribute: [],
     equipped_state: [],
@@ -23,7 +23,7 @@ export function getBasicItem(): TF2Item {
   };
 }
 
-export function getGiftedItem(): TF2Item {
+export function getGiftedItem(): TF2GCItem {
   return {
     attribute: [
       {
@@ -79,7 +79,7 @@ export function getGiftedItem(): TF2Item {
   };
 }
 
-export function getUnusualAndPainted(): TF2Item {
+export function getUnusualAndPainted(): TF2GCItem {
   return {
     attribute: [
       {
@@ -143,7 +143,7 @@ export function getUnusualAndPainted(): TF2Item {
   };
 }
 
-export function getBasicKillstreak(): TF2Item {
+export function getBasicKillstreak(): TF2GCItem {
   return {
     attribute: [
       {
@@ -175,7 +175,7 @@ export function getBasicKillstreak(): TF2Item {
   };
 }
 
-export function getPaintKitItem(): TF2Item {
+export function getPaintKitItem(): TF2GCItem {
   return {
     attribute: [
       {
@@ -231,7 +231,7 @@ export function getPaintKitItem(): TF2Item {
   };
 }
 
-export function getAustraliumItem(): TF2Item {
+export function getAustraliumItem(): TF2GCItem {
   return {
     attribute: [
       {
@@ -287,7 +287,7 @@ export function getAustraliumItem(): TF2Item {
   };
 }
 
-export function getProfessionalKillstreakItem(): TF2Item {
+export function getProfessionalKillstreakItem(): TF2GCItem {
   return {
     attribute: [
       {
@@ -351,7 +351,7 @@ export function getProfessionalKillstreakItem(): TF2Item {
   };
 }
 
-export function getExorcismSpelledItem(): TF2Item {
+export function getExorcismSpelledItem(): TF2GCItem {
   return {
     attribute: [
       {
@@ -383,7 +383,7 @@ export function getExorcismSpelledItem(): TF2Item {
   };
 }
 
-export function getFestivizedItem(): TF2Item {
+export function getFestivizedItem(): TF2GCItem {
   return {
     attribute: [
       {
@@ -415,7 +415,7 @@ export function getFestivizedItem(): TF2Item {
   };
 }
 
-export function getProfessionalKillstreakKitFabricator(): TF2Item {
+export function getProfessionalKillstreakKitFabricator(): TF2GCItem {
   return {
     attribute: [
       {
@@ -517,7 +517,7 @@ export function getProfessionalKillstreakKitFabricator(): TF2Item {
   };
 }
 
-export function getStrangifierChemistrySet(): TF2Item {
+export function getStrangifierChemistrySet(): TF2GCItem {
   return {
     attribute: [
       {
@@ -609,7 +609,7 @@ export function getStrangifierChemistrySet(): TF2Item {
   };
 }
 
-export function getBasicKillstreakKit(): TF2Item {
+export function getBasicKillstreakKit(): TF2GCItem {
   return {
     attribute: [
       {
@@ -641,7 +641,7 @@ export function getBasicKillstreakKit(): TF2Item {
   };
 }
 
-export function getCollectorsChemistrySet(): TF2Item {
+export function getCollectorsChemistrySet(): TF2GCItem {
   return {
     attribute: [
       {
@@ -681,7 +681,7 @@ export function getCollectorsChemistrySet(): TF2Item {
   };
 }
 
-export function getDuelingMinigame(): TF2Item {
+export function getDuelingMinigame(): TF2GCItem {
   return {
     attribute: [],
     equipped_state: [],
