@@ -151,13 +151,13 @@
       "tough-cookie@<4.1.3": ">=4.1.3"
     },
     "onlyBuiltDependencies": [
-      "@nestjs/core",
       "@parcel/watcher",
       "@swc/core",
       "msgpackr-extract",
       "protobufjs"
     ],
     "ignoredBuiltDependencies": [
+      "@nestjs/core",
       "@scarf/scarf",
       "core-js-pure",
       "nx"
