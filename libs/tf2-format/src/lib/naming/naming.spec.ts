@@ -1,4 +1,4 @@
-import { ItemNamingSchema } from '../types';
+import { ItemNamingSchema } from '../schemas';
 import { NameGenerator } from './index';
 
 describe('NameGenerator', () => {
@@ -8,8 +8,8 @@ describe('NameGenerator', () => {
 
     beforeEach(() => {
       schema = {
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
+        getSchemaItemByDefindex: jest.fn(),
+        fetchSchemaItemByDefindex: jest.fn(),
         getQualityById: jest.fn(),
         fetchQualityById: jest.fn(),
         getEffectById: jest.fn(),
@@ -22,7 +22,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a key', async () => {
-      schema.getItemByDefindex.mockReturnValue({
+      schema.getSchemaItemByDefindex.mockReturnValue({
         item_name: 'Mann Co. Supply Crate Key',
         proper_name: false,
         item_quality: 6,
@@ -37,15 +37,15 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a killstreak kit fabricator', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Fabricator',
         proper_name: false,
         item_quality: 6,
       });
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Splendid Screen',
       });
-      schema.getItemByDefindex.mockReturnValueOnce({ item_name: 'Kit' });
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({ item_name: 'Kit' });
 
       const name = await generator.getName({
         defindex: 20003,
@@ -61,7 +61,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of an item with proper name true', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Team Captain',
         proper_name: true,
         item_quality: 6,
@@ -76,7 +76,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a prof ks strange festive item', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Stickybomb Launcher',
         proper_name: false,
         item_quality: 11,
@@ -96,12 +96,12 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a collectors kit', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Chemistry Set',
         proper_name: false,
         item_quality: 6,
       });
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Festive Sapper',
         proper_name: false,
         item_quality: 6,
@@ -119,7 +119,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a skin', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Sniper Rifle',
         proper_name: true,
         item_quality: 15,
@@ -142,7 +142,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a crate', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Unlocked Winter 2016 Cosmetic Case',
         proper_name: false,
         item_quality: 6,
@@ -161,7 +161,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a strange australium rocket launcher', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Rocket Launcher',
         proper_name: false,
         item_quality: 6,
@@ -178,7 +178,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of an item with elevated quality', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Hong Kong Cone',
         proper_name: false,
         item_quality: 6,
@@ -197,7 +197,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a normal quality item', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Minigun',
         proper_name: false,
         item_quality: 0,
@@ -213,7 +213,7 @@ describe('NameGenerator', () => {
     });
 
     it('will create the name of a Red Rock Roscoe Pistol', async () => {
-      schema.getItemByDefindex.mockReturnValueOnce({
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Pistol',
         proper_name: true,
         item_quality: 15,
@@ -228,6 +228,26 @@ describe('NameGenerator', () => {
       });
 
       expect(name).toBe('Red Rock Roscoe Pistol (Factory New)');
+    });
+
+    it('will handle Invalid Particle effect', async () => {
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
+        item_name: 'Hong Kong Cone',
+        proper_name: false,
+        item_quality: 6,
+      });
+      schema.getEffectById.mockRejectedValueOnce(
+        new Error('Invalid particle effect'),
+      );
+      schema.getQualityById.mockReturnValueOnce('Unusual');
+
+      const name = await generator.getName({
+        defindex: 30177,
+        quality: 5,
+        effect: 0,
+      });
+
+      expect(name).toBe('Invalid Particle Hong Kong Cone');
     });
   });
 });

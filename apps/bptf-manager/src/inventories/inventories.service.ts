@@ -15,7 +15,7 @@ import {
   EnqueueJobData,
 } from './interfaces/queue.interface';
 import { Redis } from 'ioredis';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Inventory } from './interfaces/inventory.interface';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
@@ -24,7 +24,8 @@ import { pack, unpack } from 'msgpackr';
 export class InventoriesService {
   private readonly logger = new Logger(InventoriesService.name);
 
-  private readonly locker: Locker;
+  private readonly redis: Redis = this.redisService.getOrThrow();
+  private readonly locker: Locker = new Locker(this.redis);
 
   constructor(
     @InjectQueue('inventories')
@@ -38,10 +39,8 @@ export class InventoriesService {
       EnqueueJobResult
     >,
     private readonly httpService: HttpService,
-    @InjectRedis() private readonly redis: Redis,
-  ) {
-    this.locker = new Locker(this.redis);
-  }
+    private readonly redisService: RedisService,
+  ) {}
 
   async scheduleRefresh(
     steamid: SteamID,

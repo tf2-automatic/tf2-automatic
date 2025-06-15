@@ -1,24 +1,23 @@
-import { TF2Parser } from './parser';
+import { TF2GCParser } from './parser';
 import * as TestData from './test-data';
-import { ItemsGameItem, TF2ParserSchema } from '../../types';
+import { ItemsGameItem } from '../../types';
+import { TF2ParserSchema } from '../../schemas';
 
-describe('TF2Parser', () => {
+describe('TF2GCParser', () => {
   describe('#extract', () => {
-    let parser: TF2Parser;
+    let parser: TF2GCParser;
 
     beforeEach(() => {
       const schema: TF2ParserSchema = {
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
-        getSpellById: jest.fn(),
-        fetchSpellById: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getPaintByColor: jest.fn(),
         fetchPaintByColor: jest.fn(),
         getStrangePartById: jest.fn(),
         fetchStrangePartById: jest.fn(),
       };
 
-      parser = new TF2Parser(schema);
+      parser = new TF2GCParser(schema);
     });
 
     it('will parse basic attributes', () => {
@@ -101,7 +100,7 @@ describe('TF2Parser', () => {
       expect(extracted.assetid).toEqual('15446477485');
       expect(extracted.defindex).toEqual(215);
       expect(extracted.quality).toEqual(6);
-      expect(extracted.spells).toEqual([1009]);
+      expect(extracted.spells).toEqual([[1009, 1]]);
     });
 
     it('will parse festivized items', () => {
@@ -123,12 +122,12 @@ describe('TF2Parser', () => {
       expect(extracted.defindex).toEqual(20003);
       expect(extracted.quality).toEqual(6);
       expect(extracted.inputs).toEqual([
-        { quality: 6, amount: 2, killstreak: 2 },
-        { quality: 6, amount: 13, defindex: 5706 },
-        { quality: 6, amount: 3, defindex: 5707 },
-        { quality: 6, amount: 4, defindex: 5702 },
-        { quality: 6, amount: 2, defindex: 5704 },
-        { quality: 6, amount: 3, defindex: 5701 },
+        { quality: 6, quantity: 2, killstreak: 2 },
+        { quality: 6, quantity: 13, defindex: 5706 },
+        { quality: 6, quantity: 3, defindex: 5707 },
+        { quality: 6, quantity: 4, defindex: 5702 },
+        { quality: 6, quantity: 2, defindex: 5704 },
+        { quality: 6, quantity: 3, defindex: 5701 },
       ]);
       expect(extracted.killstreak).toEqual(3);
       expect(extracted.sheen).toEqual(7);
@@ -147,37 +146,37 @@ describe('TF2Parser', () => {
       expect(extracted.quality).toEqual(6);
       expect(extracted.inputs).toEqual([
         {
-          amount: 4,
+          quantity: 4,
           defindex: 331,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 61,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 649,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 42,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 36,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 38,
           quality: 6,
         },
         {
-          amount: 1,
+          quantity: 1,
           defindex: 43,
           quality: 11,
         },
@@ -208,7 +207,7 @@ describe('TF2Parser', () => {
       expect(extracted.outputQuality).toEqual(14);
       expect(extracted.output).toEqual(1080);
       expect(extracted.inputs).toEqual([
-        { amount: 193, defindex: 1080, quality: 6 },
+        { quantity: 193, defindex: 1080, quality: 6 },
       ]);
     });
 
@@ -225,22 +224,20 @@ describe('TF2Parser', () => {
   });
 
   describe('#parse', () => {
-    let parser: TF2Parser;
+    let parser: TF2GCParser;
     let schema: TF2ParserSchema;
 
     beforeEach(() => {
       schema = {
-        getItemByDefindex: jest.fn(),
-        fetchItemByDefindex: jest.fn(),
-        getSpellById: jest.fn(),
-        fetchSpellById: jest.fn(),
+        getItemsGameItemByDefindex: jest.fn(),
+        fetchItemsGameItemByDefindex: jest.fn(),
         getPaintByColor: jest.fn(),
         fetchPaintByColor: jest.fn(),
         getStrangePartById: jest.fn(),
         fetchStrangePartById: jest.fn(),
       };
 
-      parser = new TF2Parser(schema);
+      parser = new TF2GCParser(schema);
     });
 
     it('will parse a basic item', async () => {
@@ -248,7 +245,7 @@ describe('TF2Parser', () => {
 
       const [extracted, context] = parser.extract(item);
 
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
         name: 'Decoder Ring',
         attributes: {
           'always tradable': {
@@ -277,7 +274,7 @@ describe('TF2Parser', () => {
 
       const [extracted, context] = parser.extract(item);
 
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
         name: "The Crone's Dome",
         capabilities: {
           paintable: '1',
@@ -294,39 +291,6 @@ describe('TF2Parser', () => {
       expect(parsed.craftable).toEqual(true);
       expect(parsed.tradable).toEqual(true);
       expect(parsed.paint).toEqual(211);
-    });
-
-    it('will parse exorcism spelled items', async () => {
-      const item = TestData.getExorcismSpelledItem();
-
-      const [extracted, context] = parser.extract(item);
-
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
-        name: 'The Degreaser',
-      } satisfies ItemsGameItem);
-
-      const parsed = await parser.parse(extracted, context);
-
-      expect(parsed.spells).toEqual([1009]);
-    });
-
-    it('will parse weird spells', async () => {
-      const item = TestData.getExorcismSpelledItem();
-
-      const [extracted, context] = parser.extract(item);
-
-      extracted.spells = [[1004, 1]];
-
-      schema.getItemByDefindex = jest.fn().mockReturnValue({
-        name: 'The Degreaser',
-      } satisfies ItemsGameItem);
-      schema.getSpellById = jest.fn().mockReturnValue(8902);
-
-      const parsed = await parser.parse(extracted, context);
-
-      expect(schema.getSpellById).toHaveBeenCalledWith(1004, 1);
-
-      expect(parsed.spells).toEqual([8902]);
     });
   });
 });

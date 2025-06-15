@@ -3,7 +3,7 @@ import { InventoriesService } from './inventories.service';
 import { InventoriesController } from './inventories.controller';
 import { BotsModule } from '../bots/bots.module';
 import { SchemaModule } from '../schema/schema.module';
-import { RedisModule } from '@songkeys/nestjs-redis';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { ManagerModule } from '../manager/manager.module';
 import { RelayModule } from '@tf2-automatic/nestjs-relay';
 import { defaultJobOptions } from '@tf2-automatic/queue';
@@ -24,5 +24,6 @@ import { InventoriesProcessor } from './inventories.processor';
   ],
   providers: [InventoriesService, InventoriesProcessor],
   controllers: [InventoriesController],
+  exports: [InventoriesService],
 })
 export class InventoriesModule {}

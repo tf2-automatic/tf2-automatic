@@ -2,7 +2,7 @@
   "name": "executors",
   "version": "latest",
   "dependencies": {
-    "@nx/devkit": "19.3.2",
+    "@nx/devkit": "21.2.0",
     "tslib": "^2.3.0"
   },
   "type": "commonjs",

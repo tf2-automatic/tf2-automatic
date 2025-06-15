@@ -9,9 +9,7 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "libs/executors/**/*.ts"
-        ]
+        "lintFilePatterns": ["libs/executors/**/*.ts"]
       }
     },
     "build": {

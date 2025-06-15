@@ -27,7 +27,7 @@ import {
   TF2Item,
 } from '@tf2-automatic/bot-data';
 import Redis from 'ioredis';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { pack, unpack } from 'msgpackr';
 import SteamID from 'steamid';
 import {
@@ -76,12 +76,14 @@ export class InventoriesService
     InventoryJobData
   >;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
     private readonly eventsService: NestEventsService,
     private readonly botsService: BotsService,
     private readonly schemaService: SchemaService,
     private readonly managerService: ManagerService,
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly relayService: RelayService,
     @InjectQueue('inventories')
     queue: Queue,
@@ -232,6 +234,26 @@ export class InventoriesService
       return null;
     }
     return parseInt(timestamp.toString());
+  }
+
+  async getSkuByAsset(
+    steamid: SteamID,
+    assetid: string,
+    extract?: (keyof Item)[],
+  ): Promise<string> {
+    const inventory = await this.getInventoryFromCacheAndExtractAttributes(
+      steamid,
+      extract,
+    );
+
+    for (const sku in inventory.items) {
+      const assetids = inventory.items[sku];
+      if (assetids.includes(assetid)) {
+        return sku;
+      }
+    }
+
+    throw new NotFoundException('Asset not found');
   }
 
   async getInventoryFromCache(steamid: SteamID): Promise<InventoryResponse> {
@@ -519,7 +541,7 @@ export class InventoriesService
     items: TF2Item[],
     time?: number,
   ): Promise<InventoryItem[]> {
-    const parser = this.schemaService.getTF2Parser(time);
+    const parser = this.schemaService.getTF2Parser({ time });
 
     const parsed: Promise<InventoryItem>[] = new Array(items.length);
 
@@ -536,7 +558,7 @@ export class InventoriesService
     items: EconItem[],
     time?: number,
   ): Promise<InventoryItem[]> {
-    const parser = this.schemaService.getEconParser(time);
+    const parser = this.schemaService.getEconParser({ time });
 
     const parsed: Promise<InventoryItem>[] = new Array(items.length);
 

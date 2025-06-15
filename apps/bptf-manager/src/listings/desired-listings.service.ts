@@ -1,4 +1,4 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import {
   DesiredListingDto,
   RemoveListingDto,
@@ -20,14 +20,13 @@ import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class DesiredListingsService {
-  private readonly locker: Locker;
+  private readonly redis: Redis = this.redisService.getOrThrow();
+  private readonly locker: Locker = new Locker(this.redis);
 
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
-  ) {
-    this.locker = new Locker(redis);
-  }
+  ) {}
 
   async addDesired(
     steamid: SteamID,

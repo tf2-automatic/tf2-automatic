@@ -20,19 +20,33 @@ export interface PaintKit {
 }
 
 export interface Spell {
-  id: number;
+  defindexes: number[];
   name: string;
+  attribute: number;
+  value: number;
 }
 
 export interface StrangePart {
   id: number;
   defindex: number;
+  type: string;
 }
 
 export interface Paint {
   defindex: number;
   primaryColor: string;
   secondaryColor: string | null;
+}
+
+export interface SchemaAttribute {
+  name: string;
+  defindex: number;
+  attribute_class?: string;
+  description_string?: string;
+  description_format?: string;
+  effect_type: string;
+  hidden: boolean;
+  stored_as_integer: boolean;
 }
 
 export class QualityModel implements Quality {
@@ -88,14 +102,30 @@ export class PaintKitModel implements PaintKit {
 
 export class SpellModel implements Spell {
   @ApiProperty({
-    example: 1009,
+    description:
+      'The defindexes of the items that could be used to apply this spell',
+    example: [8905, 8906, 8907, 8908, 8909, 8910, 8911, 8912, 8913],
   })
-  id!: number;
+  defindexes: number[];
 
   @ApiProperty({
-    example: 'Exorcism',
+    description:
+      'The name of the spell. It is either the description of the spell attribute, or the name of the item that applies the spell.',
+    example: 'Voices from Below',
   })
-  name!: string;
+  name: string;
+
+  @ApiProperty({
+    description: 'The attribute defindex associated with the spell',
+    example: 1006,
+  })
+  attribute: number;
+
+  @ApiProperty({
+    description: 'The value of the spell attribute',
+    example: 1,
+  })
+  value: number;
 }
 
 export class StrangePartModel implements StrangePart {
@@ -108,6 +138,11 @@ export class StrangePartModel implements StrangePart {
     example: 6015,
   })
   defindex!: number;
+
+  @ApiProperty({
+    example: 'Kills Under A Full Moon',
+  })
+  type!: string;
 }
 
 export class PaintModel implements Paint {
@@ -125,6 +160,51 @@ export class PaintModel implements Paint {
     example: null,
   })
   secondaryColor!: string | null;
+}
+
+export class SchemaAttributeModel implements SchemaAttribute {
+  @ApiProperty({
+    example: 'SPELL: Halloween voice modulation',
+  })
+  name!: string;
+
+  @ApiProperty({
+    example: 1006,
+  })
+  defindex!: number;
+
+  @ApiProperty({
+    example: 'halloween_voice_modulation',
+    required: false,
+  })
+  attribute_class?: string;
+
+  @ApiProperty({
+    example: 'Voices from Below',
+    required: false,
+  })
+  description_string?: string;
+
+  @ApiProperty({
+    example: 'value_is_additive',
+    required: false,
+  })
+  description_format?: string;
+
+  @ApiProperty({
+    example: 'positive',
+  })
+  effect_type!: string;
+
+  @ApiProperty({
+    example: false,
+  })
+  hidden!: boolean;
+
+  @ApiProperty({
+    example: false,
+  })
+  stored_as_integer!: boolean;
 }
 
 export class SchemaQueryDto {

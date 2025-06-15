@@ -2,6 +2,7 @@ import {
   EconParser,
   ItemsGameItem,
   EconParserSchema,
+  Spell,
 } from '../../dist/libs/tf2-format';
 import { parseEconItem } from 'tf2-item-format/static';
 import axios from 'axios';
@@ -131,12 +132,12 @@ const itemLoader = new DataLoader<string, number | null>(
   },
 );
 
-const spellLoader = new DataLoader<string, number | null>(
+const spellLoader = new DataLoader<string, Spell | null>(
   ([spell]) => {
     return axios
       .get('http://localhost:3003/schema/spells/' + spell)
       .then((res) => {
-        const result = res.data.id;
+        const result = [res.data.attribute, res.data.value];
         cache.set('spell:' + spell, result);
         return [result];
       });
@@ -190,8 +191,8 @@ export const KILLSTREAKERS = {
 };
 
 const schema: EconParserSchema = {
-  getItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
-  fetchItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
+  getItemsGameItemByDefindex: (defindex) => cache.get('itemsgame:' + defindex),
+  fetchItemsGameItemByDefindex: (defindex) => itemsGameLoader.load(defindex),
   getQualityByName: (name) => cache.get('quality:' + name),
   fetchQualityByName: (name) => qualityLoader.load(name),
   getEffectByName: (name) => cache.get('effect:' + name),

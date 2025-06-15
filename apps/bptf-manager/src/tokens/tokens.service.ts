@@ -3,14 +3,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { SaveTokenDto, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
 import SteamID from 'steamid';
 
 @Injectable()
 export class TokensService {
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
+  constructor(private readonly redisService: RedisService) {}
 
   async saveToken(dto: SaveTokenDto): Promise<void> {
     await this.redis.set(this.getKey(dto.steamid64), dto.value);

@@ -1,7 +1,7 @@
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { mock } from '@tf2-automatic/testing';
 import { DesiredListingsListener } from './desired-listings.listener';
-import { getRedisToken } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DesiredListingsService } from '../desired-listings.service';
 import {
@@ -30,8 +30,11 @@ describe('DesiredListingsListener', () => {
         DesiredListingsService,
         DesiredListingsListener,
         {
-          provide: getRedisToken('default'),
-          useValue: mock.redis,
+          provide: RedisService,
+          useValue: {
+            getOrThrow: () => mock.redis,
+            getOrNil: () => mock.redis,
+          },
         },
       ],
       imports: [EventEmitterModule.forRoot()],

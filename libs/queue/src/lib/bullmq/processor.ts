@@ -63,6 +63,33 @@ export abstract class CustomWorkerHost<
     return Promise.resolve();
   }
 
+  private getStatusAndResponseFromError(err: Error): {
+    status: number;
+    response: string | object;
+  } | null {
+    if (err instanceof AxiosError) {
+      const response = err.response satisfies AxiosError<HttpError>['response'];
+
+      if (response === undefined) {
+        return null;
+      }
+
+      return {
+        status: response.status,
+        response: response.data,
+      };
+    }
+
+    if (err instanceof HttpException) {
+      return {
+        status: err.getStatus(),
+        response: err.getResponse(),
+      };
+    }
+
+    return null;
+  }
+
   /* eslint-enable @typescript-eslint/no-unused-vars */
 
   private async processJobWithErrorHandler(
@@ -80,26 +107,12 @@ export abstract class CustomWorkerHost<
       .catch(async (err) => {
         await this.preErrorHandler(job, err);
 
-        if (err instanceof AxiosError) {
-          const response =
-            err.response satisfies AxiosError<HttpError>['response'];
+        const statusAndResponse = this.getStatusAndResponseFromError(err);
+        if (statusAndResponse !== null) {
+          const { status, response } = statusAndResponse;
 
-          if (
-            response !== undefined &&
-            response.status < 500 &&
-            response.status >= 400
-          ) {
-            // Don't retry on 4xx errors
-            throw new CustomUnrecoverableError(
-              response.data.message,
-              response.data,
-            );
-          }
-        } else if (err instanceof HttpException) {
-          const status = err.getStatus();
-          if (status < 500 && status >= 400) {
-            // Don't retry on 4xx errors
-            const response = err.getResponse();
+          if (status < 500 && status >= 400 && status !== 429) {
+            // Don't retry on 4xx errors except for 429
             if (typeof response === 'object') {
               throw new CustomUnrecoverableError(err.message, response);
             } else {

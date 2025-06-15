@@ -1,9 +1,10 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
+import { RedisService } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   ServiceUnavailableException,
@@ -32,6 +33,7 @@ import { HeartbeatsQueue } from './interfaces/queue.interface';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
+import { AxiosError } from 'axios';
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -41,8 +43,10 @@ export class HeartbeatsService {
   private readonly logger = new Logger(HeartbeatsService.name);
   private readonly locker: Locker;
 
+  private readonly redis: Redis = this.redisService.getOrThrow();
+
   constructor(
-    @InjectRedis() private readonly redis: Redis,
+    private readonly redisService: RedisService,
     private readonly httpService: HttpService,
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
@@ -105,11 +109,7 @@ export class HeartbeatsService {
     }
 
     // Check if the bot is alive / ip + port combination is valid
-    const running = await this.getRunningBot(bot).catch(() => {
-      throw new InternalServerErrorException(
-        'Bot ' + bot.steamid64 + ' is not accessible',
-      );
-    });
+    const running = await this.getRunningBot(bot);
 
     if (running === null || running.steamid64 !== bot.steamid64) {
       // Bot is not the same as we thought it was
@@ -142,12 +142,7 @@ export class HeartbeatsService {
           await this.deleteHeartbeatJobIfExists(existing);
         }
 
-        const running = await this.getRunningBot(bot).catch((err) => {
-          this.logger.warn('Bot is not accessible: ' + err.message);
-          throw new InternalServerErrorException(
-            'Bot ' + bot.steamid64 + ' is not accessible',
-          );
-        });
+        const running = await this.getRunningBot(bot);
 
         if (running === null || running.steamid64 !== bot.steamid64) {
           throw new BadRequestException('IP and port is not used for this bot');
@@ -282,6 +277,20 @@ export class HeartbeatsService {
     ).catch((err) => {
       if (err.code === 'ECONNREFUSED') {
         return null;
+      }
+
+      let errorMessage: string | null = null;
+
+      if (err instanceof AxiosError && err.response) {
+        errorMessage = err.response.data.message ?? err.message;
+      }
+
+      if (errorMessage) {
+        this.logger.warn('Bot is inaccessible (' + errorMessage + ')');
+        throw new HttpException(
+          'Bot is inaccessible (' + errorMessage + ')',
+          HttpStatus.FAILED_DEPENDENCY,
+        );
       }
 
       throw err;
