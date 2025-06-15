@@ -19,6 +19,6 @@ describe('ParseSteamID64Pipe', () => {
 
     expect(() => {
       target.transform('abc123');
-    }).toThrowError('Invalid SteamID');
+    }).toThrow('Invalid SteamID');
   });
 });

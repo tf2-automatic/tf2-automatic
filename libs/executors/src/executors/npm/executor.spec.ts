@@ -42,18 +42,22 @@ const context: ExecutorContext = {
   },
 };
 
-jest.mock('fs');
-jest.mock('child_process');
+jest.mock('fs', () => {
+  return {
+    readFileSync: jest.fn(() => mockedPackageJson),
+    writeFileSync: jest.fn(),
+  };
+});
+jest.mock('child_process', () => {
+  return {
+    exec: jest.fn((_, __, callback) => {
+      callback(null, 'stdout', 'stderr');
+    }),
+  };
+});
 
 const fs = require('fs');
 const child_process = require('child_process');
-
-fs.readFileSync = jest.fn(() => mockedPackageJson);
-fs.writeFileSync = jest.fn();
-
-child_process.exec = jest.fn().mockImplementation((_, __, callback) => {
-  callback(null, 'stdout', 'stderr');
-});
 
 describe('NPM Executor', () => {
   beforeEach(() => {
