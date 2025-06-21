@@ -63,14 +63,17 @@ export class SKU {
     const length = sku.length;
     let start = 0;
     let numValue = 0;
+    let sign = 1;
 
     // Extract only defindex and quality
     for (let i = 0; i < length; i++) {
       const charCode = sku.charCodeAt(i);
-      if (charCode <= 57) {
+      if (charCode === 45) {
+        sign = -1;
+      } else if (charCode <= 57) {
         // We know that defindex and quality should only be numbers, so we
         // just assume that it is the character '0' to '9'.
-        numValue = numValue * 10 + (charCode - 48);
+        numValue = numValue * 10 + (charCode - 48) * sign;
       } else if (charCode === 59) {
         // Found the seperator ';' ASCII 59
         if (start === 0) {
@@ -78,6 +81,7 @@ export class SKU {
           item.defindex = numValue;
           // Reset numValue for the next part
           numValue = 0;
+          sign = 1;
           // Update the start defindex for the next part
           start = i + 1;
         } else if (start !== 0) {

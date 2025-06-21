@@ -89,6 +89,24 @@ describe('SKU', () => {
       expect(item.paint).toEqual(16738740);
     });
 
+    it('will decode -1', () => {
+      const sku = '-1;-1';
+
+      const item = SKU.fromString(sku);
+
+      expect(item.defindex).toEqual(-1);
+      expect(item.quality).toEqual(-1);
+    });
+
+    it('will decode -1234', () => {
+      const sku = '-1234;-1234';
+
+      const item = SKU.fromString(sku);
+
+      expect(item.defindex).toEqual(-1234);
+      expect(item.quality).toEqual(-1234);
+    });
+
     it('will not throw', () => {
       expect(() => {
         SKU.fromString(`Pe]XD'h(k2lU~{wtVp//CE&;?fz'R@N3}FAQv~D;JOn&B]"Ay$`);
