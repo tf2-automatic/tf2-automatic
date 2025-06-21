@@ -10,9 +10,6 @@ export interface InventoryItem extends Item {
   assetid: string;
 }
 
-/**
- * An annoying type I have to make to be able to parse backpack.tf listings
- */
 export interface PossibleInventoryItem extends Item {
   assetid: string | null;
 }
