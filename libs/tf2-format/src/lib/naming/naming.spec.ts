@@ -249,5 +249,32 @@ describe('NameGenerator', () => {
 
       expect(name).toBe('Invalid Particle Hong Kong Cone');
     });
+
+    it('will handle ambiguous qualities', async () => {
+      schema.getSchemaItemByDefindex.mockReturnValueOnce({
+        item_name: 'Shotgun',
+        proper_name: true,
+        item_quality: 15,
+      });
+
+      schema.getEffectById.mockReturnValueOnce('Cool');
+      schema.getQualityById.mockReturnValueOnce('Strange');
+      schema.getPaintkitById.mockReturnValueOnce('Backwoods Boomstick');
+
+      const name = await generator.getName({
+        defindex: 15003,
+        quality: -1,
+        effect: 703,
+        wear: 3,
+        paintkit: 12,
+        elevated: true,
+      });
+
+      expect(schema.getQualityById).toHaveBeenCalledWith(11);
+
+      expect(name).toBe(
+        'Strange Cool Backwoods Boomstick Shotgun (Field-Tested)',
+      );
+    });
   });
 });

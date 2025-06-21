@@ -36,7 +36,10 @@ export class NameGenerator {
 
     if (
       (item.quality === 6 && item.elevated === true) ||
-      (item.quality !== 6 && item.quality !== 15 && item.quality !== 5) ||
+      (item.quality !== -1 &&
+        item.quality !== 6 &&
+        item.quality !== 15 &&
+        item.quality !== 5) ||
       (item.quality === 5 && item.effect === undefined) ||
       schemaItem.item_quality === 5
     ) {
