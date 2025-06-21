@@ -5224,3 +5224,387 @@ export function getKillstreakKillstreakKitFabricator() {
     fraudwarnings: [],
   };
 }
+
+export function getStrangeUnusualDecoratedWeapon() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '13713518923',
+    classid: '4832107993',
+    instanceid: '5088435284',
+    amount: 1,
+    pos: 1679,
+    id: '13713518923',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPfftYghuZgHPUPUPCaMF4w3tG3R8u59gBofhr75WKg3u4oeXMLUlZI0eS8mFU__SMgr540o_0_QIKJKNozSvg3rwurlv9g',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEMaQkUTxr2vTx8mMnvA-aHAfQ_ktk664MayTdinxVwPfftYghuZgHPUPUPCaMF4w3tG3R8u59gBofhr75WKg3u4oeXMLUlZI0eS8mFU__SMgr540o_0_QIKJKNozSvg3rwurlv9g',
+    descriptions: [
+      {
+        value: 'Mercenary Grade Wrench (Field-Tested)',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: 'Strange Stat Clock Attached',
+        color: 'CF6A32',
+        name: 'attribute',
+      },
+      {
+        value: '     Sentry Kills: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Kills: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Sappers Removed: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '     Spies Killed: 0',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '★ Unusual Effect: Cool',
+        color: 'ffd700',
+        name: 'attribute',
+      },
+      {
+        value: 'Team Colored Decorated Weapon',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Incinerator',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Mean Green',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value:
+          'Upgrades, repairs and speeds up construction of friendly buildings on hit',
+        name: 'attribute',
+      },
+      {
+        value: '\nGift from: socks',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Date Received: Friday, November 25, 2022 (1:24:18) GMT',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: ' ',
+        name: 'attribute',
+      },
+      {
+        value: 'Warbird Collection',
+        name: 'attribute',
+      },
+      {
+        value: '    Killer Bee Scattergun',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Warhawk Rocket Launcher',
+        color: 'eb4b4b',
+        name: 'attribute',
+      },
+      {
+        value: '    Warhawk Grenade Launcher',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Red Bear Shotgun',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Warhawk Flame Thrower',
+        color: 'd32ce6',
+        name: 'attribute',
+      },
+      {
+        value: '    Butcher Bird Minigun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Airwolf Sniper Rifle',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Stickybomb Launcher',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Corsair Medi Gun',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Airwolf Knife',
+        color: '8847ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Medi Gun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Pistol',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Revolver',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg SMG',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '★ Airwolf Wrench',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Corsair Scattergun',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Butcher Bird Grenade Launcher',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+      {
+        value: '    Blitzkrieg Knife',
+        color: '4b69ff',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=15156&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20S%owner_steamid%A%assetid%D14453520414476185380',
+        name: 'Inspect in Game...',
+      },
+    ],
+    name: 'Airwolf Wrench',
+    name_color: '8650AC',
+    type: '',
+    market_name:
+      'Strange Unusual Professional Killstreak Airwolf Wrench (Field-Tested)',
+    market_hash_name:
+      'Strange Unusual Professional Killstreak Airwolf Wrench (Field-Tested)',
+    market_actions: [
+      {
+        link: 'steam://rungame/440/76561202255233023/+tf_econ_item_preview%20M%listingid%A%assetid%D14453520414476185380',
+        name: 'Inspect in Game...',
+      },
+    ],
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'melee',
+        name: 'Melee weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Engineer',
+        name: 'Engineer',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+      {
+        internal_name: 'Rarity_Rare',
+        name: 'Mercenary',
+        category: 'Rarity',
+        color: '4b69ff',
+        category_name: 'Grade',
+      },
+      {
+        internal_name: 'tough_break_case_collection_02',
+        name: 'Warbird Collection',
+        category: 'Collection',
+        color: '',
+        category_name: 'Collection',
+      },
+      {
+        internal_name: 'TFUI_InvTooltip_FieldTested',
+        name: 'Field-Tested',
+        category: 'Exterior',
+        color: '',
+        category_name: 'Exterior',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
+
+export function getStrangeUnusualHHHH() {
+  return {
+    appid: 440,
+    contextid: '2',
+    assetid: '14855916517',
+    classid: '4068728186',
+    instanceid: '7057801317',
+    amount: 1,
+    pos: 1287,
+    id: '14855916517',
+    currency: 0,
+    background_color: '3C352E',
+    icon_url:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEIUw8UXB_2uTNGmvfqDOCLDa5Zwo03sMhXgDQ_xQciY7vmYTRmKwDGUKENWfRt8FnvDSEwu5RlBYfnuasILma6aCYE',
+    icon_url_large:
+      'fWFc82js0fmoRAP-qOIPu5THSWqfSmTELLqcUywGkijVjZULUrsm1j-9xgEIUw8UXB_2uTNGmvfqDOCLDa5Zwo03sMhXgDQ_xQciY7vmYTRmKwDGUKENWfRt8FnvDSEwu5RlBYfnuasILma6aCYE',
+    descriptions: [
+      {
+        value: '(Damage Dealt: 3438)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '(Critical Kills: 0)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value: '(Dominations: 0)',
+        color: '756b5e',
+        name: 'attribute',
+      },
+      {
+        value:
+          'This Weapon has a large melee range and\ndeploys and holsters slower',
+        name: 'attribute',
+      },
+      {
+        value: 'Halloween: Exorcism (spell only active during event)',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaker: Flames',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Sheen: Mean Green',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'Killstreaks Active',
+        color: '7ea9d1',
+        name: 'attribute',
+      },
+      {
+        value: 'No random critical hits',
+        color: 'd83636',
+        name: 'attribute',
+      },
+      {
+        value: '-25 max health on wearer',
+        color: 'd83636',
+        name: 'attribute',
+      },
+      {
+        value:
+          'Cursed by dark spirits similar to\nthose that dwell within the Eyelander.',
+        name: 'attribute',
+      },
+    ],
+    tradable: true,
+    actions: [
+      {
+        link: 'http://wiki.teamfortress.com/scripts/itemredirect.php?id=266&lang=en_US',
+        name: 'Item Wiki Page...',
+      },
+    ],
+    name: "Strange Unusual Professional Killstreak Horseless Headless Horsemann's Headtaker",
+    name_color: '8650AC',
+    type: 'Strange Axe - Heads Taken: 15',
+    market_name:
+      "Strange Unusual Professional Killstreak Horseless Headless Horsemann's Headtaker",
+    market_hash_name:
+      "Strange Unusual Professional Killstreak Horseless Headless Horsemann's Headtaker",
+    commodity: false,
+    market_tradable_restriction: 7,
+    market_marketable_restriction: 0,
+    marketable: true,
+    tags: [
+      {
+        internal_name: 'rarity4',
+        name: 'Unusual',
+        category: 'Quality',
+        color: '8650AC',
+        category_name: 'Quality',
+      },
+      {
+        internal_name: 'melee',
+        name: 'Melee weapon',
+        category: 'Type',
+        color: '',
+        category_name: 'Type',
+      },
+      {
+        internal_name: 'Demoman',
+        name: 'Demoman',
+        category: 'Class',
+        color: '',
+        category_name: 'Class',
+      },
+    ],
+    is_currency: false,
+    fraudwarnings: [],
+  };
+}
