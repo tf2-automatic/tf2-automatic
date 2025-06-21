@@ -1,4 +1,5 @@
 import { Item, RequiredItemAttributes } from '../types';
+import { DEFAULT_ITEM } from '../utils';
 
 export class SKU {
   static fromObject(item: RequiredItemAttributes): string {
@@ -56,35 +57,8 @@ export class SKU {
     return sku;
   }
 
-  static getDefault(): Item {
-    return {
-      defindex: -1,
-      quality: -1,
-      craftable: true,
-      tradable: true,
-      australium: false,
-      festivized: false,
-      effect: null,
-      wear: null,
-      paintkit: null,
-      killstreak: 0,
-      target: null,
-      output: null,
-      outputQuality: null,
-      elevated: false,
-      crateSeries: null,
-      paint: null,
-      parts: [],
-      spells: [],
-      sheen: null,
-      killstreaker: null,
-      inputs: null,
-      quantity: 1,
-    };
-  }
-
-  static fromString(sku: string): Item {
-    const item = this.getDefault();
+  static fromString(sku: string): Partial<Item> {
+    const item: Partial<Item> = {};
 
     const length = sku.length;
     let start = 0;
@@ -230,7 +204,7 @@ export class SKU {
       return false;
     }
 
-    const defaultValue = this.getDefault()[attribute];
+    const defaultValue = DEFAULT_ITEM[attribute];
 
     const cheap = value === defaultValue;
     if (cheap) {

@@ -1,4 +1,5 @@
-import { Item } from '../types';
+import { RequiredItemAttributes } from '../types';
+import { Utils } from '../utils';
 import { SKU } from './';
 import * as TestData from './test-data';
 
@@ -95,8 +96,8 @@ describe('SKU', () => {
     });
   });
 
-  it('will result in the starting object', () => {
-    const item: Item = {
+  it('will preserve the "required" attributes', () => {
+    const item: RequiredItemAttributes = {
       defindex: 1,
       quality: 1,
       craftable: false,
@@ -115,10 +116,6 @@ describe('SKU', () => {
       target: 1,
       output: 1,
       outputQuality: 1,
-      inputs: null,
-      parts: [],
-      spells: [],
-      quantity: 1,
     };
 
     const sku = SKU.fromObject(item);
@@ -126,25 +123,48 @@ describe('SKU', () => {
     expect(SKU.fromString(sku)).toEqual(item);
   });
 
+  it('will not preserve parts, spells and inputs', () => {
+    const item: RequiredItemAttributes = {
+      defindex: 1,
+      quality: 1,
+      parts: [1, 2, 3],
+      spells: [
+        [1, 1],
+        [2, 2],
+      ],
+      inputs: [{ quality: 1, quantity: 1 }],
+    };
+
+    const sku = SKU.fromObject(item);
+
+    const parsed = SKU.fromString(sku);
+
+    expect(parsed.defindex).toEqual(item.defindex);
+    expect(parsed.quality).toEqual(item.quality);
+    expect(parsed.parts).toBeUndefined();
+    expect(parsed.spells).toBeUndefined();
+    expect(parsed.inputs).toBeUndefined();
+  });
+
   describe('#hasAttribute', () => {
     it('will return true if the attribute is present and different', () => {
-      const item = { ...SKU.getDefault(), defindex: 1 };
+      const item = { ...Utils.getDefault(), defindex: 1 };
       expect(SKU.hasAttribute(item, 'defindex')).toBe(true);
     });
 
     it('will return false if the attribute is present and the same', () => {
-      const item = { ...SKU.getDefault() };
+      const item = { ...Utils.getDefault() };
       expect(SKU.hasAttribute(item, 'defindex')).toBe(false);
     });
 
     it('will work with arrays', () => {
-      const item = { ...SKU.getDefault(), parts: [1] };
+      const item = { ...Utils.getDefault(), parts: [1] };
       expect(SKU.hasAttribute(item, 'parts')).toBe(true);
       expect(SKU.hasAttribute(item, 'spells')).toBe(false);
     });
 
     it('will work with booleans', () => {
-      const item = { ...SKU.getDefault(), elevated: true };
+      const item = { ...Utils.getDefault(), elevated: true };
       // Elevated is true and therefore different from the default
       expect(SKU.hasAttribute(item, 'elevated')).toBe(true);
       // Craftable is true, but it is not different from the default
