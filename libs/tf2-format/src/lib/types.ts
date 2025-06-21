@@ -83,7 +83,6 @@ export interface SchemaItem {
   item_name: string;
   proper_name: boolean;
   item_quality: number;
-  used_by_classes?: string[];
 }
 
 export type UndefinedOrError<T> = T | undefined | Error;
