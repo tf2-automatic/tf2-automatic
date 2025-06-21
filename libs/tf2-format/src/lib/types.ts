@@ -63,10 +63,7 @@ type RequiredKeys<T extends keyof U, U> = {
   [K in Exclude<keyof U, T>]?: U[K]; // Optional keys
 };
 
-export type RequiredItemAttributes = RequiredKeys<
-  'defindex' | 'quality',
-  PrimaryItemAttributes & ExtraItemAttributes
->;
+export type RequiredItemAttributes = RequiredKeys<'defindex' | 'quality', Item>;
 
 export interface ItemsGameItem {
   name: string;

@@ -57,8 +57,11 @@ export class SKU {
     return sku;
   }
 
-  static fromString(sku: string): Partial<Item> {
-    const item: Partial<Item> = {};
+  static fromString(sku: string): RequiredItemAttributes {
+    const item: RequiredItemAttributes = {
+      defindex: -1,
+      quality: -1,
+    };
 
     const length = sku.length;
     let start = 0;
@@ -199,10 +202,10 @@ export class SKU {
     return item;
   }
 
-  static hasAttribute(
-    item: RequiredItemAttributes,
-    attribute: keyof RequiredItemAttributes,
-  ): boolean {
+  static hasAttribute<K extends keyof Item>(
+    item: Partial<Item>,
+    attribute: K,
+  ): item is Partial<Item> & Record<K, NonNullable<Item[K]>> {
     const value = item[attribute];
     if (value === undefined || value === null) {
       return false;

@@ -1,4 +1,4 @@
-import { SKU, Item } from '@tf2-automatic/tf2-format';
+import { Item, Utils } from '@tf2-automatic/tf2-format';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -74,7 +74,7 @@ class IsKeyOfItemConstraint implements ValidatorConstraintInterface {
       return false;
     }
 
-    const validKeys = new Set(Object.keys(SKU.getDefault()));
+    const validKeys = new Set(Object.keys(Utils.getDefault()));
     return keys.every((key) => validKeys.has(key as keyof Item));
   }
 
@@ -88,7 +88,7 @@ export class GetInventoryDto {
     description:
       'Extracts item attributes from the SKU and instead stores them in the `attributes` object.',
     required: false,
-    enum: Object.keys(SKU.getDefault()),
+    enum: Object.keys(Utils.getDefault()),
     isArray: true,
     example: ['killstreaker', 'sheen', 'paint'],
   })
