@@ -20,7 +20,13 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   const server = app.getHttpServer();
   server.keepAliveTimeout =

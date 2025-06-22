@@ -243,7 +243,10 @@ export class InventoriesService
     return parseInt(timestamp.toString());
   }
 
-  async getSkuByAsset(steamid: SteamID, asset: string): Promise<string> {
+  async getItemByAsset(
+    steamid: SteamID,
+    asset: string,
+  ): Promise<RequiredItemAttributes> {
     const key = this.getInventoryKey(steamid.getSteamID64());
 
     const exists = await this.redis.exists(key);
@@ -257,9 +260,7 @@ export class InventoriesService
       throw new NotFoundException('Asset not found');
     }
 
-    const item = Binary.decode(match) as RequiredItemAttributes;
-
-    return SKU.fromObject(item);
+    return Binary.decode(match) as RequiredItemAttributes;
   }
 
   async getInventoryItemsFromCache(steamid: SteamID) {

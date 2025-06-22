@@ -6,7 +6,6 @@ import {
   Param,
   Post,
   Query,
-  ValidationPipe,
 } from '@nestjs/common';
 import { PricesService } from './prices.service';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -50,11 +49,7 @@ export class PricesController {
     description: 'Save a price',
   })
   savePrice(
-    @Body(
-      new ValidationPipe({
-        transform: true,
-      }),
-    )
+    @Body()
     dto: SavePriceDto,
   ): Promise<Price> {
     return this.pricesService.savePrice(dto);
@@ -68,7 +63,7 @@ export class PricesController {
   @ApiParam({
     name: 'id',
     description: 'The ID of the price to delete',
-    example: 'c2t1OjUwMjE7Ng==',
+    example: 'aXRlbTqiARkTnQIG',
   })
   deletePrice(@Param('id') id: string): Promise<void> {
     return this.pricesService.deletePrice(id);
@@ -82,7 +77,7 @@ export class PricesController {
   @ApiParam({
     name: 'id',
     description: 'The ID of the price to delete',
-    example: 'c2t1OjUwMjE7Ng==',
+    example: 'aXRlbTqiARkTnQIG',
   })
   getPrice(@Param('id') id: string): Promise<Price> {
     return this.pricesService.getPrice(id);

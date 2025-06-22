@@ -129,6 +129,16 @@ export class Utils {
     }
   }
 
+  static order<T extends Items>(item: Partial<T>): T {
+    const orderedItem: Partial<T> = {};
+    for (const key of ITEM_KEYS) {
+      if (item[key] !== undefined) {
+        orderedItem[key] = item[key];
+      }
+    }
+    return orderedItem as T;
+  }
+
   static hasAttribute<K extends keyof Item>(
     item: Partial<Item>,
     attribute: K,

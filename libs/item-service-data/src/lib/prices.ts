@@ -1,4 +1,5 @@
 import { BaseEvent } from '@tf2-automatic/bot-data';
+import { RequiredItemAttributes } from '@tf2-automatic/tf2-format';
 
 export const PRICES_BASE_PATH = '/prices';
 export const PRICES_PATH = '/';
@@ -30,9 +31,9 @@ export interface Price {
   id: string;
 
   /**
-   * The SKU of the item.
+   * The item that the price is made for.
    */
-  sku: string | null;
+  item: RequiredItemAttributes | null;
 
   /**
    * The name of the item used for indexing.
