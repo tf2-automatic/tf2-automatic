@@ -1,5 +1,4 @@
 import { RequiredItemAttributes } from '../types';
-import { Utils } from '../utils';
 import { SKU } from './';
 import * as TestData from './test-data';
 
@@ -162,31 +161,5 @@ describe('SKU', () => {
     expect(parsed.parts).toBeUndefined();
     expect(parsed.spells).toBeUndefined();
     expect(parsed.inputs).toBeUndefined();
-  });
-
-  describe('#hasAttribute', () => {
-    it('will return true if the attribute is present and different', () => {
-      const item = { ...Utils.getDefault(), defindex: 1 };
-      expect(SKU.hasAttribute(item, 'defindex')).toBe(true);
-    });
-
-    it('will return false if the attribute is present and the same', () => {
-      const item = { ...Utils.getDefault() };
-      expect(SKU.hasAttribute(item, 'defindex')).toBe(false);
-    });
-
-    it('will work with arrays', () => {
-      const item = { ...Utils.getDefault(), parts: [1] };
-      expect(SKU.hasAttribute(item, 'parts')).toBe(true);
-      expect(SKU.hasAttribute(item, 'spells')).toBe(false);
-    });
-
-    it('will work with booleans', () => {
-      const item = { ...Utils.getDefault(), elevated: true };
-      // Elevated is true and therefore different from the default
-      expect(SKU.hasAttribute(item, 'elevated')).toBe(true);
-      // Craftable is true, but it is not different from the default
-      expect(SKU.hasAttribute(item, 'craftable')).toBe(false);
-    });
   });
 });
