@@ -5,6 +5,7 @@ import {
   Spell,
   TF2GCParser,
   TF2ParserSchema,
+  Utils,
 } from '../../dist/libs/tf2-format';
 import axios from 'axios';
 import DataLoader from 'dataloader';
@@ -268,13 +269,16 @@ for (const item of tf2Items) {
 
 (async () => {
   for (const item in items) {
-    const [econExtracted, context] = econParser.extract(items[item].econ);
-    const econParsed = await econParser.parse(econExtracted, context);
+    const econExtracted = econParser.extract(items[item].econ);
+    const econParsed = await econParser.parse(econExtracted);
 
     const [tf2Extracted, tf2ExtractedContext] = tf2Parser.extract(
       items[item].tf2,
     );
     const tf2Parsed = await tf2Parser.parse(tf2Extracted, tf2ExtractedContext);
+
+    Utils.canonicalize(econParsed);
+    Utils.canonicalize(tf2Parsed);
 
     const equal = JSON.stringify(econParsed) === JSON.stringify(tf2Parsed);
 
