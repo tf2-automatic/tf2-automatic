@@ -1,5 +1,4 @@
-import { Item, RequiredItemAttributes } from '../types';
-import { DEFAULT_ITEM } from '../utils';
+import { RequiredItemAttributes } from '../types';
 
 export class SKU {
   static fromObject(item: RequiredItemAttributes): string {
@@ -200,28 +199,5 @@ export class SKU {
     }
 
     return item;
-  }
-
-  static hasAttribute<K extends keyof Item>(
-    item: Partial<Item>,
-    attribute: K,
-  ): item is Partial<Item> & Record<K, NonNullable<Item[K]>> {
-    const value = item[attribute];
-    if (value === undefined || value === null) {
-      return false;
-    }
-
-    const defaultValue = DEFAULT_ITEM[attribute];
-
-    const cheap = value === defaultValue;
-    if (cheap) {
-      return false;
-    }
-
-    if (Array.isArray(defaultValue) && Array.isArray(value)) {
-      return value.length > 0;
-    }
-
-    return true;
   }
 }

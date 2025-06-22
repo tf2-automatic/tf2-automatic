@@ -16,7 +16,7 @@ import {
 } from '@tf2-automatic/item-service-data';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AlwaysInvalid, CursorPaginationDto } from './common';
+import { AlwaysInvalid, CursorPaginationDto, ItemModel } from './common';
 
 export class PricelistAssetDto implements PricelistAsset {
   @ApiProperty({
@@ -60,13 +60,13 @@ export class PureDto implements Pure {
 
 export class SavePriceDto implements SavePrice {
   @ApiProperty({
-    description: 'The SKU of the item',
-    example: '5021;6',
+    description: 'The item to price',
     required: false,
   })
-  @IsString()
   @IsOptional()
-  sku?: string;
+  @Type(() => ItemModel)
+  @ValidateNested()
+  item?: ItemModel;
 
   @ApiProperty({
     description: 'A specific asset to price',
@@ -119,13 +119,13 @@ export class SavePriceDto implements SavePrice {
   @Min(-1)
   max?: number;
 
-  @ValidateIf((o) => !o.sku && !o.asset)
-  @AlwaysInvalid({ message: 'either sku or asset must be defined' })
-  private readonly skuOrAsset: undefined;
+  @ValidateIf((o) => !o.item && !o.asset)
+  @AlwaysInvalid({ message: 'either item or asset must be defined' })
+  private readonly itemOrAsset: undefined;
 
-  @ValidateIf((o) => o.asset && o.sku)
-  @AlwaysInvalid({ message: 'sku must not be defined if asset is defined' })
-  private readonly assetWithSku: undefined;
+  @ValidateIf((o) => o.asset && o.item)
+  @AlwaysInvalid({ message: 'item must not be defined if asset is defined' })
+  private readonly assetWithAsset: undefined;
 
   @ValidateIf((o) => !o.buy && !o.sell)
   @AlwaysInvalid({ message: 'either buy or sell must be defined' })

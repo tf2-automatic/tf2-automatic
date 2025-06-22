@@ -31,6 +31,5 @@ export type InventoryResult = (InventoryErrorData | InventoryResultData) & {
 export type InventoryData = {
   timestamp: number;
   error?: Buffer;
-  [key: `item:${string}`]: string;
-  [key: `attribute:${string}`]: Buffer;
+  [key: `item:${string}`]: Buffer;
 };

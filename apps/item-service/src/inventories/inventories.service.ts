@@ -19,7 +19,14 @@ import {
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { BotsService } from '../bots/bots.service';
 import { SchemaService } from '../schema/schema.service';
-import { InventoryItem, Item, SKU, Utils } from '@tf2-automatic/tf2-format';
+import {
+  Binary,
+  InventoryItem,
+  Item,
+  RequiredItemAttributes,
+  SKU,
+  Utils,
+} from '@tf2-automatic/tf2-format';
 import {
   BOT_EXCHANGE_NAME,
   TF2_GAINED_EVENT,
@@ -236,27 +243,27 @@ export class InventoriesService
     return parseInt(timestamp.toString());
   }
 
-  async getSkuByAsset(
+  async getItemByAsset(
     steamid: SteamID,
-    assetid: string,
-    extract?: (keyof Item)[],
-  ): Promise<string> {
-    const inventory = await this.getInventoryFromCacheAndExtractAttributes(
-      steamid,
-      extract,
-    );
+    asset: string,
+  ): Promise<RequiredItemAttributes> {
+    const key = this.getInventoryKey(steamid.getSteamID64());
 
-    for (const sku in inventory.items) {
-      const assetids = inventory.items[sku];
-      if (assetids.includes(assetid)) {
-        return sku;
-      }
+    const exists = await this.redis.exists(key);
+    if (!exists) {
+      throw new NotFoundException('Inventory not found');
     }
 
-    throw new NotFoundException('Asset not found');
+    const match = await this.redis.hgetBuffer(key, 'item:' + asset);
+
+    if (match === null) {
+      throw new NotFoundException('Asset not found');
+    }
+
+    return Binary.decode(match) as RequiredItemAttributes;
   }
 
-  async getInventoryFromCache(steamid: SteamID): Promise<InventoryResponse> {
+  async getInventoryItemsFromCache(steamid: SteamID) {
     const key = this.getInventoryKey(steamid.getSteamID64());
 
     const [ttl, object] = await Promise.all([
@@ -274,20 +281,17 @@ export class InventoriesService
       throw new HttpException(error.message, error.statusCode);
     }
 
-    const items: Record<string, string[]> = {};
-    const attributes: Record<string, Partial<Item>> = {};
+    const items: Record<string, RequiredItemAttributes> = {};
     let timestamp = 0;
 
     for (const key in object) {
       if (key.startsWith('item:')) {
-        const sku = object[key].toString();
-        if (items[sku] === undefined) {
-          items[sku] = [];
-        }
-        items[sku].push(key.slice(5));
-      } else if (key.startsWith('attribute:')) {
-        const assetid = key.slice(10);
-        attributes[assetid] = unpack(object[key]);
+        const encoded = object[key];
+
+        const assetid = key.slice(5);
+
+        const item = Binary.decode(encoded) as RequiredItemAttributes;
+        items[assetid] = item;
       } else if (key === 'timestamp') {
         timestamp = parseInt(object[key].toString());
       }
@@ -298,6 +302,44 @@ export class InventoriesService
     return {
       timestamp,
       ttl,
+      items,
+    };
+  }
+
+  async getInventoryFromCache(steamid: SteamID): Promise<InventoryResponse> {
+    const inventory = await this.getInventoryItemsFromCache(steamid);
+
+    const items: Record<string, string[]> = {};
+    const attributes: Record<string, Partial<Item>> = {};
+
+    for (const assetid in inventory.items) {
+      const item = inventory.items[assetid];
+      const sku = SKU.fromObject(item);
+
+      let hasExtra = false;
+      const attribs: Partial<Item> = {};
+
+      for (const extraKey of DEFAULT_EXTRA_KEYS) {
+        if (Utils.hasAttribute(item, extraKey)) {
+          (attribs[extraKey] as unknown) = item[extraKey];
+          delete item[extraKey];
+          hasExtra = true;
+        }
+      }
+
+      if (hasExtra) {
+        attributes[assetid] = attribs;
+      }
+
+      if (items[sku] === undefined) {
+        items[sku] = [];
+      }
+      items[sku].push(assetid);
+    }
+
+    return {
+      timestamp: inventory.timestamp,
+      ttl: inventory.ttl,
       items,
       attributes,
     };
@@ -475,24 +517,7 @@ export class InventoriesService
     if (result.result) {
       for (let i = 0; i < result.result.length; i++) {
         const item = result.result[i];
-
-        let hasExtra = false;
-
-        const extra: Record<string, Item[keyof Item]> = {};
-
-        for (const key of DEFAULT_EXTRA_KEYS) {
-          const [exists, value] = this.extractValueAndDeleteKey(item, key);
-          if (exists) {
-            hasExtra = true;
-            extra[key] = value;
-          }
-        }
-
-        const sku = SKU.fromObject(item);
-        save['item:' + item.assetid] = sku;
-        if (hasExtra) {
-          save['attribute:' + item.assetid] = pack(extra);
-        }
+        save['item:' + item.assetid] = Binary.encode(item);
       }
     }
 
@@ -572,14 +597,14 @@ export class InventoriesService
   }
 
   private getInventoryKey(steamid64: string) {
-    return `inventory:${steamid64}`;
+    return `inv:${steamid64}`;
   }
 
   private extractValueAndDeleteKey(
     item: Partial<Item>,
     key: keyof Item,
   ): [boolean, Item[keyof Item]] {
-    if (!SKU.hasAttribute(item, key)) {
+    if (!Utils.hasAttribute(item, key)) {
       return [false, null];
     }
 

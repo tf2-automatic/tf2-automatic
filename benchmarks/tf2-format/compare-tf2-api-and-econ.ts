@@ -5,6 +5,7 @@ import {
   Spell,
   TF2APIParser,
   TF2ParserSchema,
+  Utils,
 } from '../../dist/libs/tf2-format';
 import axios from 'axios';
 import DataLoader from 'dataloader';
@@ -275,8 +276,8 @@ for (const item of tf2Items) {
       throw new Error('Missing item');
     }
 
-    const [econExtracted, context] = econParser.extract(items[item].econ);
-    const econParsed = await econParser.parse(econExtracted, context);
+    const econExtracted = econParser.extract(items[item].econ);
+    const econParsed = await econParser.parse(econExtracted);
 
     const [tf2Extracted, tf2ExtractedContext] = tf2Parser.extract(
       items[item].tf2,
@@ -289,23 +290,8 @@ for (const item of tf2Items) {
       tf2Parsed.paint = null;
     }
 
-    if (econParsed.paintkit !== null || econParsed.wear !== null) {
-      if (
-        (econParsed.elevated || econParsed.quality === 11) &&
-        (tf2Parsed.elevated || tf2Parsed.quality === 11)
-      ) {
-        econParsed.quality = -1;
-        econParsed.elevated = false;
-        tf2Parsed.quality = -1;
-        tf2Parsed.elevated = false;
-      } else if (
-        (econParsed.quality === 5 || econParsed.effect !== null) &&
-        (tf2Parsed.quality === 5 || tf2Parsed.effect !== null)
-      ) {
-        econParsed.quality = 5;
-        tf2Parsed.quality = 5;
-      }
-    }
+    Utils.canonicalize(econParsed);
+    Utils.canonicalize(tf2Parsed);
 
     const equal = JSON.stringify(econParsed) === JSON.stringify(tf2Parsed);
 

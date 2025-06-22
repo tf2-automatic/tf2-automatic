@@ -9,7 +9,7 @@ describe('Utils', () => {
   });
 
   describe('#canonicalize', () => {
-    it('should canonicalize items correctly', () => {
+    it('should canonicalize skins', () => {
       const items: Partial<Item>[] = [
         {
           defindex: 15003,
@@ -41,6 +41,18 @@ describe('Utils', () => {
         expect(item.quality).toBe(-1);
         expect(item.elevated).toBe(true);
       }
+    });
+
+    it('should handle strange unusual hhhh', () => {
+      const item: Partial<Item> = {
+        defindex: 266,
+        quality: 5,
+        elevated: true,
+      };
+
+      Utils.canonicalize(item);
+      expect(item.quality).toBe(5);
+      expect(item.elevated).toBe(true);
     });
   });
 
@@ -122,6 +134,32 @@ describe('Utils', () => {
         inputs: null,
         quantity: 1,
       });
+    });
+  });
+
+  describe('#hasAttribute', () => {
+    it('will return true if the attribute is present and different', () => {
+      const item = { ...Utils.getDefault(), defindex: 1 };
+      expect(Utils.hasAttribute(item, 'defindex')).toBe(true);
+    });
+
+    it('will return false if the attribute is present and the same', () => {
+      const item = { ...Utils.getDefault() };
+      expect(Utils.hasAttribute(item, 'defindex')).toBe(false);
+    });
+
+    it('will work with arrays', () => {
+      const item = { ...Utils.getDefault(), parts: [1] };
+      expect(Utils.hasAttribute(item, 'parts')).toBe(true);
+      expect(Utils.hasAttribute(item, 'spells')).toBe(false);
+    });
+
+    it('will work with booleans', () => {
+      const item = { ...Utils.getDefault(), elevated: true };
+      // Elevated is true and therefore different from the default
+      expect(Utils.hasAttribute(item, 'elevated')).toBe(true);
+      // Craftable is true, but it is not different from the default
+      expect(Utils.hasAttribute(item, 'craftable')).toBe(false);
     });
   });
 });

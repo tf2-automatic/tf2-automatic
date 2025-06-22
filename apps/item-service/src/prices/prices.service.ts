@@ -29,7 +29,12 @@ import Redis, { ChainableCommander } from 'ioredis';
 import { pack, unpack } from 'msgpackr';
 import { SchemaService } from '../schema/schema.service';
 import { Locker, LockDuration } from '@tf2-automatic/locking';
-import { SKU, Item } from '@tf2-automatic/tf2-format';
+import {
+  SKU,
+  RequiredItemAttributes,
+  Binary,
+  Utils,
+} from '@tf2-automatic/tf2-format';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
 import assert from 'assert';
 import { InventoriesService } from '../inventories/inventories.service';
@@ -41,8 +46,6 @@ enum PricesKeys {
   SKU_INDEX = 'price-index-sku',
   ASSET_INDEX = 'price-index-asset',
 }
-
-const EXCLUDE_FROM_SKU: (keyof Item)[] = ['killstreaker', 'sheen', 'paint'];
 
 @Injectable()
 export class PricesService implements OnApplicationBootstrap {
@@ -71,19 +74,24 @@ export class PricesService implements OnApplicationBootstrap {
     );
   }
 
-  private getKeyBySKU(sku: string): string {
-    return Buffer.from('sku:' + sku).toString('base64');
+  private getKeyByItem(item: RequiredItemAttributes): string {
+    const encoded = Binary.encode(item);
+    const combined = Buffer.concat([Buffer.from('item:'), encoded]);
+
+    return combined.toString('base64');
   }
 
   private getKeyByAsset(assetid: string): string {
     return Buffer.from('asset:' + assetid).toString('base64');
   }
 
-  private async getSkuByAsset(asset: PricelistAsset): Promise<string | null> {
+  private async getItemByAsset(
+    asset: PricelistAsset,
+  ): Promise<RequiredItemAttributes | null> {
     const steamid = new SteamID(asset.owner);
 
-    const sku = await this.inventoriesService
-      .getSkuByAsset(steamid, asset.id, EXCLUDE_FROM_SKU)
+    const item = await this.inventoriesService
+      .getItemByAsset(steamid, asset.id)
       .catch((err) => {
         if (
           err instanceof NotFoundException &&
@@ -95,23 +103,26 @@ export class PricesService implements OnApplicationBootstrap {
         throw err;
       });
 
-    if (sku === null) {
+    if (item === null) {
       this.inventoriesService.addJob(steamid).catch((err) => {
         this.logger.warn('Failed to add job', err);
       });
     }
 
-    return sku;
+    return item;
   }
 
   async savePrice(price: SavePriceDto): Promise<Price> {
-    assert(price.sku || price.asset, 'Either sku or asset must be provided');
+    assert(price.item || price.asset, 'Either item or asset must be provided');
 
     let key: string;
     if (price.asset) {
       key = this.getKeyByAsset(price.asset.id);
-    } else if (price.sku) {
-      key = this.getKeyBySKU(price.sku);
+    } else if (price.item) {
+      Utils.compact(price.item);
+      Utils.canonicalize(price.item);
+      price.item = Utils.order(price.item);
+      key = this.getKeyByItem(price.item);
     } else {
       assert(false, 'No sku or asset provided');
     }
@@ -130,7 +141,7 @@ export class PricesService implements OnApplicationBootstrap {
 
         const save: Price = {
           id: key,
-          sku: price.sku ?? null,
+          item: price.item !== undefined ? price.item : null,
           name: null,
           asset: price.asset,
           buy: price.buy,
@@ -148,14 +159,14 @@ export class PricesService implements OnApplicationBootstrap {
         if (currentRaw) {
           current = unpack(currentRaw) as Price;
           save.createdAt = current.createdAt;
-          save.sku = current.sku;
+          save.item = current.item;
         }
 
         let throwOnceDone: Error | null = null;
 
         if (price.asset) {
           // Check if the asset is in the inventory
-          const sku = await this.getSkuByAsset(price.asset).catch((err) => {
+          const item = await this.getItemByAsset(price.asset).catch((err) => {
             if (
               err instanceof NotFoundException &&
               err.message === 'Asset not found'
@@ -166,16 +177,16 @@ export class PricesService implements OnApplicationBootstrap {
             throw err;
           });
 
-          if (sku instanceof Error) {
+          if (item instanceof Error) {
             if (!current) {
-              throw sku;
+              throw item;
             }
 
             // Asset is not in the inventory and it is already priced
             this.deletePriceMulti(multi, current);
-            throwOnceDone = sku;
-          } else if (sku !== null) {
-            save.sku = sku;
+            throwOnceDone = item;
+          } else if (item !== null) {
+            save.item = item;
           }
 
           if (signal.aborted) {
@@ -184,7 +195,7 @@ export class PricesService implements OnApplicationBootstrap {
         }
 
         if (!throwOnceDone) {
-          if (save.sku !== null) {
+          if (save.item !== null) {
             await this.updateName(save);
             if (signal.aborted) {
               throw signal.error;
@@ -207,11 +218,9 @@ export class PricesService implements OnApplicationBootstrap {
   }
 
   private async updateName(price: Price): Promise<void> {
-    if (price.sku !== null) {
+    if (price.item !== null) {
       const naming = this.schemaService.getNameGenerator();
-      const item = SKU.fromString(price.sku);
-
-      price.name = await naming.getName(item);
+      price.name = await naming.getName(price.item);
     }
   }
 
@@ -222,15 +231,29 @@ export class PricesService implements OnApplicationBootstrap {
   ) {
     if (old) {
       // Clean up old price
-      multi.srem(PricesKeys.NAME_INDEX + ':' + old.name, old.id);
-      multi.srem(PricesKeys.SKU_INDEX + ':' + old.sku, old.id);
+      if (old.name) {
+        multi.srem(PricesKeys.NAME_INDEX + ':' + old.name, old.id);
+      }
+      if (old.item) {
+        multi.srem(
+          PricesKeys.SKU_INDEX + ':' + SKU.fromObject(old.item),
+          old.id,
+        );
+      }
     }
 
     // Store the new price
     multi.hset(PricesKeys.PRICES, price.id, pack(price));
 
-    multi.sadd(PricesKeys.NAME_INDEX + ':' + price.name, price.id);
-    multi.sadd(PricesKeys.SKU_INDEX + ':' + price.sku, price.id);
+    if (price.name) {
+      multi.sadd(PricesKeys.NAME_INDEX + ':' + price.name, price.id);
+    }
+    if (price.item) {
+      multi.sadd(
+        PricesKeys.SKU_INDEX + ':' + SKU.fromObject(price.item),
+        price.id,
+      );
+    }
     if (price.asset) {
       multi.sadd(PricesKeys.ASSET_INDEX + ':' + price.asset.owner, price.id);
       multi.sadd(PricesKeys.ASSET_INDEX, price.id);
@@ -275,8 +298,15 @@ export class PricesService implements OnApplicationBootstrap {
   }
 
   private deletePriceMulti(multi: ChainableCommander, current: Price) {
-    multi.srem(PricesKeys.NAME_INDEX + current.name, current.id);
-    multi.srem(PricesKeys.SKU_INDEX + current.sku, current.id);
+    if (current.name) {
+      multi.srem(PricesKeys.NAME_INDEX + current.name, current.id);
+    }
+    if (current.item) {
+      multi.srem(
+        PricesKeys.SKU_INDEX + ':' + SKU.fromObject(current.item),
+        current.id,
+      );
+    }
     if (current.asset) {
       multi.srem(
         PricesKeys.ASSET_INDEX + ':' + current.asset.owner,
@@ -461,7 +491,7 @@ export class PricesService implements OnApplicationBootstrap {
         const steamid = new SteamID(event.data.steamid64);
 
         const inventory = await this.inventoriesService
-          .getInventoryFromCacheAndExtractAttributes(steamid, EXCLUDE_FROM_SKU)
+          .getInventoryItemsFromCache(steamid)
           .catch((err) => {
             if (err instanceof NotFoundException) {
               return null;
@@ -478,14 +508,6 @@ export class PricesService implements OnApplicationBootstrap {
           throw signal.error;
         }
 
-        const assets: Map<string, string> = new Map();
-
-        for (const sku in inventory.items) {
-          for (const assetid of inventory.items[sku]) {
-            assets.set(assetid, sku);
-          }
-        }
-
         const pricesToSave: PriceWithAsset[] = [];
         const pricesToDelete: PriceWithAsset[] = [];
 
@@ -498,18 +520,17 @@ export class PricesService implements OnApplicationBootstrap {
 
           const price = unpack(raw) as PriceWithAsset;
 
-          if (price.sku === null) {
+          if (price.item === null) {
             // Look for the sku in the inventory
-            const sku = assets.get(price.asset.id);
-            if (sku === undefined) {
+            const item = inventory.items[price.asset.id];
+            if (item === undefined) {
               keys.add(price.id);
               pricesToDelete.push(price);
-            } else if (price.sku !== sku) {
-              price.sku = sku;
+            } else {
+              Utils.compact(item);
+              price.item = Utils.order(item);
 
-              if (price.sku !== null) {
-                await this.updateName(price);
-              }
+              await this.updateName(price);
 
               keys.add(price.id);
               pricesToSave.push(price);
@@ -544,7 +565,7 @@ export class PricesService implements OnApplicationBootstrap {
 
           const save: Price = {
             id: price.id,
-            sku: price.sku ?? null,
+            item: price.item ?? null,
             name: price.name,
             asset: price.asset,
             buy: price.buy,
@@ -556,7 +577,7 @@ export class PricesService implements OnApplicationBootstrap {
           };
 
           save.createdAt = price.createdAt;
-          save.sku = price.sku;
+          save.item = price.item;
 
           this.savePriceMulti(multi, save, price);
         }

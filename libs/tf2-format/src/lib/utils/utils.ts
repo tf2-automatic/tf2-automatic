@@ -91,9 +91,9 @@ export class Utils {
     const quality = item.quality;
 
     if (quality === 5 || quality === 11 || quality === 15) {
-      const isUnusual = quality === 5 || item.effect;
+      const isUnusual = item.effect;
       const isStrange = quality === 11 || item.elevated;
-      const isSkin = quality === 15 || item.paintkit || item.wear;
+      const isSkin = item.paintkit || item.wear;
 
       let count = 0;
 
@@ -127,5 +127,38 @@ export class Utils {
         delete item[key];
       }
     }
+  }
+
+  static order<T extends Items>(item: Partial<T>): T {
+    const orderedItem: Partial<T> = {};
+    for (const key of ITEM_KEYS) {
+      if (item[key] !== undefined) {
+        orderedItem[key] = item[key];
+      }
+    }
+    return orderedItem as T;
+  }
+
+  static hasAttribute<K extends keyof Item>(
+    item: Partial<Item>,
+    attribute: K,
+  ): item is Partial<Item> & Record<K, NonNullable<Item[K]>> {
+    const value = item[attribute];
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    const defaultValue = DEFAULT_ITEM[attribute];
+
+    const cheap = value === defaultValue;
+    if (cheap) {
+      return false;
+    }
+
+    if (Array.isArray(defaultValue) && Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
   }
 }
