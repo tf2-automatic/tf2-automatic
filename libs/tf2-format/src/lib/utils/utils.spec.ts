@@ -9,7 +9,7 @@ describe('Utils', () => {
   });
 
   describe('#canonicalize', () => {
-    it('should canonicalize items correctly', () => {
+    it('should canonicalize skins', () => {
       const items: Partial<Item>[] = [
         {
           defindex: 15003,
@@ -41,6 +41,18 @@ describe('Utils', () => {
         expect(item.quality).toBe(-1);
         expect(item.elevated).toBe(true);
       }
+    });
+
+    it('should handle strange unusual hhhh', () => {
+      const item: Partial<Item> = {
+        defindex: 266,
+        quality: 5,
+        elevated: true,
+      };
+
+      Utils.canonicalize(item);
+      expect(item.quality).toBe(5);
+      expect(item.elevated).toBe(true);
     });
   });
 

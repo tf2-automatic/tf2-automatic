@@ -91,9 +91,9 @@ export class Utils {
     const quality = item.quality;
 
     if (quality === 5 || quality === 11 || quality === 15) {
-      const isUnusual = quality === 5 || item.effect;
+      const isUnusual = item.effect;
       const isStrange = quality === 11 || item.elevated;
-      const isSkin = quality === 15 || item.paintkit || item.wear;
+      const isSkin = item.paintkit || item.wear;
 
       let count = 0;
 
