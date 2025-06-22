@@ -211,10 +211,12 @@ export class EconParser extends Parser<
       raw.outputQuality = 'Unique';
 
       if (raw.killstreak !== 0) {
+        const kitIndex = raw.output.indexOf(' Kit');
+
         // Handle Killstreak Kit Fabricators
         const target = raw.output.slice(
-          raw.output.indexOf('Killstreak ') + 11,
-          raw.output.lastIndexOf(' Kit'),
+          raw.output.lastIndexOf('Killstreak ', kitIndex) + 11,
+          kitIndex,
         );
         if (target !== '') {
           raw.target = target;

@@ -10,9 +10,6 @@ export interface InventoryItem extends Item {
   assetid: string;
 }
 
-/**
- * An annoying type I have to make to be able to parse backpack.tf listings
- */
 export interface PossibleInventoryItem extends Item {
   assetid: string | null;
 }
@@ -66,10 +63,7 @@ type RequiredKeys<T extends keyof U, U> = {
   [K in Exclude<keyof U, T>]?: U[K]; // Optional keys
 };
 
-export type RequiredItemAttributes = RequiredKeys<
-  'defindex' | 'quality',
-  PrimaryItemAttributes & ExtraItemAttributes
->;
+export type RequiredItemAttributes = RequiredKeys<'defindex' | 'quality', Item>;
 
 export interface ItemsGameItem {
   name: string;
@@ -89,7 +83,6 @@ export interface SchemaItem {
   item_name: string;
   proper_name: boolean;
   item_quality: number;
-  used_by_classes?: string[];
 }
 
 export type UndefinedOrError<T> = T | undefined | Error;

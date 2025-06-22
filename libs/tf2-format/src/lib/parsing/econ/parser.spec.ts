@@ -605,6 +605,36 @@ describe('EconParser', () => {
       expect(extracted.killstreaker).toEqual('Tornado');
       expect(extracted.output).toEqual('Kit');
     });
+
+    it('will parse strange decorated weapon with an effect', () => {
+      const item = TestData.getStrangeUnusualDecoratedWeapon();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Strange');
+      expect(extracted.paintkit).toEqual('Airwolf');
+      expect(extracted.elevated).toEqual(false);
+      expect(extracted.wear).toEqual('Field-Tested');
+      expect(extracted.effect).toEqual('Cool');
+    });
+
+    it('will parse strange unusual hhhh', () => {
+      const item = TestData.getStrangeUnusualHHHH();
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.quality).toEqual('Unusual');
+      expect(extracted.elevated).toEqual(true);
+      expect(extracted.effect).toEqual(null);
+      expect(extracted.parts).toEqual([
+        'Damage Dealt',
+        'Critical Kills',
+        'Dominations',
+      ]);
+      expect(extracted.killstreak).toEqual(3);
+      expect(extracted.killstreaker).toEqual('Flames');
+      expect(extracted.sheen).toEqual('Mean Green');
+    });
   });
 
   describe('#parse', () => {

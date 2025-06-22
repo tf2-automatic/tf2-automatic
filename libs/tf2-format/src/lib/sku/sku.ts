@@ -1,4 +1,5 @@
 import { Item, RequiredItemAttributes } from '../types';
+import { DEFAULT_ITEM } from '../utils';
 
 export class SKU {
   static fromObject(item: RequiredItemAttributes): string {
@@ -56,47 +57,26 @@ export class SKU {
     return sku;
   }
 
-  static getDefault(): Item {
-    return {
+  static fromString(sku: string): RequiredItemAttributes {
+    const item: RequiredItemAttributes = {
       defindex: -1,
       quality: -1,
-      craftable: true,
-      tradable: true,
-      australium: false,
-      festivized: false,
-      effect: null,
-      wear: null,
-      paintkit: null,
-      killstreak: 0,
-      target: null,
-      output: null,
-      outputQuality: null,
-      elevated: false,
-      crateSeries: null,
-      paint: null,
-      parts: [],
-      spells: [],
-      sheen: null,
-      killstreaker: null,
-      inputs: null,
-      quantity: 1,
     };
-  }
-
-  static fromString(sku: string): Item {
-    const item = this.getDefault();
 
     const length = sku.length;
     let start = 0;
     let numValue = 0;
+    let sign = 1;
 
     // Extract only defindex and quality
     for (let i = 0; i < length; i++) {
       const charCode = sku.charCodeAt(i);
-      if (charCode <= 57) {
+      if (charCode === 45) {
+        sign = -1;
+      } else if (charCode <= 57) {
         // We know that defindex and quality should only be numbers, so we
         // just assume that it is the character '0' to '9'.
-        numValue = numValue * 10 + (charCode - 48);
+        numValue = numValue * 10 + (charCode - 48) * sign;
       } else if (charCode === 59) {
         // Found the seperator ';' ASCII 59
         if (start === 0) {
@@ -104,6 +84,7 @@ export class SKU {
           item.defindex = numValue;
           // Reset numValue for the next part
           numValue = 0;
+          sign = 1;
           // Update the start defindex for the next part
           start = i + 1;
         } else if (start !== 0) {
@@ -221,16 +202,16 @@ export class SKU {
     return item;
   }
 
-  static hasAttribute(
-    item: RequiredItemAttributes,
-    attribute: keyof RequiredItemAttributes,
-  ): boolean {
+  static hasAttribute<K extends keyof Item>(
+    item: Partial<Item>,
+    attribute: K,
+  ): item is Partial<Item> & Record<K, NonNullable<Item[K]>> {
     const value = item[attribute];
     if (value === undefined || value === null) {
       return false;
     }
 
-    const defaultValue = this.getDefault()[attribute];
+    const defaultValue = DEFAULT_ITEM[attribute];
 
     const cheap = value === defaultValue;
     if (cheap) {

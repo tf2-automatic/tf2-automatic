@@ -19,7 +19,7 @@ import {
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { BotsService } from '../bots/bots.service';
 import { SchemaService } from '../schema/schema.service';
-import { InventoryItem, Item, SKU } from '@tf2-automatic/tf2-format';
+import { InventoryItem, Item, SKU, Utils } from '@tf2-automatic/tf2-format';
 import {
   BOT_EXCHANGE_NAME,
   TF2_GAINED_EVENT,
@@ -61,7 +61,7 @@ const DEFAULT_EXTRA_KEYS: (keyof Item)[] = [
   'quantity',
 ];
 
-const DEFAULT_ITEM = SKU.getDefault();
+const DEFAULT_ITEM = Utils.getDefault();
 
 const USER_AGENT = getUserAgentOrThrow(false);
 
@@ -576,7 +576,7 @@ export class InventoriesService
   }
 
   private extractValueAndDeleteKey(
-    item: Item,
+    item: Partial<Item>,
     key: keyof Item,
   ): [boolean, Item[keyof Item]] {
     if (!SKU.hasAttribute(item, key)) {

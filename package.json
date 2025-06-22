@@ -90,6 +90,7 @@
     "axios": "^1.10.0",
     "bottleneck": "^2.19.5",
     "bullmq": "^5.53.3",
+    "cbor": "^10.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dataloader": "^2.2.3",
