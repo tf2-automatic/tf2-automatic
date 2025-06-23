@@ -88,24 +88,23 @@ export class Utils {
   }
 
   static canonicalize<T extends Items>(item: Partial<T>): void {
-    const quality = item.quality;
+    const isSkin = item.paintkit || item.wear;
+    if (!isSkin) {
+      return;
+    }
 
-    if (quality === 5 || quality === 11 || quality === 15) {
-      const isUnusual = item.effect;
-      const isStrange = quality === 11 || item.elevated;
-      const isSkin = item.paintkit || item.wear;
+    const isUnusual = item.effect;
+    const isStrange = item.quality === 11 || item.elevated;
 
-      let count = 0;
+    let count = 1;
 
-      if (isUnusual) count++;
-      if (isStrange) count++;
-      if (isSkin) count++;
+    if (isUnusual) count++;
+    if (isStrange) count++;
 
-      if (count > 1) {
-        item.quality = -1;
-        if (isStrange) {
-          item.elevated = true;
-        }
+    if (count > 1) {
+      item.quality = -1;
+      if (isStrange) {
+        item.elevated = true;
       }
     }
   }
