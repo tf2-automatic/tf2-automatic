@@ -216,6 +216,23 @@ export class PricesSearchDto
   sku?: string[];
 
   @ApiProperty({
+    description: 'The base64 encoded item to search for',
+    example: 'ogEZE50CBg==',
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Type(() => String)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return [value];
+    }
+    return value;
+  })
+  item?: string[];
+
+  @ApiProperty({
     description: 'The assetid of the item to search for',
     example: '1234567890',
     required: false,
