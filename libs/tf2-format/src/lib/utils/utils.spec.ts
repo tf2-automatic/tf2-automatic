@@ -54,6 +54,61 @@ describe('Utils', () => {
       expect(item.quality).toBe(5);
       expect(item.elevated).toBe(true);
     });
+
+    it('should handle strange unusual with effect', () => {
+      const item: Partial<Item> = {
+        defindex: 378,
+        quality: 5,
+        effect: 13,
+        elevated: true,
+      };
+
+      Utils.canonicalize(item);
+
+      expect(item).toEqual({
+        defindex: 378,
+        quality: 5,
+        effect: 13,
+        elevated: true,
+      });
+    });
+
+    it('should handle strange war paint', () => {
+      const item: Partial<Item> = {
+        defindex: 16303,
+        quality: 11,
+        wear: 1,
+        paintkit: 303,
+      };
+
+      Utils.canonicalize(item);
+
+      expect(item).toEqual({
+        defindex: 16303,
+        quality: -1,
+        wear: 1,
+        paintkit: 303,
+        elevated: true,
+      });
+    });
+
+    it('should handle war paint', () => {
+      const item: Partial<Item> = {
+        defindex: 16303,
+        quality: 15,
+        wear: 1,
+        paintkit: 303,
+      };
+
+      Utils.canonicalize(item);
+
+      expect(item).toEqual({
+        defindex: 16303,
+        quality: 15,
+        wear: 1,
+        paintkit: 303,
+      });
+    });
   });
 
   describe('#compact', () => {
