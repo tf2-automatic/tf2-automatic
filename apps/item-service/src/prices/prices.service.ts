@@ -45,6 +45,7 @@ enum PricesKeys {
   NAME_INDEX = 'price-index-name',
   SKU_INDEX = 'price-index-sku',
   ASSET_INDEX = 'price-index-asset',
+  ITEM_INDEX = 'price-index-item',
 }
 
 @Injectable()
@@ -239,6 +240,13 @@ export class PricesService implements OnApplicationBootstrap {
           PricesKeys.SKU_INDEX + ':' + SKU.fromObject(old.item),
           old.id,
         );
+
+        multi.srem(
+          PricesKeys.ITEM_INDEX +
+            ':' +
+            Buffer.from(Binary.encode(old.item)).toString('base64'),
+          old.id,
+        );
       }
     }
 
@@ -251,6 +259,12 @@ export class PricesService implements OnApplicationBootstrap {
     if (price.item) {
       multi.sadd(
         PricesKeys.SKU_INDEX + ':' + SKU.fromObject(price.item),
+        price.id,
+      );
+      multi.sadd(
+        PricesKeys.ITEM_INDEX +
+          ':' +
+          Buffer.from(Binary.encode(price.item)).toString('base64'),
         price.id,
       );
     }
@@ -326,11 +340,13 @@ export class PricesService implements OnApplicationBootstrap {
 
   async getPrices(dto: PricesSearchDto) {
     const hasPagination = new Boolean(dto.cursor || dto.count);
-    const hasSearch = new Boolean(dto.assetid || dto.name || dto.sku);
+    const hasSearch = new Boolean(
+      dto.assetid || dto.name || dto.sku || dto.item,
+    );
 
     assert(hasPagination && hasSearch, 'Cannot use both pagination and search');
 
-    if (!dto.name && !dto.sku && !dto.assetid) {
+    if (!dto.name && !dto.sku && !dto.assetid && !dto.item) {
       return this.getHashesPaginated<Price>(dto.cursor, dto.count);
     }
 
@@ -389,6 +405,14 @@ export class PricesService implements OnApplicationBootstrap {
         const sku = dto.sku[i];
         order.push({ key: 'sku', value: sku });
         chainable.smembers(`${PricesKeys.SKU_INDEX}:${sku}`);
+      }
+    }
+
+    if (dto.item) {
+      for (let i = 0; i < dto.item.length; i++) {
+        const item = dto.item[i];
+        order.push({ key: 'item', value: item });
+        chainable.smembers(`${PricesKeys.ITEM_INDEX}:${item}`);
       }
     }
 
