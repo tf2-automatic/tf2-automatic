@@ -13,6 +13,17 @@ export class LocalStorageEngine implements StorageEngine {
     return Promise.resolve();
   }
 
+  exists(relativePath: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.config.directory) {
+        return resolve(false);
+      }
+
+      const fullPath = path.join(this.config.directory, relativePath);
+      resolve(fs.existsSync(fullPath));
+    });
+  }
+
   read(relativePath: string): Promise<string | null> {
     return new Promise((resolve, reject) => {
       if (!this.config.directory) {

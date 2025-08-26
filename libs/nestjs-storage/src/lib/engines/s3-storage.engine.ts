@@ -25,6 +25,21 @@ export class S3StorageEngine implements StorageEngine {
     });
   }
 
+  async exists(relativePath: string): Promise<boolean> {
+    const fullPath = this.getFullPath(relativePath);
+
+    return this.client
+      .statObject(this.config.bucket, fullPath)
+      .then(() => true)
+      .catch((err) => {
+        if (err.code === 'NotFound') {
+          return false;
+        }
+
+        throw err;
+      });
+  }
+
   async read(relativePath: string): Promise<string | null> {
     const fullPath = this.getFullPath(relativePath);
 
@@ -83,9 +98,6 @@ export class S3StorageEngine implements StorageEngine {
   async getSignedUrl(relativePath: string): Promise<string> {
     const fullPath = this.getFullPath(relativePath);
 
-    return this.client.presignedGetObject(
-      this.config.bucket,
-      fullPath
-    );
+    return this.client.presignedGetObject(this.config.bucket, fullPath);
   }
 }
