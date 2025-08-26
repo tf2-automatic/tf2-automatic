@@ -10,7 +10,7 @@ jobs:
   affected:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
@@ -51,7 +51,7 @@ jobs:
     if: needs.affected.outputs.docker != '[]' || needs.affected.outputs.npm != '[]'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -98,7 +98,7 @@ jobs:
         projectName: ${{fromJson(needs.affected.outputs.docker)}}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -168,7 +168,7 @@ jobs:
         projectName: ${{fromJson(needs.affected.outputs.npm)}}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
