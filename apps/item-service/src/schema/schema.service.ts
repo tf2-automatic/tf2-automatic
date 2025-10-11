@@ -60,6 +60,10 @@ import { CursorPaginationResponse } from '@tf2-automatic/dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
+type EnumPartialRecord<E extends Record<string, string | number>, T> = {
+  [K in E[keyof E]]?: T;
+};
+
 enum SchemaKeys {
   ITEMS = 'schema:items',
   ITEMS_NAME = 'schema:items:name',
@@ -79,6 +83,29 @@ enum SchemaKeys {
   STRANGE_PART_ID_TEMP = 'schema:part:id:temp',
   PAINT_COLOR = 'schema:paint:color',
 }
+
+const SCHEMA_KEYS_CASE_SENSITIVE: EnumPartialRecord<
+  typeof SchemaKeys,
+  boolean
+> = {
+  [SchemaKeys.ITEMS]: true,
+  [SchemaKeys.ITEMS_NAME]: false,
+  [SchemaKeys.ITEMS_GAME]: true,
+  [SchemaKeys.QUALITIES_ID]: true,
+  [SchemaKeys.QUALITIES_NAME]: false,
+  [SchemaKeys.EFFECTS_ID]: true,
+  [SchemaKeys.EFFECTS_NAME]: false,
+  [SchemaKeys.PAINTKIT_ID]: true,
+  [SchemaKeys.PAINTKIT_NAME]: false,
+  [SchemaKeys.SPELLS_ID]: true,
+  [SchemaKeys.SPELLS_NAME]: false,
+  [SchemaKeys.SPELLS_TEMP]: true,
+  [SchemaKeys.STRANGE_PART_KILLEATER_ID]: true,
+  [SchemaKeys.STRANGE_PART_KILLEATER_NAME]: false,
+  [SchemaKeys.KILL_EATER_ID_TEMP]: true,
+  [SchemaKeys.STRANGE_PART_ID_TEMP]: true,
+  [SchemaKeys.PAINT_COLOR]: false,
+};
 
 // A key that stores the current schema id
 const CURRENT_SCHEMA_KEY = 'schema:current';
@@ -260,9 +287,13 @@ export class SchemaService implements OnApplicationBootstrap {
       return {};
     }
 
+    const sensitive = SCHEMA_KEYS_CASE_SENSITIVE[key]
+      ? fields
+      : fields.map((field) => field.toLowerCase());
+
     const result = await this.redis.hmgetBuffer(
       this.getKey(key, time),
-      ...fields,
+      ...sensitive,
     );
 
     const items: Record<string, T> = {};
@@ -677,6 +708,41 @@ export class SchemaService implements OnApplicationBootstrap {
     );
   }
 
+  private setManyValuesByFields(
+    multi: ChainableCommander,
+    time: number,
+    data: EnumPartialRecord<typeof SchemaKeys, Record<string, Buffer>>,
+  ) {
+    for (const key in data) {
+      this.setValuesByFields(multi, key as SchemaKeys, time, data[key]);
+    }
+  }
+
+  private setValuesByFields(
+    multi: ChainableCommander,
+    key: SchemaKeys,
+    time: number,
+    object: Record<string, Buffer>,
+  ) {
+    if (Object.keys(object).length === 0) {
+      return;
+    }
+
+    let save: Record<string, Buffer> = object;
+
+    if (!SCHEMA_KEYS_CASE_SENSITIVE[key]) {
+      const copy: Record<string, Buffer> = {};
+
+      for (const field in object) {
+        copy[field.toLowerCase()] = object[field];
+      }
+
+      save = copy;
+    }
+
+    multi.hmset(this.getKey(key, time), save);
+  }
+
   private async finishSpells(
     multi: ChainableCommander,
     time: number,
@@ -756,10 +822,12 @@ export class SchemaService implements OnApplicationBootstrap {
       spellsByAttribute[spell.attribute + '_' + spell.value] = packed;
     }
 
-    multi
-      .hmset(this.getKey(SchemaKeys.SPELLS_NAME, time), spellsByName)
-      .hmset(this.getKey(SchemaKeys.SPELLS_ID, time), spellsByAttribute)
-      .del(this.getKey(SchemaKeys.SPELLS_TEMP, time));
+    this.setManyValuesByFields(multi, time, {
+      [SchemaKeys.SPELLS_NAME]: spellsByName,
+      [SchemaKeys.SPELLS_ID]: spellsByAttribute,
+    });
+
+    multi.del(this.getKey(SchemaKeys.SPELLS_TEMP, time));
   }
 
   private async finishStrangeParts(
@@ -807,19 +875,10 @@ export class SchemaService implements OnApplicationBootstrap {
       .del(this.getKey(SchemaKeys.STRANGE_PART_ID_TEMP, time))
       .del(this.getKey(SchemaKeys.KILL_EATER_ID_TEMP, time));
 
-    if (Object.keys(strangePartsById).length > 0) {
-      multi.hmset(
-        this.getKey(SchemaKeys.STRANGE_PART_KILLEATER_ID, time),
-        strangePartsById,
-      );
-    }
-
-    if (Object.keys(strangePartsByName).length > 0) {
-      multi.hmset(
-        this.getKey(SchemaKeys.STRANGE_PART_KILLEATER_NAME, time),
-        strangePartsByName,
-      );
-    }
+    this.setManyValuesByFields(multi, time, {
+      [SchemaKeys.STRANGE_PART_KILLEATER_ID]: strangePartsById,
+      [SchemaKeys.STRANGE_PART_KILLEATER_NAME]: strangePartsByName,
+    });
   }
 
   /**
@@ -937,14 +996,17 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const time = job.data.time;
 
-    await this.redis
-      .multi()
-      .hmset(this.getKey(SchemaKeys.QUALITIES_NAME, time), qualitiesByName)
-      .hmset(this.getKey(SchemaKeys.QUALITIES_ID, time), qualitiesById)
-      .hmset(this.getKey(SchemaKeys.EFFECTS_NAME, time), effectsByName)
-      .hmset(this.getKey(SchemaKeys.EFFECTS_ID, time), effectsById)
-      .hmset(this.getKey(SchemaKeys.KILL_EATER_ID_TEMP, time), scoreTypesById)
-      .exec();
+    const multi = this.redis.multi();
+
+    this.setManyValuesByFields(multi, time, {
+      [SchemaKeys.QUALITIES_NAME]: qualitiesByName,
+      [SchemaKeys.QUALITIES_ID]: qualitiesById,
+      [SchemaKeys.EFFECTS_NAME]: effectsByName,
+      [SchemaKeys.EFFECTS_ID]: effectsById,
+      [SchemaKeys.KILL_EATER_ID_TEMP]: scoreTypesById,
+    });
+
+    await multi.exec();
   }
 
   async updateItems(job: Job, result: GetSchemaItemsResponse) {
@@ -1020,44 +1082,25 @@ export class SchemaService implements OnApplicationBootstrap {
     }
 
     // Save the schema items
-    const multi = this.redis
-      .multi()
-      .hmset(this.getKey(SchemaKeys.ITEMS, job.data.time), defindexToItem);
-
-    if (Object.keys(strangePartByScoreType).length > 0) {
-      multi.hmset(
-        this.getKey(SchemaKeys.STRANGE_PART_ID_TEMP, job.data.time),
-        strangePartByScoreType,
-      );
-    }
-
-    if (Object.keys(paintByColor).length > 0) {
-      multi.hmset(
-        this.getKey(SchemaKeys.PAINT_COLOR, job.data.time),
-        paintByColor,
-      );
-    }
+    const multi = this.redis.multi();
 
     const keys = Object.keys(nameToDefindex);
 
-    // Save to a variable to reuse later
-    const schemaItemsNameKey = this.getKey(
+    const existing = await this.getValuesByFieldAndTime<number[]>(
       SchemaKeys.ITEMS_NAME,
+      keys,
       job.data.time,
     );
-
-    const existing = await this.redis.hmgetBuffer(schemaItemsNameKey, ...keys);
 
     const nameToDefindexToSave: Record<string, Buffer> = {};
 
     // Merge existing into current ones
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
-      const previous = existing[i];
+      const previous = existing[key];
 
       if (previous) {
-        const defindexes = unpack(previous);
-        for (const defindex of defindexes) {
+        for (const defindex of previous) {
           nameToDefindex[key].add(defindex);
         }
       }
@@ -1065,8 +1108,12 @@ export class SchemaService implements OnApplicationBootstrap {
       nameToDefindexToSave[key] = pack(Array.from(nameToDefindex[key]));
     }
 
-    // Save the schema items to the name key
-    multi.hmset(schemaItemsNameKey, nameToDefindexToSave);
+    this.setManyValuesByFields(multi, job.data.time, {
+      [SchemaKeys.ITEMS]: defindexToItem,
+      [SchemaKeys.STRANGE_PART_ID_TEMP]: strangePartByScoreType,
+      [SchemaKeys.PAINT_COLOR]: paintByColor,
+      [SchemaKeys.ITEMS_NAME]: nameToDefindexToSave,
+    });
 
     // Write the changes to the database
     await multi.exec();
@@ -1116,14 +1163,14 @@ export class SchemaService implements OnApplicationBootstrap {
       paintkitsByName[paintkit.name] = packed;
     }
 
-    await this.redis
-      .multi()
-      .hmset(this.getKey(SchemaKeys.PAINTKIT_ID, job.data.time), paintkitsById)
-      .hmset(
-        this.getKey(SchemaKeys.PAINTKIT_NAME, job.data.time),
-        paintkitsByName,
-      )
-      .exec();
+    const multi = this.redis.multi();
+
+    this.setManyValuesByFields(multi, job.data.time, {
+      [SchemaKeys.PAINTKIT_ID]: paintkitsById,
+      [SchemaKeys.PAINTKIT_NAME]: paintkitsByName,
+    });
+
+    await multi.exec();
   }
 
   async updateItemsGame(job: Job, result: string) {
@@ -1158,8 +1205,6 @@ export class SchemaService implements OnApplicationBootstrap {
 
     const keys = Object.keys(items);
     let index = 0;
-
-    const key = this.getKey(SchemaKeys.ITEMS_GAME, job.data.time);
 
     const spellsByAttributeKey: Record<string, TempSpell> = {};
 
@@ -1215,11 +1260,15 @@ export class SchemaService implements OnApplicationBootstrap {
         }
       }
 
-      await this.redis.hmset(key, chunk);
+      const multi = this.redis.multi();
+
+      this.setManyValuesByFields(multi, job.data.time, {
+        [SchemaKeys.ITEMS_GAME]: chunk,
+      });
+
+      await multi.exec();
 
       index += chunkSize;
-
-      await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
     const multi = this.redis.multi();
@@ -1230,7 +1279,9 @@ export class SchemaService implements OnApplicationBootstrap {
         save[key] = pack(spellsByAttributeKey[key]);
       }
 
-      multi.hmset(this.getKey(SchemaKeys.SPELLS_TEMP, job.data.time), save);
+      this.setManyValuesByFields(multi, job.data.time, {
+        [SchemaKeys.SPELLS_TEMP]: save,
+      });
     }
 
     await multi.exec();
