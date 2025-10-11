@@ -414,7 +414,7 @@ export class SchemaController {
     @Param('color') color: string,
     @Query() options: SchemaOptionsDto,
   ): Promise<Paint> {
-    return this.schemaService.getPaintByColor(color.toLowerCase(), {
+    return this.schemaService.getPaintByColor(color, {
       time: options.time,
     });
   }

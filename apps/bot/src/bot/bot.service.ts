@@ -49,6 +49,8 @@ const FILE_PATHS = {
   ASSETS: (filename: string) => path.join('assets', filename),
   ACCOUNT_SPECIFIC: (username: string, filename: string) =>
     path.join(`bots/${username}`, filename),
+  TRADE_PROTECTION_ACKNOWLEDGE: (username: string) =>
+    path.join(`bots/${username}`, 'tpa.txt'),
 };
 
 @Injectable()
@@ -550,6 +552,8 @@ export class BotService implements OnModuleDestroy {
       });
     }, this.configService.getOrThrow('webSessionRefreshInterval')).unref();
 
+    await this.checkTradeProtectionAcknowledged();
+
     this.running = true;
 
     this.logger.log('Bot is ready');
@@ -582,6 +586,32 @@ export class BotService implements OnModuleDestroy {
       this.lastWebLogin = new Date();
       this.client.webLogOn();
     }
+  }
+
+  private async checkTradeProtectionAcknowledged(): Promise<void> {
+    const path = FILE_PATHS.TRADE_PROTECTION_ACKNOWLEDGE(this.username);
+
+    const tradeProtectAckExists = await this.storageService.exists(path);
+    if (!tradeProtectAckExists) {
+      await this.acknowledgeTradeProtection();
+      await this.storageService.write(path, Date.now().toString());
+    }
+  }
+
+  private acknowledgeTradeProtection(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // @ts-expect-error Not yet typed in @types/steamcommunity
+      this.community.acknowledgeTradeProtection((err) => {
+        if (err) {
+          this.logger.error(
+            'Failed to acknowledge trade protection: ' + err.message,
+          );
+          return reject(err);
+        }
+
+        resolve();
+      });
+    });
   }
 
   private checkWebSession(): Promise<boolean> {
