@@ -155,6 +155,7 @@
       "@parcel/watcher",
       "@swc/core",
       "msgpackr-extract",
+      "oxc-resolver",
       "protobufjs",
       "unrs-resolver"
     ],
