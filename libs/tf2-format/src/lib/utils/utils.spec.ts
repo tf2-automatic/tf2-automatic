@@ -1,5 +1,10 @@
 import { Item, PossibleInventoryItem } from '../types';
-import { ITEM_FIELD_ID, REQUIRED_ITEM_KEYS, Utils } from './utils';
+import {
+  DEFAULT_ITEM,
+  ITEM_FIELD_ID,
+  REQUIRED_ITEM_KEYS,
+  Utils,
+} from './utils';
 
 describe('Utils', () => {
   it('should have unique values in ITEM_FIELD_ID', () => {
@@ -200,6 +205,23 @@ describe('Utils', () => {
         defindex: -1,
         quality: -1,
       });
+    });
+
+    it('should not reference an array', () => {
+      const item: Partial<PossibleInventoryItem> = {};
+
+      Utils.normalize(item, ['spells', 'parts']);
+
+      item.spells.push([0, 0]);
+      item.parts.push(1);
+
+      expect(item).toEqual({
+        spells: [[0, 0]],
+        parts: [1],
+      });
+
+      expect(item.spells).not.toBe(DEFAULT_ITEM.spells);
+      expect(item.parts).not.toBe(DEFAULT_ITEM.parts);
     });
   });
 
