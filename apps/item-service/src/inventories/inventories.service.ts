@@ -612,7 +612,7 @@ export class InventoriesService
     }
 
     this.logger.warn(
-      'Failed to parse item ' + extracted.assetid + ': ' + error.message,
+      `Failed to parse item ${extracted.assetid}: ${error.message}`,
     );
 
     this.logger.debug(error);
