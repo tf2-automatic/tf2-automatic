@@ -582,9 +582,7 @@ export class InventoriesService
         .catch((err: Error) => this.handleParsingError(extracted, err));
     }
 
-    return Promise.all(parsed).then((result) =>
-      result.filter((item) => item != null),
-    );
+    return Promise.all(parsed);
   }
 
   private async parseEconItems(
