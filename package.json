@@ -10,6 +10,10 @@
     "test": "node ./scripts/nx.js test"
   },
   "private": true,
+  "packageManager": "pnpm@10.19.0",
+  "engines": {
+    "node": "22.x"
+  },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",

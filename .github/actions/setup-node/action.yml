@@ -1,0 +1,16 @@
+name: Setup Node
+description: Setup Node and install dependencies
+runs:
+  using: composite
+  steps:
+    - name: Use Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version-file: package.json
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+      shell: bash
