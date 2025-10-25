@@ -11,12 +11,14 @@ jobs:
   affected:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/setup
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v4
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
       - name: Get affected
         id: affected
         run: |
@@ -35,8 +37,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Setup
-        uses: ./.github/actions/setup
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
       - name: Build
         run: node ./scripts/nx.js run ${{ matrix.projectName }}:build
       - name: Test
@@ -51,8 +53,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Setup
-        uses: ./.github/actions/setup
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
       - name: End to end test
         run: node ./scripts/nx.js run ${{ matrix.projectName }}:e2e
   ci-finished:
