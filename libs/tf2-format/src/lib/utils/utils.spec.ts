@@ -1,5 +1,5 @@
 import { Item, PossibleInventoryItem } from '../types';
-import { ITEM_FIELD_ID, Utils } from './utils';
+import { ITEM_FIELD_ID, REQUIRED_ITEM_KEYS, Utils } from './utils';
 
 describe('Utils', () => {
   it('should have unique values in ITEM_FIELD_ID', () => {
@@ -153,7 +153,7 @@ describe('Utils', () => {
   });
 
   describe('#normalize', () => {
-    it('should add default values', () => {
+    it('should add default values for all fields', () => {
       const item: Partial<PossibleInventoryItem> = {
         defindex: 15003,
         quality: 15,
@@ -188,6 +188,17 @@ describe('Utils', () => {
         killstreaker: null,
         inputs: null,
         quantity: 1,
+      });
+    });
+
+    it('should add default values for specific fields', () => {
+      const item: Partial<PossibleInventoryItem> = {};
+
+      Utils.normalize(item, REQUIRED_ITEM_KEYS);
+
+      expect(item).toEqual({
+        defindex: -1,
+        quality: -1,
       });
     });
   });
