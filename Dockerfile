@@ -1,7 +1,7 @@
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN npm i -g pnpm@10
 
-FROM alpine:3.18.4 AS source
+FROM alpine:3.22.2 AS source
 WORKDIR /app
 ARG SOURCE_DIR
 RUN test -n "$SOURCE_DIR"
@@ -14,7 +14,7 @@ COPY ./patches ./patches
 COPY ./.pnpmfile.cjs ./
 RUN pnpm install --frozen-lockfile --prod
 
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=source --chown=nestjs:nodejs /app ./
