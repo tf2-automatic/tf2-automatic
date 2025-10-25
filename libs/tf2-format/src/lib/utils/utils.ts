@@ -124,9 +124,11 @@ export class Utils {
     item: Partial<T>,
     keys?: ReadonlyArray<ItemKeys>,
   ): asserts item is T {
+    const defaultItem = Utils.getDefault();
+
     for (const key of keys ?? ITEM_KEYS) {
       if (item[key] === undefined) {
-        item[key] = DEFAULT_ITEM[key];
+        item[key] = defaultItem[key];
       }
     }
   }
