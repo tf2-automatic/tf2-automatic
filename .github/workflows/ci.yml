@@ -33,8 +33,10 @@ jobs:
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.test)}}
     steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/setup
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup
+        uses: ./.github/actions/setup
       - name: Build
         run: node ./scripts/nx.js run ${{ matrix.projectName }}:build
       - name: Test
@@ -47,8 +49,10 @@ jobs:
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.e2e)}}
     steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/setup
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup
+        uses: ./.github/actions/setup
       - name: End to end test
         run: node ./scripts/nx.js run ${{ matrix.projectName }}:e2e
   ci-finished:
