@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   affected:
+    name: Affected
     uses: ./.github/workflows/affected.yml
   release:
     runs-on: ubuntu-latest
