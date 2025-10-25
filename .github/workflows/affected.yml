@@ -9,6 +9,12 @@ on:
       npm:
         description: "Affected npm projects"
         value: ${{ jobs.affected.outputs.NPM }}
+      test:
+        description: "Affected test projects"
+        value: ${{ jobs.affected.outputs.TEST }}
+      e2e:
+        description: "Affected e2e projects"
+        value: ${{ jobs.affected.outputs.E2E }}
 
 jobs:
   affected:
@@ -16,6 +22,8 @@ jobs:
     outputs:
       docker: ${{ steps.affected.outputs.DOCKER }}
       npm: ${{ steps.affected.outputs.NPM }}
+      test: ${{ steps.affected.outputs.TEST }}
+      e2e: ${{ steps.affected.outputs.E2E }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -30,3 +38,5 @@ jobs:
         run: |
           echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
           echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
+          echo "TEST=$(pnpm exec nx show projects --affected --withTarget=build,test | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
+          echo "E2E=$(pnpm exec nx show projects --affected --withTarget=e2e | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
