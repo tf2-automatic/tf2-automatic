@@ -21,8 +21,12 @@ import { BotsService } from '../bots/bots.service';
 import { SchemaService } from '../schema/schema.service';
 import {
   Binary,
+  ExtractedEconItem,
+  ExtractedTF2APIItem,
+  ExtractedTF2GCItem,
   InventoryItem,
   Item,
+  REQUIRED_ITEM_KEYS,
   RequiredItemAttributes,
   SKU,
   Utils,
@@ -290,7 +294,8 @@ export class InventoriesService
 
         const assetid = key.slice(5);
 
-        const item = Binary.decode(encoded) as RequiredItemAttributes;
+        const item = Binary.decode(encoded);
+        Utils.normalize(item, REQUIRED_ITEM_KEYS);
         items[assetid] = item;
       } else if (key === 'timestamp') {
         timestamp = parseInt(object[key].toString());
@@ -572,11 +577,14 @@ export class InventoriesService
 
     for (let i = 0; i < items.length; i++) {
       const [extracted, context] = parser.extract(items[i]);
-      // TODO: Catch parser errors and log the original item
-      parsed[i] = parser.parse(extracted, context);
+      parsed[i] = parser
+        .parse(extracted, context)
+        .catch((err: Error) => this.handleParsingError(extracted, err));
     }
 
-    return Promise.all(parsed);
+    return Promise.all(parsed).then((result) =>
+      result.filter((item) => item != null),
+    );
   }
 
   private async parseEconItems(
@@ -589,11 +597,32 @@ export class InventoriesService
 
     for (let i = 0; i < items.length; i++) {
       const extracted = parser.extract(items[i]);
-      // TODO: Catch parser errors and log the original item
-      parsed[i] = parser.parse(extracted);
+      parsed[i] = parser
+        .parse(extracted)
+        .catch((err: Error) => this.handleParsingError(extracted, err));
     }
 
     return Promise.all(parsed);
+  }
+
+  private handleParsingError(
+    extracted: ExtractedEconItem | ExtractedTF2APIItem | ExtractedTF2GCItem,
+    error: Error,
+  ): InventoryItem {
+    if (!(error instanceof NotFoundException)) {
+      throw error;
+    }
+
+    this.logger.warn(
+      'Failed to parse item ' + extracted.assetid + ': ' + error.message,
+    );
+
+    this.logger.debug(error);
+    this.logger.debug(extracted);
+
+    const item: Partial<InventoryItem> = { assetid: extracted.assetid };
+    Utils.normalize(item);
+    return item;
   }
 
   private getInventoryKey(steamid64: string) {

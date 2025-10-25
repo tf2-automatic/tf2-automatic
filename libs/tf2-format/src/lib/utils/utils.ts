@@ -1,4 +1,12 @@
-import { InventoryItem, Item, PossibleInventoryItem } from '../types';
+import {
+  InventoryItem,
+  Item,
+  PossibleInventoryItem,
+  RequiredItemKeys,
+} from '../types';
+
+export type Items = Item | InventoryItem | PossibleInventoryItem;
+export type ItemKeys = keyof (Item & InventoryItem & PossibleInventoryItem);
 
 export const DEFAULT_ITEM = {
   assetid: null,
@@ -50,13 +58,16 @@ export const ITEM_FIELD_ID = {
   killstreaker: 20,
   inputs: 21,
   quantity: 22,
-} as const satisfies Record<keyof PossibleInventoryItem, number>;
+} as const satisfies Record<ItemKeys, number>;
 
 export const ITEM_KEYS = Object.entries(ITEM_FIELD_ID)
   .sort(([, a], [, b]) => a - b)
-  .map(([key]) => key) as ReadonlyArray<keyof PossibleInventoryItem>;
+  .map(([key]) => key) as ReadonlyArray<ItemKeys>;
 
-type Items = PossibleInventoryItem | InventoryItem | Item;
+export const REQUIRED_ITEM_KEYS: ReadonlyArray<RequiredItemKeys> = [
+  'defindex',
+  'quality',
+];
 
 export class Utils {
   static getDefault(): PossibleInventoryItem {
@@ -109,8 +120,11 @@ export class Utils {
     }
   }
 
-  static normalize<T extends Items>(item: Partial<T>): void {
-    for (const key of ITEM_KEYS) {
+  static normalize<T extends Items>(
+    item: Partial<T>,
+    keys?: ReadonlyArray<ItemKeys>,
+  ): asserts item is T {
+    for (const key of keys ?? ITEM_KEYS) {
       if (item[key] === undefined) {
         item[key] = DEFAULT_ITEM[key];
       }
