@@ -3,9 +3,6 @@ description: Setup Node and install dependencies
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
     - name: Use Node.js
       uses: actions/setup-node@v6
       with:

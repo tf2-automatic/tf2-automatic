@@ -10,6 +10,9 @@ jobs:
   affected:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
       - name: Derive appropriate SHAs for base and head for `nx affected` commands
         uses: nrwl/nx-set-shas@v4
@@ -26,6 +29,7 @@ jobs:
     needs: [affected]
     if: needs.affected.outputs.docker != '[]' || needs.affected.outputs.npm != '[]'
     steps:
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Release
         uses: cycjimmy/semantic-release-action@v5
@@ -50,6 +54,7 @@ jobs:
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.docker)}}
     steps:
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Docker meta
         id: meta
@@ -90,8 +95,7 @@ jobs:
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.npm)}}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Build and publish
         run: pnpm exec nx run ${{ matrix.projectName }}:npm --access=public --release-version=${{ needs.release.outputs.new_release_version }} --release-tag=${{ needs.release.outputs.new_release_channel }}
