@@ -7,7 +7,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
+  id-token: write # For OIDC
+  contents: write # For semantic-release
+  packages: write # For publishing to GitHub Container Registry
 
 jobs:
   affected:
