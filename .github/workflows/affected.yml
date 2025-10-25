@@ -1,0 +1,32 @@
+name: Affected
+
+on:
+  workflow_call:
+    outputs:
+      docker:
+        description: "Affected docker projects"
+        value: ${{ jobs.affected.outputs.DOCKER }}
+      npm:
+        description: "Affected npm projects"
+        value: ${{ jobs.affected.outputs.NPM }}
+
+jobs:
+  affected:
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.affected.outputs.DOCKER }}
+      npm: ${{ steps.affected.outputs.NPM }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Derive SHAs for nx affected
+        uses: nrwl/nx-set-shas@v4
+      - name: Setup Node
+        uses: ./.github/actions/setup-node
+      - name: Get affected
+        id: affected
+        run: |
+          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
+          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
