@@ -138,7 +138,7 @@ export class InventoriesService
       [TF2_GAINED_EVENT],
       async (event) => this.handleTF2GainedEvent(event),
       {
-        retry: true,
+        retry: false,
       },
     );
 
