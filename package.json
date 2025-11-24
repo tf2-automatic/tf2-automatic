@@ -10,7 +10,7 @@
     "test": "node ./scripts/nx.js test"
   },
   "private": true,
-  "packageManager": "pnpm@10.19.0",
+  "packageManager": "pnpm@10.23.0",
   "engines": {
     "node": "24.x"
   },
@@ -34,8 +34,8 @@
     "@nx/webpack": "21.4.1",
     "@nx/workspace": "21.4.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/github": "^11.0.4",
-    "@semantic-release/release-notes-generator": "^14.0.3",
+    "@semantic-release/github": "^12.0.2",
+    "@semantic-release/release-notes-generator": "^14.1.0",
     "@swc-node/register": "1.11.1",
     "@swc/cli": "~0.7.8",
     "@swc/core": "1.13.5",
@@ -71,7 +71,7 @@
     "nx": "21.4.1",
     "patch-package": "^8.0.0",
     "prettier": "^3.6.2",
-    "semantic-release": "^24.2.7",
+    "semantic-release": "^25.0.2",
     "ts-jest": "29.4.1",
     "ts-node": "10.9.2",
     "tsconfig-paths": "^4.2.0",

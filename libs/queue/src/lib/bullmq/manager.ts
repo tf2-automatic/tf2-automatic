@@ -29,14 +29,14 @@ export class QueueManager<
     id: string,
     type: string,
     params: ParameterType,
-    options: OptionsType,
+    options?: OptionsType,
   ): Promise<CustomJob<DataType>> {
     const data: DataType = {
       type,
       options: params, // Use params directly as options
       state: {},
-      bot: options.bot,
-      retry: options.retry,
+      bot: options?.bot,
+      retry: options?.retry,
       metadata: {},
     } as DataType;
 
@@ -44,11 +44,32 @@ export class QueueManager<
       data.metadata.userAgent = this.cls.get('userAgent');
     }
 
+    // Look for existing job
+    const existing = await this.getJobById(id);
+    if (existing) {
+      const delayed = await existing.isDelayed();
+      if (delayed) {
+        const newDelay = options?.delay ?? 0;
+
+        if (
+          newDelay === 0 ||
+          existing.timestamp + existing.delay <= Date.now() + newDelay
+        ) {
+          await Promise.all([
+            existing.changeDelay(newDelay),
+            existing.updateData(data),
+          ]);
+          return existing;
+        }
+      }
+    }
+
     return this.queue.add(id, data, {
       jobId: id,
       backoff: {
         type: 'custom',
       },
+      delay: options?.delay ?? undefined,
     });
   }
 

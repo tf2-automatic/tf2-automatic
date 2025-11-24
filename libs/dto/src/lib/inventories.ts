@@ -47,4 +47,16 @@ export class EnqueueInventoryDto implements EnqueueInventory {
   @Min(-1)
   @Max(Number.MAX_SAFE_INTEGER)
   ttl?: number;
+
+  @ApiProperty({
+    description:
+      'The time to wait before starting to fetch the inventory in seconds.',
+    example: 1000,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  @Max(Number.MAX_SAFE_INTEGER)
+  delay?: number;
 }
