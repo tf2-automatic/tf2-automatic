@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { BaseEvent, EventMetadata } from '@tf2-automatic/bot-data';
 import SteamID from 'steamid';
 import {
@@ -16,6 +16,7 @@ import { ClsService } from 'nestjs-cls';
 export class NestEventsService implements OnModuleDestroy {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly subscribers: Map<string, Subscriber<any>> = new Map();
+  private readonly logger = new Logger(NestEventsService.name);
 
   constructor(
     @Inject('EVENTS_ENGINE') private readonly engine: CustomEventsService,
@@ -36,6 +37,12 @@ export class NestEventsService implements OnModuleDestroy {
     data: object = {},
     steamid?: SteamID,
   ): Promise<void> {
+    // We should never publish null data
+    if (data === null) {
+      this.logger.warn(`Event "${event}" has null data, skipping publish.`);
+      return;
+    }
+
     const metadata: EventMetadata = {
       id: uuidv4(),
       steamid64: steamid?.getSteamID64() ?? null,
