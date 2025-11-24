@@ -51,4 +51,5 @@ export interface EnqueueOptions {
   priority?: number;
   retry?: RetryOptions;
   bot?: string;
+  delay?: number;
 }

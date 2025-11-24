@@ -13,6 +13,7 @@ import {
   BotHeartbeatEvent,
   INVENTORY_CHANGED_EVENT,
   INVENTORY_LOADED_EVENT,
+  InventoryChangedEventReason,
   InventoryChangedEvent as ManagerInventoryChangedEvent,
   InventoryLoadedEvent as ManagerInventoryLoadedEvent,
 } from '@tf2-automatic/bot-manager-data';
@@ -64,6 +65,7 @@ import { ClsService } from 'nestjs-cls';
 import { getUserAgentOrThrow } from '@tf2-automatic/config';
 
 export const INVENTORY_EXPIRE_TIME = 600;
+export const INVENTORY_TF2_LOAD_DELAY = 1000;
 
 const DEFAULT_EXTRA_KEYS: (keyof Item)[] = [
   'parts',
@@ -196,12 +198,13 @@ export class InventoriesService
       return;
     }
 
-    const parsed = await this.getAndParseEconInventory(steamid, true);
+    // If the inventory changed because of a TF2 event then we will delay loading
+    const shouldDelay =
+      event.type === INVENTORY_CHANGED_EVENT &&
+      event.data.reason === InventoryChangedEventReason.TF2;
 
-    await this.saveInventory(steamid, {
-      result: parsed,
-      error: null,
-      timestamp: event.metadata.time,
+    await this.addJob(steamid, {
+      delay: shouldDelay ? INVENTORY_TF2_LOAD_DELAY : undefined,
     });
   }
 
@@ -212,7 +215,7 @@ export class InventoriesService
       return;
     }
 
-    await this.addJob(steamid);
+    await this.addJob(steamid, { delay: INVENTORY_TF2_LOAD_DELAY });
   }
 
   async addJob(
@@ -226,11 +229,7 @@ export class InventoriesService
         steamid64: steamid.getSteamID64(),
         ttl: dto?.ttl,
       },
-      {
-        retry: dto?.retry,
-        priority: dto?.priority,
-        bot: dto?.bot,
-      },
+      dto,
     );
   }
 
