@@ -26,7 +26,7 @@ jobs:
       - name: Setup Node
         uses: ./.github/actions/setup-node
       - name: Release
-        uses: cycjimmy/semantic-release-action@v5
+        uses: cycjimmy/semantic-release-action@v6
         id: semantic
         with:
           semantic_version: 24
