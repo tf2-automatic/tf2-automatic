@@ -14,6 +14,7 @@ As a minimum, you need to set the following environment variables:
 - STEAM_PASSWORD
 - STEAM_SHARED_SECRET
 - STEAM_IDENTITY_SECRET
+- STEAM_API_KEY
 - RABBITMQ_HOST
 - RABBITMQ_PORT
 - RABBITMQ_USERNAME

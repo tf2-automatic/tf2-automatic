@@ -33,6 +33,7 @@ services:
       # Input your bot's credentials here
       STEAM_USERNAME: ''
       STEAM_PASSWORD: ''
+      STEAM_API_KEY: ''
       STEAM_SHARED_SECRET: ''
       STEAM_IDENTITY_SECRET: ''
       # RabbitMQ connection details
