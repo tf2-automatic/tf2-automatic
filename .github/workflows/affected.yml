@@ -26,7 +26,7 @@ jobs:
       e2e: ${{ steps.affected.outputs.E2E }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Derive SHAs for nx affected
