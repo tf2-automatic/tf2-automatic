@@ -61,7 +61,7 @@ export class ListingLimitsService {
     do {
       const start = Date.now();
       job = await this.listingLimitsQueue.getJob(
-        'refresh:' + steamid.getSteamID64(),
+        'refresh_' + steamid.getSteamID64(),
       );
 
       if (job === undefined || job.finishedOn !== undefined) {

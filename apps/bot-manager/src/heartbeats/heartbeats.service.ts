@@ -255,7 +255,7 @@ export class HeartbeatsService {
   }
 
   private getHeartbeatJob(bot: Bot): Promise<Job | undefined> {
-    return this.heartbeatsQueue.getJob(bot.steamid64 + ':' + bot.lastSeen);
+    return this.heartbeatsQueue.getJob(bot.steamid64 + '_' + bot.lastSeen);
   }
 
   private async deleteHeartbeatJobIfExists(bot: Bot): Promise<void> {
