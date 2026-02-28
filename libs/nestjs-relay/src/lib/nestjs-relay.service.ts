@@ -15,7 +15,7 @@ import { pack, unpack } from 'msgpackr';
 import { OUTBOX_KEY } from './constants';
 import { ClsService } from 'nestjs-cls';
 import SteamID from 'steamid';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -58,7 +58,7 @@ export class RelayService implements OnApplicationBootstrap, OnModuleDestroy {
     steamid?: SteamID,
   ) {
     const metadata: EventMetadata = {
-      id: uuidv4(),
+      id: randomUUID(),
       steamid64: steamid?.getSteamID64() ?? null,
       time: Math.floor(new Date().getTime() / 1000),
     };

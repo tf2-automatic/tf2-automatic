@@ -7,7 +7,7 @@ import {
   SubscriberSettings,
 } from './custom/custom.class';
 import { EventsModuleOptions } from './nestjs-events.module';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { EventsConfigType } from '@tf2-automatic/config';
 import { Subscriber } from './subscriber.class';
 import { ClsService } from 'nestjs-cls';
@@ -44,7 +44,7 @@ export class NestEventsService implements OnModuleDestroy {
     }
 
     const metadata: EventMetadata = {
-      id: uuidv4(),
+      id: randomUUID(),
       steamid64: steamid?.getSteamID64() ?? null,
       time: Math.floor(new Date().getTime() / 1000),
     };

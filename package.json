@@ -128,7 +128,6 @@
     "tf2-currencies": "^1.2.4",
     "ts-safe-redis-leader": "^0.0.5",
     "tslib": "^2.8.1",
-    "uuid": "^13.0.0",
     "write-file-atomic": "^7.0.1"
   },
   "optionalDependencies": {

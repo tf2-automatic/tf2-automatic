@@ -48,7 +48,7 @@ import {
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import { TradeQueue } from './trades.types';
 import { Redis } from 'ioredis';
 import { RedisService } from '@liaoliaots/nestjs-redis';
@@ -136,7 +136,7 @@ export class TradesService implements OnApplicationBootstrap {
     }
 
     if (offerId == null) {
-      return createJob(uuidv4());
+      return createJob(randomUUID());
     }
 
     const jobId = 'trades_' + offerId;
