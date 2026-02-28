@@ -290,7 +290,7 @@ export class ManageListingsService {
     };
 
     const opts: JobsOptions = {
-      jobId: type + ':' + steamid.getSteamID64(),
+      jobId: type + '_' + steamid.getSteamID64(),
       priority,
     };
 

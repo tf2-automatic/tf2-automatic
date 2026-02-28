@@ -48,7 +48,7 @@ export class ListingLimitsService {
         steamid64: steamid.getSteamID64(),
       },
       {
-        jobId: 'refresh:' + steamid.getSteamID64(),
+        jobId: 'refresh_' + steamid.getSteamID64(),
       },
     );
   }

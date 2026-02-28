@@ -139,7 +139,7 @@ export class TradesService implements OnApplicationBootstrap {
       return createJob(uuidv4());
     }
 
-    const jobId = 'trades:' + offerId;
+    const jobId = 'trades_' + offerId;
 
     return this.locker.using([jobId], LockDuration.SHORT, async (signal) => {
       const exists = await this.queueManager.getJobById(jobId);

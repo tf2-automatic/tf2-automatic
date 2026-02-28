@@ -119,13 +119,13 @@ export class CurrentListingsService {
       {
         jobId:
           job.data.steamid64 +
-          ':' +
+          '_' +
           job.name +
-          ':' +
+          '_' +
           job.data.start +
-          ':' +
+          '_' +
           skip +
-          ':' +
+          '_' +
           limit,
         delay,
         parent: {

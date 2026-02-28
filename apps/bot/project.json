@@ -35,13 +35,10 @@
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
+      "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "apps/bot/**/*.ts",
-          "apps/bot/package.json"
-        ]
+        "lintFilePatterns": ["apps/bot/**/*.ts", "apps/bot/package.json"]
       }
     },
     "test": {
