@@ -75,7 +75,7 @@ export class InventoriesService {
               steamid64,
             },
             {
-              jobId: 'enqueue:' + steamid64,
+              jobId: 'enqueue_' + steamid64,
             },
           );
         }
@@ -115,7 +115,7 @@ export class InventoriesService {
       },
       {
         delay: delay * 1000,
-        jobId: steamid64 + ':' + attempts,
+        jobId: steamid64 + '_' + attempts,
       },
     );
 

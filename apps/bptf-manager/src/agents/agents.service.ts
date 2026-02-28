@@ -104,7 +104,7 @@ export class AgentsService {
             steamid64,
           },
           {
-            jobId: `register:${steamid64}`,
+            jobId: `register_${steamid64}`,
             repeat: {
               every,
               immediately: true,
@@ -145,7 +145,7 @@ export class AgentsService {
             steamid64,
           },
           {
-            jobId: `unregister:${steamid64}`,
+            jobId: `unregister_${steamid64}`,
           },
         );
       },

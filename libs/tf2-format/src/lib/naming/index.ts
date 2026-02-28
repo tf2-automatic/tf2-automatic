@@ -54,7 +54,7 @@ export class NameGenerator {
     }
 
     if (typeof item.effect === 'number') {
-      let effect: undefined | Error | string = undefined;
+      let effect: undefined | Error | string;
 
       if (item.effect === 0) {
         effect = 'Invalid Particle';

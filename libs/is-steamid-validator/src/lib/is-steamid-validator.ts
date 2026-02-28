@@ -2,7 +2,7 @@ import { buildMessage, ValidateBy, ValidationOptions } from 'class-validator';
 import SteamID from 'steamid';
 
 export function isSteamID(value: unknown) {
-  let steamid: SteamID | null = null;
+  let steamid: SteamID | null;
   if (value instanceof SteamID) {
     steamid = value;
   } else {
