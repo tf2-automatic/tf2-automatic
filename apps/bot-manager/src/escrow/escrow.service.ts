@@ -60,7 +60,7 @@ export class EscrowService implements OnModuleDestroy {
   }
 
   private getJobId(steamid: SteamID): string {
-    return this.getKey(steamid);
+    return steamid.getSteamID64();
   }
 
   private getKey(steamid: SteamID): string {

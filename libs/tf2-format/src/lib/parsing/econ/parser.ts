@@ -728,7 +728,6 @@ export class EconParser extends Parser<
             attributes.parts.push(killEater.slice(0, end));
             next = IdentifiableDescription.All;
             i++;
-            matchedAll = true;
             // Break again so we can check for more parts
             continue loop;
           }

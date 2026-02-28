@@ -156,7 +156,7 @@ export class HeartbeatsService {
 
         // Add bot to queue to check if it is still alive in the future
         await this.heartbeatsQueue.add(bot.steamid64, bot, {
-          jobId: bot.steamid64 + ':' + bot.lastSeen,
+          jobId: bot.steamid64 + '_' + bot.lastSeen,
           delay: Math.floor(bot.interval * 1.5),
         });
 

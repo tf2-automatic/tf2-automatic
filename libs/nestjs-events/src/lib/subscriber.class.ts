@@ -7,7 +7,7 @@ import {
 import { BaseEvent } from '@tf2-automatic/bot-data';
 import CircuitBreaker from 'opossum';
 import promiseRetry from 'promise-retry';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 export class Subscriber<T extends BaseEvent<string>> {
   private readonly logger: Logger;
@@ -44,7 +44,7 @@ export class Subscriber<T extends BaseEvent<string>> {
 
     if (settings.broadcast) {
       // Add random string to name
-      this.name += `-${uuid().replace(/-/g, '')}`;
+      this.name += `-${randomUUID().replace(/-/g, '')}`;
     }
 
     this.exchange = exchange;

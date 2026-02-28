@@ -63,7 +63,7 @@ export async function parseInputs(
         rawQuality = 'Strange';
       }
 
-      let quality: NumberOrNull = null;
+      let quality: NumberOrNull;
 
       // Get the quality
       const cachedQuality = schema.getQualityByName(rawQuality);
@@ -92,7 +92,7 @@ export async function parseInputs(
       }
       if (name !== null) {
         // Get the defindex of the input item
-        let defindex: number | null = null;
+        let defindex: number | null;
 
         const cached = getInputByName(name, schema);
         if (cached === undefined) {
