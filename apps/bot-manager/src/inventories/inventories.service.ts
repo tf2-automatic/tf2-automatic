@@ -461,39 +461,24 @@ export class InventoriesService
     );
   }
 
-  private async updateInventories(
-    lostItems: Record<string, string[]>,
-    gainedItems: Record<string, Item[]>,
+  private async updateInventory(
+    identifier: string,
+    lost: string[],
+    gained: Item[],
     reason: InventoryChangedEventReason,
   ) {
-    const inventories = Object.keys(lostItems)
-      .concat(Object.keys(gainedItems))
-      .reduce((acc, item) => {
-        acc.add(item);
-        return acc;
-      }, new Set<string>());
+    const parts = unpack(
+      Buffer.from(identifier, 'base64'),
+    ) as InventoryIdentifier;
 
-    const resources = Array.from(inventories).map((inventory) => {
-      const parts = unpack(
-        Buffer.from(inventory, 'base64'),
-      ) as InventoryIdentifier;
+    const key = this.getInventoryKeyFromObject(parts);
 
-      return this.getInventoryKey(
-        parts.steamid64,
-        parts.appid,
-        parts.contextid,
-      );
-    });
-
-    return this.locker.using(resources, LockDuration.LONG, async (signal) => {
-      // Check if cached inventories exist for the given items
-      const inventoriesExists = await Promise.all(
-        Object.keys(gainedItems).map((key) =>
-          this.redis.exists(
-            this.getInventoryKeyFromObject(unpack(Buffer.from(key, 'base64'))),
-          ),
-        ),
-      );
+    return this.locker.using([key], LockDuration.SHORT, async (signal) => {
+      const exists = await this.redis.exists(key);
+      if (exists !== 1) {
+        // Can't update inventory if one does not exist
+        return;
+      }
 
       if (signal.aborted) {
         throw signal.error;
@@ -501,105 +486,99 @@ export class InventoriesService
 
       const multi = this.redis.multi();
 
-      // Add gained items to the cached inventories
-      Object.keys(gainedItems)
-        // Only add items to inventories that are already cached
-        .filter((_, i) => inventoriesExists[i])
-        .forEach((inventory) => {
-          const items = gainedItems[inventory];
+      const set = new Set<string>();
 
-          const key = this.getInventoryKeyFromObject(
-            unpack(Buffer.from(inventory, 'base64')),
-          );
-
-          // Add the items to the cached inventories
-          multi.hmset(
-            key,
-            ...items.map((item) => ['item:' + item.assetid, pack(item)]).flat(),
-          );
+      if (gained.length > 0) {
+        // Set gained items
+        const args = gained.flatMap((item) => {
+          set.add(item.assetid);
+          return ['item:' + item.assetid, pack(item)];
         });
 
-      const changes: Record<string, { gained: Item[]; lost: Item[] }> = {};
+        multi.hmset(key, ...args);
+      }
 
-      Object.keys(gainedItems).forEach((key) => {
-        changes[key] = changes[key] ?? { gained: [], lost: [] };
-        changes[key].gained.push(...gainedItems[key]);
-      });
+      if (lost.length > 0) {
+        const args = lost.map((assetid) => {
+          set.add(assetid);
+          return 'item:' + assetid;
+        });
 
-      // Get lost items from the cached inventories
-      await Promise.all(
-        Object.keys(lostItems).map((key) => {
-          const parts = unpack(
-            Buffer.from(key, 'base64'),
-          ) as InventoryIdentifier;
+        multi.hdel(key, ...args);
+      }
 
-          return (
-            this.redis
-              // Get the items from the cached inventories
-              .hmgetBuffer(
-                this.getInventoryKeyFromObject(parts),
-                ...lostItems[key].map((assetid) => 'item:' + assetid),
-              )
-              .then((raw) => {
-                // Filter out null values and parse the items
-                const items = raw
-                  .filter((item) => {
-                    return item !== null;
-                  })
-                  .map((item) => unpack(item));
+      const assetids = Array.from(set);
+      const assetidToIndex: Record<string, number> = {};
 
-                // Add the items to the changes object
-                changes[key] = changes[key] ?? { gained: [], lost: [] };
-                changes[key].lost.push(...items);
-              })
-          );
-        }),
-      );
+      for (let i = 0; i < assetids.length; i++) assetidToIndex[assetids[i]] = i;
+
+      const matches = await this.redis
+        .hmgetBuffer(key, ...assetids.map((assetid) => 'item:' + assetid))
+        .then((raw) =>
+          raw.map((item) => (item === null ? null : (unpack(item) as Item))),
+        );
 
       if (signal.aborted) {
         throw signal.error;
       }
 
-      // Delete the items from the cached inventories
-      Object.keys(lostItems).forEach((key) =>
-        multi.hdel(
-          this.getInventoryKeyFromObject(unpack(Buffer.from(key, 'base64'))),
-          ...lostItems[key].map((assetid) => 'item:' + assetid),
-        ),
-      );
+      const newlyLost: Item[] = [];
+      for (const assetid of lost) {
+        const index = assetidToIndex[assetid];
+        const item = index !== undefined ? matches[index] : null;
+        if (item) newlyLost.push(item);
+      }
 
-      const changedEvents: InventoryChangedEvent['data'][] = [];
+      const newlyGained: Item[] = [];
+      for (const item of gained) {
+        const index = assetidToIndex[item.assetid];
+        const match = index !== undefined && matches[index] !== null;
+        if (!match) newlyGained.push(item);
+      }
 
-      Object.keys(changes).forEach((key) => {
-        const parts = unpack(Buffer.from(key, 'base64')) as InventoryIdentifier;
-        const change = changes[key];
-
-        if (change.gained.length === 0 && change.lost.length === 0) {
-          return;
-        }
-
-        changedEvents.push({
-          steamid64: parts.steamid64,
-          appid: parts.appid,
-          contextid: parts.contextid,
-          gained: change.gained,
-          lost: change.lost,
-          reason,
-        });
-      });
-
-      for (let i = 0; i < changedEvents.length; i++) {
-        const data = changedEvents[i];
+      if (newlyLost.length > 0 || newlyGained.length > 0) {
         this.relayService.publishEvent<InventoryChangedEvent>(
           multi,
           INVENTORY_CHANGED_EVENT,
-          data,
-          new SteamID(data.steamid64),
+          {
+            steamid64: parts.steamid64,
+            appid: parts.appid,
+            contextid: parts.contextid,
+            gained: newlyGained,
+            lost: newlyLost,
+            reason,
+          },
+          new SteamID(parts.steamid64),
         );
       }
 
       await multi.exec();
     });
+  }
+
+  private async updateInventories(
+    lost: Record<string, string[]>,
+    gained: Record<string, Item[]>,
+    reason: InventoryChangedEventReason,
+  ) {
+    const inventories = new Set<string>();
+    for (const key in lost) inventories.add(key);
+    for (const key in gained) inventories.add(key);
+
+    const promises: Promise<void>[] = [];
+
+    inventories.forEach((inventory) => {
+      promises.push(
+        this.updateInventory(
+          inventory,
+          lost[inventory] ?? [],
+          gained[inventory] ?? [],
+          reason,
+        ),
+      );
+    });
+
+    await Promise.all(promises);
   }
 
   private async handleOfferChanged(event: TradeChangedEvent): Promise<void> {
