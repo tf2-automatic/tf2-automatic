@@ -145,11 +145,14 @@ export class Subscriber<T extends BaseEvent<string>> {
         this.breaker.fire.bind(this.breaker),
         this.settings,
       )
+      .then((identifier) => {
+        this.identifier = identifier;
+      })
       .finally(() => {
         this.subscribePromise = null;
       });
 
-    this.identifier = await this.subscribePromise;
+    await this.subscribePromise;
   }
 
   async pause(): Promise<void> {
@@ -169,6 +172,7 @@ export class Subscriber<T extends BaseEvent<string>> {
       .unsubscribe(this.identifier)
       .finally(() => {
         this.unsubscribePromise = null;
+        this.identifier = null;
       });
 
     await this.unsubscribePromise;
