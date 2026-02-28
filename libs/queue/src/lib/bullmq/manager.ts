@@ -151,7 +151,9 @@ export class QueueManagerWithEvents<
           'Job wait ' + job.id + ' timed out before finishing',
         )
       ) {
-        throw new GatewayTimeoutException('Inventory was not fetched in time');
+        throw new GatewayTimeoutException(
+          'Timed out waiting for job to finish',
+        );
       }
 
       const httpError = extractErrorMessage(err);

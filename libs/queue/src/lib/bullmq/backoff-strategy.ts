@@ -25,7 +25,7 @@ export function calculateBackoff(
   attempts: number,
   strategy: RetryOptions['strategy'] = 'exponential',
   delay: RetryOptions['delay'] = 1000,
-  maxDelay: RetryOptions['maxDelay'] = 10000,
+  maxDelay: RetryOptions['maxDelay'] = 60000,
 ): number {
   let wait = delay;
 
