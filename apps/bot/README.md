@@ -21,7 +21,7 @@ The bot is configured using environment variables. Below is a list of the enviro
 | STEAM_IDENTITY_SECRET | Identity secret of the Steam account | Yes |  |
 | STEAM_API_KEY | Manually set the Steam API key of the account. See issue [#346](https://github.com/tf2-automatic/tf2-automatic/issues/345) | No |  |
 | STEAM_PROXY_URL | Proxy used for all communications with Steam | No |  |
-| STEAM_DEFAULT_GAME | The game to play when no list of games to has been set. Use an empty string for no game to play. | No | `440` |
+| STEAM_DEFAULT_GAME | The game to play when no list of games to has been set | No |  |
 | TF2_ENABLED | Enable/disable TF2 module | No | `true` |
 | TRADE_CANCEL_TIME | Milliseconds a sent offer may be active for before it is canceled. Disabled if no value | No |  |
 | TRADE_PENDING_CANCEL_TIME | Milliseconds a sent offer may be pending for before it is canceled. Disabled if no value | No |  |

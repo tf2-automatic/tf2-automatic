@@ -3,7 +3,6 @@ import {
   getEnv,
   getEnvOrThrow,
   getEnvWithDefault,
-  getEnvWithDefaultAllowEmptyString,
   getEventsConfig,
   getStorageConfig,
   StorageConfig,
@@ -29,7 +28,7 @@ export interface SteamAccountConfig {
   identitySecret: string;
   proxyUrl?: string;
   apiKey?: string;
-  defaultGame: number | null;
+  defaultGame?: number;
 }
 
 export interface SteamTradeConfig {
@@ -68,11 +67,7 @@ export default (): Config => {
       identitySecret: getEnvOrThrow('STEAM_IDENTITY_SECRET', 'string'),
       proxyUrl: getEnv('STEAM_PROXY_URL', 'string'),
       apiKey: getEnv('STEAM_API_KEY', 'string'),
-      defaultGame: getEnvWithDefaultAllowEmptyString(
-        'STEAM_DEFAULT_GAME',
-        'integer',
-        440,
-      ),
+      defaultGame: getEnv('STEAM_DEFAULT_GAME', 'integer'),
     },
     trade: {
       cancelTime: getEnv('TRADE_CANCEL_TIME', 'integer'),
