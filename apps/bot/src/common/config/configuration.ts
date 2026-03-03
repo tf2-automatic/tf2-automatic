@@ -16,6 +16,7 @@ export interface Config {
   webSessionRefreshInterval: number;
   steam: SteamAccountConfig;
   trade: SteamTradeConfig;
+  tf2: TF2Config;
   events: EventsConfig;
   storage: StorageConfig;
   manager: ManagerConfig;
@@ -37,6 +38,10 @@ export interface SteamTradeConfig {
   pollInterval: number;
   pollFullUpdateInterval: number;
   pollDataForgetTime: number;
+}
+
+export interface TF2Config {
+  enabled: boolean;
 }
 
 export interface ManagerConfig {
@@ -87,6 +92,9 @@ export default (): Config => {
         'integer',
         14 * 24 * 60 * 1000,
       ),
+    },
+    tf2: {
+      enabled: getEnvWithDefault('TF2_ENABLED', 'boolean', true),
     },
     events: getEventsConfig(),
     storage: getStorageConfig(),
