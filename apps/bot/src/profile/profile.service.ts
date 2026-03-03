@@ -42,7 +42,7 @@ export class ProfileService implements OnModuleInit {
     ]);
 
     this.botService.setCustomGame(customGame);
-    this.botService.setGames(games);
+    this.botService.setGames(games.manual, games.appids);
     this.botService.setCustomPersonaState(customPersonaState);
   }
 
@@ -147,7 +147,7 @@ export class ProfileService implements OnModuleInit {
       FILE_PATHS.GAMES(this.username),
       appids.join(','),
     );
-    this.botService.setGames(appids);
+    this.botService.setGames(true, appids);
   }
 
   setCustomPersonaState(state: SteamUser.EPersonaState): Promise<void> {
@@ -182,22 +182,29 @@ export class ProfileService implements OnModuleInit {
     return customGame;
   }
 
-  private async getGames(): Promise<number[]> {
+  private async getGames(): Promise<{
+    manual: boolean;
+    appids: number[];
+  }> {
     const games = await this.storageService
       .read(FILE_PATHS.GAMES(this.username))
       .catch(null);
 
-    if (!games) {
+    if (games == null) {
       const defaultGame =
         this.configService.getOrThrow<SteamAccountConfig>('steam').defaultGame;
-      if (defaultGame) {
-        return [defaultGame];
-      }
 
-      return [];
+      return {
+        manual: false,
+        appids: defaultGame ? [defaultGame] : [],
+      };
     }
 
-    return games.split(',').map((game) => parseInt(game, 10));
+    return {
+      manual: true,
+      appids:
+        games === '' ? [] : games.split(',').map((game) => parseInt(game, 10)),
+    };
   }
 
   private async getCustomPersonaState(): Promise<SteamUser.EPersonaState | null> {
