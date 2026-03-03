@@ -1,12 +1,12 @@
 type ParsedValue<T> = T extends 'string'
-? string | undefined
-: T extends 'float'
-  ? number | undefined
-  : T extends 'integer'
+  ? string | undefined
+  : T extends 'float'
     ? number | undefined
-    : T extends 'boolean'
-      ? boolean
-      : never;
+    : T extends 'integer'
+      ? number | undefined
+      : T extends 'boolean'
+        ? boolean
+        : never;
 
 type ParsedValueWithDefault<T> = T extends 'string'
   ? string
@@ -44,10 +44,9 @@ export function getEnv<T extends 'string' | 'float' | 'integer' | 'boolean'>(
   throw new Error(`Invalid type: ${type}`);
 }
 
-export function getEnvOrThrow<T extends 'string' | 'float' | 'integer' | 'boolean'>(
-  key: string,
-  type: T,
-): NonNullable<ParsedValue<T>> {
+export function getEnvOrThrow<
+  T extends 'string' | 'float' | 'integer' | 'boolean',
+>(key: string, type: T): NonNullable<ParsedValue<T>> {
   const value = process.env[key];
   if (value === undefined) {
     throw new Error(`Missing environment variable "${key}"`);
@@ -61,7 +60,9 @@ export function getEnvOrThrow<T extends 'string' | 'float' | 'integer' | 'boolea
   return result;
 }
 
-export function getEnvWithDefault<T extends 'string' | 'float' | 'integer' | 'boolean'>(
+export function getEnvWithDefault<
+  T extends 'string' | 'float' | 'integer' | 'boolean',
+>(
   key: string,
   type: T,
   defaultValue: ParsedValueWithDefault<T>,
@@ -75,14 +76,16 @@ export function getEnvWithDefault<T extends 'string' | 'float' | 'integer' | 'bo
   return value as ParsedValueWithDefault<T>;
 }
 
-export function getEnvWithDefaultAllowEmptyString<T extends 'string' | 'float' | 'integer' | 'boolean'>(
+export function getEnvWithDefaultAllowEmptyString<
+  T extends 'string' | 'float' | 'integer' | 'boolean',
+>(
   key: string,
   type: T,
   defaultValue: ParsedValueWithDefault<T>,
 ): ParsedValueWithDefault<T> | null {
   const value = getEnv(key, type);
 
-  if (value === "") {
+  if (value === '') {
     return null;
   }
 

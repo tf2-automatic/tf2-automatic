@@ -74,8 +74,8 @@ export class BotService implements OnModuleDestroy {
   private manager: SteamTradeOfferManager;
   private pollInterval: number;
   private customGamePlayed: string | null = null;
-  private gamesPlayed: number[] = [];
   private gamesPlayedFilter = new Set<number>();
+  private gamesPlayed = new Set<number>();
   private personaState: SteamUser.EPersonaState | null = null;
 
   private _startPromise: Promise<void> | null = null;
@@ -328,10 +328,7 @@ export class BotService implements OnModuleDestroy {
 
   joinGame(appid: number): boolean {
     this.gamesPlayedFilter.delete(appid);
-
-    if (!this.gamesPlayed.includes(appid)) {
-      return false;
-    }
+    this.gamesPlayed.add(appid);
 
     this.setGamesPlayed();
 
@@ -347,8 +344,16 @@ export class BotService implements OnModuleDestroy {
     this.setGamesPlayed();
   }
 
-  setGames(appids: number[]) {
-    this.gamesPlayed = appids;
+  setGames(manual: boolean, appids: number[]) {
+    if (manual) {
+      this.gamesPlayed = new Set();
+    }
+    this.addGames(appids);
+  }
+
+  addGames(appids: number[]) {
+    appids.forEach((appid) => this.gamesPlayed.add(appid));
+    this.gamesPlayedFilter.clear();
     this.setGamesPlayed();
   }
 
