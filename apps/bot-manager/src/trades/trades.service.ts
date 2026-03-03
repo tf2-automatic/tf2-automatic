@@ -135,11 +135,11 @@ export class TradesService implements OnApplicationBootstrap {
         throw new Error('Unknown task type: ' + dto.type);
     }
 
-    if (offerId == null) {
-      return createJob(randomUUID());
-    }
+    const jobId = 'trades_' + (offerId ?? randomUUID());
 
-    const jobId = 'trades_' + offerId;
+    if (offerId == null) {
+      return createJob(jobId);
+    }
 
     return this.locker.using([jobId], LockDuration.SHORT, async (signal) => {
       const exists = await this.queueManager.getJobById(jobId);

@@ -156,7 +156,7 @@ export class HeartbeatsService {
 
         // Add bot to queue to check if it is still alive in the future
         await this.heartbeatsQueue.add(bot.steamid64, bot, {
-          jobId: bot.steamid64 + '_' + bot.lastSeen,
+          jobId: this.getJobId(new SteamID(bot.steamid64), bot.lastSeen),
           delay: Math.floor(bot.interval * 1.5),
         });
 
@@ -255,7 +255,9 @@ export class HeartbeatsService {
   }
 
   private getHeartbeatJob(bot: Bot): Promise<Job | undefined> {
-    return this.heartbeatsQueue.getJob(bot.steamid64 + '_' + bot.lastSeen);
+    return this.heartbeatsQueue.getJob(
+      this.getJobId(new SteamID(bot.steamid64), bot.lastSeen),
+    );
   }
 
   private async deleteHeartbeatJobIfExists(bot: Bot): Promise<void> {
@@ -301,5 +303,9 @@ export class HeartbeatsService {
     }
 
     return response.data;
+  }
+
+  private getJobId(steamid: SteamID, lastSeen: number): string {
+    return `${steamid.getSteamID64()}_${lastSeen}`;
   }
 }
