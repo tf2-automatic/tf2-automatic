@@ -154,15 +154,19 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       job.attemptsMade === 0,
     );
 
-    const offer = this.findMatchingTrade(
+    const matches = this.findMatchingTrades(
+      new SteamID(job.data.options.partner),
       job.data.options,
-      job.data.state.checkCreatedAfter,
+      0,
       trades.sent,
     );
 
-    if (offer) {
-      // Offer was already created
-      return offer;
+    if (matches.length > 0) {
+      this.logger.debug(
+        `Found ${matches.length} matching offer${matches.length !== 1 ? 's' : ''} (${matches.map((m) => m.id).join(', ')}), skipping creation`,
+      );
+      // An identical offer was already created
+      return matches[0];
     }
 
     this.logger.debug(`Did not find a matching offer, creating one...`);
@@ -272,53 +276,56 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     }
   }
 
-  private findMatchingTrade(
-    trade: CreateTrade,
+  private findMatchingTrades(
+    partner: SteamID,
+    trade: CounterTrade,
     time: number,
     trades: TradeOfferWithItems[],
-  ): TradeOfferWithItems | null {
-    // Get trades created after specific time
-    const itemsInTrade = trade.itemsToGive.concat(trade.itemsToReceive);
+  ): TradeOfferWithItems[] {
+    const baseItems = [...trade.itemsToGive, ...trade.itemsToReceive];
+    const base = new Set(
+      baseItems.map(
+        (i) => `${i.appid}:${i.contextid}:${i.assetid}:${i.amount ?? 1}`,
+      ),
+    );
 
-    const filtered = trades.filter((activeTrade) => {
+    const partnerSteamID64 = partner.getSteamID64();
+
+    const matches: TradeOfferWithItems[] = [];
+
+    for (const activeTrade of trades) {
       if (
         !activeTrade.isOurOffer ||
         activeTrade.createdAt < time ||
-        trade.partner !== activeTrade.partner ||
-        trade.message !== activeTrade.message
+        activeTrade.partner !== partnerSteamID64 ||
+        activeTrade.message !== trade.message
       ) {
-        // Trade was created before specified time, trade partner is different,
-        // or trade message is different
-        return false;
+        continue;
       }
 
-      const itemsInActiveTrade = activeTrade.itemsToGive.concat(
-        activeTrade.itemsToReceive,
-      );
+      const items = [...activeTrade.itemsToGive, ...activeTrade.itemsToReceive];
 
-      // Check if the amount of items is the same
-      if (itemsInTrade.length !== itemsInActiveTrade.length) {
-        return false;
+      if (items.length !== base.size) {
+        continue;
       }
 
-      // Check if the items are the same
-      for (const item of itemsInTrade) {
-        const match = itemsInActiveTrade.find(
-          (item2) =>
-            item.assetid === item2.assetid &&
-            item.appid === item2.appid &&
-            item.contextid === item2.contextid &&
-            item.amount === item2.amount,
-        );
-        if (match === undefined) {
-          return false;
+      let valid = true;
+
+      for (const item of items) {
+        const key = `${item.appid}:${item.contextid}:${item.assetid}:${item.amount ?? 1}`;
+        if (!base.has(key)) {
+          valid = false;
+          break;
         }
       }
 
-      return true;
-    });
+      if (valid) {
+        matches.push(activeTrade);
+      }
+    }
 
-    // There might be more than one matching trade but there shouldn't be
-    return filtered.length === 0 ? null : filtered[0];
+    matches.sort((a, b) => a.createdAt - b.createdAt);
+
+    return matches;
   }
 }
