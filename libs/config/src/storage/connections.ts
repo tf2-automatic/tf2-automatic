@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { getEnv } from '../helpers';
+import { getEnv, getEnvWithDefault } from '../helpers';
 
 export type StorageConfig = S3StorageConfig | LocalStorageConfig;
 
@@ -35,7 +35,7 @@ export function getS3StorageConfig(): S3StorageConfig {
     directory: getEnv('STORAGE_S3_PATH', 'string')!,
     endpoint: getEnv('STORAGE_S3_ENDPOINT', 'string')!,
     port: getEnv('STORAGE_S3_PORT', 'integer')!,
-    useSSL: getEnv('STORAGE_S3_USE_SSL', 'boolean'),
+    useSSL: getEnvWithDefault('STORAGE_S3_USE_SSL', 'boolean', false),
     bucket: getEnv('STORAGE_S3_BUCKET', 'string')!,
     accessKeyId: getEnv('STORAGE_S3_ACCESS_KEY_ID', 'string')!,
     secretAccessKey: getEnv('STORAGE_S3_SECRET_ACCESS_KEY', 'string')!,

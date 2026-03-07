@@ -5,7 +5,7 @@ type ParsedValue<T> = T extends 'string'
     : T extends 'integer'
       ? number | undefined
       : T extends 'boolean'
-        ? boolean
+        ? boolean | undefined
         : never;
 
 type ParsedValueWithDefault<T> = T extends 'string'
