@@ -300,6 +300,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
 
     const filtered = trades.filter((activeTrade) => {
       if (
+        !activeTrade.isOurOffer ||
         activeTrade.createdAt < time ||
         trade.partner !== activeTrade.partner ||
         trade.message !== activeTrade.message
