@@ -811,7 +811,12 @@ export class TradesService {
 
   async checkConfirmed(id: string): Promise<boolean> {
     const offer = await this._getTrade(id);
-    if (offer.tradeID) {
+    if (
+      offer.isOurOffer &&
+      offer.state !== ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      return true;
+    } else if (offer.tradeID) {
       return true;
     }
 
