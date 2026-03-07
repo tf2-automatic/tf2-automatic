@@ -94,7 +94,7 @@ export default (): Config => {
     events: getEventsConfig(),
     storage: getStorageConfig(),
     manager: {
-      enabled: getEnv('BOT_MANAGER_ENABLED', 'boolean'),
+      enabled: getEnvWithDefault('BOT_MANAGER_ENABLED', 'boolean', false),
       url: getEnv('BOT_MANAGER_URL', 'string'),
       heartbeatInterval: getEnvWithDefault(
         'BOT_MANAGER_HEARTBEAT_INTERVAL',
