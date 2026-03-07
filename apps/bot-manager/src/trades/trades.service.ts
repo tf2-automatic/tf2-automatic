@@ -32,6 +32,9 @@ import {
   CheckDeletedResponse,
   TRADE_DELETED_PATH,
   TradeOfferWithItems,
+  AcceptTradeResponse,
+  DeleteTradeResponse,
+  AcceptConfirmationResponse,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -163,14 +166,18 @@ export class TradesService implements OnApplicationBootstrap {
     return this.queueManager.getJobs(page, pageSize);
   }
 
-  async deleteTrade(bot: Bot, tradeId: string): Promise<void> {
+  async deleteTrade(bot: Bot, tradeId: string): Promise<DeleteTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    await firstValueFrom(this.httpService.delete(url));
+    const response = await firstValueFrom(
+      this.httpService.delete<DeleteTradeResponse>(url),
+    );
+
+    return response.data;
   }
 
   async deletedTrade(bot: Bot, tradeId: string): Promise<CheckDeletedResponse> {
@@ -187,14 +194,18 @@ export class TradesService implements OnApplicationBootstrap {
     return response.data;
   }
 
-  async acceptTrade(bot: Bot, tradeId: string): Promise<void> {
+  async acceptTrade(bot: Bot, tradeId: string): Promise<AcceptTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    await firstValueFrom(this.httpService.post(url));
+    const response = await firstValueFrom(
+      this.httpService.post<AcceptTradeResponse>(url),
+    );
+
+    return response.data;
   }
 
   async acceptedTrade(
@@ -214,14 +225,21 @@ export class TradesService implements OnApplicationBootstrap {
     return response.data;
   }
 
-  async confirmTrade(bot: Bot, tradeId: string): Promise<void> {
+  async confirmTrade(
+    bot: Bot,
+    tradeId: string,
+  ): Promise<AcceptConfirmationResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    await firstValueFrom(this.httpService.post(url));
+    const response = await firstValueFrom(
+      this.httpService.post<AcceptConfirmationResponse>(url),
+    );
+
+    return response.data;
   }
 
   async confirmedTrade(
@@ -282,7 +300,7 @@ export class TradesService implements OnApplicationBootstrap {
     });
   }
 
-  counterTrade(
+  async counterTrade(
     bot: Bot,
     id: string,
     data: CounterTrade,
