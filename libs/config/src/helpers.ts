@@ -24,18 +24,16 @@ export function getEnv<T extends 'string' | 'float' | 'integer' | 'boolean'>(
 ): ParsedValue<T> {
   const value = process.env[key];
 
-  if (type === 'string') {
-    return value as ParsedValue<T>;
-  } else if (type === 'boolean') {
-    return (value === 'true') as ParsedValue<T>;
-  }
-
   // Check if value is undefined because we do not want to parse it
   if (value === undefined) {
     return undefined as ParsedValue<T>;
   }
 
-  if (type === 'float') {
+  if (type === 'string') {
+    return value as ParsedValue<T>;
+  } else if (type === 'boolean') {
+    return (value === 'true') as ParsedValue<T>;
+  } else if (type === 'float') {
     return parseFloat(value) as ParsedValue<T>;
   } else if (type === 'integer') {
     return parseInt(value, 10) as ParsedValue<T>;
