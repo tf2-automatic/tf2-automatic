@@ -24,6 +24,7 @@ import {
   GetTradeResponse,
   OfferFilter,
   TradesPolledEvent,
+  AcceptConfirmationResponse,
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import {
@@ -817,7 +818,7 @@ export class TradesService {
     return false;
   }
 
-  async acceptConfirmation(id: string): Promise<void> {
+  async acceptConfirmation(id: string): Promise<AcceptConfirmationResponse> {
     const confirmed = await this.checkConfirmed(id);
     if (confirmed) {
       throw new BadRequestException('Trade is already confirmed');
@@ -841,6 +842,10 @@ export class TradesService {
     });
 
     this.manager.doPoll();
+
+    await this.updateOffer(offer);
+
+    return this.mapOffer(offer);
   }
 
   private _acceptConfirmation(id: string): Promise<void> {

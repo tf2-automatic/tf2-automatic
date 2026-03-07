@@ -223,9 +223,7 @@ export class TradesController {
   acceptConfirmation(
     @Param('id') id: string,
   ): Promise<AcceptConfirmationResponse> {
-    return this.tradesService.acceptConfirmation(id).then(() => {
-      return { success: true };
-    });
+    return this.tradesService.acceptConfirmation(id);
   }
 
   @Get(TRADE_CONFIRMED_PATH)
