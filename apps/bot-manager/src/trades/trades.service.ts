@@ -316,16 +316,25 @@ export class TradesService implements OnApplicationBootstrap {
     });
   }
 
-  getTrade(bot: Bot, tradeId: string): Promise<GetTradeResponse> {
+  async getTrade(
+    bot: Bot,
+    tradeId: string,
+    useCache?: boolean,
+  ): Promise<GetTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    return firstValueFrom(this.httpService.get<GetTradeResponse>(url)).then(
-      (res) => res.data,
-    );
+    const params: { useCache?: boolean } = {};
+    if (useCache !== undefined) {
+      params.useCache = useCache;
+    }
+
+    return firstValueFrom(
+      this.httpService.get<GetTradeResponse>(url, { params }),
+    ).then((res) => res.data);
   }
 
   getActiveTrades(bot: Bot): Promise<GetTradesResponse> {

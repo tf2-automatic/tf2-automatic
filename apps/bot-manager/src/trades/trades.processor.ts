@@ -1,13 +1,20 @@
 import { Processor } from '@nestjs/bullmq';
 import {
-  CreateTrade,
+  AcceptConfirmationResponse,
+  AcceptTradeResponse,
+  CounterTrade,
+  CreateTradeResponse,
+  DeleteTradeResponse,
   SteamError,
+  TradeOfferWithAssets,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
+  TRADE_COMPLETED_EVENT,
   TRADE_ERROR_EVENT,
   TRADE_FAILED_EVENT,
+  TradeCompletedEvent,
   TradeErrorEvent,
   TradeFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
@@ -52,35 +59,48 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   }
 
   async processJob(job: Job<TradeQueue>): Promise<unknown> {
-    return this.handleJob(job).catch((err) => {
-      const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
-        job: this.tradesService.mapJob(job),
-        error: err.message,
-        response: null,
-      };
+    return this.handleJob(job)
+      .then((response) => {
+        const data: TradeCompletedEvent['data'] = {
+          job: this.tradesService.mapJob(job),
+          response,
+        };
 
-      if (
-        err instanceof CustomError ||
-        err instanceof CustomUnrecoverableError
-      ) {
-        data.response = err.response;
-      }
-
-      const unrecoverable = err instanceof UnrecoverableError;
-
-      return this.eventsService
-        .publish(
-          unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+        return this.eventsService.publish(
+          TRADE_COMPLETED_EVENT,
           data,
           new SteamID(job.data.bot),
-        )
-        .finally(() => {
-          throw err;
-        });
-    });
+        );
+      })
+      .catch(async (err) => {
+        const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
+          job: this.tradesService.mapJob(job),
+          error: err.message,
+          response: null,
+        };
+
+        if (
+          err instanceof CustomError ||
+          err instanceof CustomUnrecoverableError
+        ) {
+          data.response = err.response;
+        }
+
+        const unrecoverable = err instanceof UnrecoverableError;
+
+        return this.eventsService
+          .publish(
+            unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+            data,
+            new SteamID(job.data.bot),
+          )
+          .finally(() => {
+            throw err;
+          });
+      });
   }
 
-  private async handleJob(job: Job<TradeQueue>): Promise<unknown> {
+  private async handleJob(job: Job<TradeQueue>) {
     const botSteamID = new SteamID(job.data.bot);
 
     this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
@@ -109,7 +129,10 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     }
   }
 
-  private async refreshTrade(bot: Bot, id: string): Promise<void> {
+  private async refreshTrade(
+    bot: Bot,
+    id: string,
+  ): Promise<TradeOfferWithItems> {
     const offer = await this.tradesService.refreshTrade(bot, id);
 
     // Throws error if trade is glitched. This will be caught by the error handler
@@ -117,6 +140,8 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     if (offer.isGlitched) {
       throw new Error('Trade offer is glitched');
     }
+
+    return offer;
   }
 
   private async handleCreateJob(
@@ -166,8 +191,12 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   private async handleCounterJob(
     job: Job<CounterTradeJob>,
     bot: Bot,
-  ): Promise<string> {
-    const offer = await this.tradesService.getTrade(bot, job.data.options.id);
+  ): Promise<CreateTradeResponse> {
+    const offer = await this.tradesService.getTrade(
+      bot,
+      job.data.options.id,
+      true,
+    );
 
     if (offer.state !== SteamUser.ETradeOfferState.Active) {
       throw new UnrecoverableError('Offer is not active');
@@ -175,85 +204,63 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
 
     const now = Date.now();
 
-    try {
-      this.logger.debug(`Countering trade...`);
+    this.logger.debug(`Countering trade...`);
 
-      const offer = await this.tradesService.counterTrade(
-        bot,
-        job.data.options.id,
-        {
-          message: job.data.options.message,
-          itemsToGive: job.data.options.itemsToGive,
-          itemsToReceive: job.data.options.itemsToReceive,
-        },
-      );
-      return offer.id;
-    } catch (err) {
-      await this.handleSendTradeError(job, err, now);
-      throw err;
-    }
+    return this.tradesService
+      .counterTrade(bot, job.data.options.id, {
+        message: job.data.options.message,
+        itemsToGive: job.data.options.itemsToGive,
+        itemsToReceive: job.data.options.itemsToReceive,
+      })
+      .catch(async (err) => {
+        await this.handleSendTradeError(job, err, now);
+        throw err;
+      });
   }
 
   private async handleDeleteJob(
     job: Job<DeleteTradeJob>,
     bot: Bot,
-  ): Promise<void> {
-    const check = await this.tradesService.deletedTrade(bot, job.data.options);
-
-    if (job.data.state.alreadyDeleted === undefined) {
-      job.data.state.alreadyDeleted = check.deleted;
-      await job.updateData(job.data);
-    } else {
-      if (check.deleted !== job.data.state.alreadyDeleted) {
-        return;
-      }
-    }
-
-    await this.tradesService.deleteTrade(bot, job.data.options);
+  ): Promise<DeleteTradeResponse> {
+    return this.tradesService
+      .deletedTrade(bot, job.data.options)
+      .then((check) => {
+        if (!check.deleted) {
+          return this.tradesService.deleteTrade(bot, job.data.options);
+        } else {
+          return this.tradesService.getTrade(bot, job.data.options, true);
+        }
+      });
   }
 
   private async handleAcceptJob(
     job: Job<AcceptTradeJob>,
     bot: Bot,
-  ): Promise<void> {
-    const check = await this.tradesService.acceptedTrade(bot, job.data.options);
-
-    if (job.data.state.alreadyAccepted === undefined) {
-      job.data.state.alreadyAccepted = check.accepted;
-      await job.updateData(job.data);
-    } else {
-      if (check.accepted !== job.data.state.alreadyAccepted) {
-        return;
-      }
-    }
-
-    await this.tradesService.acceptTrade(bot, job.data.options);
+  ): Promise<AcceptTradeResponse> {
+    return this.tradesService
+      .acceptedTrade(bot, job.data.options)
+      .then((check) => {
+        if (!check.accepted) {
+          return this.tradesService.acceptTrade(bot, job.data.options);
+        } else {
+          return this.tradesService.getTrade(bot, job.data.options, true);
+        }
+      });
   }
 
   private async handleConfirmJob(
     job: Job<ConfirmTradeJob>,
     bot: Bot,
-  ): Promise<void> {
-    // Check if offer was confirmed
-    const check = await this.tradesService.confirmedTrade(
-      bot,
-      job.data.options,
-    );
-
-    // Check if the check was already done before
-    if (job.data.state.alreadyConfirmed === undefined) {
-      // Add confirmed state to job data
-      job.data.state.alreadyConfirmed = check.confirmed;
-      await job.updateData(job.data);
-    } else {
-      // Check if state has changed
-      if (check.confirmed !== job.data.state.alreadyConfirmed) {
-        // Offer was confirmed
-        return;
-      }
-    }
-
-    await this.tradesService.confirmTrade(bot, job.data.options);
+  ): Promise<AcceptConfirmationResponse> {
+    return this.tradesService
+      .confirmedTrade(bot, job.data.options)
+      .then((check) => {
+        if (!check.confirmed) {
+          return this.tradesService.confirmTrade(bot, job.data.options);
+        } else {
+          return this.tradesService.getTrade(bot, job.data.options, true);
+        }
+      });
   }
 
   private async handleSendTradeError(job: Job, err: Error, now: number) {

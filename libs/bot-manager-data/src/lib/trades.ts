@@ -1,8 +1,13 @@
 import {
+  AcceptConfirmationResponse,
+  AcceptTradeResponse,
   BaseEvent,
   CounterTrade,
   CreateTrade,
+  CreateTradeResponse,
+  DeleteTradeResponse,
   HttpError,
+  RefreshTradeResponse,
   TradeOfferExchangeDetails,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
@@ -82,7 +87,7 @@ export type ExchangeDetailsEvent = BaseEvent<
   }
 >;
 
-interface TradeEventData {
+interface TradeErrorEventData {
   job: Job;
   response: HttpError | null;
   error: string;
@@ -91,11 +96,35 @@ interface TradeEventData {
 export type TradeErrorEventType = 'trades.error';
 export const TRADE_ERROR_EVENT: TradeErrorEventType = `${TRADES_EVENT_PREFIX}.error`;
 
-export type TradeErrorEvent = BaseEvent<TradeErrorEventType, TradeEventData>;
+export type TradeErrorEvent = BaseEvent<
+  TradeErrorEventType,
+  TradeErrorEventData
+>;
 
 export type TradeFailedEventType = 'trades.failed';
 export const TRADE_FAILED_EVENT: TradeFailedEventType = `${TRADES_EVENT_PREFIX}.failed`;
 
-export type TradeFailedEvent = BaseEvent<TradeFailedEventType, TradeEventData>;
+export type TradeFailedEvent = BaseEvent<
+  TradeFailedEventType,
+  TradeErrorEventData
+>;
 
 export type GetTradeQueue = PaginationOptions;
+
+interface TradeCompletedEventData {
+  job: Job;
+  response:
+    | AcceptTradeResponse
+    | DeleteTradeResponse
+    | RefreshTradeResponse
+    | CreateTradeResponse
+    | AcceptConfirmationResponse;
+}
+
+export type TradeCompletedEventType = 'trades.completed';
+export const TRADE_COMPLETED_EVENT: TradeCompletedEventType = `${TRADES_EVENT_PREFIX}.completed`;
+
+export type TradeCompletedEvent = BaseEvent<
+  TradeCompletedEventType,
+  TradeCompletedEventData
+>;
