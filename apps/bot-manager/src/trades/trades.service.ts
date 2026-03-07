@@ -337,12 +337,19 @@ export class TradesService implements OnApplicationBootstrap {
     ).then((res) => res.data);
   }
 
-  getActiveTrades(bot: Bot): Promise<GetTradesResponse> {
+  async getActiveTrades(
+    bot: Bot,
+    useCache?: boolean,
+  ): Promise<GetTradesResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
 
     const params: GetTradesDto = {
       filter: OfferFilter.ActiveOnly,
     };
+
+    if (useCache !== undefined) {
+      params.useCache = useCache;
+    }
 
     return firstValueFrom(
       this.httpService.get<GetTradesResponse>(url, {

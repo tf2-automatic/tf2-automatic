@@ -6,7 +6,6 @@ import {
   CreateTradeResponse,
   DeleteTradeResponse,
   SteamError,
-  TradeOfferWithAssets,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
 import {
@@ -147,45 +146,33 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   private async handleCreateJob(
     job: Job<CreateTradeJob>,
     bot: Bot,
-  ): Promise<string> {
-    if (job.data.state.checkCreatedAfter !== undefined) {
-      // Check if offer was created
-      this.logger.debug(
-        `Checking if a similar offer already offer exists...`,
-        job.id,
-      );
+  ): Promise<CreateTradeResponse> {
+    this.logger.debug(`Checking if a similar offer already offer exists...`);
 
-      const trades = await this.tradesService.getActiveTrades(bot);
+    const trades = await this.tradesService.getActiveTrades(
+      bot,
+      job.attemptsMade === 0,
+    );
 
-      const offer = this.findMatchingTrade(
-        job.data.options,
-        job.data.state.checkCreatedAfter,
-        trades.sent,
-      );
+    const offer = this.findMatchingTrade(
+      job.data.options,
+      job.data.state.checkCreatedAfter,
+      trades.sent,
+    );
 
-      if (offer) {
-        // Offer was already created
-        return offer.id;
-      }
-
-      this.logger.debug(`Did not find a matching offer`);
+    if (offer) {
+      // Offer was already created
+      return offer;
     }
 
-    const now = Date.now();
+    this.logger.debug(`Did not find a matching offer, creating one...`);
 
-    try {
-      this.logger.debug(`Creating trade...`);
-
-      const offer = await this.tradesService.createTrade(
-        bot,
-        job.data.options,
-        job.id,
-      );
-      return offer.id;
-    } catch (err) {
-      await this.handleSendTradeError(job, err, now);
-      throw err;
-    }
+    return this.tradesService
+      .createTrade(bot, job.data.options, job.id)
+      .catch((err) => {
+        this.handleSendTradeError(err);
+        throw err;
+      });
   }
 
   private async handleCounterJob(
@@ -202,8 +189,6 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       throw new UnrecoverableError('Offer is not active');
     }
 
-    const now = Date.now();
-
     this.logger.debug(`Countering trade...`);
 
     return this.tradesService
@@ -213,7 +198,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         itemsToReceive: job.data.options.itemsToReceive,
       })
       .catch(async (err) => {
-        await this.handleSendTradeError(job, err, now);
+        this.handleSendTradeError(err);
         throw err;
       });
   }
@@ -263,7 +248,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       });
   }
 
-  private async handleSendTradeError(job: Job, err: Error, now: number) {
+  private handleSendTradeError(err: Error) {
     if (!(err instanceof AxiosError)) {
       // Unknown error
       throw err;
@@ -275,11 +260,8 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       if (response.data.error === 'SteamException') {
         const data = response.data as SteamError;
 
-        if (data.eresult === SteamUser.EResult.Timeout) {
-          // Add time to job data it as a potentially active offer and to check if it was created
-          job.data.state.checkCreatedAfter = Math.floor(now / 1000);
-          await job.updateData(job.data);
-        } else if (
+        if (
+          data.eresult !== SteamUser.EResult.Timeout &&
           data.eresult !== SteamUser.EResult.ServiceUnavailable &&
           data.eresult !== SteamUser.EResult.Fail
         ) {
