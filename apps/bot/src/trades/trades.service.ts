@@ -839,8 +839,7 @@ export class TradesService {
 
     await this._acceptConfirmation(id).catch((err) => {
       if (err.message === 'Could not find confirmation for object ' + id) {
-        const message = 'Confirmation not found';
-        throw new NotFoundException(message);
+        throw new NotFoundException('Confirmation not found');
       }
 
       throw err;
