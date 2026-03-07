@@ -183,14 +183,10 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     job: Job<CounterTradeJob>,
     bot: Bot,
   ): Promise<CreateTradeResponse> {
-    const offer = await this.tradesService.getTrade(
-      bot,
-      job.data.options.id,
-      true,
-    );
+    const offer = await this.tradesService.getTrade(bot, job.data.options.id);
 
     if (offer.state !== SteamUser.ETradeOfferState.Active) {
-      throw new UnrecoverableError('Offer is not active');
+      return this.handleCounterJobButOfferIsNotActive(job, bot, offer);
     }
 
     this.logger.debug(`Countering trade...`);
@@ -202,6 +198,52 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         itemsToReceive: job.data.options.itemsToReceive,
       })
       .catch(async (err) => {
+        this.handleSendTradeError(err);
+        throw err;
+      });
+  }
+
+  private async handleCounterJobButOfferIsNotActive(
+    job: Job<CounterTradeJob>,
+    bot: Bot,
+    offer: TradeOfferWithItems,
+  ): Promise<CreateTradeResponse> {
+    if (offer.state !== SteamUser.ETradeOfferState.Countered) {
+      throw new UnrecoverableError('Offer is not active');
+    }
+
+    // Check if offer was created
+    this.logger.debug(
+      `Checking if a similar offer already offer exists...`,
+      job.id,
+    );
+
+    const trades = await this.tradesService.getActiveTrades(bot);
+
+    const matches = this.findMatchingTrades(
+      new SteamID(offer.partner),
+      job.data.options,
+      offer.updatedAt,
+      trades.sent,
+    );
+
+    if (matches.length > 0) {
+      // An identical offer was already created
+      return matches[0];
+    }
+
+    this.logger.debug(`Did not find a matching offer, will create one...`);
+
+    return this.tradesService
+      .createTrade(
+        bot,
+        {
+          partner: offer.partner,
+          ...job.data.options,
+        },
+        job.id,
+      )
+      .catch((err) => {
         this.handleSendTradeError(err);
         throw err;
       });
