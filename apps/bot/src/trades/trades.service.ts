@@ -680,7 +680,6 @@ export class TradesService {
 
           if (err.eresult !== undefined || err.cause !== undefined) {
             return reject(
-              // @ts-expect-error FIXME: Wait for https://github.com/DefinitelyTyped/DefinitelyTyped/pull/67155
               new SteamException(err.message, err.eresult, err.cause),
             );
           }
