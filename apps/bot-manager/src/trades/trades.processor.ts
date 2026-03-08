@@ -73,7 +73,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         );
       })
       .catch((err) => {
-        this.handleTradeError(err);
+        this.handleError(err);
         throw err;
       })
       .catch(async (err) => {
@@ -285,7 +285,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       });
   }
 
-  private handleTradeError(err: Error) {
+  private handleError(err: Error) {
     if (!(err instanceof AxiosError)) {
       // Unknown error
       throw err;
@@ -314,6 +314,12 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
             response.data,
           );
         }
+      } else if (response.status >= 400 && response.status < 500) {
+        // Unrecoverable error, don't retry
+        throw new CustomUnrecoverableError(
+          response.data?.message ?? err.message,
+          response.data,
+        );
       }
 
       throw new CustomError(
