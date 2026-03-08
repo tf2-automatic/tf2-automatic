@@ -116,11 +116,16 @@ export class TradesService {
       this.ensurePollData();
     });
 
+    this.patchManager();
+  }
+
+  private patchGetOffers() {
     // Capture offers from getOffers function to detect relevant changes
     const origGetOffers = this.manager.getOffers.bind(this.manager);
     this.manager.getOffers = (...args) => {
-      const callback = args.pop();
-      origGetOffers(...args, (err, sent, received) => {
+      const callback = args[args.length - 1];
+      const callArgs = args.slice(0, -1);
+      origGetOffers(...callArgs, (err, sent, received) => {
         if (err) {
           return callback(err);
         }
@@ -140,7 +145,9 @@ export class TradesService {
         }
       });
     };
+  }
 
+  private patchGetOffer() {
     const origGetOffer = this.manager.getOffer.bind(this.manager);
     this.manager.getOffer = (id, callback) => {
       origGetOffer(id, (err, offer) => {
@@ -149,21 +156,27 @@ export class TradesService {
           return callback(err);
         }
 
-        this.handleOffer(offer);
+        callback(null, offer);
 
-        return callback(null, offer);
+        if (offer) {
+          this.handleOffer(offer);
+        }
       });
     };
+  }
 
+  private patchDoPoll() {
     const origDoPoll = this.manager.doPoll.bind(this.manager);
     this.manager.doPoll = (...args) => {
-      if (this.botService.isRunning() === false) {
-        // Bot is not running, don't poll
-        return;
-      }
-
+      if (!this.botService.isRunning()) return;
       return origDoPoll(...args);
     };
+  }
+
+  private patchManager() {
+    this.patchGetOffers();
+    this.patchGetOffer();
+    this.patchDoPoll();
   }
 
   private handleOffers(
