@@ -604,7 +604,7 @@ export class TradesService {
   ): asserts offer is TheirTradeOffer {
     this.assertCreatedOffer(offer);
 
-    if (!offer.isOurOffer) {
+    if (offer.isOurOffer) {
       throw new BadRequestException('Offer is not theirs');
     }
   }
