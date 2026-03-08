@@ -152,7 +152,7 @@ export class InventoriesController {
     @Param('appid', ParseIntPipe) appid: number,
     @Param('contextid') contextid: string,
     @Query('useCache', new ParseBoolPipe({ optional: true }))
-    useCache = true,
+    useCache: boolean,
     @Query('tradableOnly', new ParseBoolPipe({ optional: true }))
     tradableOnly: boolean | undefined,
     @Query('ttl', new ParseIntPipe({ optional: true }))

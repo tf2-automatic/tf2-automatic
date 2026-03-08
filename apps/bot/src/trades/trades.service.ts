@@ -57,6 +57,7 @@ import {
   TradeOfferData,
 } from './types';
 import NodeCache from 'node-cache';
+import DataLoader from 'dataloader';
 
 @Injectable()
 export class TradesService {
@@ -76,6 +77,7 @@ export class TradesService {
     minTime: 1000,
   });
 
+  private loader = this.getDataLoader();
   private cache: NodeCache;
 
   constructor(
@@ -123,6 +125,39 @@ export class TradesService {
     this.patchManager();
   }
 
+  private getDataLoader() {
+    const map = new Map<string, Promise<CreatedTradeOffer>>();
+
+    return new DataLoader<string, CreatedTradeOffer>(
+      async (ids) => {
+        return Promise.all(ids.map((id) => this.fetchOffer(id)));
+      },
+      {
+        batch: false,
+        cache: true,
+        cacheMap: {
+          get: (key) => {
+            return map.get(key);
+          },
+          set: (key, promise) => {
+            map.set(key, promise);
+            promise
+              .catch(() => {
+                /* empty */
+              })
+              .finally(() => map.delete(key));
+          },
+          delete: (key) => {
+            map.delete(key);
+          },
+          clear: () => {
+            map.clear();
+          },
+        },
+      },
+    );
+  }
+
   private patchGetOffers() {
     // Capture offers from getOffers function to detect relevant changes
     const origGetOffers = this.manager.getOffers.bind(this.manager);
@@ -134,19 +169,21 @@ export class TradesService {
           return callback(err);
         }
 
-        callback(err, sent, received);
+        callback(null, sent, received);
 
-        const gotAll =
-          args.length === 2 &&
-          args[0] === 3 &&
-          new Date(args[1]).getTime() === 1000;
+        setImmediate(() => {
+          const gotAll =
+            args.length === 2 &&
+            args[0] === 3 &&
+            new Date(args[1]).getTime() === 1000;
 
-        try {
-          this.handleOffers(sent, received, gotAll);
-        } catch (err) {
-          // Catch the error because we don't want trade offer manager to think an error occurred
-          this.logger.warn('Error while handling offers: ' + err.message);
-        }
+          try {
+            this.handleOffers(sent, received, gotAll);
+          } catch (err) {
+            // Catch the error because we don't want trade offer manager to think an error occurred
+            this.logger.warn('Error while handling offers: ' + err.message);
+          }
+        });
       });
     };
   }
@@ -162,9 +199,11 @@ export class TradesService {
 
         callback(null, offer);
 
-        if (offer) {
-          this.handleOffer(offer);
-        }
+        setImmediate(() => {
+          if (offer) {
+            this.handleOffer(offer);
+          }
+        });
       });
     };
   }
@@ -298,7 +337,7 @@ export class TradesService {
 
     // Get the actual offer
     const offer = await this.ensureOfferPublishedLimiter.schedule(() =>
-      this.fetchOffer(id),
+      this.loadOfferWithCaching(id),
     );
 
     return this.ensureOfferPublishedQueue.push(offer);
@@ -553,16 +592,6 @@ export class TradesService {
     }
   }
 
-  private assertOurOffer(
-    offer: ActualTradeOffer,
-  ): asserts offer is OurTradeOffer {
-    this.assertCreatedOffer(offer);
-
-    if (!offer.isOurOffer) {
-      throw new BadRequestException('Offer is not ours');
-    }
-  }
-
   private assertTheirOffer(
     offer: ActualTradeOffer,
   ): asserts offer is TheirTradeOffer {
@@ -571,6 +600,10 @@ export class TradesService {
     if (!offer.isOurOffer) {
       throw new BadRequestException('Offer is not theirs');
     }
+  }
+
+  private async loadOffer(id: string): Promise<CreatedTradeOffer> {
+    return this.loader.load(id);
   }
 
   private fetchOffer(id: string): Promise<CreatedTradeOffer> {
@@ -603,7 +636,7 @@ export class TradesService {
     });
   }
 
-  private fetchOfferWithCaching(
+  private async loadOfferWithCaching(
     id: string,
     useCache = false,
   ): Promise<CreatedTradeOffer> {
@@ -618,12 +651,12 @@ export class TradesService {
         }
       }
 
-      return this.fetchOffer(id);
+      return this.loadOffer(id);
     });
   }
 
   async getOffer(id: string, useCache = false): Promise<GetTradeResponse> {
-    const offer = await this.fetchOfferWithCaching(id, useCache);
+    const offer = await this.loadOfferWithCaching(id, useCache);
     return this.mapOffer(offer);
   }
 
@@ -631,7 +664,7 @@ export class TradesService {
    * Gets a trade offer and publishes it even if it was already published
    */
   async refreshTrade(id: string): Promise<GetTradeResponse> {
-    const offer = await this.fetchOffer(id);
+    const offer = await this.loadOfferWithCaching(id);
 
     // Publish the offer and say the old state was the last published state
     await this.publishOffer(offer, offer.data('published'));
@@ -660,7 +693,7 @@ export class TradesService {
     id: string,
     dto: CounterTradeDto,
   ): Promise<CreateTradeResponse> {
-    const offer = await this.fetchOfferWithCaching(id, true);
+    const offer = await this.loadOfferWithCaching(id, true);
     this.assertActiveOffer(offer);
     this.assertTheirOffer(offer);
 
@@ -781,7 +814,7 @@ export class TradesService {
   }
 
   async checkAccepted(id: string): Promise<boolean> {
-    const offer = await this.fetchOffer(id);
+    const offer = await this.loadOfferWithCaching(id);
 
     if (
       offer.state === ETradeOfferState.Accepted ||
@@ -807,7 +840,7 @@ export class TradesService {
       throw new BadRequestException('Offer is already accepted');
     }
 
-    const offer = await this.fetchOfferWithCaching(id, true);
+    const offer = await this.loadOfferWithCaching(id, true);
     this.assertTheirOffer(offer);
     this.assertActiveOffer(offer);
 
@@ -866,7 +899,7 @@ export class TradesService {
   }
 
   async checkConfirmed(id: string): Promise<boolean> {
-    const offer = await this.fetchOffer(id);
+    const offer = await this.loadOfferWithCaching(id);
 
     if (
       offer.isOurOffer &&
@@ -886,7 +919,7 @@ export class TradesService {
       throw new BadRequestException('Trade is already confirmed');
     }
 
-    const offer = await this.fetchOfferWithCaching(id, true);
+    const offer = await this.loadOfferWithCaching(id, true);
     this.assertActiveOffer(offer);
 
     if (
@@ -938,7 +971,7 @@ export class TradesService {
   }
 
   async checkRemoved(id: string): Promise<boolean> {
-    const offer = await this.fetchOffer(id);
+    const offer = await this.loadOfferWithCaching(id);
 
     if (
       offer.state === ETradeOfferState.Declined ||
@@ -956,7 +989,7 @@ export class TradesService {
       throw new BadRequestException('Offer is already removed');
     }
 
-    const offer = await this.fetchOfferWithCaching(id, true);
+    const offer = await this.loadOfferWithCaching(id, true);
     this.assertActiveOffer(offer);
 
     await this._removeTrade(offer).catch((err) => {
@@ -1011,7 +1044,7 @@ export class TradesService {
     id: string,
     exchangeDetailsDto: GetExchangeDetailsDto,
   ): Promise<TradeOfferExchangeDetails> {
-    const offer = await this.fetchOffer(id);
+    const offer = await this.loadOfferWithCaching(id);
     if (!offer.tradeID) {
       throw new BadRequestException('No trade id');
     }
@@ -1040,7 +1073,7 @@ export class TradesService {
   }
 
   async getReceivedItems(id: string): Promise<Item[]> {
-    const offer = await this.fetchOffer(id);
+    const offer = await this.loadOfferWithCaching(id);
 
     if (offer.state !== ETradeOfferState.Accepted) {
       throw new BadRequestException('Offer is not accepted');
