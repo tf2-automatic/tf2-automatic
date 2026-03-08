@@ -16,10 +16,6 @@ export type ActiveTradeOffer = CreatedTradeOffer & {
   state: SteamUser.ETradeOfferState.Active;
 };
 
-export type OurTradeOffer = CreatedTradeOffer & {
-  isOurOffer: true;
-};
-
 export type TheirTradeOffer = CreatedTradeOffer & {
   isOurOffer: false;
 };

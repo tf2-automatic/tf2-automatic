@@ -53,7 +53,6 @@ import { GarbageCollectorService } from './gc.service';
 import {
   ActiveTradeOffer,
   CreatedTradeOffer,
-  OurTradeOffer,
   TheirTradeOffer,
   TradeOfferData,
 } from './types';
@@ -663,6 +662,7 @@ export class TradesService {
   ): Promise<CreateTradeResponse> {
     const offer = await this.fetchOfferWithCaching(id, true);
     this.assertActiveOffer(offer);
+    this.assertTheirOffer(offer);
 
     const counter = offer.counter();
 
@@ -808,7 +808,7 @@ export class TradesService {
     }
 
     const offer = await this.fetchOfferWithCaching(id, true);
-    this.assertOurOffer(offer);
+    this.assertTheirOffer(offer);
     this.assertActiveOffer(offer);
 
     await this._acceptTrade(offer).catch((err) => {
