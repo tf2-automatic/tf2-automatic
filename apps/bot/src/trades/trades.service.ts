@@ -749,7 +749,10 @@ export class TradesService {
       throw new BadRequestException('Offer is already accepted');
     }
 
-    const offer = await this._getTrade(id);
+    if (offer.isOurOffer) {
+      throw new BadRequestException('Offer is ours');
+    }
+
     this.isActiveOrThrow(offer, true);
 
     await this._acceptTrade(offer).catch((err) => {
