@@ -749,6 +749,7 @@ export class TradesService {
       throw new BadRequestException('Offer is already accepted');
     }
 
+    const offer = await this._getTrade(id, true);
     if (offer.isOurOffer) {
       throw new BadRequestException('Offer is ours');
     }
@@ -814,6 +815,7 @@ export class TradesService {
 
   async checkConfirmed(id: string): Promise<boolean> {
     const offer = await this._getTrade(id);
+
     if (
       offer.isOurOffer &&
       offer.state !== ETradeOfferState.CreatedNeedsConfirmation
@@ -832,7 +834,7 @@ export class TradesService {
       throw new BadRequestException('Trade is already confirmed');
     }
 
-    const offer = await this._getTrade(id);
+    const offer = await this._getTrade(id, true);
     if (
       offer.confirmationMethod ===
       SteamTradeOfferManager.EConfirmationMethod.None
@@ -900,7 +902,7 @@ export class TradesService {
       throw new BadRequestException('Offer is already removed');
     }
 
-    const offer = await this._getTrade(id);
+    const offer = await this._getTrade(id, true);
     this.isActiveOrThrow(offer, false);
 
     await this._removeTrade(offer).catch((err) => {
