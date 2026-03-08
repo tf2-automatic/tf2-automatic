@@ -97,7 +97,7 @@ export class TradesController {
     @Param('id') id: string,
     @Query('useCache') useCache: boolean,
   ): Promise<GetTradeResponse> {
-    return this.tradesService.getTrade(id, useCache);
+    return this.tradesService.getOffer(id, useCache);
   }
 
   @Post(TRADE_REFRESH_PATH)

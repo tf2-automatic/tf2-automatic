@@ -50,9 +50,14 @@ import {
 import Bottleneck from 'bottleneck';
 import CEconItem from 'steamcommunity/classes/CEconItem';
 import { GarbageCollectorService } from './gc.service';
-import { TradeOfferData } from './types';
+import {
+  ActiveTradeOffer,
+  CreatedTradeOffer,
+  OurTradeOffer,
+  TheirTradeOffer,
+  TradeOfferData,
+} from './types';
 import NodeCache from 'node-cache';
-import assert from 'assert';
 
 @Injectable()
 export class TradesService {
@@ -64,7 +69,7 @@ export class TradesService {
   private readonly ensurePolldataPublishedQueue: queueAsPromised<string> =
     fastq.promise(this.ensurePolldataPublished.bind(this), 1);
 
-  private readonly ensureOfferPublishedQueue: queueAsPromised<ActualTradeOffer> =
+  private readonly ensureOfferPublishedQueue: queueAsPromised<CreatedTradeOffer> =
     fastq.promise(this.ensureOfferPublished.bind(this), 1);
 
   private ensurePollDataTimeout: NodeJS.Timeout;
@@ -210,7 +215,7 @@ export class TradesService {
   }
 
   private handleOffer(offer: ActualTradeOffer) {
-    assert(offer.id, 'Offer ID is missing');
+    this.assertCreatedOffer(offer);
 
     this.cache.set(offer.id, offer);
 
@@ -294,19 +299,19 @@ export class TradesService {
 
     // Get the actual offer
     const offer = await this.ensureOfferPublishedLimiter.schedule(() =>
-      this._getTrade(id),
+      this.fetchOffer(id),
     );
 
     return this.ensureOfferPublishedQueue.push(offer);
   }
 
-  private ensureOfferPublished(offer: ActualTradeOffer): Promise<void> {
+  private ensureOfferPublished(offer: CreatedTradeOffer): Promise<void> {
     return this.ensureOfferStatePublished(offer).then(() => {
       return this.ensureConfirmationPublished(offer);
     });
   }
 
-  private ensureOfferStatePublished(offer: ActualTradeOffer): Promise<void> {
+  private ensureOfferStatePublished(offer: CreatedTradeOffer): Promise<void> {
     const offerData = offer.data() as TradeOfferData;
 
     if (offer.state === offerData.published) {
@@ -317,7 +322,7 @@ export class TradesService {
     return this.publishOffer(offer, offerData.published);
   }
 
-  private ensureConfirmationPublished(offer: ActualTradeOffer): Promise<void> {
+  private ensureConfirmationPublished(offer: CreatedTradeOffer): Promise<void> {
     if (
       offer.confirmationMethod ===
       SteamTradeOfferManager.EConfirmationMethod.None
@@ -374,7 +379,7 @@ export class TradesService {
   }
 
   private publishOffer(
-    offer: ActualTradeOffer,
+    offer: CreatedTradeOffer,
     oldState: ETradeOfferState | null = null,
   ): Promise<void> {
     const publish = (): Promise<void> => {
@@ -443,21 +448,21 @@ export class TradesService {
 
   async getTrades(dto: GetTradesDto): Promise<GetTradesResponse> {
     if (dto.useCache === true) {
-      return this.getTradesFromCache(dto.filter);
+      return this.getOffersUsingCache(dto.filter);
     }
 
-    return this._getTrades(dto.filter);
+    return this.fetchOffers(dto.filter);
   }
 
-  private async getTradesFromCache(
+  private async getOffersUsingCache(
     filter: OfferFilter,
   ): Promise<GetTradesResponse> {
-    const cached = this.cache.mget<ActualTradeOffer>(this.cache.keys());
+    const cached = this.cache.mget<CreatedTradeOffer>(this.cache.keys());
 
-    const sent: ActualTradeOffer[] = [];
-    const received: ActualTradeOffer[] = [];
+    const sent: CreatedTradeOffer[] = [];
+    const received: CreatedTradeOffer[] = [];
 
-    function addOffer(offer: ActualTradeOffer | Error) {
+    function addOffer(offer: CreatedTradeOffer | Error) {
       if (offer instanceof Error) {
         return;
       }
@@ -494,12 +499,15 @@ export class TradesService {
     };
   }
 
-  private async _getTrades(filter: OfferFilter): Promise<GetTradesResponse> {
+  private async fetchOffers(filter: OfferFilter): Promise<GetTradesResponse> {
     return new Promise<GetTradesResponse>((resolve, reject) => {
       this.manager.getOffers(filter, (err, sent, received) => {
         if (err) {
           return reject(err);
         }
+
+        this.assertCreatedOffers(sent);
+        this.assertCreatedOffers(received);
 
         const sentMapped = this.mapOffers<Item>(sent);
         const receivedMapped = this.mapOffers<Item>(received);
@@ -516,22 +524,60 @@ export class TradesService {
     });
   }
 
-  private _getTrade(id: string, useCache = true): Promise<ActualTradeOffer> {
-    return new Promise((resolve, reject) => {
-      if (useCache) {
-        const cached = this.cache.get<ActualTradeOffer | Error>(id);
-        if (cached) {
-          if (cached instanceof Error) {
-            return reject(cached);
-          }
-          return resolve(cached);
-        }
-      }
+  private assertCreatedOffer(
+    offer: ActualTradeOffer,
+  ): asserts offer is CreatedTradeOffer {
+    if (!offer.id) {
+      throw new BadRequestException('Offer is not yet created');
+    }
+  }
 
+  private assertCreatedOffers(
+    offers: ActualTradeOffer[],
+  ): asserts offers is CreatedTradeOffer[] {
+    offers.forEach((offer) => this.assertCreatedOffer(offer));
+  }
+
+  private assertActiveOffer(
+    offer: ActualTradeOffer,
+  ): asserts offer is ActiveTradeOffer {
+    this.assertCreatedOffer(offer);
+
+    if (!offer.isOurOffer && offer.state !== ETradeOfferState.Active) {
+      throw new BadRequestException('Their offer is not active');
+    } else if (
+      offer.isOurOffer &&
+      offer.state !== ETradeOfferState.Active &&
+      offer.state !== ETradeOfferState.CreatedNeedsConfirmation
+    ) {
+      throw new BadRequestException('Our offer is not active');
+    }
+  }
+
+  private assertOurOffer(
+    offer: ActualTradeOffer,
+  ): asserts offer is OurTradeOffer {
+    this.assertCreatedOffer(offer);
+
+    if (!offer.isOurOffer) {
+      throw new BadRequestException('Offer is not ours');
+    }
+  }
+
+  private assertTheirOffer(
+    offer: ActualTradeOffer,
+  ): asserts offer is TheirTradeOffer {
+    this.assertCreatedOffer(offer);
+
+    if (!offer.isOurOffer) {
+      throw new BadRequestException('Offer is not theirs');
+    }
+  }
+
+  private fetchOffer(id: string): Promise<CreatedTradeOffer> {
+    return new Promise((resolve, reject) => {
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
-          this.cache.del(id);
-
           if (err.message === 'NoMatch') {
             const err = new NotFoundException('Trade offer not found');
             this.cache.set(id, err);
@@ -551,31 +597,34 @@ export class TradesService {
           return reject(err);
         }
 
+        this.assertCreatedOffer(offer);
+
         return resolve(offer);
       });
     });
   }
 
-  private async getTradeAndLogError(
+  private fetchOfferWithCaching(
     id: string,
     useCache = false,
-  ): Promise<ActualTradeOffer> {
-    const hasCache = this.cache.has(id);
-    return this._getTrade(id, useCache).catch((err) => {
-      if (!hasCache) {
-        this.logger.error(
-          `Error getting trade offer: ${err.message}${
-            err.eresult !== undefined ? ` (eresult: ${err.eresult})` : ''
-          }`,
-        );
+  ): Promise<CreatedTradeOffer> {
+    return new Promise((resolve, reject) => {
+      if (useCache) {
+        const cached = this.cache.get<CreatedTradeOffer | Error>(id);
+        if (cached) {
+          if (cached instanceof Error) {
+            return reject(cached);
+          }
+          return resolve(cached);
+        }
       }
 
-      throw err;
+      return this.fetchOffer(id);
     });
   }
 
-  async getTrade(id: string, useCache = false): Promise<GetTradeResponse> {
-    const offer = await this.getTradeAndLogError(id, useCache);
+  async getOffer(id: string, useCache = false): Promise<GetTradeResponse> {
+    const offer = await this.fetchOfferWithCaching(id, useCache);
     return this.mapOffer(offer);
   }
 
@@ -583,7 +632,7 @@ export class TradesService {
    * Gets a trade offer and publishes it even if it was already published
    */
   async refreshTrade(id: string): Promise<GetTradeResponse> {
-    const offer = await this.getTradeAndLogError(id);
+    const offer = await this.fetchOffer(id);
 
     // Publish the offer and say the old state was the last published state
     await this.publishOffer(offer, offer.data('published'));
@@ -612,9 +661,8 @@ export class TradesService {
     id: string,
     dto: CounterTradeDto,
   ): Promise<CreateTradeResponse> {
-    const offer = await this._getTrade(id);
-    assert(offer.id, 'Offer ID is missing');
-    this.isActiveOrThrow(offer, true);
+    const offer = await this.fetchOfferWithCaching(id, true);
+    this.assertActiveOffer(offer);
 
     const counter = offer.counter();
 
@@ -651,32 +699,28 @@ export class TradesService {
         .join(',')}]`,
     );
 
-    await this._sendOffer(offer).catch((err) => {
+    const activeOffer = await this._sendOffer(offer).catch((err) => {
       this.handleError(err);
       throw err;
     });
 
     this.logger.log(
-      `Offer #${offer.id} sent to ${offer.partner} has state ${
-        ETradeOfferState[offer.state]
+      `Offer #${activeOffer.id} sent to ${activeOffer.partner} has state ${
+        ETradeOfferState[activeOffer.state]
       }`,
     );
 
     this.sentCounter.inc();
 
     // Add offer to queue to ensure state and confirmation is published if needed
-    this.ensureOfferPublishedQueue.push(offer).catch(() => {
+    this.ensureOfferPublishedQueue.push(activeOffer).catch(() => {
       // Ignore error
     });
 
-    this.updateOffer(offer).catch((err) => {
-      this.logger.warn('Failed to update offer: ' + err.message);
-    });
-
-    return this.mapOffer(offer);
+    return this.mapOffer(activeOffer);
   }
 
-  private _sendOffer(offer: ActualTradeOffer): Promise<void> {
+  private _sendOffer(offer: ActualTradeOffer): Promise<CreatedTradeOffer> {
     return new Promise((resolve, reject) => {
       offer.send((err) => {
         if (err) {
@@ -701,11 +745,11 @@ export class TradesService {
           return reject(err);
         }
 
-        assert(offer.id, 'Offer ID is missing');
+        this.assertCreatedOffer(offer);
         // This means that the cached offers may not contain complete items
         this.cache.set(offer.id, offer);
 
-        resolve();
+        resolve(offer);
       });
     });
   }
@@ -728,7 +772,7 @@ export class TradesService {
         }
 
         // This is technically unnessesary but nice to do anyway
-        assert(offer.id, 'Offer ID is missing');
+        this.assertActiveOffer(offer);
         this.cache.set(offer.id, offer);
 
         resolve();
@@ -737,7 +781,7 @@ export class TradesService {
   }
 
   async checkAccepted(id: string): Promise<boolean> {
-    const offer = await this._getTrade(id);
+    const offer = await this.fetchOffer(id);
 
     if (
       offer.state === ETradeOfferState.Accepted ||
@@ -747,8 +791,9 @@ export class TradesService {
     }
 
     if (
+      !offer.isOurOffer &&
       offer.confirmationMethod !==
-      SteamTradeOfferManager.EConfirmationMethod.None
+        SteamTradeOfferManager.EConfirmationMethod.None
     ) {
       return true;
     }
@@ -762,12 +807,9 @@ export class TradesService {
       throw new BadRequestException('Offer is already accepted');
     }
 
-    const offer = await this._getTrade(id, true);
-    if (offer.isOurOffer) {
-      throw new BadRequestException('Offer is ours');
-    }
-
-    this.isActiveOrThrow(offer, true);
+    const offer = await this.fetchOfferWithCaching(id, true);
+    this.assertOurOffer(offer);
+    this.assertActiveOffer(offer);
 
     await this._acceptTrade(offer).catch((err) => {
       this.handleError(err);
@@ -785,10 +827,8 @@ export class TradesService {
     return this.mapOffer(offer);
   }
 
-  private _acceptTrade(offer: ActualTradeOffer): Promise<string> {
+  private _acceptTrade(offer: ActiveTradeOffer): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      assert(offer.id, 'Offer ID is missing');
-
       this.logger.log(`Accepting trade offer #${offer.id}...`);
 
       offer.accept(false, (err, state) => {
@@ -812,7 +852,6 @@ export class TradesService {
           return reject(err);
         }
 
-        assert(offer.id, 'Offer ID is missing');
         this.cache.set(offer.id, offer);
 
         this.logger.log(
@@ -827,7 +866,7 @@ export class TradesService {
   }
 
   async checkConfirmed(id: string): Promise<boolean> {
-    const offer = await this._getTrade(id);
+    const offer = await this.fetchOffer(id);
 
     if (
       offer.isOurOffer &&
@@ -847,7 +886,9 @@ export class TradesService {
       throw new BadRequestException('Trade is already confirmed');
     }
 
-    const offer = await this._getTrade(id, true);
+    const offer = await this.fetchOfferWithCaching(id, true);
+    this.assertActiveOffer(offer);
+
     if (
       offer.confirmationMethod ===
       SteamTradeOfferManager.EConfirmationMethod.None
@@ -897,7 +938,7 @@ export class TradesService {
   }
 
   async checkRemoved(id: string): Promise<boolean> {
-    const offer = await this._getTrade(id);
+    const offer = await this.fetchOffer(id);
 
     if (
       offer.state === ETradeOfferState.Declined ||
@@ -915,8 +956,8 @@ export class TradesService {
       throw new BadRequestException('Offer is already removed');
     }
 
-    const offer = await this._getTrade(id, true);
-    this.isActiveOrThrow(offer, false);
+    const offer = await this.fetchOfferWithCaching(id, true);
+    this.assertActiveOffer(offer);
 
     await this._removeTrade(offer).catch((err) => {
       this.handleError(err);
@@ -926,9 +967,8 @@ export class TradesService {
     return this.mapOffer(offer);
   }
 
-  private async _removeTrade(offer: ActualTradeOffer): Promise<void> {
+  private async _removeTrade(offer: CreatedTradeOffer): Promise<void> {
     const id = offer.id;
-    assert(id, 'Offer ID is missing');
 
     this.logger.debug('Removing trade offer #' + id + '...');
 
@@ -971,8 +1011,7 @@ export class TradesService {
     id: string,
     exchangeDetailsDto: GetExchangeDetailsDto,
   ): Promise<TradeOfferExchangeDetails> {
-    const offer = await this._getTrade(id);
-
+    const offer = await this.fetchOffer(id);
     if (!offer.tradeID) {
       throw new BadRequestException('No trade id');
     }
@@ -1001,7 +1040,7 @@ export class TradesService {
   }
 
   async getReceivedItems(id: string): Promise<Item[]> {
-    const offer = await this._getTrade(id);
+    const offer = await this.fetchOffer(id);
 
     if (offer.state !== ETradeOfferState.Accepted) {
       throw new BadRequestException('Offer is not accepted');
@@ -1027,30 +1066,15 @@ export class TradesService {
     }
   }
 
-  private isActiveOrThrow(offer: ActualTradeOffer, onlyActive: boolean): void {
-    if (onlyActive && offer.state !== ETradeOfferState.Active) {
-      throw new BadRequestException('Offer is not active');
-    }
-
-    if (
-      offer.state !== ETradeOfferState.Active &&
-      offer.state !== ETradeOfferState.CreatedNeedsConfirmation
-    ) {
-      throw new BadRequestException('Offer is not active');
-    }
-  }
-
   private mapOffers<T extends Item | Asset>(
-    offers: ActualTradeOffer[],
+    offers: CreatedTradeOffer[],
   ): TradeOffer<T>[] {
     return offers.map((offer) => this.mapOffer(offer));
   }
 
   private mapOffer<T extends Item | Asset>(
-    offer: ActualTradeOffer,
+    offer: CreatedTradeOffer,
   ): TradeOffer<T> {
-    assert(offer.id, 'Offer ID is missing');
-
     return {
       partner: offer.partner.getSteamID64(),
       id: offer.id,
