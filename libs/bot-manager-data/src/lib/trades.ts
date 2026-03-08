@@ -26,6 +26,7 @@ export const TRADE_JOB_FULL_PATH = `${TRADES_BASE_URL}${TRADE_JOB_PATH}`;
 
 export interface ManagerCounterTrade extends CounterTrade {
   id: string;
+  token?: string;
 }
 
 export const QueueTradeTypes = [
@@ -50,7 +51,8 @@ export type QueueTradeJobData = (QueueTradeCreate &
   QueueTradeCounter &
   QueueTradeDelete &
   QueueTradeAccept &
-  QueueTradeConfirm)['data'];
+  QueueTradeConfirm &
+  QueueTradeRefresh)['data'];
 
 export type QueueTradeCreate = QueueTrade<'CREATE', CreateTrade>;
 export type QueueTradeCounter = QueueTrade<'COUNTER', ManagerCounterTrade>;

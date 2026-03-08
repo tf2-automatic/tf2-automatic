@@ -233,6 +233,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       bot,
       {
         partner: offer.partner,
+        token: job.data.options.token,
         ...job.data.options,
       },
       job.id,
