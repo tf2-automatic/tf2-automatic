@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseBoolPipe,
   Post,
   Query,
   ValidationPipe,
@@ -95,7 +96,8 @@ export class TradesController {
   })
   getTrade(
     @Param('id') id: string,
-    @Query('useCache') useCache: boolean,
+    @Query('useCache', new ParseBoolPipe({ optional: true }))
+    useCache?: boolean,
   ): Promise<GetTradeResponse> {
     return this.tradesService.getOffer(id, useCache);
   }
