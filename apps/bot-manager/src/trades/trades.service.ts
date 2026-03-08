@@ -43,11 +43,7 @@ import {
   EXCHANGE_DETAILS_EVENT,
   ExchangeDetailsEvent,
 } from '@tf2-automatic/bot-manager-data';
-import {
-  CreateTradeDto,
-  GetExchangeDetailsDto,
-  GetTradesDto,
-} from '@tf2-automatic/dto';
+import { GetExchangeDetailsDto, GetTradesDto } from '@tf2-automatic/dto';
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
@@ -275,18 +271,10 @@ export class TradesService implements OnApplicationBootstrap {
 
   async createTrade(
     bot: Bot,
-    trade: CreateTrade,
+    data: CreateTrade,
     idempotencyKey?: string,
   ): Promise<CreateTradeResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
-
-    const data: CreateTradeDto = {
-      partner: trade.partner,
-      message: trade.message,
-      itemsToGive: trade.itemsToGive,
-      itemsToReceive: trade.itemsToReceive,
-      token: trade.token,
-    };
 
     const headers = {};
     if (idempotencyKey) {
@@ -311,7 +299,9 @@ export class TradesService implements OnApplicationBootstrap {
         id,
       );
 
-    return firstValueFrom(this.httpService.post(url, data)).then((res) => {
+    return firstValueFrom(
+      this.httpService.post<CreateTradeResponse>(url, data),
+    ).then((res) => {
       return res.data;
     });
   }
