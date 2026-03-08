@@ -5,6 +5,7 @@ import {
   CounterTrade,
   CreateTradeResponse,
   DeleteTradeResponse,
+  HttpError,
   SteamError,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
@@ -17,7 +18,7 @@ import {
   TradeErrorEvent,
   TradeFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 import { Job, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
@@ -70,6 +71,10 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
           data,
           new SteamID(job.data.bot),
         );
+      })
+      .catch((err) => {
+        this.handleTradeError(err);
+        throw err;
       })
       .catch(async (err) => {
         const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
@@ -171,12 +176,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
 
     this.logger.debug(`Did not find a matching offer, creating one...`);
 
-    return this.tradesService
-      .createTrade(bot, job.data.options, job.id)
-      .catch((err) => {
-        this.handleSendTradeError(err);
-        throw err;
-      });
+    return this.tradesService.createTrade(bot, job.data.options, job.id);
   }
 
   private async handleCounterJob(
@@ -191,16 +191,11 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
 
     this.logger.debug(`Countering trade...`);
 
-    return this.tradesService
-      .counterTrade(bot, job.data.options.id, {
-        message: job.data.options.message,
-        itemsToGive: job.data.options.itemsToGive,
-        itemsToReceive: job.data.options.itemsToReceive,
-      })
-      .catch(async (err) => {
-        this.handleSendTradeError(err);
-        throw err;
-      });
+    return this.tradesService.counterTrade(bot, job.data.options.id, {
+      message: job.data.options.message,
+      itemsToGive: job.data.options.itemsToGive,
+      itemsToReceive: job.data.options.itemsToReceive,
+    });
   }
 
   private async handleCounterJobButOfferIsNotActive(
@@ -234,19 +229,14 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
 
     this.logger.debug(`Did not find a matching offer, will create one...`);
 
-    return this.tradesService
-      .createTrade(
-        bot,
-        {
-          partner: offer.partner,
-          ...job.data.options,
-        },
-        job.id,
-      )
-      .catch((err) => {
-        this.handleSendTradeError(err);
-        throw err;
-      });
+    return this.tradesService.createTrade(
+      bot,
+      {
+        partner: offer.partner,
+        ...job.data.options,
+      },
+      job.id,
+    );
   }
 
   private async handleDeleteJob(
@@ -294,27 +284,41 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       });
   }
 
-  private handleSendTradeError(err: Error) {
+  private handleTradeError(err: Error) {
     if (!(err instanceof AxiosError)) {
       // Unknown error
       throw err;
     }
 
-    const response = err.response;
+    if (err.response === undefined) {
+      throw err;
+    }
 
-    if (response) {
-      if (response.data.error === 'SteamException') {
-        const data = response.data as SteamError;
+    const response: AxiosResponse<SteamError | HttpError | undefined> =
+      err.response;
 
+    if (response.data) {
+      if (
+        response.data.error === 'SteamException' &&
+        'eresult' in response.data
+      ) {
         if (
-          data.eresult !== SteamUser.EResult.Timeout &&
-          data.eresult !== SteamUser.EResult.ServiceUnavailable &&
-          data.eresult !== SteamUser.EResult.Fail
+          response.data.eresult !== SteamUser.EResult.Timeout &&
+          response.data.eresult !== SteamUser.EResult.ServiceUnavailable &&
+          response.data.eresult !== SteamUser.EResult.Fail
         ) {
           // Fail when receiving eresult that can't be recovered from
-          throw new CustomUnrecoverableError(data.message, response.data);
+          throw new CustomUnrecoverableError(
+            response.data.message,
+            response.data,
+          );
         }
       }
+
+      throw new CustomError(
+        response.data.message ?? err.message,
+        response.data,
+      );
     }
   }
 
