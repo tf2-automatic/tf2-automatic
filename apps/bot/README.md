@@ -51,3 +51,4 @@ The bot is configured using environment variables. Below is a list of the enviro
 | BOT_MANAGER_URL | URL of the bot-manager | No |  |
 | BOT_MANAGER_HEARTBEAT_INTERVAL | Milliseconds between heartbeats sent to the bot-manager | No | 1 minute |
 | IP_ADDRESS | Manually set IP of the bot in bot-manager heartbeats | No |  |
+| CACHE_RECENT_THRESHOLD | Maximum age in milliseconds of a cached resource for it to be used without refetching | No | 5000 |

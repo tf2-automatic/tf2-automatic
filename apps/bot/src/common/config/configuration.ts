@@ -19,6 +19,7 @@ export interface Config {
   events: EventsConfig;
   storage: StorageConfig;
   manager: ManagerConfig;
+  cache: CacheConfig;
 }
 
 export interface SteamAccountConfig {
@@ -47,6 +48,10 @@ export interface ManagerConfig {
   enabled: boolean;
   url?: string;
   heartbeatInterval?: number;
+}
+
+export interface CacheConfig {
+  recentThreshold: number;
 }
 
 export default (): Config => {
@@ -100,6 +105,13 @@ export default (): Config => {
         'BOT_MANAGER_HEARTBEAT_INTERVAL',
         'integer',
         20000,
+      ),
+    },
+    cache: {
+      recentThreshold: getEnvWithDefault(
+        'CACHE_RECENT_THRESHOLD',
+        'integer',
+        5000,
       ),
     },
   };

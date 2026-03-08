@@ -51,6 +51,7 @@ const validation = Joi.object({
     .max(60000)
     .min(1000)
     .when('BOT_MANAGER_ENABLED', whenManagerOptional),
+  CACHE_RECENT_THRESHOLD: Joi.number().positive().integer().optional(),
 });
 
 export { validation };

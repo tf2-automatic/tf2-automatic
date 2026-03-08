@@ -28,6 +28,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { SteamException } from '../common/exceptions/eresult.exception';
 import {
+  CacheConfig,
   Config,
   SteamAccountConfig,
   SteamTradeConfig,
@@ -79,6 +80,9 @@ export class TradesService {
 
   private loader = this.getDataLoader();
   private cache: NodeCache;
+  private cacheTtl: number;
+  private cacheRecentThreshold =
+    this.configService.getOrThrow<CacheConfig>('cache').recentThreshold;
 
   constructor(
     private readonly botService: BotService,
@@ -96,14 +100,17 @@ export class TradesService {
     @InjectMetric('bot_offers_active')
     private readonly activeOffers: Gauge,
   ) {
-    const pullFullUpdateIntervalSeconds =
-      this.configService.getOrThrow<SteamTradeConfig>('trade')
-        .pollFullUpdateInterval / 1000;
+    const pullFullUpdateInterval =
+      this.configService.getOrThrow<SteamTradeConfig>(
+        'trade',
+      ).pollFullUpdateInterval;
+
+    this.cacheTtl = pullFullUpdateInterval * 2;
 
     this.cache = new NodeCache({
       useClones: false,
-      stdTTL: pullFullUpdateIntervalSeconds * 2,
-      checkperiod: pullFullUpdateIntervalSeconds,
+      stdTTL: this.cacheTtl / 1000,
+      checkperiod: pullFullUpdateInterval / 1000,
     });
 
     this.manager.on('newOffer', (offer) => {
@@ -638,24 +645,32 @@ export class TradesService {
 
   private async loadOfferWithCaching(
     id: string,
-    useCache = false,
+    useCache?: boolean,
   ): Promise<CreatedTradeOffer> {
-    return new Promise((resolve, reject) => {
-      if (useCache) {
-        const cached = this.cache.get<CreatedTradeOffer | Error>(id);
-        if (cached) {
-          if (cached instanceof Error) {
-            return reject(cached);
-          }
-          return resolve(cached);
+    if (useCache === undefined) {
+      const ttl = this.cache.getTtl(id);
+      if (ttl !== undefined) {
+        const age = Date.now() - (ttl - this.cacheTtl);
+        if (age < this.cacheRecentThreshold) {
+          useCache = true;
         }
       }
+    }
 
-      return this.loadOffer(id);
-    });
+    if (useCache) {
+      const cached = this.cache.get<CreatedTradeOffer | Error>(id);
+      if (cached) {
+        if (cached instanceof Error) {
+          throw cached;
+        }
+        return cached;
+      }
+    }
+
+    return this.loadOffer(id);
   }
 
-  async getOffer(id: string, useCache = false): Promise<GetTradeResponse> {
+  async getOffer(id: string, useCache?: boolean): Promise<GetTradeResponse> {
     const offer = await this.loadOfferWithCaching(id, useCache);
     return this.mapOffer(offer);
   }
