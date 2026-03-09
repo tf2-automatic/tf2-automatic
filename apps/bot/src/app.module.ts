@@ -59,7 +59,7 @@ import { ClsModule } from 'nestjs-cls';
     HealthModule,
     FriendsModule,
     InventoriesModule,
-    TF2Module,
+    TF2Module.register(),
     TradesModule,
     ProfileModule,
     EventsModule,

@@ -21,7 +21,8 @@ The bot is configured using environment variables. Below is a list of the enviro
 | STEAM_IDENTITY_SECRET | Identity secret of the Steam account | Yes |  |
 | STEAM_API_KEY | Manually set the Steam API key of the account. See issue [#346](https://github.com/tf2-automatic/tf2-automatic/issues/345) | No |  |
 | STEAM_PROXY_URL | Proxy used for all communications with Steam | No |  |
-| STEAM_DEFAULT_GAME | The game to play when no list of games to has been set. Use an empty string for no game to play. | No | `440` |
+| STEAM_DEFAULT_GAME | The game to play when no list of games to has been set | No |  |
+| TF2_ENABLED | Enable/disable TF2 module | No | `true` |
 | TRADE_CANCEL_TIME | Milliseconds a sent offer may be active for before it is canceled. Disabled if no value | No |  |
 | TRADE_PENDING_CANCEL_TIME | Milliseconds a sent offer may be pending for before it is canceled. Disabled if no value | No |  |
 | TRADE_POLL_INTERVAL | Milliseconds between getting the current state of recent trades. Use `-1` to disable | No | 30 seconds |
@@ -50,3 +51,4 @@ The bot is configured using environment variables. Below is a list of the enviro
 | BOT_MANAGER_URL | URL of the bot-manager | No |  |
 | BOT_MANAGER_HEARTBEAT_INTERVAL | Milliseconds between heartbeats sent to the bot-manager | No | 1 minute |
 | IP_ADDRESS | Manually set IP of the bot in bot-manager heartbeats | No |  |
+| CACHE_RECENT_THRESHOLD | Maximum age in milliseconds of a cached resource for it to be used without refetching | No | 5000 |

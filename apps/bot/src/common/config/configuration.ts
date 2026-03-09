@@ -3,7 +3,6 @@ import {
   getEnv,
   getEnvOrThrow,
   getEnvWithDefault,
-  getEnvWithDefaultAllowEmptyString,
   getEventsConfig,
   getStorageConfig,
   StorageConfig,
@@ -16,9 +15,11 @@ export interface Config {
   webSessionRefreshInterval: number;
   steam: SteamAccountConfig;
   trade: SteamTradeConfig;
+  tf2: TF2Config;
   events: EventsConfig;
   storage: StorageConfig;
   manager: ManagerConfig;
+  cache: CacheConfig;
 }
 
 export interface SteamAccountConfig {
@@ -28,7 +29,7 @@ export interface SteamAccountConfig {
   identitySecret: string;
   proxyUrl?: string;
   apiKey?: string;
-  defaultGame: number | null;
+  defaultGame?: number;
 }
 
 export interface SteamTradeConfig {
@@ -39,10 +40,18 @@ export interface SteamTradeConfig {
   pollDataForgetTime: number;
 }
 
+export interface TF2Config {
+  enabled: boolean;
+}
+
 export interface ManagerConfig {
   enabled: boolean;
   url?: string;
   heartbeatInterval?: number;
+}
+
+export interface CacheConfig {
+  recentThreshold: number;
 }
 
 export default (): Config => {
@@ -63,11 +72,7 @@ export default (): Config => {
       identitySecret: getEnvOrThrow('STEAM_IDENTITY_SECRET', 'string'),
       proxyUrl: getEnv('STEAM_PROXY_URL', 'string'),
       apiKey: getEnv('STEAM_API_KEY', 'string'),
-      defaultGame: getEnvWithDefaultAllowEmptyString(
-        'STEAM_DEFAULT_GAME',
-        'integer',
-        440,
-      ),
+      defaultGame: getEnv('STEAM_DEFAULT_GAME', 'integer'),
     },
     trade: {
       cancelTime: getEnv('TRADE_CANCEL_TIME', 'integer'),
@@ -88,15 +93,25 @@ export default (): Config => {
         14 * 24 * 60 * 1000,
       ),
     },
+    tf2: {
+      enabled: getEnvWithDefault('TF2_ENABLED', 'boolean', true),
+    },
     events: getEventsConfig(),
     storage: getStorageConfig(),
     manager: {
-      enabled: getEnv('BOT_MANAGER_ENABLED', 'boolean'),
+      enabled: getEnvWithDefault('BOT_MANAGER_ENABLED', 'boolean', false),
       url: getEnv('BOT_MANAGER_URL', 'string'),
       heartbeatInterval: getEnvWithDefault(
         'BOT_MANAGER_HEARTBEAT_INTERVAL',
         'integer',
         20000,
+      ),
+    },
+    cache: {
+      recentThreshold: getEnvWithDefault(
+        'CACHE_RECENT_THRESHOLD',
+        'integer',
+        5000,
       ),
     },
   };

@@ -1,17 +1,24 @@
 import { Processor } from '@nestjs/bullmq';
 import {
-  CreateTrade,
+  AcceptConfirmationResponse,
+  AcceptTradeResponse,
+  CounterTrade,
+  CreateTradeResponse,
+  DeleteTradeResponse,
+  HttpError,
   SteamError,
   TradeOfferWithItems,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
+  TRADE_COMPLETED_EVENT,
   TRADE_ERROR_EVENT,
   TRADE_FAILED_EVENT,
+  TradeCompletedEvent,
   TradeErrorEvent,
   TradeFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosResponse } from 'axios';
 import { Job, UnrecoverableError } from 'bullmq';
 import SteamUser from 'steam-user';
 import SteamID from 'steamid';
@@ -52,35 +59,52 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   }
 
   async processJob(job: Job<TradeQueue>): Promise<unknown> {
-    return this.handleJob(job).catch((err) => {
-      const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
-        job: this.tradesService.mapJob(job),
-        error: err.message,
-        response: null,
-      };
+    return this.handleJob(job)
+      .then((response) => {
+        const data: TradeCompletedEvent['data'] = {
+          job: this.tradesService.mapJob(job),
+          response,
+        };
 
-      if (
-        err instanceof CustomError ||
-        err instanceof CustomUnrecoverableError
-      ) {
-        data.response = err.response;
-      }
-
-      const unrecoverable = err instanceof UnrecoverableError;
-
-      return this.eventsService
-        .publish(
-          unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+        return this.eventsService.publish(
+          TRADE_COMPLETED_EVENT,
           data,
           new SteamID(job.data.bot),
-        )
-        .finally(() => {
-          throw err;
-        });
-    });
+        );
+      })
+      .catch((err) => {
+        this.handleError(err);
+        throw err;
+      })
+      .catch(async (err) => {
+        const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
+          job: this.tradesService.mapJob(job),
+          error: err.message,
+          response: null,
+        };
+
+        if (
+          err instanceof CustomError ||
+          err instanceof CustomUnrecoverableError
+        ) {
+          data.response = err.response;
+        }
+
+        const unrecoverable = err instanceof UnrecoverableError;
+
+        return this.eventsService
+          .publish(
+            unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+            data,
+            new SteamID(job.data.bot),
+          )
+          .finally(() => {
+            throw err;
+          });
+      });
   }
 
-  private async handleJob(job: Job<TradeQueue>): Promise<unknown> {
+  private async handleJob(job: Job<TradeQueue>) {
     const botSteamID = new SteamID(job.data.bot);
 
     this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
@@ -109,7 +133,10 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     }
   }
 
-  private async refreshTrade(bot: Bot, id: string): Promise<void> {
+  private async refreshTrade(
+    bot: Bot,
+    id: string,
+  ): Promise<TradeOfferWithItems> {
     const offer = await this.tradesService.refreshTrade(bot, id);
 
     // Throws error if trade is glitched. This will be caught by the error handler
@@ -117,218 +144,241 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     if (offer.isGlitched) {
       throw new Error('Trade offer is glitched');
     }
+
+    return offer;
   }
 
   private async handleCreateJob(
     job: Job<CreateTradeJob>,
     bot: Bot,
-  ): Promise<string> {
-    if (job.data.state.checkCreatedAfter !== undefined) {
-      // Check if offer was created
+  ): Promise<CreateTradeResponse> {
+    this.logger.debug(`Checking if a similar offer already offer exists...`);
+
+    const trades = await this.tradesService.getActiveTrades(
+      bot,
+      job.attemptsMade === 0,
+    );
+
+    const matches = this.findMatchingTrades(
+      new SteamID(job.data.options.partner),
+      job.data.options,
+      0,
+      trades.sent,
+    );
+
+    if (matches.length > 0) {
       this.logger.debug(
-        `Checking if a similar offer already offer exists...`,
-        job.id,
+        `Found ${matches.length} matching offer${matches.length !== 1 ? 's' : ''} (${matches.map((m) => m.id).join(', ')}), skipping creation`,
       );
-
-      const trades = await this.tradesService.getActiveTrades(bot);
-
-      const offer = this.findMatchingTrade(
-        job.data.options,
-        job.data.state.checkCreatedAfter,
-        trades.sent,
-      );
-
-      if (offer) {
-        // Offer was already created
-        return offer.id;
-      }
-
-      this.logger.debug(`Did not find a matching offer`);
+      // An identical offer was already created
+      return matches[0];
     }
 
-    const now = Date.now();
+    this.logger.debug(`Did not find a matching offer, creating one...`);
 
-    try {
-      this.logger.debug(`Creating trade...`);
-
-      const offer = await this.tradesService.createTrade(
-        bot,
-        job.data.options,
-        job.id,
-      );
-      return offer.id;
-    } catch (err) {
-      await this.handleSendTradeError(job, err, now);
-      throw err;
-    }
+    return this.tradesService.createTrade(bot, job.data.options, job.id);
   }
 
   private async handleCounterJob(
     job: Job<CounterTradeJob>,
     bot: Bot,
-  ): Promise<string> {
+  ): Promise<CreateTradeResponse> {
     const offer = await this.tradesService.getTrade(bot, job.data.options.id);
 
     if (offer.state !== SteamUser.ETradeOfferState.Active) {
+      return this.handleCounterJobButOfferIsNotActive(job, bot, offer);
+    }
+
+    this.logger.debug(`Countering trade...`);
+
+    return this.tradesService.counterTrade(bot, job.data.options.id, {
+      message: job.data.options.message,
+      itemsToGive: job.data.options.itemsToGive,
+      itemsToReceive: job.data.options.itemsToReceive,
+    });
+  }
+
+  private async handleCounterJobButOfferIsNotActive(
+    job: Job<CounterTradeJob>,
+    bot: Bot,
+    offer: TradeOfferWithItems,
+  ): Promise<CreateTradeResponse> {
+    if (offer.state !== SteamUser.ETradeOfferState.Countered) {
       throw new UnrecoverableError('Offer is not active');
     }
 
-    const now = Date.now();
+    // Check if offer was created
+    this.logger.debug(
+      `Checking if a similar offer already offer exists...`,
+      job.id,
+    );
 
-    try {
-      this.logger.debug(`Countering trade...`);
+    const trades = await this.tradesService.getActiveTrades(bot);
 
-      const offer = await this.tradesService.counterTrade(
-        bot,
-        job.data.options.id,
-        {
-          message: job.data.options.message,
-          itemsToGive: job.data.options.itemsToGive,
-          itemsToReceive: job.data.options.itemsToReceive,
-        },
-      );
-      return offer.id;
-    } catch (err) {
-      await this.handleSendTradeError(job, err, now);
-      throw err;
+    const matches = this.findMatchingTrades(
+      new SteamID(offer.partner),
+      job.data.options,
+      offer.updatedAt,
+      trades.sent,
+    );
+
+    if (matches.length > 0) {
+      // An identical offer was already created
+      return matches[0];
     }
+
+    this.logger.debug(`Did not find a matching offer, will create one...`);
+
+    return this.tradesService.createTrade(
+      bot,
+      {
+        partner: offer.partner,
+        token: job.data.options.token,
+        ...job.data.options,
+      },
+      job.id,
+    );
   }
 
   private async handleDeleteJob(
     job: Job<DeleteTradeJob>,
     bot: Bot,
-  ): Promise<void> {
-    const check = await this.tradesService.deletedTrade(bot, job.data.options);
-
-    if (job.data.state.alreadyDeleted === undefined) {
-      job.data.state.alreadyDeleted = check.deleted;
-      await job.updateData(job.data);
-    } else {
-      if (check.deleted !== job.data.state.alreadyDeleted) {
-        return;
-      }
-    }
-
-    await this.tradesService.deleteTrade(bot, job.data.options);
+  ): Promise<DeleteTradeResponse> {
+    return this.tradesService
+      .deletedTrade(bot, job.data.options)
+      .then((check) => {
+        if (!check.deleted) {
+          return this.tradesService.deleteTrade(bot, job.data.options);
+        } else {
+          return this.tradesService.getTrade(bot, job.data.options, true);
+        }
+      });
   }
 
   private async handleAcceptJob(
     job: Job<AcceptTradeJob>,
     bot: Bot,
-  ): Promise<void> {
-    const check = await this.tradesService.acceptedTrade(bot, job.data.options);
-
-    if (job.data.state.alreadyAccepted === undefined) {
-      job.data.state.alreadyAccepted = check.accepted;
-      await job.updateData(job.data);
-    } else {
-      if (check.accepted !== job.data.state.alreadyAccepted) {
-        return;
-      }
-    }
-
-    await this.tradesService.acceptTrade(bot, job.data.options);
+  ): Promise<AcceptTradeResponse> {
+    return this.tradesService
+      .acceptedTrade(bot, job.data.options)
+      .then((check) => {
+        if (!check.accepted) {
+          return this.tradesService.acceptTrade(bot, job.data.options);
+        } else {
+          return this.tradesService.getTrade(bot, job.data.options, true);
+        }
+      });
   }
 
   private async handleConfirmJob(
     job: Job<ConfirmTradeJob>,
     bot: Bot,
-  ): Promise<void> {
-    // Check if offer was confirmed
-    const check = await this.tradesService.confirmedTrade(
-      bot,
-      job.data.options,
-    );
-
-    // Check if the check was already done before
-    if (job.data.state.alreadyConfirmed === undefined) {
-      // Add confirmed state to job data
-      job.data.state.alreadyConfirmed = check.confirmed;
-      await job.updateData(job.data);
-    } else {
-      // Check if state has changed
-      if (check.confirmed !== job.data.state.alreadyConfirmed) {
-        // Offer was confirmed
-        return;
-      }
-    }
-
-    await this.tradesService.confirmTrade(bot, job.data.options);
+  ): Promise<AcceptConfirmationResponse> {
+    return this.tradesService
+      .confirmedTrade(bot, job.data.options)
+      .then((check) => {
+        if (!check.confirmed) {
+          return this.tradesService.confirmTrade(bot, job.data.options);
+        } else {
+          return this.tradesService.getTrade(bot, job.data.options, true);
+        }
+      });
   }
 
-  private async handleSendTradeError(job: Job, err: Error, now: number) {
+  private handleError(err: Error) {
     if (!(err instanceof AxiosError)) {
       // Unknown error
       throw err;
     }
 
-    const response = err.response;
+    if (err.response === undefined) {
+      throw err;
+    }
 
-    if (response) {
-      if (response.data.error === 'SteamException') {
-        const data = response.data as SteamError;
+    const response: AxiosResponse<SteamError | HttpError | undefined> =
+      err.response;
 
-        if (data.eresult === SteamUser.EResult.Timeout) {
-          // Add time to job data it as a potentially active offer and to check if it was created
-          job.data.state.checkCreatedAfter = Math.floor(now / 1000);
-          await job.updateData(job.data);
-        } else if (
-          data.eresult !== SteamUser.EResult.ServiceUnavailable &&
-          data.eresult !== SteamUser.EResult.Fail
+    if (response.data) {
+      if (
+        response.data.error === 'SteamException' &&
+        'eresult' in response.data
+      ) {
+        if (
+          response.data.eresult !== SteamUser.EResult.Timeout &&
+          response.data.eresult !== SteamUser.EResult.ServiceUnavailable &&
+          response.data.eresult !== SteamUser.EResult.Fail
         ) {
           // Fail when receiving eresult that can't be recovered from
-          throw new CustomUnrecoverableError(data.message, response.data);
+          throw new CustomUnrecoverableError(
+            response.data.message,
+            response.data,
+          );
         }
+      } else if (response.status >= 400 && response.status < 500) {
+        // Unrecoverable error, don't retry
+        throw new CustomUnrecoverableError(
+          response.data?.message ?? err.message,
+          response.data,
+        );
       }
+
+      throw new CustomError(
+        response.data.message ?? err.message,
+        response.data,
+      );
     }
   }
 
-  private findMatchingTrade(
-    trade: CreateTrade,
+  private findMatchingTrades(
+    partner: SteamID,
+    trade: CounterTrade,
     time: number,
     trades: TradeOfferWithItems[],
-  ): TradeOfferWithItems | null {
-    // Get trades created after specific time
-    const itemsInTrade = trade.itemsToGive.concat(trade.itemsToReceive);
+  ): TradeOfferWithItems[] {
+    const baseItems = [...trade.itemsToGive, ...trade.itemsToReceive];
+    const base = new Set(
+      baseItems.map(
+        (i) => `${i.appid}:${i.contextid}:${i.assetid}:${i.amount ?? 1}`,
+      ),
+    );
 
-    const filtered = trades.filter((activeTrade) => {
+    const partnerSteamID64 = partner.getSteamID64();
+
+    const matches: TradeOfferWithItems[] = [];
+
+    for (const activeTrade of trades) {
       if (
+        !activeTrade.isOurOffer ||
         activeTrade.createdAt < time ||
-        trade.partner !== activeTrade.partner ||
-        trade.message !== activeTrade.message
+        activeTrade.partner !== partnerSteamID64 ||
+        activeTrade.message !== trade.message
       ) {
-        // Trade was created before specified time, trade partner is different,
-        // or trade message is different
-        return false;
+        continue;
       }
 
-      const itemsInActiveTrade = activeTrade.itemsToGive.concat(
-        activeTrade.itemsToReceive,
-      );
+      const items = [...activeTrade.itemsToGive, ...activeTrade.itemsToReceive];
 
-      // Check if the amount of items is the same
-      if (itemsInTrade.length !== itemsInActiveTrade.length) {
-        return false;
+      if (items.length !== base.size) {
+        continue;
       }
 
-      // Check if the items are the same
-      for (const item of itemsInTrade) {
-        const match = itemsInActiveTrade.find(
-          (item2) =>
-            item.assetid === item2.assetid &&
-            item.appid === item2.appid &&
-            item.contextid === item2.contextid &&
-            item.amount === item2.amount,
-        );
-        if (match === undefined) {
-          return false;
+      let valid = true;
+
+      for (const item of items) {
+        const key = `${item.appid}:${item.contextid}:${item.assetid}:${item.amount ?? 1}`;
+        if (!base.has(key)) {
+          valid = false;
+          break;
         }
       }
 
-      return true;
-    });
+      if (valid) {
+        matches.push(activeTrade);
+      }
+    }
 
-    // There might be more than one matching trade but there shouldn't be
-    return filtered.length === 0 ? null : filtered[0];
+    matches.sort((a, b) => a.createdAt - b.createdAt);
+
+    return matches;
   }
 }

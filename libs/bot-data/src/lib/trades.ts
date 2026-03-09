@@ -94,10 +94,7 @@ export type CounterTrade = BaseTrade;
 export type CreateTradeResponse = TradeOfferWithAssets;
 export type AcceptTradeResponse = TradeOfferWithItems;
 export type DeleteTradeResponse = TradeOfferWithItems;
-
-export type AcceptConfirmationResponse = {
-  success: boolean;
-};
+export type AcceptConfirmationResponse = TradeOfferWithItems;
 
 export interface CheckDeletedResponse {
   deleted: boolean;

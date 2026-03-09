@@ -84,6 +84,8 @@ export class TF2Service implements OnApplicationShutdown {
     private readonly botService: BotService,
     private readonly eventsService: EventsService,
   ) {
+    this.botService.joinGame(440);
+
     this.tf2.on('connectedToGC', () => {
       this.logger.debug('Connected to GC');
     });

@@ -114,7 +114,7 @@ export class CreateTradeDto extends BaseCreateTrade implements CreateTrade {
   partner: string;
 
   @ApiProperty({
-    description: 'The token of the trade offer',
+    description: 'The token used to send the trade offer to the partner',
     example: '_Eq1Y3An',
     required: false,
   })
@@ -135,6 +135,15 @@ export class ManagerCounterTradeDto
   })
   @IsString()
   id: string;
+
+  @ApiProperty({
+    description: 'The token used to send the trade offer to the partner',
+    example: '_Eq1Y3An',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  token?: string;
 }
 
 export class GetTradesDto implements GetTrades {

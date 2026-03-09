@@ -4,7 +4,10 @@ import {
   HttpStatus,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { EResult } from 'steam-user';
+import { EResult as SteamUserEResult } from 'steam-user';
+import { EResult as TradeOfferManagerEResult } from 'steam-tradeoffer-manager';
+
+type EResult = SteamUserEResult | TradeOfferManagerEResult;
 
 interface ExceptionBody extends HttpExceptionBody {
   eresult?: EResult;

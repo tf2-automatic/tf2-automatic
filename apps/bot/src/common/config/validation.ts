@@ -37,6 +37,7 @@ const validation = Joi.object({
   TRADE_POLL_DATA_FORGET_TIME: Joi.number().positive().optional(),
   ...getEventRules(),
   ...getStorageConfigRules(),
+  TF2_ENABLED: Joi.boolean().optional(),
   DEBUG: Joi.boolean().optional(),
   BOT_MANAGER_ENABLED: Joi.boolean().optional(),
   BOT_MANAGER_URL: Joi.string()
@@ -50,6 +51,7 @@ const validation = Joi.object({
     .max(60000)
     .min(1000)
     .when('BOT_MANAGER_ENABLED', whenManagerOptional),
+  CACHE_RECENT_THRESHOLD: Joi.number().positive().integer().optional(),
 });
 
 export { validation };

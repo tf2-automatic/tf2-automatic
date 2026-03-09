@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseBoolPipe,
   Post,
   Query,
   ValidationPipe,
@@ -95,9 +96,10 @@ export class TradesController {
   })
   getTrade(
     @Param('id') id: string,
-    @Query('useCache') useCache: boolean,
+    @Query('useCache', new ParseBoolPipe({ optional: true }))
+    useCache?: boolean,
   ): Promise<GetTradeResponse> {
-    return this.tradesService.getTrade(id, useCache);
+    return this.tradesService.getOffer(id, useCache);
   }
 
   @Post(TRADE_REFRESH_PATH)
@@ -223,9 +225,7 @@ export class TradesController {
   acceptConfirmation(
     @Param('id') id: string,
   ): Promise<AcceptConfirmationResponse> {
-    return this.tradesService.acceptConfirmation(id).then(() => {
-      return { success: true };
-    });
+    return this.tradesService.acceptConfirmation(id);
   }
 
   @Get(TRADE_CONFIRMED_PATH)

@@ -122,7 +122,7 @@ export class InventoriesService
     dto: EnqueueInventoryDto,
   ) {
     return this.queueManager.addJob(
-      this.getInventoryJobId(steamid, appid, contextid),
+      this.getJobId(steamid, appid, contextid),
       'load',
       {
         steamid64: steamid.getSteamID64(),
@@ -175,7 +175,7 @@ export class InventoriesService
       save.error = pack(result.error);
     }
 
-    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
+    const key = this.getKey(steamid.getSteamID64(), appid, contextid);
 
     // Save inventory in Redis and event in outbox
     await this.locker.using([key], LockDuration.SHORT, async () => {
@@ -212,7 +212,7 @@ export class InventoriesService
     appid: number,
     contextid: string,
   ): Promise<void> {
-    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
+    const key = this.getKey(steamid.getSteamID64(), appid, contextid);
 
     return this.locker.using([key], LockDuration.SHORT, async () => {
       await this.redis.del(key);
@@ -225,7 +225,7 @@ export class InventoriesService
     contextid: string,
   ): Promise<void> {
     await this.queueManager.removeJobById(
-      this.getInventoryJobId(steamid, appid, contextid),
+      this.getJobId(steamid, appid, contextid),
     );
   }
 
@@ -296,7 +296,7 @@ export class InventoriesService
     appid: number,
     contextid: string,
   ): Promise<InventoryResponse> {
-    const key = this.getInventoryKey(steamid.getSteamID64(), appid, contextid);
+    const key = this.getKey(steamid.getSteamID64(), appid, contextid);
 
     const [ttl, object] = await Promise.all([
       this.redis.ttl(key),
@@ -471,7 +471,7 @@ export class InventoriesService
       Buffer.from(identifier, 'base64'),
     ) as InventoryIdentifier;
 
-    const key = this.getInventoryKeyFromObject(parts);
+    const key = this.getKeyFromObject(parts);
 
     return this.locker.using([key], LockDuration.SHORT, async (signal) => {
       const exists = await this.redis.exists(key);
@@ -633,20 +633,16 @@ export class InventoriesService
     );
   }
 
-  private getInventoryKey(steamid64: string, appid: number, contextid: string) {
+  private getKey(steamid64: string, appid: number, contextid: string) {
     return `inventory:${steamid64}:${appid}:${contextid}`;
   }
 
-  private getInventoryKeyFromObject(data: InventoryIdentifier) {
+  private getKeyFromObject(data: InventoryIdentifier) {
     const { steamid64, appid, contextid } = data;
-    return this.getInventoryKey(steamid64, appid, contextid);
+    return this.getKey(steamid64, appid, contextid);
   }
 
-  private getInventoryJobId(
-    steamid: SteamID,
-    appid: number,
-    contextid: string,
-  ) {
+  private getJobId(steamid: SteamID, appid: number, contextid: string) {
     return `${steamid.getSteamID64()}_${appid}_${contextid}`;
   }
 }

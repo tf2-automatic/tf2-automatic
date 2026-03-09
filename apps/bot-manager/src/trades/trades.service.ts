@@ -32,6 +32,9 @@ import {
   CheckDeletedResponse,
   TRADE_DELETED_PATH,
   TradeOfferWithItems,
+  AcceptTradeResponse,
+  DeleteTradeResponse,
+  AcceptConfirmationResponse,
 } from '@tf2-automatic/bot-data';
 import {
   Bot,
@@ -40,11 +43,7 @@ import {
   EXCHANGE_DETAILS_EVENT,
   ExchangeDetailsEvent,
 } from '@tf2-automatic/bot-manager-data';
-import {
-  CreateTradeDto,
-  GetExchangeDetailsDto,
-  GetTradesDto,
-} from '@tf2-automatic/dto';
+import { GetExchangeDetailsDto, GetTradesDto } from '@tf2-automatic/dto';
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import SteamID from 'steamid';
@@ -135,11 +134,11 @@ export class TradesService implements OnApplicationBootstrap {
         throw new Error('Unknown task type: ' + dto.type);
     }
 
-    if (offerId == null) {
-      return createJob(randomUUID());
-    }
+    const jobId = 'trades_' + (offerId ?? randomUUID());
 
-    const jobId = 'trades_' + offerId;
+    if (offerId == null) {
+      return createJob(jobId);
+    }
 
     return this.locker.using([jobId], LockDuration.SHORT, async (signal) => {
       const exists = await this.queueManager.getJobById(jobId);
@@ -163,14 +162,18 @@ export class TradesService implements OnApplicationBootstrap {
     return this.queueManager.getJobs(page, pageSize);
   }
 
-  async deleteTrade(bot: Bot, tradeId: string): Promise<void> {
+  async deleteTrade(bot: Bot, tradeId: string): Promise<DeleteTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    await firstValueFrom(this.httpService.delete(url));
+    const response = await firstValueFrom(
+      this.httpService.delete<DeleteTradeResponse>(url),
+    );
+
+    return response.data;
   }
 
   async deletedTrade(bot: Bot, tradeId: string): Promise<CheckDeletedResponse> {
@@ -187,14 +190,18 @@ export class TradesService implements OnApplicationBootstrap {
     return response.data;
   }
 
-  async acceptTrade(bot: Bot, tradeId: string): Promise<void> {
+  async acceptTrade(bot: Bot, tradeId: string): Promise<AcceptTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    await firstValueFrom(this.httpService.post(url));
+    const response = await firstValueFrom(
+      this.httpService.post<AcceptTradeResponse>(url),
+    );
+
+    return response.data;
   }
 
   async acceptedTrade(
@@ -214,14 +221,21 @@ export class TradesService implements OnApplicationBootstrap {
     return response.data;
   }
 
-  async confirmTrade(bot: Bot, tradeId: string): Promise<void> {
+  async confirmTrade(
+    bot: Bot,
+    tradeId: string,
+  ): Promise<AcceptConfirmationResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    await firstValueFrom(this.httpService.post(url));
+    const response = await firstValueFrom(
+      this.httpService.post<AcceptConfirmationResponse>(url),
+    );
+
+    return response.data;
   }
 
   async confirmedTrade(
@@ -257,18 +271,10 @@ export class TradesService implements OnApplicationBootstrap {
 
   async createTrade(
     bot: Bot,
-    trade: CreateTrade,
+    data: CreateTrade,
     idempotencyKey?: string,
   ): Promise<CreateTradeResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
-
-    const data: CreateTradeDto = {
-      partner: trade.partner,
-      message: trade.message,
-      itemsToGive: trade.itemsToGive,
-      itemsToReceive: trade.itemsToReceive,
-      token: trade.token,
-    };
 
     const headers = {};
     if (idempotencyKey) {
@@ -282,7 +288,7 @@ export class TradesService implements OnApplicationBootstrap {
     });
   }
 
-  counterTrade(
+  async counterTrade(
     bot: Bot,
     id: string,
     data: CounterTrade,
@@ -293,29 +299,47 @@ export class TradesService implements OnApplicationBootstrap {
         id,
       );
 
-    return firstValueFrom(this.httpService.post(url, data)).then((res) => {
+    return firstValueFrom(
+      this.httpService.post<CreateTradeResponse>(url, data),
+    ).then((res) => {
       return res.data;
     });
   }
 
-  getTrade(bot: Bot, tradeId: string): Promise<GetTradeResponse> {
+  async getTrade(
+    bot: Bot,
+    tradeId: string,
+    useCache?: boolean,
+  ): Promise<GetTradeResponse> {
     const url =
       `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
         ':id',
         tradeId,
       );
 
-    return firstValueFrom(this.httpService.get<GetTradeResponse>(url)).then(
-      (res) => res.data,
-    );
+    const params: { useCache?: boolean } = {};
+    if (useCache !== undefined) {
+      params.useCache = useCache;
+    }
+
+    return firstValueFrom(
+      this.httpService.get<GetTradeResponse>(url, { params }),
+    ).then((res) => res.data);
   }
 
-  getActiveTrades(bot: Bot): Promise<GetTradesResponse> {
+  async getActiveTrades(
+    bot: Bot,
+    useCache?: boolean,
+  ): Promise<GetTradesResponse> {
     const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
 
     const params: GetTradesDto = {
       filter: OfferFilter.ActiveOnly,
     };
+
+    if (useCache !== undefined) {
+      params.useCache = useCache;
+    }
 
     return firstValueFrom(
       this.httpService.get<GetTradesResponse>(url, {
