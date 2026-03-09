@@ -605,7 +605,7 @@ export class TradesService {
     this.assertCreatedOffer(offer);
 
     if (offer.isOurOffer) {
-      throw new BadRequestException('Offer is not theirs');
+      throw new BadRequestException('Offer is created by us');
     }
   }
 
@@ -802,7 +802,7 @@ export class TradesService {
     });
   }
 
-  private updateOffer(offer: ActualTradeOffer): Promise<void> {
+  private updateOffer(offer: CreatedTradeOffer): Promise<void> {
     return new Promise((resolve, reject) => {
       if (offer.id === undefined) {
         throw new Error(' Offer ID is missing');
@@ -819,8 +819,6 @@ export class TradesService {
           return reject(err);
         }
 
-        // This is technically unnessesary but nice to do anyway
-        this.assertActiveOffer(offer);
         this.cache.set(offer.id, offer);
 
         resolve();
@@ -856,8 +854,8 @@ export class TradesService {
     }
 
     const offer = await this.loadOfferWithCaching(id, true);
-    this.assertTheirOffer(offer);
     this.assertActiveOffer(offer);
+    this.assertTheirOffer(offer);
 
     await this._acceptTrade(offer).catch((err) => {
       this.handleError(err);
@@ -954,6 +952,7 @@ export class TradesService {
 
     this.manager.doPoll();
 
+    // The offer should technically be accepted after this...
     await this.updateOffer(offer);
 
     return this.mapOffer(offer);
