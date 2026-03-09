@@ -1143,26 +1143,4 @@ export class TradesService {
           : Math.floor(offer.escrowEnds.getTime() / 1000),
     };
   }
-
-  private getOfferData(id: string): TradeOfferData {
-    return this.manager.pollData.offerData?.[id] ?? {};
-  }
-
-  private setOfferDataKey<K extends keyof TradeOfferData>(
-    id: string,
-    key: K,
-    value: TradeOfferData[K],
-    publish = true,
-  ): void {
-    const data = this.getOfferData(id);
-    data[key] = value;
-    this.setOfferData(id, data, publish);
-  }
-
-  private setOfferData(id: string, data: TradeOfferData, publish = true): void {
-    this.manager.pollData.offerData[id] = data;
-    if (publish) {
-      this.manager.emit('pollData', this.manager.pollData);
-    }
-  }
 }
