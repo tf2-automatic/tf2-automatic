@@ -290,6 +290,7 @@ export class GetExchangeDetailsDto {
 export class GetTradeQueueDto implements GetTradeQueue {
   @ApiProperty({
     description: 'The page number to get',
+    type: 'number',
     example: 1,
     required: false,
   })
@@ -301,6 +302,7 @@ export class GetTradeQueueDto implements GetTradeQueue {
 
   @ApiProperty({
     description: 'The page size to get',
+    type: 'number',
     example: 10,
     required: false,
   })
