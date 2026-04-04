@@ -306,7 +306,9 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         if (
           response.data.eresult !== SteamUser.EResult.Timeout &&
           response.data.eresult !== SteamUser.EResult.ServiceUnavailable &&
-          response.data.eresult !== SteamUser.EResult.Fail
+          response.data.eresult !== SteamUser.EResult.Fail &&
+          // InvalidState has been observed when attempting to accept an already accepted offer
+          response.data.eresult !== SteamUser.EResult.InvalidState
         ) {
           // Fail when receiving eresult that can't be recovered from
           throw new CustomUnrecoverableError(
