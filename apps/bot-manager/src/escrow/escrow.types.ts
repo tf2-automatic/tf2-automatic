@@ -5,6 +5,7 @@ export type EscrowJobData = JobData<
   {
     steamid64: string;
     token?: string;
+    offerId?: string;
     ttl?: number;
   },
   {
@@ -26,6 +27,7 @@ export type EscrowResult = (EscrowErrorData | EscrowResultData) & {
   timestamp: number;
   bot: string;
   token?: string;
+  offerId?: string;
   ttl?: number;
 };
 
@@ -35,4 +37,5 @@ export interface EscrowData {
   result?: Buffer;
   bot: string;
   token?: string;
+  offerId?: string;
 }

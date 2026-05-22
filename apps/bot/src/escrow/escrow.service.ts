@@ -17,18 +17,31 @@ export class EscrowService {
     private readonly friendsService: FriendsService,
   ) {}
 
-  async getEscrowDuration(steamid: SteamID, token?: string): Promise<number> {
-    if (!token) {
-      const isFriend = await this.friendsService.isFriend(steamid);
-
-      if (!isFriend) {
-        throw new BadRequestException(
-          'Token is required when not friends with the user',
+  async getEscrowDuration(
+    steamid: SteamID,
+    token?: string,
+    offerId?: string,
+  ): Promise<number> {
+    let offer: TradeOffer;
+    if (offerId) {
+      offer = await new Promise<TradeOffer>((resolve, reject) => {
+        this.manager.getOffer(offerId, (err, trade) =>
+          err ? reject(err) : resolve(trade),
         );
-      }
-    }
+      });
+    } else {
+      if (!token) {
+        const isFriend = await this.friendsService.isFriend(steamid);
 
-    const offer = this.manager.createOffer(steamid, token);
+        if (!isFriend) {
+          throw new BadRequestException(
+            'Token is required when not friends with the user',
+          );
+        }
+      }
+
+      offer = this.manager.createOffer(steamid, token);
+    }
     const details = await this.getUserDetails(offer);
 
     return Math.max(details.me.escrowDays, details.them.escrowDays);

@@ -20,7 +20,7 @@ export class GetEscrowDto {
   })
   @IsSteamID()
   @Transform((params) => new SteamID(params.value))
-  @ValidateIf((o) => !o.token)
+  @ValidateIf((o) => !o.token || !o.offerId)
   bot?: SteamID;
 
   @ApiProperty({
@@ -30,8 +30,19 @@ export class GetEscrowDto {
     required: false,
   })
   @IsString()
-  @ValidateIf((o) => !o.bot)
+  @ValidateIf((o) => !o.bot && !o.offerId)
   token?: string;
+
+  @ApiProperty({
+    example: '9106130714',
+    description: 'The ID of an existing trade offer',
+    type: String,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @ValidateIf((o) => !o.bot && !o.token)
+  offerId?: string;
 
   @ApiProperty({
     description:

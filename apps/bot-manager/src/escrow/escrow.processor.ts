@@ -54,6 +54,7 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
         result: null,
         bot: this.cls.get('bot'),
         token: job.data.options.token,
+        offerId: job.data.options.offerId,
         ttl: job.data.options.ttl,
       },
     );
@@ -70,6 +71,7 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
       bot,
       new SteamID(job.data.options.steamid64),
       job.data.options.token,
+      job.data.options.offerId,
     );
 
     await this.escrowService.saveEscrow(
@@ -80,6 +82,7 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
         result,
         bot: this.cls.get('bot'),
         token: job.data.options.token,
+        offerId: job.data.options.offerId,
         ttl: job.data.options.ttl,
       },
     );

@@ -81,6 +81,7 @@ export class EscrowService implements OnModuleDestroy {
       {
         steamid64: steamid.getSteamID64(),
         token: dto.token,
+        offerId: dto.offerId,
         ttl: dto.ttl,
       },
       options,
@@ -96,8 +97,10 @@ export class EscrowService implements OnModuleDestroy {
     query: GetEscrowDto,
   ): Promise<EscrowResponse> {
     assert(
-      query.token !== undefined || query.bot !== undefined,
-      'Either token or bot must be provided',
+      query.token !== undefined ||
+        query.bot !== undefined ||
+        query.offerId !== undefined,
+      'Either token, bot, or offerId must be provided',
     );
 
     try {
@@ -120,6 +123,7 @@ export class EscrowService implements OnModuleDestroy {
     bot: Bot,
     steamid: SteamID,
     token?: string,
+    offerId?: string,
   ): Promise<GetEscrowResponse> {
     const response = await firstValueFrom(
       this.httpService.get<GetEscrowResponse>(
@@ -130,6 +134,7 @@ export class EscrowService implements OnModuleDestroy {
         {
           params: {
             token,
+            offerId,
           },
         },
       ),
@@ -157,7 +162,8 @@ export class EscrowService implements OnModuleDestroy {
     if (
       dto &&
       ((dto.bot && dto.bot.getSteamID64() !== object.bot.toString()) ||
-        (dto.token && dto.token !== object.token?.toString()))
+        (dto.token && dto.token !== object.token?.toString()) ||
+        (dto.offerId && dto.offerId !== object.offerId?.toString()))
     ) {
       throw new NotFoundException('Escrow not found');
     }
@@ -186,6 +192,7 @@ export class EscrowService implements OnModuleDestroy {
       timestamp: result.timestamp,
       bot: result.bot,
       token: result.token,
+      offerId: result.offerId,
     };
 
     if (result.result) {
