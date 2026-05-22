@@ -22,10 +22,9 @@ export class ManagerService implements OnModuleDestroy {
   private readonly managerConfig =
     this.configService.getOrThrow<ManagerConfig>('manager');
 
-  private timeout: NodeJS.Timeout;
+  private timeout: NodeJS.Timeout | null = null;
   private attempts = 0;
 
-  private readonly ip: string;
   private readonly version: string | undefined;
 
   private ready = false;
@@ -36,17 +35,6 @@ export class ManagerService implements OnModuleDestroy {
     private readonly httpService: HttpService,
     private readonly metadataService: MetadataService,
   ) {
-    const ourIp = this.configService.get<string>('ip');
-
-    if (ourIp) {
-      this.ip = ourIp;
-    } else {
-      this.ip = ip.address(
-        getEnv('NODE_ENV', 'string') === 'development' ? 'private' : 'public',
-        'ipv4',
-      );
-    }
-
     if (getEnv('NODE_ENV', 'string') === 'production') {
       const app = getAppNameAndVersion();
       if (app === null) {
@@ -57,11 +45,32 @@ export class ManagerService implements OnModuleDestroy {
     }
   }
 
+  private getHost() {
+    const host = this.configService.get<string>('host');
+    if (host) {
+      return host;
+    }
+
+    return this.getIp();
+  }
+
+  private getIp() {
+    const fromConfig = this.configService.get<string>('ip');
+    if (fromConfig) {
+      return fromConfig;
+    }
+
+    return ip.address(
+      getEnv('NODE_ENV', 'string') === 'development' ? 'private' : 'public',
+      'ipv4',
+    );
+  }
+
   private async sendHeartbeat(): Promise<void> {
     this.logger.debug('Sending heartbeat...');
 
     const heartbeat: BotHeartbeat = {
-      ip: this.ip,
+      host: this.getHost(),
       // FIXME: Port is apparently a string in the config
       port: parseInt(this.configService.getOrThrow('port'), 10),
       interval: this.managerConfig.heartbeatInterval as number,

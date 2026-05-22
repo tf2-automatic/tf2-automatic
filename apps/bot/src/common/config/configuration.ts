@@ -12,6 +12,7 @@ export interface Config {
   port: number;
   keepAliveTimeout: number;
   ip?: string;
+  host?: string;
   webSessionRefreshInterval: number;
   steam: SteamAccountConfig;
   trade: SteamTradeConfig;
@@ -59,7 +60,9 @@ export default (): Config => {
     port: getEnvOrThrow('PORT', 'integer'),
     // The bot has long lived requests so we don't want to timeout
     keepAliveTimeout: getEnvWithDefault('KEEP_ALIVE_TIMEOUT', 'integer', 0),
+    // FIXME: This is deprecated, use host instead
     ip: getEnv('IP_ADDRESS', 'string'),
+    host: getEnv('HOST', 'string'),
     webSessionRefreshInterval: getEnvWithDefault(
       'WEB_SESSION_REFRESH_INTERVAL',
       'integer',

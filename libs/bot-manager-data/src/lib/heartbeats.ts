@@ -7,7 +7,7 @@ export const HEARTBEAT_PATH = '/:steamid';
 export const HEARTBEAT_FULL_PATH = `${HEARTBEAT_BASE_URL}${HEARTBEAT_PATH}`;
 
 export interface BotHeartbeat {
-  ip: string;
+  host: string;
   port: number;
   interval: number;
   version?: string;

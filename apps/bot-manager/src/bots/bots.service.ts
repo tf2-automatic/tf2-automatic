@@ -10,6 +10,7 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { GetTradesDto } from '@tf2-automatic/dto';
+import { getBotUrl } from '../heartbeats/heartbeats.utils';
 
 @Injectable()
 export class BotsService {
@@ -45,7 +46,7 @@ export class BotsService {
 
     const response = await firstValueFrom(
       this.httpService.get<GetTradesResponse>(
-        `http://${bot.ip}:${bot.port}${TRADES_FULL_PATH}`,
+        `${getBotUrl(bot)}${TRADES_FULL_PATH}`,
         { params: dto },
       ),
     );

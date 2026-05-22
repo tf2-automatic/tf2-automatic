@@ -1,21 +1,28 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { BotHeartbeat } from '@tf2-automatic/bot-manager-data';
-import { IsInt, IsIP, IsOptional, IsSemVer, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsSemVer,
+  Max,
+  Min,
+  IsString,
+} from 'class-validator';
 
 export class BotHeartbeatDto implements BotHeartbeat {
   @ApiProperty({
     example: 'x.x.x.x',
-    description: 'The IP address the bot is sending the heartbeat from',
+    description: 'The host (IP or DNS) that the bot is accessible from',
   })
-  @IsIP(4)
-  ip: string;
+  @IsString()
+  host!: string;
 
   @ApiProperty({
     example: 12345,
     description: 'The port the bot is listening to',
   })
   @IsInt()
-  port: number;
+  port!: number;
 
   @ApiProperty({
     example: 60000,
@@ -25,7 +32,7 @@ export class BotHeartbeatDto implements BotHeartbeat {
   @IsInt()
   @Max(60000)
   @Min(1000)
-  interval: number;
+  interval!: number;
 
   @ApiProperty({
     example: '1.0.0',

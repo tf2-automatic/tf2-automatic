@@ -58,6 +58,7 @@ import { ClsService } from 'nestjs-cls';
 import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
 import { JobWithBot } from '@tf2-automatic/common-data';
 import assert from 'assert';
+import { getBotUrl } from '../heartbeats/heartbeats.utils';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -163,11 +164,10 @@ export class TradesService implements OnApplicationBootstrap {
   }
 
   async deleteTrade(bot: Bot, tradeId: string): Promise<DeleteTradeResponse> {
-    const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
-        ':id',
-        tradeId,
-      );
+    const url = `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
+      ':id',
+      tradeId,
+    );
 
     const response = await firstValueFrom(
       this.httpService.delete<DeleteTradeResponse>(url),
@@ -178,7 +178,7 @@ export class TradesService implements OnApplicationBootstrap {
 
   async deletedTrade(bot: Bot, tradeId: string): Promise<CheckDeletedResponse> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_DELETED_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_DELETED_PATH}`.replace(
         ':id',
         tradeId,
       );
@@ -192,7 +192,7 @@ export class TradesService implements OnApplicationBootstrap {
 
   async acceptTrade(bot: Bot, tradeId: string): Promise<AcceptTradeResponse> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_ACCEPT_PATH}`.replace(
         ':id',
         tradeId,
       );
@@ -209,7 +209,7 @@ export class TradesService implements OnApplicationBootstrap {
     tradeId: string,
   ): Promise<CheckAcceptedResponse> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_ACCEPTED_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_ACCEPTED_PATH}`.replace(
         ':id',
         tradeId,
       );
@@ -226,7 +226,7 @@ export class TradesService implements OnApplicationBootstrap {
     tradeId: string,
   ): Promise<AcceptConfirmationResponse> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_CONFIRMATION_PATH}`.replace(
         ':id',
         tradeId,
       );
@@ -243,7 +243,7 @@ export class TradesService implements OnApplicationBootstrap {
     tradeId: string,
   ): Promise<CheckConfirmationResponse> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_CONFIRMED_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_CONFIRMED_PATH}`.replace(
         ':id',
         tradeId,
       );
@@ -257,7 +257,7 @@ export class TradesService implements OnApplicationBootstrap {
 
   async refreshTrade(bot: Bot, tradeId: string): Promise<TradeOfferWithItems> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_REFRESH_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_REFRESH_PATH}`.replace(
         ':id',
         tradeId,
       );
@@ -274,9 +274,9 @@ export class TradesService implements OnApplicationBootstrap {
     data: CreateTrade,
     idempotencyKey?: string,
   ): Promise<CreateTradeResponse> {
-    const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
+    const url = `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADES_PATH}`;
 
-    const headers = {};
+    const headers: Record<string, string> = {};
     if (idempotencyKey) {
       headers['X-Idempotency-Key'] = idempotencyKey;
     }
@@ -294,7 +294,7 @@ export class TradesService implements OnApplicationBootstrap {
     data: CounterTrade,
   ): Promise<CreateTradeResponse> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_COUNTER_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_COUNTER_PATH}`.replace(
         ':id',
         id,
       );
@@ -311,11 +311,10 @@ export class TradesService implements OnApplicationBootstrap {
     tradeId: string,
     useCache?: boolean,
   ): Promise<GetTradeResponse> {
-    const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
-        ':id',
-        tradeId,
-      );
+    const url = `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_PATH}`.replace(
+      ':id',
+      tradeId,
+    );
 
     const params: { useCache?: boolean } = {};
     if (useCache !== undefined) {
@@ -331,7 +330,7 @@ export class TradesService implements OnApplicationBootstrap {
     bot: Bot,
     useCache?: boolean,
   ): Promise<GetTradesResponse> {
-    const url = `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADES_PATH}`;
+    const url = `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADES_PATH}`;
 
     const params: GetTradesDto = {
       filter: OfferFilter.ActiveOnly,
@@ -389,7 +388,7 @@ export class TradesService implements OnApplicationBootstrap {
     getDetailsIfFailed = false,
   ): Promise<TradeOfferExchangeDetails> {
     const url =
-      `http://${bot.ip}:${bot.port}${TRADES_BASE_URL}${TRADE_EXCHANGE_DETAILS_PATH}`.replace(
+      `${getBotUrl(bot)}${TRADES_BASE_URL}${TRADE_EXCHANGE_DETAILS_PATH}`.replace(
         ':id',
         offerId,
       );

@@ -27,6 +27,7 @@ import { EscrowData, EscrowJobData, EscrowResult } from './escrow.types';
 import { ClsService } from 'nestjs-cls';
 import assert from 'assert';
 import { pack, unpack } from 'msgpackr';
+import { getBotUrl } from '../heartbeats/heartbeats.utils';
 
 const ESCROW_EXPIRE_TIME = 2 * 60;
 const ESCROW_EXPIRE_TIME_LONG = 60 * 60;
@@ -122,7 +123,7 @@ export class EscrowService implements OnModuleDestroy {
   ): Promise<GetEscrowResponse> {
     const response = await firstValueFrom(
       this.httpService.get<GetEscrowResponse>(
-        `http://${bot.ip}:${bot.port}${ESCROW_BASE_URL}${ESCROW_GET_DURATION}`.replace(
+        `${getBotUrl(bot)}${ESCROW_BASE_URL}${ESCROW_GET_DURATION}`.replace(
           ':steamid',
           steamid.getSteamID64(),
         ),

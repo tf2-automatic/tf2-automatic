@@ -7,7 +7,7 @@ export const BOT_FULL_PATH = `${BOT_BASE_URL}${BOT_PATH}`;
 
 export interface Bot {
   steamid64: string;
-  ip: string;
+  host: string;
   port: number;
   interval: number;
   version: string | null;
