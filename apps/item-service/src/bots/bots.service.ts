@@ -53,6 +53,6 @@ export class BotsService {
   }
 
   private getBotUrl(bot: ManagerBot, path: string): string {
-    return `http://${bot.ip}:${bot.port}${path}`;
+    return `http://${bot.host}:${bot.port}${path}`;
   }
 }

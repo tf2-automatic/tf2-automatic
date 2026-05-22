@@ -119,7 +119,8 @@ export class ManagerService implements OnModuleDestroy {
           wait = interval;
         }
 
-        clearTimeout(this.timeout);
+        this.clearTimeout();
+
         this.timeout = setTimeout(() => this.sendHeartbeatLoop(), wait).unref();
       });
   }
@@ -148,6 +149,13 @@ export class ManagerService implements OnModuleDestroy {
     });
   }
 
+  private clearTimeout() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
+  }
+
   @OnEvent('bot.ready')
   handleBotReady() {
     this.ready = true;
@@ -173,7 +181,7 @@ export class ManagerService implements OnModuleDestroy {
   }
 
   private stopHeartbeatLoop() {
-    clearInterval(this.timeout);
+    this.clearTimeout();
     this.beating = false;
 
     if (!this.managerConfig.enabled) {
