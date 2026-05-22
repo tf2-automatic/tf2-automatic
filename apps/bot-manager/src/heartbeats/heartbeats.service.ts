@@ -34,6 +34,7 @@ import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
 import { AxiosError } from 'axios';
+import { getBotUrl } from './heartbeats.utils';
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -124,7 +125,7 @@ export class HeartbeatsService {
   async saveBot(steamid: SteamID, heartbeat: BotHeartbeatDto): Promise<Bot> {
     const bot: Bot = {
       steamid64: steamid.getSteamID64(),
-      ip: heartbeat.ip,
+      host: heartbeat.host,
       port: heartbeat.port,
       version: heartbeat.version ?? null,
       interval: heartbeat.interval,
@@ -270,12 +271,9 @@ export class HeartbeatsService {
 
   private async getRunningBot(bot: Bot): Promise<RunningBot | null> {
     const response = await firstValueFrom(
-      this.httpService.get(
-        `http://${bot.ip}:${bot.port}${BOT_BASE_URL}${BOT_PATH}`,
-        {
-          timeout: 5000,
-        },
-      ),
+      this.httpService.get(`${getBotUrl(bot)}${BOT_BASE_URL}${BOT_PATH}`, {
+        timeout: 5000,
+      }),
     ).catch((err) => {
       if (err.code === 'ECONNREFUSED') {
         return null;

@@ -50,6 +50,7 @@ import {
   InventoryResult,
 } from './inventories.types';
 import assert from 'assert';
+import { getBotUrl } from '../heartbeats/heartbeats.utils';
 
 interface InventoryIdentifier {
   steamid64: string;
@@ -142,7 +143,7 @@ export class InventoriesService
   ): Promise<Inventory> {
     const response = await firstValueFrom(
       this.httpService.get<Inventory>(
-        `http://${bot.ip}:${bot.port}${INVENTORIES_BASE_URL}${INVENTORY_PATH}`
+        `${getBotUrl(bot)}${INVENTORIES_BASE_URL}${INVENTORY_PATH}`
           .replace(':steamid', steamid.getSteamID64())
           .replace(':appid', appid.toString())
           .replace(':contextid', contextid),
