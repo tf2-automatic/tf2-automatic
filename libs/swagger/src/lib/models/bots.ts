@@ -10,9 +10,9 @@ export class BotModel implements Bot {
 
   @ApiProperty({
     example: 'x.x.x.x',
-    description: 'The IP address of the bot',
+    description: 'The host of the bot',
   })
-  ip: string;
+  host: string;
 
   @ApiProperty({
     example: 12345,
