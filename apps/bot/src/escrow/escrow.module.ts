@@ -3,10 +3,9 @@ import { EscrowService } from './escrow.service';
 import { EscrowController } from './escrow.controller';
 import { BotModule } from '../bot/bot.module';
 import { FriendsModule } from '../friends/friends.module';
-import { TradesModule } from '../trades/trades.module';
 
 @Module({
-  imports: [BotModule, FriendsModule, TradesModule],
+  imports: [BotModule, FriendsModule],
   providers: [EscrowService],
   controllers: [EscrowController],
 })

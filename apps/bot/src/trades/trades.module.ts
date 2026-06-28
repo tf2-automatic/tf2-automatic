@@ -37,6 +37,5 @@ import { GarbageCollectorService } from './gc.service';
       labelNames: ['type'],
     }),
   ],
-  exports: [TradesService],
 })
 export class TradesModule {}
