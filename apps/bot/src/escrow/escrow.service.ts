@@ -16,7 +16,16 @@ export class EscrowService {
 
   private async getOffer(steamid: SteamID, token?: string, offerId?: string) {
     if (offerId) {
-      return this.tradesService.getActualOffer(offerId);
+      const offer = await this.tradesService.getActualOffer(offerId);
+      if (offer.isOurOffer) {
+        throw new BadRequestException('Offer was made by us');
+      }
+
+      if (offer.partner.getSteamID64() !== steamid.getSteamID64()) {
+        throw new BadRequestException(
+          'Partner steamid does not match provided steamid',
+        );
+      }
     }
 
     if (!token) {

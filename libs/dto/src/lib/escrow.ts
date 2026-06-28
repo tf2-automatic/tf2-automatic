@@ -1,14 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsSteamID } from '@tf2-automatic/is-steamid-validator';
 import { Transform, Type } from 'class-transformer';
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-  ValidateIf,
-} from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import SteamID from 'steamid';
 
 export class GetEscrowDto {
@@ -18,9 +11,9 @@ export class GetEscrowDto {
     type: String,
     required: false,
   })
+  @IsOptional()
   @IsSteamID()
   @Transform((params) => new SteamID(params.value))
-  @ValidateIf((o) => !o.token || !o.offerId)
   bot?: SteamID;
 
   @ApiProperty({
@@ -29,8 +22,8 @@ export class GetEscrowDto {
     type: String,
     required: false,
   })
+  @IsOptional()
   @IsString()
-  @ValidateIf((o) => !o.bot && !o.offerId)
   token?: string;
 
   @ApiProperty({
@@ -41,7 +34,6 @@ export class GetEscrowDto {
   })
   @IsOptional()
   @IsString()
-  @ValidateIf((o) => !o.bot && !o.token)
   offerId?: string;
 
   @ApiProperty({
