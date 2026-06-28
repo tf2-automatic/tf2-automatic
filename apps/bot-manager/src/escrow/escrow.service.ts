@@ -81,6 +81,7 @@ export class EscrowService implements OnModuleDestroy {
       {
         steamid64: steamid.getSteamID64(),
         token: dto.token,
+        offerId: dto.offerId,
         ttl: dto.ttl,
       },
       options,
@@ -95,13 +96,8 @@ export class EscrowService implements OnModuleDestroy {
     steamid: SteamID,
     query: GetEscrowDto,
   ): Promise<EscrowResponse> {
-    assert(
-      query.token !== undefined || query.bot !== undefined,
-      'Either token or bot must be provided',
-    );
-
     try {
-      const cached = await this.getEscrowFromCache(steamid, query);
+      const cached = await this.getEscrowFromCache(steamid);
       return cached;
     } catch (err) {
       if (!(err instanceof NotFoundException)) {
@@ -120,6 +116,7 @@ export class EscrowService implements OnModuleDestroy {
     bot: Bot,
     steamid: SteamID,
     token?: string,
+    offerId?: string,
   ): Promise<GetEscrowResponse> {
     const response = await firstValueFrom(
       this.httpService.get<GetEscrowResponse>(
@@ -130,6 +127,7 @@ export class EscrowService implements OnModuleDestroy {
         {
           params: {
             token,
+            offerId,
           },
         },
       ),
@@ -138,10 +136,7 @@ export class EscrowService implements OnModuleDestroy {
     return response.data;
   }
 
-  async getEscrowFromCache(
-    steamid: SteamID,
-    dto?: GetEscrowDto,
-  ): Promise<EscrowResponse> {
+  async getEscrowFromCache(steamid: SteamID): Promise<EscrowResponse> {
     const key = this.getKey(steamid);
 
     const [ttl, object] = await Promise.all([
@@ -150,15 +145,6 @@ export class EscrowService implements OnModuleDestroy {
     ]);
 
     if (ttl === -2 || object === null) {
-      throw new NotFoundException('Escrow not found');
-    }
-
-    // Check if the dto matches the cached data and throw an error if it doesn't
-    if (
-      dto &&
-      ((dto.bot && dto.bot.getSteamID64() !== object.bot.toString()) ||
-        (dto.token && dto.token !== object.token?.toString()))
-    ) {
       throw new NotFoundException('Escrow not found');
     }
 
@@ -185,7 +171,6 @@ export class EscrowService implements OnModuleDestroy {
     const save: EscrowData = {
       timestamp: result.timestamp,
       bot: result.bot,
-      token: result.token,
     };
 
     if (result.result) {
