@@ -50,28 +50,28 @@ const enum IdentifiableDescription {
  */
 enum TypeToIdentifiableDescription {
   // Cosmetics can have many different descriptions so we will check for all
-  'Cosmetic' = IdentifiableDescription.All,
+  Cosmetic = IdentifiableDescription.All,
   // Taunts may have effects, so we will check for that
   'Taunt 1' = IdentifiableDescription.All,
   // Nothing interesting in these items (except for uses I guess?)
   'Party Favor' = IdentifiableDescription.Uses,
-  'Action' = IdentifiableDescription.Uses,
+  Action = IdentifiableDescription.Uses,
   // Most craft items do not have descriptions but we will check for craftable
   'Craft Item' = IdentifiableDescription.Craftable,
   // Check for uses on limited use items
-  'Festivizer' = IdentifiableDescription.Uses,
-  'Tool' = IdentifiableDescription.Uses,
-  'Gift' = IdentifiableDescription.Uses,
+  Festivizer = IdentifiableDescription.Uses,
+  Tool = IdentifiableDescription.Uses,
+  Gift = IdentifiableDescription.Uses,
   'Strange Part' = IdentifiableDescription.Uses,
   'Usable Item' = IdentifiableDescription.Uses,
-  'Crate' = IdentifiableDescription.Uses,
-  'Unusualifier' = IdentifiableDescription.Output,
+  Crate = IdentifiableDescription.Uses,
+  Unusualifier = IdentifiableDescription.Output,
   // Start checking for the target
-  'Strangifier' = IdentifiableDescription.Target,
+  Strangifier = IdentifiableDescription.Target,
   // War paints may have effects
   'War Paint' = IdentifiableDescription.All,
   // Start checking for inputs
-  'Recipe' = IdentifiableDescription.Input,
+  Recipe = IdentifiableDescription.Input,
   // We know what we should look for in Killstreak Kits
   'Professional Killstreak Kit' = IdentifiableDescription.Killstreaker,
   'Specialized Killstreak Kit' = IdentifiableDescription.Sheen,
@@ -80,7 +80,7 @@ enum TypeToIdentifiableDescription {
   'Primary weapon' = IdentifiableDescription.All,
   'Secondary weapon' = IdentifiableDescription.All,
   'Melee weapon' = IdentifiableDescription.All,
-  'Building' = IdentifiableDescription.All,
+  Building = IdentifiableDescription.All,
   'Primary PDA' = IdentifiableDescription.All,
   'Secondary PDA' = IdentifiableDescription.All,
 }

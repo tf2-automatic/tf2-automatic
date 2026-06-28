@@ -445,8 +445,7 @@ export class SchemaService implements OnApplicationBootstrap {
     );
 
     const result:
-      | Record<string, SchemaItem[]>
-      | Record<string, ItemsGameItem[]> = {};
+      Record<string, SchemaItem[]> | Record<string, ItemsGameItem[]> = {};
 
     for (const name of names) {
       const defindexesForName = defindexesByName[name] ?? [];

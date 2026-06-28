@@ -1,5 +1,5 @@
 FROM node:24-alpine AS base
-RUN npm i -g pnpm@10
+RUN npm i -g pnpm@11
 
 FROM alpine:3.22.2 AS source
 WORKDIR /app
