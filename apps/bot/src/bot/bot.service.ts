@@ -831,8 +831,7 @@ export class BotService implements OnModuleDestroy {
 
       const login = () => {
         let loginDetails:
-          | { refreshToken: string }
-          | { accountName: string; password: string };
+          { refreshToken: string } | { accountName: string; password: string };
 
         // Add listeners
         this.client.once('loggedOn', loggedOnListener);

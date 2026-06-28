@@ -1,0 +1,19 @@
+minimumReleaseAge: 1440
+allowBuilds:
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  '@swc/core': true
+  less: false
+  msgpackr-extract: true
+  nx: false
+  protobufjs: true
+  unrs-resolver: true
+patchedDependencies:
+  "@types/steam-tradeoffer-manager@2.11.2": "patches/@types__steam-tradeoffer-manager@2.11.2.patch"
+  "tf2-currencies@1.2.4": "patches/tf2-currencies@1.2.4.patch"
+  "redlock@5.0.0-beta.2": "patches/redlock@5.0.0-beta.2.patch"
+  "tf2@4.0.0": "patches/tf2@4.0.0.patch"
+  "kvparser@1.0.2": "patches/kvparser@1.0.2.patch"
+  '@types/steamcommunity': patches/@types__steamcommunity.patch
+minimumReleaseAgeExclude:
+  - prettier@3.9.1
