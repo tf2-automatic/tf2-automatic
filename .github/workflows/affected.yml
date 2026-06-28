@@ -36,7 +36,7 @@ jobs:
       - name: Get affected
         id: affected
         run: |
-          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
-          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
-          echo "TEST=$(pnpm exec nx show projects --affected --withTarget=build,test | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
-          echo "E2E=$(pnpm exec nx show projects --affected --withTarget=e2e | jq -R 'split("\n") | map(select(. != "")) | .[]' | jq -s -c .)" >> $GITHUB_OUTPUT
+          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
+          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
+          echo "TEST=$(pnpm exec nx show projects --affected --withTarget=build,test --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
+          echo "E2E=$(pnpm exec nx show projects --affected --withTarget=e2e --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
