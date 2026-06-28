@@ -26,8 +26,6 @@ export interface EscrowResultData {
 export type EscrowResult = (EscrowErrorData | EscrowResultData) & {
   timestamp: number;
   bot: string;
-  token?: string;
-  offerId?: string;
   ttl?: number;
 };
 
@@ -36,6 +34,4 @@ export interface EscrowData {
   error?: Buffer;
   result?: Buffer;
   bot: string;
-  token?: string;
-  offerId?: string;
 }

@@ -191,8 +191,6 @@ export class EscrowService implements OnModuleDestroy {
     const save: EscrowData = {
       timestamp: result.timestamp,
       bot: result.bot,
-      token: result.token,
-      offerId: result.offerId,
     };
 
     if (result.result) {

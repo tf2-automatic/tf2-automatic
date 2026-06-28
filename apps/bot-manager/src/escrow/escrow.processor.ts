@@ -53,8 +53,6 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
         error: err.response,
         result: null,
         bot: this.cls.get('bot'),
-        token: job.data.options.token,
-        offerId: job.data.options.offerId,
         ttl: job.data.options.ttl,
       },
     );
@@ -81,8 +79,6 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
         error: null,
         result,
         bot: this.cls.get('bot'),
-        token: job.data.options.token,
-        offerId: job.data.options.offerId,
         ttl: job.data.options.ttl,
       },
     );
