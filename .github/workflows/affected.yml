@@ -30,7 +30,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Derive SHAs for nx affected
-        uses: nrwl/nx-set-shas@v4
+        uses: nrwl/nx-set-shas@v5
       - name: Setup Node
         uses: ./.github/actions/setup-node
       - name: Get affected
