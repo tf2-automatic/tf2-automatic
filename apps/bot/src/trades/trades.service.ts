@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamTradeOfferManager from 'steam-tradeoffer-manager';
@@ -670,6 +671,13 @@ export class TradesService {
     return this.loadOffer(id);
   }
 
+  async getActualOffer(
+    id: string,
+    useCache?: boolean,
+  ): Promise<ActualTradeOffer> {
+    return this.loadOfferWithCaching(id, useCache);
+  }
+
   async getOffer(id: string, useCache?: boolean): Promise<GetTradeResponse> {
     const offer = await this.loadOfferWithCaching(id, useCache);
     return this.mapOffer(offer);
@@ -1083,6 +1091,39 @@ export class TradesService {
           });
         },
       );
+    });
+  }
+
+  public getUserDetails(offer: ActualTradeOffer): Promise<{
+    me: ActualTradeOffer.UserDetails;
+    them: ActualTradeOffer.UserDetails;
+  }> {
+    return new Promise((resolve, reject) => {
+      offer.getUserDetails((err, me, them) => {
+        if (err) {
+          if (
+            err.message.endsWith(
+              `'s inventory privacy is set to "Private".  They are unable to receive trade offers.`,
+            )
+          ) {
+            return reject(new UnauthorizedException('Inventory is private'));
+          } else if (err.message.endsWith(' because they have a trade ban.')) {
+            return reject(new BadRequestException('User is trade banned'));
+          } else if (
+            err.message.startsWith(
+              'This Trade URL is no longer valid for sending a trade offer to ',
+            )
+          ) {
+            return reject(
+              new BadRequestException('Trade offer token is invalid'),
+            );
+          }
+
+          return reject(err);
+        }
+
+        resolve({ me, them });
+      });
     });
   }
 

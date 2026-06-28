@@ -1,12 +1,8 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BotService } from '../bot/bot.service';
 import SteamID from 'steamid';
 import { FriendsService } from '../friends/friends.service';
-import TradeOffer from 'steam-tradeoffer-manager/lib/classes/TradeOffer';
+import { TradesService } from '../trades/trades.service';
 
 @Injectable()
 export class EscrowService {
@@ -15,12 +11,25 @@ export class EscrowService {
   constructor(
     private readonly botService: BotService,
     private readonly friendsService: FriendsService,
+    private readonly tradesService: TradesService,
   ) {}
 
-  async getEscrowDuration(steamid: SteamID, token?: string): Promise<number> {
+  private async getOffer(steamid: SteamID, token?: string, offerId?: string) {
+    if (offerId) {
+      const offer = await this.tradesService.getActualOffer(offerId);
+      if (offer.isOurOffer) {
+        throw new BadRequestException('Offer was made by us');
+      }
+
+      if (offer.partner.getSteamID64() !== steamid.getSteamID64()) {
+        throw new BadRequestException(
+          'Partner steamid does not match provided steamid',
+        );
+      }
+    }
+
     if (!token) {
       const isFriend = await this.friendsService.isFriend(steamid);
-
       if (!isFriend) {
         throw new BadRequestException(
           'Token is required when not friends with the user',
@@ -28,42 +37,18 @@ export class EscrowService {
       }
     }
 
-    const offer = this.manager.createOffer(steamid, token);
-    const details = await this.getUserDetails(offer);
-
-    return Math.max(details.me.escrowDays, details.them.escrowDays);
+    return this.manager.createOffer(steamid, token);
   }
 
-  private getUserDetails(offer: TradeOffer): Promise<{
-    me: TradeOffer.UserDetails;
-    them: TradeOffer.UserDetails;
-  }> {
-    return new Promise((resolve, reject) => {
-      offer.getUserDetails((err, me, them) => {
-        if (err) {
-          if (
-            err.message.endsWith(
-              `'s inventory privacy is set to "Private".  They are unable to receive trade offers.`,
-            )
-          ) {
-            return reject(new UnauthorizedException('Inventory is private'));
-          } else if (err.message.endsWith(' because they have a trade ban.')) {
-            return reject(new BadRequestException('User is trade banned'));
-          } else if (
-            err.message.startsWith(
-              'This Trade URL is no longer valid for sending a trade offer to ',
-            )
-          ) {
-            return reject(
-              new BadRequestException('Trade offer token is invalid'),
-            );
-          }
+  async getEscrowDuration(
+    steamid: SteamID,
+    token?: string,
+    offerId?: string,
+  ): Promise<number> {
+    const offer = await this.getOffer(steamid, token, offerId);
 
-          return reject(err);
-        }
+    const details = await this.tradesService.getUserDetails(offer);
 
-        resolve({ me, them });
-      });
-    });
+    return Math.max(details.me.escrowDays, details.them.escrowDays);
   }
 }
