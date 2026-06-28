@@ -28,25 +28,17 @@ export class EscrowController {
     example: '_Eq1Y3An',
     required: false,
   })
-  @ApiQuery({
-    name: 'offerId',
-    description: 'The ID of an existing trade offer',
-    required: false,
-  })
-  async getEscrowDuration(
+  getEscrowDuration(
     @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
     @Query('token')
     token?: string,
-    @Query('offerId')
-    offerId?: string,
   ): Promise<GetEscrowResponse> {
-    const escrowDays = await this.escrowService.getEscrowDuration(
-      steamid,
-      token,
-      offerId,
-    );
-    return {
-      escrowDays,
-    };
+    return this.escrowService
+      .getEscrowDuration(steamid, token)
+      .then((escrowDays) => {
+        return {
+          escrowDays,
+        };
+      });
   }
 }
