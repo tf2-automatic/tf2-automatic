@@ -26,6 +26,7 @@ export class EscrowService {
           'Partner steamid does not match provided steamid',
         );
       }
+      return offer;
     }
 
     if (!token) {
