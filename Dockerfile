@@ -10,6 +10,7 @@ COPY $SOURCE_DIR ./
 FROM base AS installer
 WORKDIR /app
 COPY --from=source /app/package.json /app/pnpm-lock.yaml ./
+COPY ./pnpm-workspace.yaml ./
 COPY ./patches ./patches
 COPY ./.pnpmfile.cjs ./
 RUN pnpm install --frozen-lockfile --prod
