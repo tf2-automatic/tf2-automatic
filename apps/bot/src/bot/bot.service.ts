@@ -53,6 +53,10 @@ const FILE_PATHS = {
     path.join(`bots/${username}`, 'tpa.txt'),
 };
 
+export const STEAM_COMMUNITY_HEADERS = {
+  'accept-language': 'en-US,en;q=0.9',
+};
+
 @Injectable()
 export class BotService implements OnModuleDestroy {
   private logger = new Logger(BotService.name);
@@ -68,6 +72,7 @@ export class BotService implements OnModuleDestroy {
     request: request.defaults({
       proxy:
         this.configService.getOrThrow<SteamAccountConfig>('steam').proxyUrl,
+      headers: STEAM_COMMUNITY_HEADERS,
     }),
     timeout: 10000,
   });
