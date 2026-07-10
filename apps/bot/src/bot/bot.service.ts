@@ -19,16 +19,16 @@ import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { MetadataService } from '../metadata/metadata.service';
 import {
-  BotReadyEvent,
   BOT_READY_EVENT,
-  SteamConnectedEvent,
-  SteamDisconnectedEvent,
+  BotReadyEvent,
+  BotWebSession,
   STEAM_CONNECTED_EVENT,
   STEAM_DISCONNECTED_EVENT,
   Bot,
   SteamLimitationsEvent,
+  SteamConnectedEvent,
   STEAM_LIMITATIONS_EVENT,
-  BotWebSession,
+  SteamDisconnectedEvent,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
 import { ShutdownService } from '../shutdown/shutdown.service';
@@ -114,6 +114,11 @@ export class BotService implements OnModuleDestroy {
       options,
       continueRequest,
     ) => {
+      if (options) {
+        options.headers = options.headers || {};
+        options.headers['accept-language'] = 'en-US,en;q=0.9';
+      }
+
       const url = new URL(options.url);
       url.search = '';
       url.hash = '';
