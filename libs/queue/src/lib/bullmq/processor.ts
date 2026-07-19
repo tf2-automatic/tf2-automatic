@@ -98,14 +98,34 @@ export abstract class CustomWorkerHost<
     // TODO: Allow ignoring max time?
     const maxTime = job.data?.retry?.maxTime ?? 120000;
 
-    // Check if job is too old
-    if (job.timestamp < Date.now() - maxTime) {
-      const err = new UnrecoverableError('Job is too old');
+    try {
+      // Check if job is too old
+      if (job.timestamp < Date.now() - maxTime) {
+        const err = new UnrecoverableError('Job is too old');
       // processJob is never reached, so call the hook here instead
       await this.jobFailed(job, err);
       throw err;
     }
 
+      return await this.runProcessJob(job, maxTime);
+    } catch (err) {
+      // Guaranteed to run for every failure, including the too-old
+      // short-circuit above that never reaches processJob. Runs inside the
+      // CLS scope with the final (transformed) error so inheritors can
+      // reliably publish their domain failure events / persist the failure.
+      await this.onJobFailed(job, err).catch((hookErr) => {
+        this.logger.error('Error in onJobFailed handler');
+        console.error(hookErr);
+      });
+
+      throw err;
+    }
+  }
+
+  private runProcessJob(
+    job: CustomJob<DataType, ReturnType, NameType>,
+    maxTime: number,
+  ): Promise<unknown> {
     return this.processJob(job)
       .catch(async (err) => {
         await this.preErrorHandler(job, err);
@@ -135,7 +155,7 @@ export abstract class CustomWorkerHost<
         // Unknown error
         throw err;
       })
-      .catch(async (err) => {
+      .catch((err) => {
         // Check if job will be too old when it can be retried again
         const delay = customBackoffStrategy(job.attemptsMade, job);
         const tooOld = job.timestamp < Date.now() + delay - maxTime;

@@ -46,6 +46,9 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     return botAttemptErrorHandler(this.cls, err, job);
   }
 
+  // Runs for every failure, including timeouts that never enter handleJob, so
+  // the failed/error event is always published and unrecoverable failures are
+  // always persisted.
   async onJobFailed(
     job: CustomJob<InventoryJobData>,
     err: unknown,
