@@ -61,6 +61,11 @@ import {
 import NodeCache from 'node-cache';
 import DataLoader from 'dataloader';
 
+interface CachedOffer {
+  value: CreatedTradeOffer | Error;
+  timestamp: number;
+}
+
 @Injectable()
 export class TradesService {
   private readonly logger: Logger = new Logger(TradesService.name);
@@ -170,6 +175,7 @@ export class TradesService {
     // Capture offers from getOffers function to detect relevant changes
     const origGetOffers = this.manager.getOffers.bind(this.manager);
     this.manager.getOffers = (...args) => {
+      const requestedAt = Date.now();
       const callback = args[args.length - 1];
       const callArgs = args.slice(0, -1);
       origGetOffers(...callArgs, (err, sent, received) => {
@@ -186,7 +192,7 @@ export class TradesService {
             new Date(args[1]).getTime() === 1000;
 
           try {
-            this.handleOffers(sent, received, gotAll);
+            this.handleOffers(sent, received, gotAll, requestedAt);
           } catch (err) {
             // Catch the error because we don't want trade offer manager to think an error occurred
             this.logger.warn('Error while handling offers: ' + err.message);
@@ -199,6 +205,7 @@ export class TradesService {
   private patchGetOffer() {
     const origGetOffer = this.manager.getOffer.bind(this.manager);
     this.manager.getOffer = (id, callback) => {
+      const requestedAt = Date.now();
       origGetOffer(id, (err, offer) => {
         if (err) {
           // @ts-expect-error The callback expects an offer to be returned at all time
@@ -209,7 +216,7 @@ export class TradesService {
 
         setImmediate(() => {
           if (offer) {
-            this.handleOffer(offer);
+            this.handleOffer(offer, requestedAt);
           }
         });
       });
@@ -234,13 +241,14 @@ export class TradesService {
     sent: ActualTradeOffer[],
     received: ActualTradeOffer[],
     isAll: boolean,
+    requestedAt: number,
   ) {
     if (this.manager.pollData.offerData === undefined) {
       this.manager.pollData.offerData = {};
     }
 
-    sent.forEach((offer) => this.handleOffer(offer));
-    received.forEach((offer) => this.handleOffer(offer));
+    sent.forEach((offer) => this.handleOffer(offer, requestedAt));
+    received.forEach((offer) => this.handleOffer(offer, requestedAt));
 
     if (isAll) {
       this.gc.cleanup(sent, received);
@@ -260,14 +268,35 @@ export class TradesService {
       });
   }
 
-  private handleOffer(offer: ActualTradeOffer) {
+  private handleOffer(offer: ActualTradeOffer, requestedAt: number) {
     this.assertCreatedOffer(offer);
 
-    this.cache.set(offer.id, offer);
+    this.cacheOffer(offer, requestedAt);
 
     this.ensureOfferPublishedQueue.push(offer).catch(() => {
       // Ignore error
     });
+  }
+
+  private cacheOffer(offer: CreatedTradeOffer, requestedAt: number): void {
+    this.setCache(offer.id, offer, requestedAt);
+  }
+
+  private cacheError(id: string, error: Error, requestedAt: number): void {
+    this.setCache(id, error, requestedAt);
+  }
+
+  private setCache(
+    id: string,
+    value: CreatedTradeOffer | Error,
+    requestedAt: number,
+  ): void {
+    const cached = this.cache.get<CachedOffer>(id);
+    if (cached && cached.timestamp > requestedAt) {
+      return;
+    }
+
+    this.cache.set<CachedOffer>(id, { value, timestamp: requestedAt });
   }
 
   private ensurePollData(): void {
@@ -503,7 +532,7 @@ export class TradesService {
   private async getOffersUsingCache(
     filter: OfferFilter,
   ): Promise<GetTradesResponse> {
-    const cached = this.cache.mget<CreatedTradeOffer>(this.cache.keys());
+    const cached = this.cache.mget<CachedOffer>(this.cache.keys());
 
     const sent: CreatedTradeOffer[] = [];
     const received: CreatedTradeOffer[] = [];
@@ -521,7 +550,10 @@ export class TradesService {
     }
 
     for (const id in cached) {
-      const offer = cached[id];
+      const offer = cached[id].value;
+      if (offer instanceof Error) {
+        continue;
+      }
 
       if (filter === OfferFilter.All) {
         addOffer(offer);
@@ -615,12 +647,13 @@ export class TradesService {
   }
 
   private fetchOffer(id: string): Promise<CreatedTradeOffer> {
+    const requestedAt = Date.now();
     return new Promise((resolve, reject) => {
       this.manager.getOffer(id, (err, offer) => {
         if (err) {
           if (err.message === 'NoMatch') {
             const err = new NotFoundException('Trade offer not found');
-            this.cache.set(id, err);
+            this.cacheError(id, err, requestedAt);
             return reject(err);
           }
 
@@ -659,12 +692,12 @@ export class TradesService {
     }
 
     if (useCache) {
-      const cached = this.cache.get<CreatedTradeOffer | Error>(id);
+      const cached = this.cache.get<CachedOffer>(id);
       if (cached) {
-        if (cached instanceof Error) {
-          throw cached;
+        if (cached.value instanceof Error) {
+          throw cached.value;
         }
-        return cached;
+        return cached.value;
       }
     }
 
@@ -777,6 +810,7 @@ export class TradesService {
   }
 
   private _sendOffer(offer: ActualTradeOffer): Promise<CreatedTradeOffer> {
+    const requestedAt = Date.now();
     return new Promise((resolve, reject) => {
       offer.send((err) => {
         if (err) {
@@ -803,7 +837,7 @@ export class TradesService {
 
         this.assertCreatedOffer(offer);
         // This means that the cached offers may not contain complete items
-        this.cache.set(offer.id, offer);
+        this.cacheOffer(offer, requestedAt);
 
         resolve(offer);
       });
@@ -811,6 +845,7 @@ export class TradesService {
   }
 
   private updateOffer(offer: CreatedTradeOffer): Promise<void> {
+    const requestedAt = Date.now();
     return new Promise((resolve, reject) => {
       if (offer.id === undefined) {
         throw new Error(' Offer ID is missing');
@@ -827,7 +862,7 @@ export class TradesService {
           return reject(err);
         }
 
-        this.cache.set(offer.id, offer);
+        this.cacheOffer(offer, requestedAt);
 
         resolve();
       });
@@ -882,6 +917,7 @@ export class TradesService {
   }
 
   private _acceptTrade(offer: ActiveTradeOffer): Promise<string> {
+    const requestedAt = Date.now();
     return new Promise<string>((resolve, reject) => {
       this.logger.log(`Accepting trade offer #${offer.id}...`);
 
@@ -906,7 +942,7 @@ export class TradesService {
           return reject(err);
         }
 
-        this.cache.set(offer.id, offer);
+        this.cacheOffer(offer, requestedAt);
 
         this.logger.log(
           `Offer #${offer.id} from ${offer.partner} successfully accepted${
