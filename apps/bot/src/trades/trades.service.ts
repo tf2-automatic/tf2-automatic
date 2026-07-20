@@ -943,13 +943,6 @@ export class TradesService {
     const offer = await this.loadOfferWithCaching(id, true);
     this.assertActiveOffer(offer);
 
-    if (
-      offer.confirmationMethod ===
-      SteamTradeOfferManager.EConfirmationMethod.None
-    ) {
-      throw new BadRequestException('Offer does not require confirmation');
-    }
-
     await this._acceptConfirmation(id).catch((err) => {
       if (err.message === 'Could not find confirmation for object ' + id) {
         throw new NotFoundException('Confirmation not found');
