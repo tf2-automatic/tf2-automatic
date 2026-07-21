@@ -1,4 +1,9 @@
-import { Redis, getEventRules, getLockRules } from '@tf2-automatic/config';
+import {
+  Redis,
+  getEventRules,
+  getLockRules,
+  getOtelConfigRules,
+} from '@tf2-automatic/config';
 import Joi from 'joi';
 
 const rules = {
@@ -7,6 +12,7 @@ const rules = {
   ...getEventRules(),
   ...Redis.getRules(),
   ...getLockRules(),
+  ...getOtelConfigRules(),
   LEADER_TIMEOUT: Joi.number().integer().optional().min(1000),
   LEADER_RENEW_TIMEOUT: Joi.number().integer().optional().min(2000),
 };

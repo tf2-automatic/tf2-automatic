@@ -29,6 +29,7 @@ import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
 import { ClsModule } from 'nestjs-cls';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 import { PricesModule } from './prices/prices.module';
 
 @Module({
@@ -40,6 +41,7 @@ import { PricesModule } from './prices/prices.module';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {

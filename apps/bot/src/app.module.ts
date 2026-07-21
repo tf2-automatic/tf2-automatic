@@ -25,6 +25,7 @@ import {
 } from '@tf2-automatic/nestjs';
 import { HttpModule } from '@nestjs/axios';
 import { ClsModule } from 'nestjs-cls';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 
 @Module({
   providers: [
@@ -45,6 +46,7 @@ import { ClsModule } from 'nestjs-cls';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     PrometheusModule.register({
       global: true,
     }),

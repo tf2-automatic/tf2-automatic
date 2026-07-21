@@ -1,6 +1,7 @@
 import {
   getEventRules,
   getLockRules,
+  getOtelConfigRules,
   getStorageConfigRules,
   Redis,
 } from '@tf2-automatic/config';
@@ -13,6 +14,7 @@ const validation = Joi.object({
   ...getLockRules(),
   ...getEventRules(),
   ...getStorageConfigRules(['s3']),
+  ...getOtelConfigRules(),
   BOT_MANAGER_URL: Joi.string().required(),
   SCHEMA_UPDATE_TIMEOUT: Joi.number().integer().min(0).optional(),
   SCHEMA_LIMITER_DURATION: Joi.number().integer().min(0).optional(),

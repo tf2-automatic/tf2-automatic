@@ -13,6 +13,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
 import { getUserAgent, Redis } from '@tf2-automatic/config';
 import { HttpModule } from '@nestjs/axios';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HttpModule } from '@nestjs/axios';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {

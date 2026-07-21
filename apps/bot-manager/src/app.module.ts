@@ -25,6 +25,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ClsModule } from 'nestjs-cls';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 import { PendingModule } from './pending/pending.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { PendingModule } from './pending/pending.module';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {

@@ -1,12 +1,16 @@
+import '@tf2-automatic/opentelemetry/instrumentation';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Config } from './common/config/configuration';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { useOtelLogger } from '@tf2-automatic/opentelemetry';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  useOtelLogger(app);
 
   const config = new DocumentBuilder()
     .setTitle('Item service API Documentation')

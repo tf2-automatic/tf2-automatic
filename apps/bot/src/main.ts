@@ -1,3 +1,4 @@
+import '@tf2-automatic/opentelemetry/instrumentation';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
@@ -8,10 +9,15 @@ import { ShutdownService } from './shutdown/shutdown.service';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { getEnv } from '@tf2-automatic/config';
+import { useOtelLogger } from '@tf2-automatic/opentelemetry';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: getEnv('DEBUG', 'boolean')
+    bufferLogs: true,
+  });
+
+  useOtelLogger(app, {
+    logLevels: getEnv('DEBUG', 'boolean')
       ? ['log', 'debug', 'error', 'verbose', 'warn']
       : ['log', 'warn', 'error'],
   });
