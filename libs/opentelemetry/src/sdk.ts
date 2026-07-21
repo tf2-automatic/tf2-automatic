@@ -75,12 +75,12 @@ export function initOpenTelemetry(): void {
       OTLPLogExporter,
     } = require('@opentelemetry/exporter-logs-otlp-proto');
     options.logRecordProcessors = [
-      new BatchLogRecordProcessor(
-        new OTLPLogExporter({
+      new BatchLogRecordProcessor({
+        exporter: new OTLPLogExporter({
           url: signalUrl(config.endpoint, '/v1/logs', config.logs.endpoint),
           headers: config.headers,
         }),
-      ),
+      }),
     ];
   }
 
