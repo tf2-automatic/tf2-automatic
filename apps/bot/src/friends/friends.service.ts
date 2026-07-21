@@ -14,8 +14,8 @@ import {
 } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 import { EventsService } from '../events/events.service';
-import { Gauge } from 'prom-client';
-import { InjectMetric } from '@willsoto/nestjs-prometheus';
+import { metricAttributes } from '@tf2-automatic/opentelemetry';
+import { metrics } from '@opentelemetry/api';
 
 @Injectable()
 export class FriendsService {
@@ -23,11 +23,15 @@ export class FriendsService {
 
   private readonly client = this.botService.getClient();
 
+  private readonly friendRelationships = metrics
+    .getMeter('bot')
+    .createGauge('bot_friend_relationships', {
+      description: 'The amount of relationships the bot has with other users',
+    });
+
   constructor(
     private readonly botService: BotService,
     private readonly eventsService: EventsService,
-    @InjectMetric('bot_friend_relationships')
-    private readonly friendRelationships: Gauge,
   ) {
     this.client.on('friendsList', () => {
       this.updateFriendRelationsMetric();
@@ -81,35 +85,27 @@ export class FriendsService {
   private updateFriendRelationsMetric() {
     const relations = Object.values(this.client.myFriends);
 
-    this.friendRelationships.set(
-      {
-        relationship: 'friends',
-      },
+    this.friendRelationships.record(
       relations.filter((r) => r === SteamUser.EFriendRelationship.Friend)
         .length,
+      metricAttributes({ relationship: 'friends' }),
     );
-    this.friendRelationships.set(
-      {
-        relationship: 'invited',
-      },
+    this.friendRelationships.record(
       relations.filter(
         (r) => r === SteamUser.EFriendRelationship.RequestInitiator,
       ).length,
+      metricAttributes({ relationship: 'invited' }),
     );
-    this.friendRelationships.set(
-      {
-        relationship: 'invitedUs',
-      },
+    this.friendRelationships.record(
       relations.filter(
         (r) => r === SteamUser.EFriendRelationship.RequestRecipient,
       ).length,
+      metricAttributes({ relationship: 'invitedUs' }),
     );
-    this.friendRelationships.set(
-      {
-        relationship: 'blocked',
-      },
+    this.friendRelationships.record(
       relations.filter((r) => r === SteamUser.EFriendRelationship.Blocked)
         .length,
+      metricAttributes({ relationship: 'blocked' }),
     );
   }
 

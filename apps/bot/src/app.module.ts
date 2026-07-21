@@ -16,7 +16,6 @@ import { EscrowModule } from './escrow/escrow.module';
 import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { getStorageConfig, getUserAgent } from '@tf2-automatic/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import {
@@ -47,9 +46,6 @@ import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
       validationSchema: validation,
     }),
     OpenTelemetryModule.forRoot(),
-    PrometheusModule.register({
-      global: true,
-    }),
     EventEmitterModule.forRoot(),
     BotModule,
     NestStorageModule.registerAsync({

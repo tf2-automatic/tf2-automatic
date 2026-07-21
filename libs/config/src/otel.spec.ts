@@ -31,13 +31,13 @@ describe('otel config', () => {
       expect(config.protocol).toBe('http/protobuf');
     });
 
-    test('enables logs by default when the master switch is on', () => {
+    test('enables logs and metrics by default when the master switch is on', () => {
       process.env['OTEL_ENABLED'] = 'true';
       const config = getOtelConfig();
       expect(config.enabled).toBe(true);
       expect(config.logs.enabled).toBe(true);
+      expect(config.metrics.enabled).toBe(true);
       expect(config.traces.enabled).toBe(false);
-      expect(config.metrics.enabled).toBe(false);
     });
 
     test('keeps every signal off when the master switch is off, even if a signal is set', () => {
@@ -47,6 +47,12 @@ describe('otel config', () => {
       expect(config.enabled).toBe(false);
       expect(config.traces.enabled).toBe(false);
       expect(config.metrics.enabled).toBe(false);
+    });
+
+    test('metrics can be explicitly disabled while OpenTelemetry is enabled', () => {
+      process.env['OTEL_ENABLED'] = 'true';
+      process.env['OTEL_METRICS_ENABLED'] = 'false';
+      expect(getOtelConfig().metrics.enabled).toBe(false);
     });
 
     test('enables traces and metrics when explicitly turned on', () => {

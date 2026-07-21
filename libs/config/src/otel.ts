@@ -111,7 +111,7 @@ export function getOtelConfig(): OtelConfig {
     },
     metrics: {
       enabled:
-        enabled && getEnvWithDefault('OTEL_METRICS_ENABLED', 'boolean', false),
+        enabled && getEnvWithDefault('OTEL_METRICS_ENABLED', 'boolean', true),
       endpoint: getEnv('OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', 'string'),
       exportIntervalMillis: getEnvWithDefault(
         'OTEL_METRIC_EXPORT_INTERVAL',

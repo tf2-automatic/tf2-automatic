@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration, { Config } from './common/config/configuration';
 import { validation } from './common/config/validation';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { ListingsModule } from './listings/listings.module';
 import { InventoriesModule } from './inventories/inventories.module';
@@ -51,7 +50,6 @@ import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
         };
       },
     }),
-    PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     ListingsModule,
     InventoriesModule,
