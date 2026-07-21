@@ -108,13 +108,19 @@ export function initOpenTelemetry(): void {
     const {
       OTLPMetricExporter,
     } = require('@opentelemetry/exporter-metrics-otlp-proto');
-    options.metricReader = new PeriodicExportingMetricReader({
-      exporter: new OTLPMetricExporter({
-        url: signalUrl(config.endpoint, '/v1/metrics', config.metrics.endpoint),
-        headers: config.headers,
+    options.metricReaders = [
+      new PeriodicExportingMetricReader({
+        exporter: new OTLPMetricExporter({
+          url: signalUrl(
+            config.endpoint,
+            '/v1/metrics',
+            config.metrics.endpoint,
+          ),
+          headers: config.headers,
+        }),
+        exportIntervalMillis: config.metrics.exportIntervalMillis,
       }),
-      exportIntervalMillis: config.metrics.exportIntervalMillis,
-    });
+    ];
   }
 
   // Auto-instrumentation is only useful for traces/metrics; skip the
