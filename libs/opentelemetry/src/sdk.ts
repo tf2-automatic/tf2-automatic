@@ -15,7 +15,9 @@ function stripTrailingSlash(url: string): string {
  * endpoint.
  */
 function signalUrl(base: string, path: string, override?: string): string {
-  return override ? override : stripTrailingSlash(base) + path;
+  const s = override ? override : stripTrailingSlash(base) + path;
+  console.log(s);
+  return s;
 }
 
 /**
@@ -123,9 +125,7 @@ export function initOpenTelemetry(): void {
     ];
   }
 
-  // Auto-instrumentation is only useful for traces/metrics; skip the
-  // monkey-patching overhead when only logs are enabled.
-  if (config.traces.enabled || config.metrics.enabled) {
+  if (config.traces.enabled) {
     options.instrumentations = createInstrumentations();
   }
 
