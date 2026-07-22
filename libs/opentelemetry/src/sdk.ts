@@ -15,9 +15,9 @@ function stripTrailingSlash(url: string): string {
  * endpoint.
  */
 function signalUrl(base: string, path: string, override?: string): string {
-  const s = override ? override : stripTrailingSlash(base) + path;
-  console.log(s);
-  return s;
+  const url = override ? override : stripTrailingSlash(base) + path;
+  console.log(`[otel] exporter endpoint: ${url}`);
+  return url;
 }
 
 /**
@@ -125,8 +125,22 @@ export function initOpenTelemetry(): void {
     ];
   }
 
-  if (config.traces.enabled) {
+  // Auto-instrumentation feeds both traces and metrics, so register it whenever
+  // either signal is enabled — e.g. HTTP server/client duration histograms are
+  // produced by instrumentation-http even when tracing is off.
+  if (config.traces.enabled || config.metrics.enabled) {
     options.instrumentations = createInstrumentations();
+  }
+
+  // When tracing is disabled, explicitly register no span processors. Without
+  // this, NodeSDK falls back to `getSpanProcessorsFromEnv()`, which defaults
+  // `OTEL_TRACES_EXPORTER` to `otlp` and sets up a default OTLP trace exporter.
+  // The instrumentations above would then emit spans that get exported to an
+  // endpoint that isn't accepting traces, spamming the console with errors.
+  // An empty array makes NodeSDK skip the TracerProvider entirely, so spans go
+  // to a no-op tracer while instrumentation metrics still flow.
+  if (!config.traces.enabled) {
+    options.spanProcessors = [];
   }
 
   const instance: NodeSDK = new NodeSDK(options);
