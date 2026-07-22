@@ -129,7 +129,7 @@ export function initOpenTelemetry(): void {
   // either signal is enabled — e.g. HTTP server/client duration histograms are
   // produced by instrumentation-http even when tracing is off.
   if (config.traces.enabled || config.metrics.enabled) {
-    options.instrumentations = createInstrumentations();
+    options.instrumentations = createInstrumentations(config.traces.enabled);
   }
 
   // When tracing is disabled, explicitly register no span processors. Without
@@ -148,31 +148,55 @@ export function initOpenTelemetry(): void {
   sdk = instance;
 }
 
+/**
+ * Build the set of instrumentations to register.
+ *
+ * `instrumentation-http` (HTTP server/client duration) and
+ * `instrumentation-runtime-node` (event loop, GC, heap) emit metrics, so they
+ * are always registered when instrumentation runs. The remaining
+ * instrumentations are span-only, so when tracing is disabled we skip them —
+ * registering them would monkey-patch those modules to produce spans that go
+ * nowhere (the tracer is a no-op) and yield no metrics. They are only loaded
+ * and registered when tracing is enabled.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createInstrumentations(): any[] {
+function createInstrumentations(tracesEnabled: boolean): any[] {
   const {
     HttpInstrumentation,
   } = require('@opentelemetry/instrumentation-http');
   const {
-    ExpressInstrumentation,
-  } = require('@opentelemetry/instrumentation-express');
-  const {
-    NestInstrumentation,
-  } = require('@opentelemetry/instrumentation-nestjs-core');
-  const {
-    IORedisInstrumentation,
-  } = require('@opentelemetry/instrumentation-ioredis');
-  const {
-    AmqplibInstrumentation,
-  } = require('@opentelemetry/instrumentation-amqplib');
+    RuntimeNodeInstrumentation,
+  } = require('@opentelemetry/instrumentation-runtime-node');
 
-  return [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const instrumentations: any[] = [
     new HttpInstrumentation(),
-    new ExpressInstrumentation(),
-    new NestInstrumentation(),
-    new IORedisInstrumentation(),
-    new AmqplibInstrumentation(),
+    new RuntimeNodeInstrumentation(),
   ];
+
+  if (tracesEnabled) {
+    const {
+      ExpressInstrumentation,
+    } = require('@opentelemetry/instrumentation-express');
+    const {
+      NestInstrumentation,
+    } = require('@opentelemetry/instrumentation-nestjs-core');
+    const {
+      IORedisInstrumentation,
+    } = require('@opentelemetry/instrumentation-ioredis');
+    const {
+      AmqplibInstrumentation,
+    } = require('@opentelemetry/instrumentation-amqplib');
+
+    instrumentations.push(
+      new ExpressInstrumentation(),
+      new NestInstrumentation(),
+      new IORedisInstrumentation(),
+      new AmqplibInstrumentation(),
+    );
+  }
+
+  return instrumentations;
 }
 
 /**
