@@ -90,8 +90,11 @@ export class EscrowService {
   private getEscrowDaysWithWebApi(offer: TradeOffer): Promise<number> {
     const escrowEnds = this.getEscrowEndsFromOffer(offer);
 
-    if (escrowEnds !== undefined) {
-      this.logger.debug('Done checking escrow with offer WebAPI data');
+    if (escrowEnds !== undefined && escrowEnds !== null) {
+      this.logger.debug(
+        'Done checking escrow with offer WebAPI data for ' +
+          offer.partner.getSteamID64(),
+      );
       return Promise.resolve(this.daysUntil(escrowEnds));
     }
 
