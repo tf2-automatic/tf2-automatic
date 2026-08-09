@@ -15,5 +15,6 @@ patchedDependencies:
   "tf2@4.0.0": "patches/tf2@4.0.0.patch"
   "kvparser@1.0.2": "patches/kvparser@1.0.2.patch"
   '@types/steamcommunity': patches/@types__steamcommunity.patch
+  steam-tradeoffer-manager: patches/steam-tradeoffer-manager.patch
 minimumReleaseAgeExclude:
   - prettier@3.9.1
