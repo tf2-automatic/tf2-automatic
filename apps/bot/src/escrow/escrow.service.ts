@@ -6,11 +6,6 @@ import { TradesService } from '../trades/trades.service';
 import TradeOffer from 'steam-tradeoffer-manager/lib/classes/TradeOffer';
 import TradeOfferManager from 'steam-tradeoffer-manager';
 
-type TradeOfferWithEscrow = TradeOffer & {
-  escrowEnds?: Date | null;
-  rawJson?: string;
-  _token?: string | null;
-};
 type TradeHoldDuration = {
   escrow_end_duration_seconds?: number;
   escrow_end_date?: number;
@@ -45,7 +40,12 @@ export class EscrowService {
     private readonly tradesService: TradesService,
   ) {}
 
-  private async getOffer(steamid: SteamID, token?: string, offerId?: string) {
+  private async getOffer(
+    steamid: SteamID,
+    isFriend: boolean,
+    token?: string,
+    offerId?: string,
+  ) {
     if (offerId) {
       const offer = await this.tradesService.getActualOffer(offerId);
       if (offer.isOurOffer) {
@@ -61,7 +61,6 @@ export class EscrowService {
     }
 
     if (!token) {
-      const isFriend = await this.friendsService.isFriend(steamid);
       if (!isFriend) {
         throw new BadRequestException(
           'Token is required when not friends with the user',
@@ -77,88 +76,40 @@ export class EscrowService {
     token?: string,
     offerId?: string,
   ): Promise<number> {
-    const offer = await this.getOffer(steamid, token, offerId);
-    return this.getEscrowDaysWithWebApi(offer).catch((err) => {
-      this.logger.warn(
-        'Failed to check escrow with WebAPI, falling back to SteamCommunity HTML',
-        err,
+    const isFriend = await this.friendsService.isFriend(steamid);
+
+    if (token || isFriend) {
+      return this.getEscrowDaysWithTradeHoldDurations(steamid, token).catch(
+        async (err) => {
+          this.logger.warn(
+            'Failed to check escrow with WebAPI, falling back to SteamCommunity HTML',
+            err,
+          );
+          const offer = await this.getOffer(steamid, isFriend, token, offerId);
+          return this.getEscrowDaysWithHtml(offer);
+        },
       );
-      return this.getEscrowDaysWithHtml(offer);
-    });
-  }
-
-  private getEscrowDaysWithWebApi(offer: TradeOffer): Promise<number> {
-    const escrowEnds = this.getEscrowEndsFromOffer(offer);
-
-    if (escrowEnds !== undefined && escrowEnds !== null) {
-      this.logger.debug(
-        'Done checking escrow with offer WebAPI data for ' +
-          offer.partner.getSteamID64(),
-      );
-      return Promise.resolve(this.daysUntil(escrowEnds));
     }
 
-    if (!offer.id) {
-      return this.getEscrowDaysWithTradeHoldDurations(offer);
-    }
-
-    return Promise.reject(
-      `WebAPI response for offer #${offer.id} did not include escrow_end_date`,
-    );
-  }
-
-  private getEscrowEndsFromOffer(offer: TradeOffer): Date | null | undefined {
-    const offerWithEscrow = offer as TradeOfferWithEscrow;
-
-    if (offerWithEscrow.rawJson) {
-      try {
-        const raw = JSON.parse(offerWithEscrow.rawJson) as {
-          escrow_end_date?: number | null;
-        };
-
-        if (Object.prototype.hasOwnProperty.call(raw, 'escrow_end_date')) {
-          return raw.escrow_end_date
-            ? new Date(raw.escrow_end_date * 1000)
-            : null;
-        }
-      } catch (err) {
-        this.logger.warn(
-          'Failed to parse raw offer data for escrow check',
-          err,
-        );
-      }
-    }
-
-    return offerWithEscrow.escrowEnds;
-  }
-
-  private daysUntil(escrowEnds: Date | null): number {
-    if (!(escrowEnds instanceof Date)) {
-      return 0;
-    }
-
-    const msRemaining = escrowEnds.getTime() - Date.now();
-    return msRemaining > 0
-      ? Math.ceil(msRemaining / (SECONDS_PER_DAY * 1000))
-      : 0;
+    const offer = await this.getOffer(steamid, isFriend, token, offerId);
+    return this.getEscrowDaysWithHtml(offer);
   }
 
   private async getEscrowDaysWithTradeHoldDurations(
-    offer: TradeOffer,
+    steamid: SteamID,
+    token: string | undefined,
   ): Promise<number> {
-    const offerWithEscrow = offer as TradeOfferWithEscrow;
     const manager = this.manager as TradeOfferManagerWithApiCall;
-    const input: any = {
-      steamid_target: offer.partner.getSteamID64(),
-      trade_offer_access_token: offerWithEscrow._token || '',
-    };
 
     return new Promise((resolve, reject) => {
       manager._apiCall(
         'GET',
         'GetTradeHoldDurations',
         1,
-        input,
+        {
+          steamid_target: steamid.getSteamID64(),
+          trade_offer_access_token: token || '',
+        },
         (err, body) => {
           if (err) {
             return reject(err);
