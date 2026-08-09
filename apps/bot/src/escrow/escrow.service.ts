@@ -102,7 +102,7 @@ export class EscrowService {
       return this.getEscrowDaysWithTradeHoldDurations(offer);
     }
 
-    throw new Error(
+    return Promise.reject(
       `WebAPI response for offer #${offer.id} did not include escrow_end_date`,
     );
   }
