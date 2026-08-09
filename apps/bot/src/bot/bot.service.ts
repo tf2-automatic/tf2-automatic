@@ -33,10 +33,7 @@ import {
 import request from 'request';
 import { ShutdownService } from '../shutdown/shutdown.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  metricAttributes,
-  setDefaultMetricLabels,
-} from '@tf2-automatic/opentelemetry';
+import { metricAttributes } from '@tf2-automatic/opentelemetry';
 import { metrics } from '@opentelemetry/api';
 import jwt from 'jsonwebtoken';
 import objectHash from 'object-hash';
@@ -600,10 +597,6 @@ export class BotService implements OnModuleDestroy {
     this.setGamesAndState();
 
     this.manager.doPoll();
-
-    setDefaultMetricLabels({
-      steamid64: this.getSteamID64(),
-    });
 
     return this.eventsService
       .publish(BOT_READY_EVENT, {} satisfies BotReadyEvent['data'])
