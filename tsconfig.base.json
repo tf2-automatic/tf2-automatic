@@ -54,5 +54,6 @@
       "@tf2-automatic/tf2-format": ["libs/tf2-format/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": ["node_modules", "tmp"],
+  "sourceMap": true
 }
