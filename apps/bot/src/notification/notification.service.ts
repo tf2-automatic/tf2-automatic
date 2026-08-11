@@ -36,7 +36,7 @@ export class NotificationService {
     });
   }
 
-  clearNotification(dto: NotificationsClearDto) {
+  clearNotifications(dto: NotificationsClearDto) {
     if (dto.clearAll) {
       this.client.markAllNotificationsRead();
       return;

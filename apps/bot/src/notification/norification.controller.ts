@@ -20,7 +20,9 @@ export class NotificationController {
   @ApiBody({
     type: NotificationsClearDto,
   })
-  setAvatar(@Body(new ValidationPipe()) dto: NotificationsClearDto): void {
-    return this.notificationService.clearNotification(dto);
+  clearNotifications(
+    @Body(new ValidationPipe()) dto: NotificationsClearDto,
+  ): void {
+    return this.notificationService.clearNotifications(dto);
   }
 }
