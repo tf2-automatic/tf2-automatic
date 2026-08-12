@@ -3,6 +3,8 @@ const AddPnpmPatchedDependencies = require('../../scripts/pnpm-patched-dependenc
 
 // Nx plugins for webpack.
 module.exports = composePlugins(withNx(), (config) => {
+  config.devtool = 'source-map';
+
   // Update the webpack config as needed here.
   // e.g. `config.plugins.push(new MyPlugin())`
   config.plugins.push(new AddPnpmPatchedDependencies());
