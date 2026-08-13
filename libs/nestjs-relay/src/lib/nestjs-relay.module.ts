@@ -4,12 +4,13 @@ import { RelayModuleConfig } from '@tf2-automatic/config';
 import { NestEventsModule } from '@tf2-automatic/nestjs-events';
 import { ClsModule } from 'nestjs-cls';
 
-
 @Global()
 @Module({})
 export class RelayModule {
   static forRootAsync(options: {
-    useFactory: (...args: any[]) => Promise<RelayModuleConfig> | RelayModuleConfig;
+    useFactory: (
+      ...args: any[]
+    ) => Promise<RelayModuleConfig> | RelayModuleConfig;
     inject?: any[];
   }): DynamicModule {
     return this.createDynamicModule({

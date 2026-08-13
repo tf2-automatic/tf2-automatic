@@ -1,5 +1,5 @@
-import { teardown } from '../../../../libs/testing/src/e2e';
+import { e2e } from '@tf2-automatic/testing';
 
 module.exports = async function () {
-  await teardown();
+  await e2e.teardown();
 };

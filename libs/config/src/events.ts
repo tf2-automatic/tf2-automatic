@@ -61,7 +61,7 @@ export function getEventRules(types: EventsConfigType[] = []) {
   const rules = {
     EVENTS_TYPE: Joi.string()
       .valid(...types)
-      .optional()
+      .optional(),
   };
 
   // Because RabbitMQ is the default, we have to always include it

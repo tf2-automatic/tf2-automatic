@@ -1,43 +1,55 @@
 import Joi from 'joi';
 import { getEnv, getEnvWithDefault } from '../helpers';
-import { CommonRedisOptions, SentinelConnectionOptions, StandaloneConnectionOptions } from 'ioredis';
+import {
+  CommonRedisOptions,
+  SentinelConnectionOptions,
+  StandaloneConnectionOptions,
+} from 'ioredis';
 import { addWhenToAll } from '../joi';
 import { getAppNameAndVersion } from '../app';
 
 type RedisType = 'standalone' | 'sentinel';
 const DEFAULT_REDIS_TYPE: RedisType = 'standalone';
 
-export type Config = CommonRedisOptions & (SentinelConnectionOptions | StandaloneConnectionOptions) & {
-  type: 'redis';
-  keyPrefix: string;
-}
+export type Config = CommonRedisOptions &
+  (SentinelConnectionOptions | StandaloneConnectionOptions) & {
+    type: 'redis';
+    keyPrefix: string;
+  };
 
 export function getConfig(usePrefix = true): Config {
   const app = getAppNameAndVersion();
 
   const password = getEnv('REDIS_PASSWORD', 'string');
-  const keyPrefix = getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') +
-  ':' +
-  (usePrefix && app ? app.name + ':' : '');
+  const keyPrefix =
+    getEnvWithDefault('REDIS_KEY_PREFIX', 'string', 'tf2-automatic') +
+    ':' +
+    (usePrefix && app ? app.name + ':' : '');
   const db = getEnv('REDIS_DB', 'integer');
 
   const commonConfig = {
     db,
     keyPrefix,
-  }
+  };
 
-  const type = getEnvWithDefault('REDIS_TYPE', 'string', DEFAULT_REDIS_TYPE) as RedisType;
+  const type = getEnvWithDefault(
+    'REDIS_TYPE',
+    'string',
+    DEFAULT_REDIS_TYPE,
+  ) as RedisType;
 
   if (type === 'sentinel') {
     const rawSentinels = getEnv('REDIS_SENTINELS', 'string')!;
 
-    const sentinels: SentinelConnectionOptions["sentinels"] = rawSentinels.split(',').map((s) => {
-      const url = new URL(s);
-      return {
-        host: url.hostname,
-        port: parseInt(url.port)
-      };
-    });
+    const sentinels: SentinelConnectionOptions['sentinels'] = rawSentinels
+      .split(',')
+      .map((s) => {
+        const url = new URL(s);
+        return {
+          host: url.hostname,
+          port: parseInt(url.port),
+        };
+      });
 
     return {
       type: 'redis',
@@ -45,7 +57,7 @@ export function getConfig(usePrefix = true): Config {
       sentinels,
       sentinelPassword: password,
       name: getEnv('REDIS_SENTINEL_NAME', 'string'),
-    }
+    };
   }
 
   return {
@@ -54,7 +66,7 @@ export function getConfig(usePrefix = true): Config {
     host: getEnv('REDIS_HOST', 'string')!,
     port: getEnv('REDIS_PORT', 'integer')!,
     password,
-  }
+  };
 }
 
 export function getRules() {
@@ -77,7 +89,7 @@ export function getRules() {
       then: Joi.required(),
       otherwise: Joi.forbidden(),
     },
-  })
+  });
 
   const standalone = {
     REDIS_HOST: Joi.string().required(),

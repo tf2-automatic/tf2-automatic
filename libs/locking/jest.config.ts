@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'locking',
   preset: '../../jest.preset.js',

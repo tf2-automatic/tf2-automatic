@@ -1,5 +1,5 @@
-import { setup } from '../../../../libs/testing/src/e2e';
+import { e2e } from '@tf2-automatic/testing';
 
 module.exports = async function () {
-  await setup('bptf-manager', true);
+  await e2e.setup('bptf-manager', true);
 };

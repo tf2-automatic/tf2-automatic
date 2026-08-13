@@ -21,7 +21,7 @@ export function addWhen(
   }
 
   for (const key of keys) {
-    if (!rules.hasOwnProperty(key)) {
+    if (!Object.hasOwn(rules, key)) {
       throw new Error(`Key ${key} not found in rules`);
     }
 
