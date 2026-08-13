@@ -14,6 +14,11 @@ const mockedPackageJson = JSON.stringify(
   2,
 );
 
+const mockedRootPackageJson = JSON.stringify({
+  name: 'tf2-automatic',
+  engines: { node: '24.x' },
+});
+
 const context: ExecutorContext = {
   root: '',
   projectName: 'mock-project',
@@ -44,7 +49,11 @@ const context: ExecutorContext = {
 
 jest.mock('fs', () => {
   return {
-    readFileSync: jest.fn(() => mockedPackageJson),
+    readFileSync: jest.fn((file: string) =>
+      String(file).includes('mock-project')
+        ? mockedPackageJson
+        : mockedRootPackageJson,
+    ),
     writeFileSync: jest.fn(),
   };
 });
@@ -114,6 +123,19 @@ describe('NPM Executor', () => {
       { cwd: path.normalize('dist/libs/mock-project') },
       expect.any(Function),
     );
+  });
+
+  it('copies engines from the root package.json', async () => {
+    const options: NPMExecutorOptions = {
+      'release-version': '1.0.0',
+      'release-tag': 'latest',
+    };
+
+    await executor(options, context);
+
+    const written = JSON.parse(fs.writeFileSync.mock.calls[0][1]);
+    expect(written.engines).toEqual({ node: '24.x' });
+    expect(written.version).toBe('1.0.0');
   });
 
   it('properly handles "dry-run" option', async () => {
