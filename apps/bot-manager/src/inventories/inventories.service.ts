@@ -49,7 +49,6 @@ import {
   InventoryJobData,
   InventoryResult,
 } from './inventories.types';
-import assert from 'assert';
 import { getBotUrl } from '../heartbeats/heartbeats.utils';
 
 interface InventoryIdentifier {
@@ -325,7 +324,9 @@ export class InventoriesService
       }
     }
 
-    assert(timestamp !== 0, 'Timestamp is not set');
+    if (timestamp === 0) {
+      throw new NotFoundException('Inventory not found');
+    }
 
     return {
       timestamp,
