@@ -75,33 +75,27 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       .catch((err) => {
         this.handleError(err);
         throw err;
-      })
-      .catch(async (err) => {
-        const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
-          job: this.tradesService.mapJob(job),
-          error: err.message,
-          response: null,
-        };
-
-        if (
-          err instanceof CustomError ||
-          err instanceof CustomUnrecoverableError
-        ) {
-          data.response = err.response;
-        }
-
-        const unrecoverable = err instanceof UnrecoverableError;
-
-        return this.eventsService
-          .publish(
-            unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
-            data,
-            new SteamID(job.data.bot),
-          )
-          .finally(() => {
-            throw err;
-          });
       });
+  }
+
+  async onJobFailed(job: Job<TradeQueue>, err: unknown): Promise<void> {
+    const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
+      job: this.tradesService.mapJob(job),
+      error: err instanceof Error ? err.message : 'Unknown error',
+      response: null,
+    };
+
+    if (err instanceof CustomError || err instanceof CustomUnrecoverableError) {
+      data.response = err.response;
+    }
+
+    const unrecoverable = err instanceof UnrecoverableError;
+
+    await this.eventsService.publish(
+      unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+      data,
+      new SteamID(job.data.bot),
+    );
   }
 
   private async handleJob(job: Job<TradeQueue>) {

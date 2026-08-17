@@ -56,7 +56,7 @@ export abstract class CustomWorkerHost<
     return Promise.resolve();
   }
 
-  postErrorHandler(
+  onJobFailed(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
   ): Promise<void> {
@@ -100,7 +100,10 @@ export abstract class CustomWorkerHost<
 
     // Check if job is too old
     if (job.timestamp < Date.now() - maxTime) {
-      throw new UnrecoverableError('Job is too old');
+      const err = new UnrecoverableError('Job is too old');
+      // processJob is never reached, so call the hook here instead
+      await this.jobFailed(job, err);
+      throw err;
     }
 
     return this.processJob(job)
@@ -133,7 +136,7 @@ export abstract class CustomWorkerHost<
         throw err;
       })
       .catch(async (err) => {
-        await this.postErrorHandler(job, err);
+        await this.jobFailed(job, err);
 
         // Check if job will be too old when it can be retried again
         const delay = customBackoffStrategy(job.attemptsMade, job);
@@ -157,6 +160,16 @@ export abstract class CustomWorkerHost<
 
         throw err;
       });
+  }
+
+  private jobFailed(
+    job: CustomJob<DataType, ReturnType, NameType>,
+    err: unknown,
+  ): Promise<void> {
+    return this.onJobFailed(job, err).catch((hookErr) => {
+      this.logger.error('Error in onJobFailed handler');
+      console.error(hookErr);
+    });
   }
 
   @OnWorkerEvent('error')
