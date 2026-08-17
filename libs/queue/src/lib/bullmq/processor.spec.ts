@@ -81,12 +81,9 @@ describe('CustomWorkerHost', () => {
   });
 
   it('calls onJobFailed before the error is rewritten for the retry decision', async () => {
-    // A job that cannot be retried in time has its error replaced with
-    // "Job is too old to be retried". onJobFailed must still see the original.
     const processor = new TestProcessor(axios404());
 
-    // 90s old, and the next retry is 60s out, so it cannot finish within the
-    // 120s maxTime.
+    // 90s old, next retry 60s out, past the 120s maxTime
     await expect(
       processor.process(
         makeJob({ timestamp: Date.now() - 90000, attemptsMade: 10 }),
