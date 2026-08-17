@@ -1,5 +1,7 @@
-import { e2e } from '@tf2-automatic/testing';
+// Path aliases are not resolved in globalSetup
+// eslint-disable-next-line @nx/enforce-module-boundaries
+import { setup } from '../../../../libs/testing/src/e2e';
 
 module.exports = async function () {
-  await e2e.setup('bptf-manager', true);
+  await setup('bptf-manager', true);
 };
