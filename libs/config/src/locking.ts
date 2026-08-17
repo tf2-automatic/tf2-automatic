@@ -15,7 +15,11 @@ export interface LockConfig {
 
 export function getLockConfig(): LockConfig {
   return {
-    durationMultiplier: getEnvWithDefault('LOCK_DURATION_MULTIPLIER', 'integer', 1),
+    durationMultiplier: getEnvWithDefault(
+      'LOCK_DURATION_MULTIPLIER',
+      'integer',
+      1,
+    ),
     durationShort: getEnvWithDefault('LOCK_DURATION_SHORT', 'integer', 2000),
     durationMedium: getEnvWithDefault('LOCK_DURATION_MEDIUM', 'integer', 5000),
     durationLong: getEnvWithDefault('LOCK_DURATION_LONG', 'integer', 10000),
