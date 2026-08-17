@@ -28,6 +28,19 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"]
+    },
+    "@nx/webpack:webpack": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"],
+      "options": {
+        "sourceMap": true
+      }
+    },
+    "@nx/js:node": {
+      "options": {
+        "runtimeArgs": ["--enable-source-maps"]
+      }
     }
   },
   "namedInputs": {
