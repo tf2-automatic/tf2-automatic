@@ -73,11 +73,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     }
   }
 
-  async processJob(job: CustomJob<InventoryJobData>) {
-    return this.handleJob(job);
-  }
-
-  private async handleJob(job: CustomJob<InventoryJobData>): Promise<void> {
+  async processJob(job: CustomJob<InventoryJobData>): Promise<void> {
     const steamid = new SteamID(job.data.options.steamid64);
 
     const inventory = await this.inventoriesService.fetchInventoryBySteamID(
