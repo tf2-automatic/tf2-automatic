@@ -1,5 +1,4 @@
 import { Processor } from '@nestjs/bullmq';
-import { UnrecoverableError } from 'bullmq';
 import { InventoriesService } from './inventories.service';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import SteamID from 'steamid';
@@ -7,18 +6,16 @@ import {
   Bot,
   INVENTORY_ERROR_EVENT,
   INVENTORY_FAILED_EVENT,
-  InventoryErrorEvent,
-  InventoryFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
   CustomJob,
   CustomWorkerHost,
-  CustomError,
   CustomUnrecoverableError,
   bullWorkerSettings,
   selectBot,
   botAttemptErrorHandler,
+  errorToEvent,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
 import { InventoryJobData } from './inventories.types';
@@ -51,21 +48,11 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     job: CustomJob<InventoryJobData>,
     err: unknown,
   ): Promise<void> {
-    const data: (InventoryErrorEvent | InventoryFailedEvent)['data'] = {
-      job: job.data.options,
-      error: err instanceof Error ? err.message : 'Unknown error',
-      response: null,
-    };
-
-    if (err instanceof CustomError || err instanceof CustomUnrecoverableError) {
-      data.response = err.response;
-    }
-
-    const unrecoverable = err instanceof UnrecoverableError;
+    const { unrecoverable, ...data } = errorToEvent(err);
 
     await this.eventsService.publish(
       unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
-      data,
+      { job: job.data.options, ...data },
       new SteamID(job.data.options.steamid64),
     );
 
