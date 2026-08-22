@@ -13,6 +13,8 @@ import SteamID from 'steamid';
 import {
   INVENTORY_ERROR_EVENT,
   INVENTORY_FAILED_EVENT,
+  InventoryErrorEvent,
+  InventoryFailedEvent,
   InventoryJobOptions,
 } from '@tf2-automatic/item-service-data';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
@@ -39,11 +41,17 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     job: CustomJob<InventoryJobData>,
     err: unknown,
   ): Promise<void> {
-    const { unrecoverable, ...data } = errorToEvent(err);
+    const { unrecoverable, error, response } = errorToEvent(err);
+
+    const data: (InventoryErrorEvent | InventoryFailedEvent)['data'] = {
+      job: job.data.options,
+      error,
+      response,
+    };
 
     await this.eventsService.publish(
       unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
-      { job: job.data.options, ...data },
+      data,
       new SteamID(job.data.options.steamid64),
     );
 

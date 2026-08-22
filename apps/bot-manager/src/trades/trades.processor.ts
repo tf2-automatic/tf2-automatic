@@ -15,6 +15,8 @@ import {
   TRADE_ERROR_EVENT,
   TRADE_FAILED_EVENT,
   TradeCompletedEvent,
+  TradeErrorEvent,
+  TradeFailedEvent,
 } from '@tf2-automatic/bot-manager-data';
 import { AxiosError, AxiosResponse } from 'axios';
 import { Job, UnrecoverableError } from 'bullmq';
@@ -78,11 +80,17 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   }
 
   async onJobFailed(job: Job<TradeQueue>, err: unknown): Promise<void> {
-    const { unrecoverable, ...data } = errorToEvent(err);
+    const { unrecoverable, error, response } = errorToEvent(err);
+
+    const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
+      job: this.tradesService.mapJob(job),
+      error,
+      response,
+    };
 
     await this.eventsService.publish(
       unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
-      { job: this.tradesService.mapJob(job), ...data },
+      data,
       new SteamID(job.data.bot),
     );
   }
