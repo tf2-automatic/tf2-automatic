@@ -151,7 +151,7 @@ export abstract class CustomWorkerHost<
 
         await this.jobFailed(job, err);
 
-        if (!tooOld && err instanceof AxiosError && err.response !== undefined) {
+        if (err instanceof AxiosError && err.response !== undefined) {
           // Not a unrecoverable error, and is an axios error, throw custom error with axios response
           throw new CustomError(err.response.data.message, err.response.data);
         }

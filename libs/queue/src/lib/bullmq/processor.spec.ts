@@ -80,6 +80,15 @@ describe('CustomWorkerHost', () => {
     expect(err.response).toEqual({ message: 'Not found', statusCode: 404 });
   });
 
+  it('keeps a transient error retryable while the job is young', async () => {
+    const processor = new TestProcessor(new Error('Bot not found'));
+
+    await expect(processor.process(makeJob())).rejects.toThrow('Bot not found');
+
+    expect(processor.failures).toHaveLength(1);
+    expect(processor.failures[0]).not.toBeInstanceOf(UnrecoverableError);
+  });
+
   it('reports that the job is too old instead of the last error', async () => {
     const processor = new TestProcessor(new Error('Bot not found'));
 
