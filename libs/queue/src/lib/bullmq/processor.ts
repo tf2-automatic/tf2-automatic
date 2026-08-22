@@ -142,7 +142,9 @@ export abstract class CustomWorkerHost<
 
         // Only rewrite the error if the job would otherwise have been retried
         if (tooOld && !(err instanceof UnrecoverableError)) {
-          const failure = new UnrecoverableError('Job is too old to be retried');
+          const failure = new UnrecoverableError(
+            'Job is too old to be retried',
+          );
 
           await this.jobFailed(job, failure);
 
