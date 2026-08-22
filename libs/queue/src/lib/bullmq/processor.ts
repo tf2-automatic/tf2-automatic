@@ -136,24 +136,22 @@ export abstract class CustomWorkerHost<
         throw err;
       })
       .catch(async (err) => {
-        await this.jobFailed(job, err);
-
         // Check if job will be too old when it can be retried again
         const delay = customBackoffStrategy(job.attemptsMade, job);
-        if (job.timestamp < Date.now() + delay - maxTime) {
-          if (err instanceof AxiosError && err.response !== undefined) {
-            // Is axios error, throw custom unrecoverable error with axios response
-            throw new CustomUnrecoverableError(
-              'Job is too old to be retried',
-              err.response.data,
-            );
-          }
+        const tooOld = job.timestamp < Date.now() + delay - maxTime;
 
-          // Is not axios error, throw normal unrecoverable error
-          throw new UnrecoverableError('Job is too old to be retried');
+        // Only rewrite the error if the job would otherwise have been retried
+        if (tooOld && !(err instanceof UnrecoverableError)) {
+          const failure = new UnrecoverableError('Job is too old to be retried');
+
+          await this.jobFailed(job, failure);
+
+          throw failure;
         }
 
-        if (err instanceof AxiosError && err.response !== undefined) {
+        await this.jobFailed(job, err);
+
+        if (!tooOld && err instanceof AxiosError && err.response !== undefined) {
           // Not a unrecoverable error, and is an axios error, throw custom error with axios response
           throw new CustomError(err.response.data.message, err.response.data);
         }

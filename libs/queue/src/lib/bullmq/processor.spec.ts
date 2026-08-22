@@ -80,8 +80,8 @@ describe('CustomWorkerHost', () => {
     expect(err.response).toEqual({ message: 'Not found', statusCode: 404 });
   });
 
-  it('calls onJobFailed before the error is rewritten for the retry decision', async () => {
-    const processor = new TestProcessor(axios404());
+  it('reports that the job is too old instead of the last error', async () => {
+    const processor = new TestProcessor(new Error('Bot not found'));
 
     // 90s old, next retry 60s out, past the 120s maxTime
     await expect(
@@ -89,6 +89,22 @@ describe('CustomWorkerHost', () => {
         makeJob({ timestamp: Date.now() - 90000, attemptsMade: 10 }),
       ),
     ).rejects.toThrow('Job is too old to be retried');
+
+    expect(processor.failures).toHaveLength(1);
+    const err = processor.failures[0] as UnrecoverableError;
+    expect(err).toBeInstanceOf(UnrecoverableError);
+    expect(err.message).toBe('Job is too old to be retried');
+  });
+
+  it('keeps an unrecoverable error instead of rewriting it as too old', async () => {
+    const processor = new TestProcessor(axios404());
+
+    // 90s old, next retry 60s out, past the 120s maxTime
+    await expect(
+      processor.process(
+        makeJob({ timestamp: Date.now() - 90000, attemptsMade: 10 }),
+      ),
+    ).rejects.toThrow('Upstream error: Not found (HTTP 404)');
 
     expect(processor.failures).toHaveLength(1);
     const err = processor.failures[0] as CustomUnrecoverableError;
