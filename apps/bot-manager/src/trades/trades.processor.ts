@@ -38,6 +38,7 @@ import {
   CustomError,
   CustomUnrecoverableError,
   CustomWorkerHost,
+  errorToEvent,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
 
@@ -75,33 +76,23 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
       .catch((err) => {
         this.handleError(err);
         throw err;
-      })
-      .catch(async (err) => {
-        const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
-          job: this.tradesService.mapJob(job),
-          error: err.message,
-          response: null,
-        };
-
-        if (
-          err instanceof CustomError ||
-          err instanceof CustomUnrecoverableError
-        ) {
-          data.response = err.response;
-        }
-
-        const unrecoverable = err instanceof UnrecoverableError;
-
-        return this.eventsService
-          .publish(
-            unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
-            data,
-            new SteamID(job.data.bot),
-          )
-          .finally(() => {
-            throw err;
-          });
       });
+  }
+
+  async onJobFailed(job: Job<TradeQueue>, err: unknown): Promise<void> {
+    const { unrecoverable, error, response } = errorToEvent(err);
+
+    const data: (TradeErrorEvent | TradeFailedEvent)['data'] = {
+      job: this.tradesService.mapJob(job),
+      error,
+      response,
+    };
+
+    await this.eventsService.publish(
+      unrecoverable ? TRADE_ERROR_EVENT : TRADE_FAILED_EVENT,
+      data,
+      new SteamID(job.data.bot),
+    );
   }
 
   private async handleJob(job: Job<TradeQueue>) {

@@ -56,7 +56,7 @@ export abstract class CustomWorkerHost<
     return Promise.resolve();
   }
 
-  postErrorHandler(
+  onJobFailed(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
   ): Promise<void> {
@@ -100,7 +100,10 @@ export abstract class CustomWorkerHost<
 
     // Check if job is too old
     if (job.timestamp < Date.now() - maxTime) {
-      throw new UnrecoverableError('Job is too old');
+      const err = new UnrecoverableError('Job is too old');
+      // processJob is never reached, so call the hook here instead
+      await this.jobFailed(job, err);
+      throw err;
     }
 
     return this.processJob(job)
@@ -133,22 +136,22 @@ export abstract class CustomWorkerHost<
         throw err;
       })
       .catch(async (err) => {
-        await this.postErrorHandler(job, err);
-
         // Check if job will be too old when it can be retried again
         const delay = customBackoffStrategy(job.attemptsMade, job);
-        if (job.timestamp < Date.now() + delay - maxTime) {
-          if (err instanceof AxiosError && err.response !== undefined) {
-            // Is axios error, throw custom unrecoverable error with axios response
-            throw new CustomUnrecoverableError(
-              'Job is too old to be retried',
-              err.response.data,
-            );
-          }
+        const tooOld = job.timestamp < Date.now() + delay - maxTime;
 
-          // Is not axios error, throw normal unrecoverable error
-          throw new UnrecoverableError('Job is too old to be retried');
+        // Only rewrite the error if the job would otherwise have been retried
+        if (tooOld && !(err instanceof UnrecoverableError)) {
+          const failure = new UnrecoverableError(
+            'Job is too old to be retried',
+          );
+
+          await this.jobFailed(job, failure);
+
+          throw failure;
         }
+
+        await this.jobFailed(job, err);
 
         if (err instanceof AxiosError && err.response !== undefined) {
           // Not a unrecoverable error, and is an axios error, throw custom error with axios response
@@ -157,6 +160,16 @@ export abstract class CustomWorkerHost<
 
         throw err;
       });
+  }
+
+  private jobFailed(
+    job: CustomJob<DataType, ReturnType, NameType>,
+    err: unknown,
+  ): Promise<void> {
+    return this.onJobFailed(job, err).catch((hookErr) => {
+      this.logger.error('Error in onJobFailed handler');
+      console.error(hookErr);
+    });
   }
 
   @OnWorkerEvent('error')

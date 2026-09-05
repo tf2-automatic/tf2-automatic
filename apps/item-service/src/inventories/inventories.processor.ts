@@ -5,8 +5,8 @@ import {
   CustomWorkerHost,
   bullWorkerSettings,
   JobData,
-  CustomError,
   CustomUnrecoverableError,
+  errorToEvent,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
 import SteamID from 'steamid';
@@ -17,7 +17,6 @@ import {
   InventoryFailedEvent,
   InventoryJobOptions,
 } from '@tf2-automatic/item-service-data';
-import { UnrecoverableError } from 'bullmq';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 
 type InventoryJobData = JobData<InventoryJobOptions>;
@@ -38,55 +37,38 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     super(cls);
   }
 
-  async postErrorHandler(
+  async onJobFailed(
     job: CustomJob<InventoryJobData>,
     err: unknown,
   ): Promise<void> {
-    if (!(err instanceof CustomUnrecoverableError)) {
-      return;
-    }
+    const { unrecoverable, error, response } = errorToEvent(err);
 
-    await this.inventoriesService.saveInventory(
+    const data: (InventoryErrorEvent | InventoryFailedEvent)['data'] = {
+      job: job.data.options,
+      error,
+      response,
+    };
+
+    await this.eventsService.publish(
+      unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
+      data,
       new SteamID(job.data.options.steamid64),
-      {
-        timestamp: this.cls.get('timestamp'),
-        error: err.response,
-        result: null,
-        ttl: job.data.options.ttl,
-      },
     );
+
+    if (err instanceof CustomUnrecoverableError) {
+      await this.inventoriesService.saveInventory(
+        new SteamID(job.data.options.steamid64),
+        {
+          timestamp: this.cls.get('timestamp'),
+          error: err.response,
+          result: null,
+          ttl: job.data.options.ttl,
+        },
+      );
+    }
   }
 
-  async processJob(job: CustomJob<InventoryJobData>) {
-    return this.handleJob(job).catch(async (err) => {
-      const data: (InventoryErrorEvent | InventoryFailedEvent)['data'] = {
-        job: job.data.options,
-        error: err.message,
-        response: null,
-      };
-
-      if (
-        err instanceof CustomError ||
-        err instanceof CustomUnrecoverableError
-      ) {
-        data.response = err.response;
-      }
-
-      const unrecoverable = err instanceof UnrecoverableError;
-
-      return this.eventsService
-        .publish(
-          unrecoverable ? INVENTORY_ERROR_EVENT : INVENTORY_FAILED_EVENT,
-          data,
-          new SteamID(job.data.options.steamid64),
-        )
-        .finally(() => {
-          throw err;
-        });
-    });
-  }
-
-  private async handleJob(job: CustomJob<InventoryJobData>): Promise<void> {
+  async processJob(job: CustomJob<InventoryJobData>): Promise<void> {
     const steamid = new SteamID(job.data.options.steamid64);
 
     const inventory = await this.inventoriesService.fetchInventoryBySteamID(

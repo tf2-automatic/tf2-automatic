@@ -38,9 +38,9 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
     return botAttemptErrorHandler(this.cls, err, job);
   }
 
-  async postErrorHandler(
+  async onJobFailed(
     job: CustomJob<EscrowJobData, unknown, string>,
-    err,
+    err: unknown,
   ): Promise<void> {
     if (!(err instanceof CustomUnrecoverableError)) {
       return;
