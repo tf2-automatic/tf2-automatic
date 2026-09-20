@@ -1,4 +1,3 @@
-/* eslint-disable */
 export default {
   displayName: 'bptf-manager-e2e',
   preset: '../../jest.preset.js',

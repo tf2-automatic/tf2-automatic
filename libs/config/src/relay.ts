@@ -1,5 +1,5 @@
-import { Redis } from "./connections";
-import { getEnvWithDefault } from "./helpers";
+import { Redis } from './connections';
+import { getEnvWithDefault } from './helpers';
 
 export interface RelayConfig {
   leaderTimeout: number;

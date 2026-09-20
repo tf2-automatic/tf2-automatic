@@ -48,3 +48,18 @@ export class CustomError extends Error {
     this.response = response;
   }
 }
+
+export function errorToEvent(err: unknown): {
+  error: string;
+  response: HttpError | null;
+  unrecoverable: boolean;
+} {
+  return {
+    error: err instanceof Error ? err.message : 'Unknown error',
+    response:
+      err instanceof CustomError || err instanceof CustomUnrecoverableError
+        ? err.response
+        : null,
+    unrecoverable: err instanceof UnrecoverableError,
+  };
+}

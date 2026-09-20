@@ -21,6 +21,13 @@
       "options": {
         "jestConfig": "libs/nestjs-relay/jest.config.ts"
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/nestjs-relay/**/*.ts"]
+      }
     }
   }
 }

@@ -9,7 +9,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
-        "jestConfig": "libs/nestjs-events/jest.config.ts"
+        "jestConfig": "libs/nestjs-storage/jest.config.ts"
       }
     },
     "build": {
@@ -21,6 +21,13 @@
         "packageJson": "libs/nestjs-storage/package.json",
         "main": "libs/nestjs-storage/src/index.ts",
         "assets": ["libs/nestjs-storage/*.md"]
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["libs/nestjs-storage/**/*.ts"]
       }
     }
   }

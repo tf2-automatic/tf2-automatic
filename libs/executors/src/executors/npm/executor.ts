@@ -110,6 +110,9 @@ export default async function npmExecutor(
 
   const packageJson = getPackageJson(packageJsonPath);
   packageJson.version = options['release-version'];
+  packageJson.engines = getPackageJson(
+    path.join(context.root, 'package.json'),
+  ).engines;
 
   if (options['dry-run'] !== true) {
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, undefined, 2));

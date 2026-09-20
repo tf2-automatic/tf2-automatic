@@ -25,4 +25,4 @@ RUN sed -i 's/"version": .*/"version": "'"$VERSION"'",/' package.json
 COPY --from=installer /app/node_modules ./node_modules
 EXPOSE 3000
 ENV PORT=3000
-CMD ["node", "main.js"]
+CMD ["node", "--enable-source-maps", "main.js"]

@@ -1,7 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
-export function getAppNameAndVersion(): { name: string, version: string, } | null {
+export function getAppNameAndVersion(): {
+  name: string;
+  version: string;
+} | null {
   if (process.env['NODE_ENV'] === 'test') {
     return null;
   }
@@ -12,7 +15,7 @@ export function getAppNameAndVersion(): { name: string, version: string, } | nul
 
   return {
     name: packageJson.name,
-    version: packageJson.version
+    version: packageJson.version,
   };
 }
 
