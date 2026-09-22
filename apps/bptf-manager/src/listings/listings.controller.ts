@@ -16,6 +16,7 @@ import {
   ListingLimitsModel,
   LISTINGS_BASE_URL,
   DESIRED_LISTINGS_PATH,
+  DESIRED_LISTINGS_CLEAR_PATH,
   CURRENT_LISTINGS_PATH,
   CURRENT_LISTINGS_REFRESH_PATH,
   LISTING_LIMITS_PATH,
@@ -100,6 +101,23 @@ export class ListingsController {
       steamid,
       remove,
     );
+
+    return desired.map((d) => d.toJSON());
+  }
+
+  @ApiOperation({
+    summary: 'Clear desired listings',
+    description: 'Remove all desired listings from the database',
+  })
+  @ApiResponse({
+    type: [DesiredListingModel],
+  })
+  @ApiParamSteamID()
+  @Delete(DESIRED_LISTINGS_CLEAR_PATH)
+  async clearDesired(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+  ): Promise<DesiredListingModel[]> {
+    const desired = await this.desiredListingsService.clearDesired(steamid);
 
     return desired.map((d) => d.toJSON());
   }

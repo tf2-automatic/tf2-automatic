@@ -233,6 +233,28 @@ export class DesiredListingsService {
     });
   }
 
+  /**
+   * Removes all desired listings of the account
+   */
+  async clearDesired(steamid: SteamID): Promise<DesiredListing[]> {
+    const hashes = await this.redis.hkeys(
+      DesiredListingsService.getDesiredKey(steamid),
+    );
+
+    this.logger.log(
+      `Clearing ${hashes.length} desired listing(s) for ${steamid.getSteamID64()}`,
+    );
+
+    if (hashes.length === 0) {
+      return [];
+    }
+
+    return this.removeDesired(
+      steamid,
+      hashes.map((hash) => ({ hash })),
+    );
+  }
+
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
     const values = await this.redis.hvalsBuffer(
       DesiredListingsService.getDesiredKey(steamid),
