@@ -15,11 +15,12 @@ import { AddDesiredListing } from './classes/add-desired-listing.class';
 import { ListingFactory } from './classes/listing.factory';
 import hashListing from './utils/desired-listing-hash';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { pack, unpack } from 'msgpackr';
 
 @Injectable()
 export class DesiredListingsService {
+  private readonly logger = new Logger(DesiredListingsService.name);
   private readonly redis: Redis = this.redisService.getOrThrow();
   private readonly locker: Locker = new Locker(this.redis);
 
@@ -71,6 +72,96 @@ export class DesiredListingsService {
           steamid,
           desired: changed,
         } satisfies DesiredListingsAddedEvent);
+      }
+
+      return desired;
+    });
+  }
+
+  /**
+   * Replaces all desired listings of the account: listings in `set` are added / updated like
+   * {@link addDesired}, and every stored desired listing not in `set` is removed.
+   */
+  async setDesired(
+    steamid: SteamID,
+    set: DesiredListingDto[],
+  ): Promise<DesiredListing[]> {
+    const now = Math.floor(Date.now() / 1000);
+
+    const desired = set.map((create) =>
+      ListingFactory.CreateDesiredListingFromDto(steamid, create, now),
+    );
+
+    const newHashes = new Set(desired.map((d) => d.getHash()));
+
+    // Listings added concurrently after this read are not locked and therefore not removed, the
+    // next set will pick them up
+    const existingHashes = await this.redis.hkeys(
+      DesiredListingsService.getDesiredKey(steamid),
+    );
+
+    const hashes = Array.from(new Set([...newHashes, ...existingHashes]));
+
+    this.logger.log(
+      `Setting ${newHashes.size} desired listing(s) for ${steamid.getSteamID64()} (${existingHashes.length} stored)`,
+    );
+
+    const resources = hashes.map(
+      (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
+    );
+
+    return this.locker.using(resources, LockDuration.MEDIUM, async (signal) => {
+      const current = await this.getDesiredByHashes(steamid, hashes);
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      const changed = DesiredListingsService.compareAndUpdateDesired(
+        desired,
+        current,
+      );
+
+      const removed = Array.from(current.values()).filter(
+        (c) => !newHashes.has(c.getHash()),
+      );
+
+      this.logger.log(
+        `Set desired for ${steamid.getSteamID64()}: ${changed.length} changed, ${desired.length - changed.length} unchanged, ${removed.length} removed`,
+      );
+
+      if (desired.length === 0 && removed.length === 0) {
+        return desired;
+      }
+
+      const transaction = this.redis.multi();
+      if (desired.length > 0) {
+        DesiredListingsService.chainableSaveDesired(
+          transaction,
+          steamid,
+          desired,
+        );
+      }
+      if (removed.length > 0) {
+        transaction.hdel(
+          DesiredListingsService.getDesiredKey(steamid),
+          ...removed.map((d) => d.getHash()),
+        );
+      }
+      await transaction.exec();
+
+      if (changed.length > 0) {
+        this.eventEmitter.emit('desired-listings.added', {
+          steamid,
+          desired: changed,
+        } satisfies DesiredListingsAddedEvent);
+      }
+
+      if (removed.length > 0) {
+        this.eventEmitter.emit('desired-listings.removed', {
+          steamid,
+          desired: removed,
+        } satisfies DesiredListingsRemovedEvent);
       }
 
       return desired;

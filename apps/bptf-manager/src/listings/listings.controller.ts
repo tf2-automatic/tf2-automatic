@@ -6,6 +6,7 @@ import {
   Param,
   ParseArrayPipe,
   Post,
+  Put,
 } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
 import {
@@ -54,6 +55,29 @@ export class ListingsController {
     add: DesiredListingDto[],
   ): Promise<DesiredListingModel[]> {
     const desired = await this.desiredListingsService.addDesired(steamid, add);
+
+    return desired.map((d) => d.toJSON());
+  }
+
+  @ApiOperation({
+    summary: 'Set desired listings',
+    description:
+      'Replace all desired listings, desired listings not in the body are removed',
+  })
+  @ApiBody({
+    type: [DesiredListingDto],
+  })
+  @ApiResponse({
+    type: [DesiredListingModel],
+  })
+  @ApiParamSteamID()
+  @Put(DESIRED_LISTINGS_PATH)
+  async setDesired(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Body(new ParseArrayPipe({ items: DesiredListingDto }))
+    set: DesiredListingDto[],
+  ): Promise<DesiredListingModel[]> {
+    const desired = await this.desiredListingsService.setDesired(steamid, set);
 
     return desired.map((d) => d.toJSON());
   }
