@@ -129,9 +129,16 @@ export class BotService implements OnModuleDestroy {
     };
 
     this.community.on('postHttpRequest', (requestID, _, __, ___, response) => {
-      this.histogramEnds.get(requestID)?.({
+      const match = this.histogramEnds.get(requestID);
+      if (!match) {
+        return;
+      }
+
+      match({
         status: response?.statusCode ?? null,
       });
+
+      this.histogramEnds.delete(requestID);
     });
 
     const tradeConfig =
