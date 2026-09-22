@@ -285,6 +285,10 @@ export class ManageListingsService {
         break;
     }
 
+    // A job with the same id that is already running makes queue.add a no-op, so flag that there is
+    // new work; the running job re-queues itself on completion when the flag is set
+    await this.redis.set(ManageListingsService.getPendingKey(steamid, type), 1);
+
     const data: JobData = {
       steamid64: steamid.getSteamID64(),
     };
@@ -295,6 +299,24 @@ export class ManageListingsService {
     };
 
     await this.queue.add(type, data, opts);
+  }
+
+  /**
+   * Clears the pending flag of a job type, called when a job of that type starts
+   */
+  async clearPending(steamid: SteamID, type: ManageJobType): Promise<void> {
+    await this.redis.del(ManageListingsService.getPendingKey(steamid, type));
+  }
+
+  /**
+   * True when a job of that type was requested after the running one started
+   */
+  async isPending(steamid: SteamID, type: ManageJobType): Promise<boolean> {
+    return (
+      (await this.redis.exists(
+        ManageListingsService.getPendingKey(steamid, type),
+      )) === 1
+    );
   }
 
   @OnEvent('current-listings.refreshed', {
@@ -928,6 +950,10 @@ export class ManageListingsService {
     const result = await this.currentListingsService.deleteAllListings(token);
 
     return result;
+  }
+
+  private static getPendingKey(steamid: SteamID, type: ManageJobType): string {
+    return `listings:pending:${type}:${steamid.getSteamID64()}`;
   }
 
   private static getCreateKey(steamid: SteamID): string {
