@@ -6,17 +6,12 @@ import {
   CurrentListingsCreatedEvent,
   DesiredListingsCreatedEvent,
 } from '../interfaces/events.interface';
-import { Redis } from 'ioredis';
-import { RedisService } from '@liaoliaots/nestjs-redis';
 import SteamID from 'steamid';
 
 @Injectable()
 export class DesiredListingsListener {
-  private readonly redis: Redis = this.redisService.getOrThrow();
-
   constructor(
     private readonly desiredListingsService: DesiredListingsService,
-    private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -26,32 +21,17 @@ export class DesiredListingsListener {
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
-    const failedHashes = Object.keys(event.errors);
-
     // Update the failed desired listings with the error message
-    const map = await this.desiredListingsService.getDesiredByHashes(
+    await this.desiredListingsService.updateDesired(
       event.steamid,
-      failedHashes,
+      Object.keys(event.errors),
+      (desired) =>
+        desired.forEach((d) => {
+          d.setUpdatedAt(now);
+          d.setLastAttemptedAt(now);
+          d.setError(event.errors[d.getHash()]);
+        }),
     );
-
-    if (map.size === 0) {
-      return;
-    }
-
-    const desired = Array.from(map.values());
-    desired.forEach((desired) => {
-      desired.setUpdatedAt(now);
-      desired.setLastAttemptedAt(now);
-      desired.setError(event.errors[desired.getHash()]);
-    });
-
-    const transaction = this.redis.multi();
-    DesiredListingsService.chainableSaveDesired(
-      transaction,
-      event.steamid,
-      desired,
-    );
-    await transaction.exec();
   }
 
   @OnEvent('current-listings.deleted-all', {
@@ -60,21 +40,19 @@ export class DesiredListingsListener {
   async currentListingsDeletedAll(steamid: SteamID): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
-    const desired = await this.desiredListingsService.getAllDesired(steamid);
-
-    if (desired.length === 0) {
-      return;
-    }
+    const hashes =
+      await this.desiredListingsService.getAllDesiredHashes(steamid);
 
     // Remove listing id from all desired listings
-    desired.forEach((d) => {
-      d.setID(null);
-      d.setUpdatedAt(now);
-    });
-
-    const transaction = this.redis.multi();
-    DesiredListingsService.chainableSaveDesired(transaction, steamid, desired);
-    await transaction.exec();
+    await this.desiredListingsService.updateDesired(
+      steamid,
+      hashes,
+      (desired) =>
+        desired.forEach((d) => {
+          d.setID(null);
+          d.setUpdatedAt(now);
+        }),
+    );
   }
 
   @OnEvent('current-listings.created', {
@@ -91,37 +69,21 @@ export class DesiredListingsListener {
 
     const now = Math.floor(Date.now() / 1000);
 
-    // Update desired listings that were changed
-    const hashes = Object.keys(event.listings);
-
-    const map = await this.desiredListingsService.getDesiredByHashes(
-      event.steamid,
-      hashes,
-    );
-
-    if (map.size === 0) {
-      return;
-    }
-
-    const desired = Array.from(map.values());
-    desired.forEach((desired) => {
-      desired.setID(event.listings[desired.getHash()].id);
-      desired.setLastAttemptedAt(now);
-      desired.setUpdatedAt(now);
-      desired.setError(undefined);
-    });
-
-    const transaction = this.redis.multi();
-
     // Save listings with their new listings id
-    DesiredListingsService.chainableSaveDesired(
-      transaction,
+    const desired = await this.desiredListingsService.updateDesired(
       event.steamid,
-      desired,
+      createdHashes,
+      (desired) =>
+        desired.forEach((d) => {
+          d.setID(event.listings[d.getHash()].id);
+          d.setLastAttemptedAt(now);
+          d.setUpdatedAt(now);
+          d.setError(undefined);
+        }),
     );
 
-    await transaction.exec();
-
+    // Emitted even when no desired listing is left: listings whose desired listing was removed
+    // while they were being created are then queued for deletion by the created handlers
     this.eventEmitter.emit('desired-listings.created', {
       steamid: event.steamid,
       desired,

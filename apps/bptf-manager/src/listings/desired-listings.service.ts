@@ -142,6 +142,49 @@ export class DesiredListingsService {
     });
   }
 
+  // Locked read-modify-write, removed listings are never saved back
+  async updateDesired(
+    steamid: SteamID,
+    hashes: string[],
+    mutate: (desired: DesiredListing[]) => void,
+  ): Promise<DesiredListing[]> {
+    if (hashes.length === 0) {
+      return [];
+    }
+
+    const resources = hashes.map(
+      (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
+    );
+
+    return this.locker.using(resources, LockDuration.MEDIUM, async (signal) => {
+      const map = await this.getDesiredByHashes(steamid, hashes);
+      if (map.size === 0) {
+        return [];
+      }
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      const desired = Array.from(map.values());
+      mutate(desired);
+
+      const transaction = this.redis.multi();
+      DesiredListingsService.chainableSaveDesired(
+        transaction,
+        steamid,
+        desired,
+      );
+      await transaction.exec();
+
+      return desired;
+    });
+  }
+
+  getAllDesiredHashes(steamid: SteamID): Promise<string[]> {
+    return this.redis.hkeys(DesiredListingsService.getDesiredKey(steamid));
+  }
+
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
     const values = await this.redis.hvalsBuffer(
       DesiredListingsService.getDesiredKey(steamid),
