@@ -391,7 +391,8 @@ export class ManageListingsService {
     const originalKey = ManageListingsService.getCreateKey(steamid);
     const copyKey = originalKey + ':copy';
 
-    await this.redis.copy(ManageListingsService.getCreateKey(steamid), copyKey);
+    // REPLACE: a copy left behind by a crashed job would otherwise make the copy a no-op
+    await this.redis.copy(originalKey, copyKey, 'REPLACE');
 
     if (desiredHashes.length > 0) {
       // Check if the desired listings are already in the queue
@@ -415,14 +416,11 @@ export class ManageListingsService {
       await this.redis.zrem(copyKey, ...Array.from(hashes.values()));
     }
 
-    // Check if we have enough hashes
-    if (count > hashes.size && limits.cap > limits.used) {
+    // Check if we have enough hashes, new listings only get the free listing slots
+    const remaining = Math.min(count - hashes.size, limits.cap - limits.used);
+    if (remaining > 0) {
       // Get remaining hashes by priority
-      const queue = await this.redis.zrange(
-        copyKey,
-        0,
-        count - hashes.size - 1,
-      );
+      const queue = await this.redis.zrange(copyKey, 0, remaining - 1);
 
       for (const hash of queue) {
         if (hashes.size >= count) {
