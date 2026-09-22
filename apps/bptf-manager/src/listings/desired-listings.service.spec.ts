@@ -353,6 +353,72 @@ describe('DesiredListingsService', () => {
     });
   });
 
+  describe('Setting desired', () => {
+    it('should keep, add and remove desired listings', async () => {
+      const steamid = new SteamID('76561198120070906');
+
+      const keptListing: AddListingDto = { id: '1', currencies: { keys: 1 } };
+      const removedListing: AddListingDto = {
+        id: '2',
+        currencies: { keys: 1 },
+      };
+      const newListing: AddListingDto = { id: '3', currencies: { keys: 1 } };
+
+      const kept = new DesiredListing(steamid, keptListing, 0).setID('100');
+      const removed = new DesiredListing(steamid, removedListing, 0).setID(
+        '200',
+      );
+
+      mockRedis.hkeys = jest
+        .fn()
+        .mockResolvedValue([kept.getHash(), removed.getHash()]);
+
+      jest
+        .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
+        .mockResolvedValue(
+          new Map([
+            [kept.getHash(), kept],
+            [removed.getHash(), removed],
+          ]),
+        );
+
+      const result = await service.setDesired(steamid, [
+        { listing: keptListing },
+        { listing: newListing },
+      ]);
+
+      expectMockUsing(steamid, [
+        hashListing(keptListing),
+        hashListing(newListing),
+        removed.getHash(),
+      ]);
+
+      const expectedKept = new AddDesiredListing(steamid, keptListing, 0).setID(
+        '100',
+      );
+      const expectedNew = new AddDesiredListing(steamid, newListing, 0);
+
+      expect(result).toEqual([expectedKept, expectedNew]);
+
+      expect(mockRedis.hdel).toHaveBeenCalledTimes(1);
+      expect(mockRedis.hdel).toHaveBeenCalledWith(
+        'listings:desired:' + steamid.getSteamID64(),
+        removed.getHash(),
+      );
+      expect(mockRedis.exec).toHaveBeenCalledTimes(1);
+
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(2);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'desired-listings.added',
+        { steamid, desired: [expectedNew] },
+      );
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'desired-listings.removed',
+        { steamid, desired: [removed] },
+      );
+    });
+  });
+
   describe('Static methods', () => {
     it('should save desired listings', () => {
       const steamid = new SteamID('76561198120070906');
