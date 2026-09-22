@@ -96,9 +96,7 @@ export class DesiredListingsService {
 
     // Listings added concurrently after this read are not locked and therefore not removed, the
     // next set will pick them up
-    const existingHashes = await this.redis.hkeys(
-      DesiredListingsService.getDesiredKey(steamid),
-    );
+    const existingHashes = await this.getAllDesiredHashes(steamid);
 
     const hashes = Array.from(new Set([...newHashes, ...existingHashes]));
 
@@ -237,9 +235,7 @@ export class DesiredListingsService {
    * Removes all desired listings of the account
    */
   async clearDesired(steamid: SteamID): Promise<DesiredListing[]> {
-    const hashes = await this.redis.hkeys(
-      DesiredListingsService.getDesiredKey(steamid),
-    );
+    const hashes = await this.getAllDesiredHashes(steamid);
 
     this.logger.log(
       `Clearing ${hashes.length} desired listing(s) for ${steamid.getSteamID64()}`,
@@ -253,6 +249,53 @@ export class DesiredListingsService {
       steamid,
       hashes.map((hash) => ({ hash })),
     );
+  }
+
+  /**
+   * Locked read-modify-write of stored desired listings. `mutate` receives the listings as they are
+   * stored now (not a stale snapshot), and only those are saved back, so a hash that was removed
+   * in the meantime is never re-added.
+   */
+  async updateDesired(
+    steamid: SteamID,
+    hashes: string[],
+    mutate: (desired: DesiredListing[]) => void,
+  ): Promise<DesiredListing[]> {
+    if (hashes.length === 0) {
+      return [];
+    }
+
+    const resources = hashes.map(
+      (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
+    );
+
+    return this.locker.using(resources, LockDuration.MEDIUM, async (signal) => {
+      const map = await this.getDesiredByHashes(steamid, hashes);
+      if (map.size === 0) {
+        return [];
+      }
+
+      if (signal.aborted) {
+        throw signal.error;
+      }
+
+      const desired = Array.from(map.values());
+      mutate(desired);
+
+      const transaction = this.redis.multi();
+      DesiredListingsService.chainableSaveDesired(
+        transaction,
+        steamid,
+        desired,
+      );
+      await transaction.exec();
+
+      return desired;
+    });
+  }
+
+  getAllDesiredHashes(steamid: SteamID): Promise<string[]> {
+    return this.redis.hkeys(DesiredListingsService.getDesiredKey(steamid));
   }
 
   async getAllDesired(steamid: SteamID): Promise<DesiredListing[]> {
