@@ -178,7 +178,7 @@ export class TF2Service implements OnApplicationShutdown {
       case TaskType.Delete:
         return this.processDeleteItem(task.assetid);
       case TaskType.Sort:
-        return this.processSortBackpack();
+        return this.processSortBackpack(task.sort);
       default:
         // @ts-expect-error Gives compile-time error if not all task types are handled.
         throw new Error('Unknown task type: ' + task.type);
@@ -302,14 +302,13 @@ export class TF2Service implements OnApplicationShutdown {
     return this.tf2.backpack;
   }
 
-  private processSortBackpack(): Promise<void> {
-    this.logger.debug('Sorting backpack');
+  private async processSortBackpack(sort: SortBackpackTypes): Promise<void> {
+    this.logger.debug(`Sorting backpack (type: ${sort})`);
 
-    this.tf2.sortBackpack(102);
+    this.tf2.sortBackpack(sort);
 
-    return this.waitForNoEvent('itemChanged', 1000).then(() => {
-      this.logger.debug('Backpack sorted');
-    });
+    await this.waitForNoEvent('itemChanged', 1000);
+    this.logger.debug('Backpack sorted');
   }
 
   onApplicationShutdown(): void {
