@@ -18,9 +18,6 @@
         "{workspaceRoot}/.eslintrc.publish.json"
       ]
     },
-    "docker": {
-      "dependsOn": ["build"]
-    },
     "npm": {
       "dependsOn": ["build"]
     },
