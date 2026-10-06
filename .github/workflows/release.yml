@@ -97,6 +97,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform.name }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.projectName }}-${{ matrix.platform.runner }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.projectName }}-${{ matrix.platform.runner }}
           build-args: |
             VERSION=${{ needs.release.outputs.new_release_version }}
             SOURCE_DIR=dist/apps/${{ matrix.projectName }}
