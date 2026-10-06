@@ -48,7 +48,6 @@ jobs:
         uses: actions/checkout@v7
       - name: Setup Node
         uses: ./.github/actions/setup-node
-      # The build output is plain JavaScript, so it is built once and shared with every platform
       - name: Build apps
         run: node ./scripts/nx.js run-many -t build -p ${{ join(fromJson(needs.affected.outputs.docker), ',') }}
       - name: Upload build output
@@ -61,12 +60,10 @@ jobs:
   build_docker:
     runs-on: ${{ matrix.platform.runner }}
     needs: [affected, release, build_apps]
-    if: needs.release.outputs.new_release_published == 'true' && needs.affected.outputs.docker != '[]'
     strategy:
       fail-fast: false
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.docker)}}
-        # Each platform builds natively on its own runner
         platform:
           - name: linux/amd64
             runner: ubuntu-latest
