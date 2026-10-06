@@ -55,7 +55,6 @@ jobs:
         with:
           name: dist
           path: dist/apps
-          if-no-files-found: error
           retention-days: 1
   build_docker:
     runs-on: ${{ matrix.platform.runner }}
@@ -96,7 +95,6 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile
           platforms: ${{ matrix.platform.name }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -113,7 +111,6 @@ jobs:
         with:
           name: digests-${{ matrix.projectName }}-${{ strategy.job-index }}
           path: ${{ runner.temp }}/digests/*
-          if-no-files-found: error
           retention-days: 1
   merge_docker:
     runs-on: ubuntu-latest
