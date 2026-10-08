@@ -2,10 +2,33 @@ import { Logger } from '@nestjs/common';
 import { S3StorageConfig } from '@tf2-automatic/config';
 import { StorageEngine } from './engine.interface';
 import * as Minio from 'minio';
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import path from 'path';
+
+/**
+ * Cap on concurrent connections to the object store.
+ *
+ * steam-user emits one storage write per inventory asset, so an account with a
+ * thousand items fans out that many putObject calls at once. Given no agent,
+ * minio falls back to Node's global agent, which is maxSockets:Infinity - so
+ * every one of those calls opens its own socket. On 2026-10-08 that burst
+ * crossed the object store's 1024 descriptor limit and latched it: accept()
+ * started failing, in-flight requests never completed so never released their
+ * descriptors, and it stayed wedged for ten hours.
+ *
+ * Bounding the pool keeps the burst flat - the excess queues inside the agent
+ * rather than each request grabbing a descriptor - and keepAlive lets the
+ * writes reuse connections instead of reconnecting once per object.
+ */
+export const MAX_SOCKETS = 64;
 
 export class S3StorageEngine implements StorageEngine {
   private readonly logger = new Logger(S3StorageEngine.name);
+
+  private readonly agent = this.config.useSSL
+    ? new HttpsAgent({ keepAlive: true, maxSockets: MAX_SOCKETS })
+    : new HttpAgent({ keepAlive: true, maxSockets: MAX_SOCKETS });
 
   private readonly client = new Minio.Client({
     endPoint: this.config.endpoint,
@@ -13,6 +36,7 @@ export class S3StorageEngine implements StorageEngine {
     useSSL: this.config.useSSL,
     accessKey: this.config.accessKeyId,
     secretKey: this.config.secretAccessKey,
+    transportAgent: this.agent,
   });
 
   constructor(private readonly config: S3StorageConfig) {}
