@@ -2,10 +2,22 @@ import { Logger } from '@nestjs/common';
 import { S3StorageConfig } from '@tf2-automatic/config';
 import { StorageEngine } from './engine.interface';
 import * as Minio from 'minio';
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import path from 'path';
+import { AgentOptions } from 'node:http';
 
 export class S3StorageEngine implements StorageEngine {
   private readonly logger = new Logger(S3StorageEngine.name);
+
+  private readonly agentOptions = {
+    keepAlive: this.config.keepAlive,
+    maxSockets: this.config.maxSockets,
+  } as AgentOptions;
+
+  private readonly agent = this.config.useSSL
+    ? new HttpsAgent(this.agentOptions)
+    : new HttpAgent(this.agentOptions);
 
   private readonly client = new Minio.Client({
     endPoint: this.config.endpoint,
@@ -13,16 +25,16 @@ export class S3StorageEngine implements StorageEngine {
     useSSL: this.config.useSSL,
     accessKey: this.config.accessKeyId,
     secretKey: this.config.secretAccessKey,
+    transportAgent: this.agent,
   });
 
   constructor(private readonly config: S3StorageConfig) {}
 
-  setup() {
-    return this.client.bucketExists(this.config.bucket).then((exists) => {
-      if (!exists) {
-        throw new Error(`Bucket "${this.config.bucket}" does not exist`);
-      }
-    });
+  async setup() {
+    const exists = await this.client.bucketExists(this.config.bucket);
+    if (!exists) {
+      throw new Error(`Bucket "${this.config.bucket}" does not exist`);
+    }
   }
 
   async exists(relativePath: string): Promise<boolean> {

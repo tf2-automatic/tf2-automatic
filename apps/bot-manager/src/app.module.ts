@@ -5,7 +5,6 @@ import { validation } from './common/config/validation';
 import { BotsModule } from './bots/bots.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { HealthModule } from './health/health.module';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { HeartbeatsModule } from './heartbeats/heartbeats.module';
 import { InventoriesModule } from './inventories/inventories.module';
 import { NestEventsModule } from '@tf2-automatic/nestjs-events';
@@ -25,6 +24,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ClsModule } from 'nestjs-cls';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 import { PendingModule } from './pending/pending.module';
 
 @Module({
@@ -36,6 +36,7 @@ import { PendingModule } from './pending/pending.module';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {
@@ -64,7 +65,6 @@ import { PendingModule } from './pending/pending.module';
         };
       },
     }),
-    PrometheusModule.register(),
     NestEventsModule.forRoot({
       publishingExchange: BOT_MANAGER_EXCHANGE_NAME,
       subscriberExchanges: [BOT_EXCHANGE_NAME, BOT_MANAGER_EXCHANGE_NAME],

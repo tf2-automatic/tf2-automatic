@@ -13,10 +13,10 @@ import { ProfileModule } from './profile/profile.module';
 import { EventsModule } from './events/events.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { EscrowModule } from './escrow/escrow.module';
+import { NotificationModule } from './notification/notification.module';
 import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { getStorageConfig, getUserAgent } from '@tf2-automatic/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import {
@@ -25,6 +25,7 @@ import {
 } from '@tf2-automatic/nestjs';
 import { HttpModule } from '@nestjs/axios';
 import { ClsModule } from 'nestjs-cls';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 
 @Module({
   providers: [
@@ -45,9 +46,7 @@ import { ClsModule } from 'nestjs-cls';
       load: [configuration],
       validationSchema: validation,
     }),
-    PrometheusModule.register({
-      global: true,
-    }),
+    OpenTelemetryModule.forRoot(),
     EventEmitterModule.forRoot(),
     BotModule,
     NestStorageModule.registerAsync({
@@ -65,6 +64,7 @@ import { ClsModule } from 'nestjs-cls';
     EventsModule,
     MetadataModule,
     EscrowModule,
+    NotificationModule,
     ShutdownModule,
     ManagerModule,
     HttpModule.registerAsync({

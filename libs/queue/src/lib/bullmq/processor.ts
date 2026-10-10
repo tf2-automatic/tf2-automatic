@@ -48,7 +48,6 @@ export abstract class CustomWorkerHost<
   ): Promise<ReturnType>;
 
   /* eslint-disable @typescript-eslint/no-unused-vars */
-
   preErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
@@ -91,7 +90,6 @@ export abstract class CustomWorkerHost<
   }
 
   /* eslint-enable @typescript-eslint/no-unused-vars */
-
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
   ): Promise<unknown> {
@@ -106,7 +104,8 @@ export abstract class CustomWorkerHost<
       throw err;
     }
 
-    return this.processJob(job)
+    return Promise.resolve()
+      .then(() => this.processJob(job))
       .catch(async (err) => {
         await this.preErrorHandler(job, err);
 
@@ -162,14 +161,16 @@ export abstract class CustomWorkerHost<
       });
   }
 
-  private jobFailed(
+  private async jobFailed(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
   ): Promise<void> {
-    return this.onJobFailed(job, err).catch((hookErr) => {
+    try {
+      return await this.onJobFailed(job, err);
+    } catch (hookErr) {
       this.logger.error('Error in onJobFailed handler');
       console.error(hookErr);
-    });
+    }
   }
 
   @OnWorkerEvent('error')

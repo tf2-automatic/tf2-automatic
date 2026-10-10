@@ -55,11 +55,24 @@ export class QueueManager<
           newDelay === 0 ||
           existing.timestamp + existing.delay <= Date.now() + newDelay
         ) {
-          await Promise.all([
-            existing.changeDelay(newDelay),
-            existing.updateData(data),
-          ]);
-          return existing;
+          // The job can leave the delayed state after isDelayed(), changeDelay
+          // checks it atomically. If it is no longer delayed, handle it like a
+          // job that was not delayed. Only update data once the delay changed
+          // so an active job is never modified.
+          const changed = await existing.changeDelay(newDelay).then(
+            () => true,
+            async (err) => {
+              if ((await existing.getState()) === 'delayed') {
+                throw err;
+              }
+              return false;
+            },
+          );
+
+          if (changed) {
+            await existing.updateData(data);
+            return existing;
+          }
         }
       }
     }

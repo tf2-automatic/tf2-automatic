@@ -19,27 +19,27 @@ import SteamID from 'steamid';
 import { EventsService } from '../events/events.service';
 import { MetadataService } from '../metadata/metadata.service';
 import {
-  BotReadyEvent,
   BOT_READY_EVENT,
-  SteamConnectedEvent,
-  SteamDisconnectedEvent,
+  BotReadyEvent,
+  BotWebSession,
   STEAM_CONNECTED_EVENT,
   STEAM_DISCONNECTED_EVENT,
   Bot,
   SteamLimitationsEvent,
+  SteamConnectedEvent,
   STEAM_LIMITATIONS_EVENT,
-  BotWebSession,
+  SteamDisconnectedEvent,
 } from '@tf2-automatic/bot-data';
 import request from 'request';
 import { ShutdownService } from '../shutdown/shutdown.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import { Summary, register } from 'prom-client';
+import { metricAttributes } from '@tf2-automatic/opentelemetry';
+import { metrics } from '@opentelemetry/api';
 import jwt from 'jsonwebtoken';
 import objectHash from 'object-hash';
 import path from 'path';
 
-type HistogramEndCallback = (labels?: unknown) => void;
+type HistogramEndCallback = (status?: number | null) => void;
 
 const FILE_PATHS = {
   TOKEN: (username: string) => path.join(`bots/${username}`, 'token.txt'),
@@ -93,6 +93,18 @@ export class BotService implements OnModuleDestroy {
 
   private histogramEnds: Map<string, HistogramEndCallback> = new Map();
 
+  private readonly steamApiRequestDuration = metrics
+    .getMeter('bot')
+    .createHistogram('steam_api_request_duration_seconds', {
+      description: 'The duration of Steam API requests in seconds',
+      unit: 's',
+      advice: {
+        explicitBucketBoundaries: [
+          0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
+        ],
+      },
+    });
+
   private readonly username =
     this.configService.getOrThrow<SteamAccountConfig>('steam').username;
 
@@ -103,8 +115,6 @@ export class BotService implements OnModuleDestroy {
     private eventsService: EventsService,
     private metadataService: MetadataService,
     private eventEmitter: EventEmitter2,
-    @InjectMetric('steam_api_request_duration_seconds')
-    private readonly steamApiRequestDuration: Summary,
   ) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -118,13 +128,19 @@ export class BotService implements OnModuleDestroy {
       url.search = '';
       url.hash = '';
 
-      this.histogramEnds.set(
-        requestID,
-        this.steamApiRequestDuration.startTimer({
-          method: options.method ?? 'GET',
-          url: url.toString().replace(/\/\d+/g, '/:number'),
-        }),
-      );
+      const attributes = {
+        method: options.method ?? 'GET',
+        url: url.toString().replace(/\/\d+/g, '/:number'),
+      };
+      const start = process.hrtime.bigint();
+
+      this.histogramEnds.set(requestID, (status) => {
+        const seconds = Number(process.hrtime.bigint() - start) / 1e9;
+        this.steamApiRequestDuration.record(
+          seconds,
+          metricAttributes({ ...attributes, status }),
+        );
+      });
       continueRequest();
     };
 
@@ -134,9 +150,7 @@ export class BotService implements OnModuleDestroy {
         return;
       }
 
-      match({
-        status: response?.statusCode ?? null,
-      });
+      match(response?.statusCode ?? null);
 
       this.histogramEnds.delete(requestID);
     });
@@ -277,9 +291,15 @@ export class BotService implements OnModuleDestroy {
 
   getBot(): Bot {
     return {
+      accountName: this.getAccountName(),
+      username: this.username,
       steamid64: this.getSteamID64(),
       apiKey: this.getApiKey(),
     };
+  }
+
+  getAccountName(): string | undefined {
+    return this.client.accountInfo?.name;
   }
 
   isReady(): Promise<boolean | string> {
@@ -578,10 +598,6 @@ export class BotService implements OnModuleDestroy {
     this.setGamesAndState();
 
     this.manager.doPoll();
-
-    register.setDefaultLabels({
-      steamid64: this.getSteamID64(),
-    });
 
     return this.eventsService
       .publish(BOT_READY_EVENT, {} satisfies BotReadyEvent['data'])

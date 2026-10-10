@@ -14,6 +14,8 @@ export const BOT_READY_EVENT: BotReadyEventType = 'bot.ready';
 export type BotReadyEvent = BaseEvent<BotReadyEventType>;
 
 export interface Bot {
+  accountName?: string;
+  username: string;
   steamid64: string;
   apiKey: string;
 }

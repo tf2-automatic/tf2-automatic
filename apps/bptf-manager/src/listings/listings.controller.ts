@@ -6,6 +6,7 @@ import {
   Param,
   ParseArrayPipe,
   Post,
+  Put,
 } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
 import {
@@ -15,6 +16,7 @@ import {
   ListingLimitsModel,
   LISTINGS_BASE_URL,
   DESIRED_LISTINGS_PATH,
+  DESIRED_LISTINGS_CLEAR_PATH,
   CURRENT_LISTINGS_PATH,
   CURRENT_LISTINGS_REFRESH_PATH,
   LISTING_LIMITS_PATH,
@@ -59,6 +61,29 @@ export class ListingsController {
   }
 
   @ApiOperation({
+    summary: 'Set desired listings',
+    description:
+      'Replace all desired listings, desired listings not in the body are removed',
+  })
+  @ApiBody({
+    type: [DesiredListingDto],
+  })
+  @ApiResponse({
+    type: [DesiredListingModel],
+  })
+  @ApiParamSteamID()
+  @Put(DESIRED_LISTINGS_PATH)
+  async setDesired(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+    @Body(new ParseArrayPipe({ items: DesiredListingDto }))
+    set: DesiredListingDto[],
+  ): Promise<DesiredListingModel[]> {
+    const desired = await this.desiredListingsService.setDesired(steamid, set);
+
+    return desired.map((d) => d.toJSON());
+  }
+
+  @ApiOperation({
     summary: 'Remove desired listings',
     description: 'Remove desired listings from the database',
   })
@@ -76,6 +101,23 @@ export class ListingsController {
       steamid,
       remove,
     );
+
+    return desired.map((d) => d.toJSON());
+  }
+
+  @ApiOperation({
+    summary: 'Clear desired listings',
+    description: 'Remove all desired listings from the database',
+  })
+  @ApiResponse({
+    type: [DesiredListingModel],
+  })
+  @ApiParamSteamID()
+  @Delete(DESIRED_LISTINGS_CLEAR_PATH)
+  async clearDesired(
+    @Param('steamid', ParseSteamIDPipe) steamid: SteamID,
+  ): Promise<DesiredListingModel[]> {
+    const desired = await this.desiredListingsService.clearDesired(steamid);
 
     return desired.map((d) => d.toJSON());
   }

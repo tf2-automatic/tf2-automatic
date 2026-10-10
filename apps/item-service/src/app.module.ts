@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration, { Config } from './common/config/configuration';
 import { validation } from './common/config/validation';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { BullModule } from '@nestjs/bullmq';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -29,6 +28,7 @@ import { HttpModule } from '@nestjs/axios';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { UserAgentInterceptor } from '@tf2-automatic/nestjs';
 import { ClsModule } from 'nestjs-cls';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 import { PricesModule } from './prices/prices.module';
 
 @Module({
@@ -40,6 +40,7 @@ import { PricesModule } from './prices/prices.module';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {
@@ -81,7 +82,6 @@ import { PricesModule } from './prices/prices.module';
         return getStorageConfig();
       },
     }),
-    PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     HealthModule,
     BotsModule,

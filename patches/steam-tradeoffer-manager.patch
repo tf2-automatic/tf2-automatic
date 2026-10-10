@@ -1,0 +1,18 @@
+diff --git a/lib/classes/TradeOffer.js b/lib/classes/TradeOffer.js
+index 017e37785c6551fe151e0b6101354af6dc6e9b82..4995633e447da26ef27c6775f219a27afa233116 100644
+--- a/lib/classes/TradeOffer.js
++++ b/lib/classes/TradeOffer.js
+@@ -824,7 +824,12 @@ TradeOffer.prototype.getUserDetails = function(callback) {
+ 		}
+ 	}
+ 
+-	this.manager._community.httpRequestGet(url, (err, response, body) => {
++	this.manager._community.httpRequestGet({
++		"uri": url,
++		"headers": {
++			"Referer": url
++		}
++	}, (err, response, body) => {
+ 		if (err || response.statusCode != 200) {
+ 			Helpers.makeAnError(err || new Error("HTTP error " + response.statusCode), callback);
+ 			return;

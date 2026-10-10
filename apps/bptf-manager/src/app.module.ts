@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration, { Config } from './common/config/configuration';
 import { validation } from './common/config/validation';
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { ListingsModule } from './listings/listings.module';
 import { InventoriesModule } from './inventories/inventories.module';
@@ -13,6 +12,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
 import { getUserAgent, Redis } from '@tf2-automatic/config';
 import { HttpModule } from '@nestjs/axios';
+import { OpenTelemetryModule } from '@tf2-automatic/opentelemetry';
 
 @Module({
   imports: [
@@ -23,6 +23,7 @@ import { HttpModule } from '@nestjs/axios';
       load: [configuration],
       validationSchema: validation,
     }),
+    OpenTelemetryModule.forRoot(),
     RedisModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<Config>) => {
@@ -49,7 +50,6 @@ import { HttpModule } from '@nestjs/axios';
         };
       },
     }),
-    PrometheusModule.register(),
     EventEmitterModule.forRoot(),
     ListingsModule,
     InventoriesModule,

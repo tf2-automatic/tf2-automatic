@@ -40,8 +40,8 @@ import { EventsService } from '../events/events.service';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
 import { EResult, ETradeOfferState } from 'steam-user';
-import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import type { Counter, Gauge } from 'prom-client';
+import { metricAttributes } from '@tf2-automatic/opentelemetry';
+import { metrics } from '@opentelemetry/api';
 import sizeof from 'object-sizeof';
 import {
   CounterTradeDto,
@@ -90,21 +90,28 @@ export class TradesService {
   private cacheRecentThreshold =
     this.configService.getOrThrow<CacheConfig>('cache').recentThreshold;
 
+  private readonly meter = metrics.getMeter('bot');
+  private readonly sentCounter = this.meter.createCounter(
+    'bot_offers_sent_total',
+    { description: 'Amount of trades sent by the bot since last restart' },
+  );
+  private readonly receivedCounter = this.meter.createCounter(
+    'bot_offers_received_total',
+    { description: 'Amount of trades received by the bot since last restart' },
+  );
+  private readonly pollDataSize = this.meter.createGauge(
+    'bot_polldata_size_bytes',
+    { description: 'The size of the polldata file in bytes' },
+  );
+  private readonly activeOffers = this.meter.createGauge('bot_offers_active', {
+    description: 'Amount of active offers',
+  });
+
   constructor(
     private readonly botService: BotService,
     private readonly configService: ConfigService<Config>,
     private readonly eventsService: EventsService,
     private readonly gc: GarbageCollectorService,
-    @InjectMetric('bot_offers_sent_total')
-    private readonly sentCounter: Counter,
-    @InjectMetric('bot_offers_received_total')
-    private readonly receivedCounter: Counter,
-    @InjectMetric('bot_polldata_size_bytes')
-    private readonly pollDataSize: Gauge,
-    @InjectMetric('bot_asset_cache_size_bytes')
-    private readonly assetCacheSize: Gauge,
-    @InjectMetric('bot_offers_active')
-    private readonly activeOffers: Gauge,
   ) {
     const pullFullUpdateInterval =
       this.configService.getOrThrow<SteamTradeConfig>(
@@ -304,13 +311,22 @@ export class TradesService {
 
     this.ensurePollDataTimeout = setTimeout(() => {
       // Set polldata size inside timeout to minimize amount of times it is calculated
-      this.pollDataSize.set(sizeof(this.manager.pollData));
+      this.pollDataSize.record(
+        sizeof(this.manager.pollData),
+        metricAttributes(),
+      );
 
       const { sent, received } = this.getActiveOfferCounts();
 
-      this.activeOffers.set({ type: 'sent' }, sent);
-      this.activeOffers.set({ type: 'received' }, received);
-      this.activeOffers.set({ type: 'total' }, sent + received);
+      this.activeOffers.record(sent, metricAttributes({ type: 'sent' }));
+      this.activeOffers.record(
+        received,
+        metricAttributes({ type: 'received' }),
+      );
+      this.activeOffers.record(
+        sent + received,
+        metricAttributes({ type: 'total' }),
+      );
 
       this.logger.debug('Enqueuing offers to ensure poll data is published');
 
@@ -439,7 +455,7 @@ export class TradesService {
     this.logger.log(
       `Received offer #${offer.id} from ${offer.partner.getSteamID64()}`,
     );
-    this.receivedCounter.inc();
+    this.receivedCounter.add(1, metricAttributes());
   }
 
   private handleOfferChanged(
@@ -799,7 +815,7 @@ export class TradesService {
       }`,
     );
 
-    this.sentCounter.inc();
+    this.sentCounter.add(1, metricAttributes());
 
     // Add offer to queue to ensure state and confirmation is published if needed
     this.ensureOfferPublishedQueue.push(activeOffer).catch(() => {

@@ -1,4 +1,8 @@
-import { getEventRules, getStorageConfigRules } from '@tf2-automatic/config';
+import {
+  getEventRules,
+  getOtelConfigRules,
+  getStorageConfigRules,
+} from '@tf2-automatic/config';
 import Joi from 'joi';
 
 const whenManager = {
@@ -37,6 +41,7 @@ const validation = Joi.object({
   TRADE_POLL_DATA_FORGET_TIME: Joi.number().positive().optional(),
   ...getEventRules(),
   ...getStorageConfigRules(),
+  ...getOtelConfigRules(),
   TF2_ENABLED: Joi.boolean().optional(),
   DEBUG: Joi.boolean().optional(),
   BOT_MANAGER_ENABLED: Joi.boolean().optional(),

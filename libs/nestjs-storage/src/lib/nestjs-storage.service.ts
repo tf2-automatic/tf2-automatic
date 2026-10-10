@@ -134,10 +134,8 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
     let promise: Promise<WriteFileResult>;
 
     if (task.data === null) {
-      this.logger.debug(`Deleting file "${task.relativePath}"`);
       promise = this.engine.delete(task.relativePath);
     } else {
-      this.logger.debug(`Writing to file "${task.relativePath}"`);
       promise = this.engine.write(task.relativePath, task.data);
     }
 

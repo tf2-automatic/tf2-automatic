@@ -6,3 +6,4 @@ export * from './locking';
 export * from './storage/index';
 export * from './relay';
 export * from './app';
+export * from './otel';
