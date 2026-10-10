@@ -124,11 +124,6 @@ export class BotService implements OnModuleDestroy {
       options,
       continueRequest,
     ) => {
-      if (options) {
-        options.headers = options.headers || {};
-        options.headers['accept-language'] = 'en-US,en;q=0.9';
-      }
-
       const url = new URL(options.url);
       url.search = '';
       url.hash = '';
