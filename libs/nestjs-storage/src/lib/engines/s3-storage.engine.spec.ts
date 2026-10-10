@@ -1,7 +1,9 @@
 import { AddressInfo } from 'net';
 import * as http from 'http';
-import { S3StorageConfig } from '@tf2-automatic/config';
-import { MAX_SOCKETS, S3StorageEngine } from './s3-storage.engine';
+import { getS3StorageConfig, S3StorageConfig } from '@tf2-automatic/config';
+import { S3StorageEngine } from './s3-storage.engine';
+
+const MAX_SOCKETS = getS3StorageConfig().maxSockets;
 
 /**
  * steam-user emits one storage write per inventory asset, so a large account
