@@ -7,8 +7,7 @@ import { MAX_SOCKETS, S3StorageEngine } from './s3-storage.engine';
  * steam-user emits one storage write per inventory asset, so a large account
  * fans out a thousand putObject calls at once. Given no transport agent, minio
  * falls back to Node's global agent (maxSockets:Infinity) and opens a socket
- * per call. On 2026-10-08 that burst crossed the object store's 1024 file
- * descriptor limit and wedged it for ten hours.
+ * per call.
  *
  * So the thing worth pinning is not that an agent is configured, but that a
  * wide fan-out cannot open an unbounded number of connections.
