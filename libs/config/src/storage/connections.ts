@@ -13,6 +13,8 @@ export interface S3StorageConfig extends BaseConfig {
   endpoint: string;
   port: number;
   useSSL: boolean;
+  keepAlive: boolean;
+  maxSockets: number;
   bucket: string;
   accessKeyId: string;
   secretAccessKey: string;
@@ -36,6 +38,8 @@ export function getS3StorageConfig(): S3StorageConfig {
     endpoint: getEnv('STORAGE_S3_ENDPOINT', 'string')!,
     port: getEnv('STORAGE_S3_PORT', 'integer')!,
     useSSL: getEnvWithDefault('STORAGE_S3_USE_SSL', 'boolean', false),
+    keepAlive: getEnvWithDefault('STORAGE_S3_KEEP_ALIVE', 'boolean', true),
+    maxSockets: getEnvWithDefault('STORAGE_S3_MAX_SOCKETS', 'integer', 65),
     bucket: getEnv('STORAGE_S3_BUCKET', 'string')!,
     accessKeyId: getEnv('STORAGE_S3_ACCESS_KEY_ID', 'string')!,
     secretAccessKey: getEnv('STORAGE_S3_SECRET_ACCESS_KEY', 'string')!,
