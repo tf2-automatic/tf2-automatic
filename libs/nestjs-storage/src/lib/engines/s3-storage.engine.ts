@@ -30,12 +30,11 @@ export class S3StorageEngine implements StorageEngine {
 
   constructor(private readonly config: S3StorageConfig) {}
 
-  setup() {
-    return this.client.bucketExists(this.config.bucket).then((exists) => {
-      if (!exists) {
-        throw new Error(`Bucket "${this.config.bucket}" does not exist`);
-      }
-    });
+  async setup() {
+    const exists = await this.client.bucketExists(this.config.bucket);
+    if (!exists) {
+      throw new Error(`Bucket "${this.config.bucket}" does not exist`);
+    }
   }
 
   async exists(relativePath: string): Promise<boolean> {
