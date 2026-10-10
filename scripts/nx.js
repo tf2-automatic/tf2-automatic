@@ -16,8 +16,10 @@ if (!args.some(arg => arg.startsWith('--parallel'))) {
   args.push(`--parallel=${cores}`);
 }
 
-const result = spawnSync('pnpm', ['exec', 'nx', ...args], {
-  stdio: 'inherit'
+const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const result = spawnSync(pnpmCommand, ['exec', 'nx', ...args], {
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
 });
 
 process.exit(result.status ?? 1);
