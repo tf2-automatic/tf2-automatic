@@ -96,35 +96,16 @@ export abstract class CustomWorkerHost<
     // TODO: Allow ignoring max time?
     const maxTime = job.data?.retry?.maxTime ?? 120000;
 
-    try {
-      // Check if job is too old
-      if (job.timestamp < Date.now() - maxTime) {
-        const err = new UnrecoverableError('Job is too old');
-        // processJob is never reached, so call the hook here instead
-        await this.jobFailed(job, err);
-        throw err;
-      }
-
-      return await this.runProcessJob(job, maxTime);
-    } catch (err) {
-      // Guaranteed to run for every failure, including the too-old
-      // short-circuit above that never reaches processJob. Runs inside the
-      // CLS scope with the final (transformed) error so inheritors can
-      // reliably publish their domain failure events / persist the failure.
-      await this.onJobFailed(job, err).catch((hookErr) => {
-        this.logger.error('Error in onJobFailed handler');
-        console.error(hookErr);
-      });
-
+    // Check if job is too old
+    if (job.timestamp < Date.now() - maxTime) {
+      const err = new UnrecoverableError('Job is too old');
+      // processJob is never reached, so call the hook here instead
+      await this.jobFailed(job, err);
       throw err;
     }
-  }
 
-  private runProcessJob(
-    job: CustomJob<DataType, ReturnType, NameType>,
-    maxTime: number,
-  ): Promise<unknown> {
-    return this.processJob(job)
+    return Promise.resolve()
+      .then(() => this.processJob(job))
       .catch(async (err) => {
         await this.preErrorHandler(job, err);
 
@@ -180,14 +161,16 @@ export abstract class CustomWorkerHost<
       });
   }
 
-  private jobFailed(
+  private async jobFailed(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
   ): Promise<void> {
-    return this.onJobFailed(job, err).catch((hookErr) => {
+    try {
+      return await this.onJobFailed(job, err);
+    } catch (hookErr) {
       this.logger.error('Error in onJobFailed handler');
       console.error(hookErr);
-    });
+    }
   }
 
   @OnWorkerEvent('error')
