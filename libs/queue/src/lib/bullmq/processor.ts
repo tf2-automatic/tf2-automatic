@@ -48,7 +48,6 @@ export abstract class CustomWorkerHost<
   ): Promise<ReturnType>;
 
   /* eslint-disable @typescript-eslint/no-unused-vars */
-
   preErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
     err: unknown,
@@ -91,7 +90,6 @@ export abstract class CustomWorkerHost<
   }
 
   /* eslint-enable @typescript-eslint/no-unused-vars */
-
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
   ): Promise<unknown> {
@@ -102,10 +100,10 @@ export abstract class CustomWorkerHost<
       // Check if job is too old
       if (job.timestamp < Date.now() - maxTime) {
         const err = new UnrecoverableError('Job is too old');
-      // processJob is never reached, so call the hook here instead
-      await this.jobFailed(job, err);
-      throw err;
-    }
+        // processJob is never reached, so call the hook here instead
+        await this.jobFailed(job, err);
+        throw err;
+      }
 
       return await this.runProcessJob(job, maxTime);
     } catch (err) {
@@ -155,7 +153,7 @@ export abstract class CustomWorkerHost<
         // Unknown error
         throw err;
       })
-      .catch((err) => {
+      .catch(async (err) => {
         // Check if job will be too old when it can be retried again
         const delay = customBackoffStrategy(job.attemptsMade, job);
         const tooOld = job.timestamp < Date.now() + delay - maxTime;
