@@ -1,4 +1,4 @@
-import { Job, Queue, Worker } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 import { ClsService } from 'nestjs-cls';
 import {
@@ -39,27 +39,6 @@ describe('QueueManager.addJob', () => {
     manager.addJob('job', 'load', { value }, { delay });
 
   const jobs = () => queue.getJobs(['delayed', 'waiting', 'active']);
-
-  it('does not throw when the job leaves the delayed state mid-update', async () => {
-    await addJob(1, 60000);
-
-    // Expire the delay right before it is changed
-    const changeDelay = Job.prototype.changeDelay;
-    const spy = jest
-      .spyOn(Job.prototype, 'changeDelay')
-      .mockImplementation(async function (this: Job, delay: number) {
-        await this.promote();
-        return changeDelay.call(this, delay);
-      });
-
-    try {
-      await expect(addJob(2)).resolves.toBeDefined();
-    } finally {
-      spy.mockRestore();
-    }
-
-    expect(await jobs()).toHaveLength(1);
-  });
 
   it('does not throw when added concurrently while the delay expires', async () => {
     worker = new Worker(queue.name, async () => undefined, {
@@ -106,24 +85,22 @@ describe('QueueManager.addJob', () => {
     expect(await jobs()).toHaveLength(1);
   });
 
-  it('keeps a delayed job when added with a shorter delay', async () => {
-    const existing = await addJob(1, 60000);
+  it('keeps the later delay when added with a shorter delay', async () => {
+    await addJob(1, 60000);
     await addJob(2, 1000);
 
     const job = await manager.getJobById('job');
-    expect(job?.id).toBe(existing.id);
-    expect(job?.data.options).toEqual({ value: 1 });
-    expect(job?.delay).toBe(60000);
+    expect(job?.data.options).toEqual({ value: 2 });
+    expect(job?.delay).toBeGreaterThan(59000);
     expect(await jobs()).toHaveLength(1);
   });
 
-  it('keeps a waiting job', async () => {
-    const existing = await addJob(1);
-    const job = await addJob(2);
+  it('updates the data of a waiting job', async () => {
+    await addJob(1);
+    await addJob(2);
 
-    expect(job.id).toBe(existing.id);
     expect((await manager.getJobById('job'))?.data.options).toEqual({
-      value: 1,
+      value: 2,
     });
     expect(await jobs()).toHaveLength(1);
   });
@@ -148,6 +125,9 @@ describe('QueueManager.addJob', () => {
 
     const job = await addJob(2);
     expect(job.id).toBe(existing.id);
+    expect((await manager.getJobById('job'))?.data.options).toEqual({
+      value: 1,
+    });
 
     const completed = new Promise<void>((resolve) =>
       worker?.once('completed', () => resolve()),
@@ -158,7 +138,7 @@ describe('QueueManager.addJob', () => {
     expect(await jobs()).toHaveLength(0);
   });
 
-  it('keeps attempts and creation time when re-adding a retrying job', async () => {
+  it('starts a retrying job over with the new data', async () => {
     const failing = new Worker(
       queue.name,
       async (): Promise<void> => {
@@ -171,7 +151,7 @@ describe('QueueManager.addJob', () => {
       failing.once('failed', () => resolve()),
     );
 
-    const added = await addJob(1);
+    await addJob(1);
     await failed;
     await failing.close();
     worker = undefined;
@@ -183,8 +163,7 @@ describe('QueueManager.addJob', () => {
     await addJob(2, 60000);
 
     const job = await manager.getJobById('job');
-    expect(job?.attemptsMade).toBe(1);
-    expect(job?.timestamp).toBe(added.timestamp);
+    expect(job?.attemptsMade).toBe(0);
     expect(job?.data.options).toEqual({ value: 2 });
   });
 
