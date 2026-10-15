@@ -44,24 +44,24 @@ export class QueueManager<
       data.metadata.userAgent = this.cls.get('userAgent');
     }
 
-    // Look for existing job
     const existing = await this.getJobById(id);
-    const newDelay = options?.delay ?? 0;
-    if (
-      existing &&
-      (newDelay === 0 ||
-        existing.timestamp + existing.delay <= Date.now() + newDelay)
-    ) {
-      // Fails if the job is no longer delayed
-      const changed = await existing.changeDelay(newDelay).then(
-        () => true,
-        () => false,
-      );
-
-      if (changed) {
+    const state = await existing?.getState();
+    if (existing && state !== 'unknown') {
+      // Don't modify a job a worker is processing
+      if (state !== 'active') {
         await existing.updateData(data);
-        return existing;
+
+        const newDelay = options?.delay ?? 0;
+        if (
+          newDelay === 0 ||
+          existing.timestamp + existing.delay <= Date.now() + newDelay
+        ) {
+          // Fails if the job is no longer delayed
+          await existing.changeDelay(newDelay).catch(() => undefined);
+        }
       }
+
+      return existing;
     }
 
     return this.queue.add(id, data, {

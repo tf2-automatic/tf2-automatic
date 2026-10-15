@@ -106,24 +106,24 @@ describe('QueueManager.addJob', () => {
     expect(await jobs()).toHaveLength(1);
   });
 
-  it('keeps a delayed job when added with a shorter delay', async () => {
+  it('keeps the delay but updates the data when added with a shorter delay', async () => {
     const existing = await addJob(1, 60000);
     await addJob(2, 1000);
 
     const job = await manager.getJobById('job');
     expect(job?.id).toBe(existing.id);
-    expect(job?.data.options).toEqual({ value: 1 });
+    expect(job?.data.options).toEqual({ value: 2 });
     expect(job?.delay).toBe(60000);
     expect(await jobs()).toHaveLength(1);
   });
 
-  it('keeps a waiting job', async () => {
+  it('updates the data of a waiting job', async () => {
     const existing = await addJob(1);
     const job = await addJob(2);
 
     expect(job.id).toBe(existing.id);
     expect((await manager.getJobById('job'))?.data.options).toEqual({
-      value: 1,
+      value: 2,
     });
     expect(await jobs()).toHaveLength(1);
   });
@@ -148,6 +148,9 @@ describe('QueueManager.addJob', () => {
 
     const job = await addJob(2);
     expect(job.id).toBe(existing.id);
+    expect((await manager.getJobById('job'))?.data.options).toEqual({
+      value: 1,
+    });
 
     const completed = new Promise<void>((resolve) =>
       worker?.once('completed', () => resolve()),
