@@ -690,10 +690,21 @@ export class ManageListingsService {
 
     const remove = new Set<string>();
 
+    // Hash -> change to persist. Applied to the stored desired listing (not this snapshot) and only
+    // while it still holds the id it had here, so concurrent writes are neither clobbered nor undone
+    const changes = new Map<string, { id: string; duplicate: boolean }>();
+
     // Go through all desired and check if the listing is still active
     desired.forEach((d) => {
       const id = d.getID();
       if (!id) {
+        return;
+      }
+
+      if (d.getError() === ListingError.DuplicateListing) {
+        // The listing belongs to the desired listing it is a duplicate of, only drop the reference
+        d.setID(null);
+        changes.set(d.getHash(), { id, duplicate: false });
         return;
       }
 
@@ -705,18 +716,12 @@ export class ManageListingsService {
         duplicates.set(id, [d]);
       }
 
-      if (d.getError() === ListingError.DuplicateListing) {
-        const id = d.getID();
-        if (id) {
-          remove.add(id);
-        }
-      }
-
       const match = currentMap.get(id);
 
       if (!match) {
         // Listing no longer exists, remove the id
         d.setID(null);
+        changes.set(d.getHash(), { id, duplicate: false });
       } else {
         const action = ManageListingsService.compareCurrentAndDesired(d, match);
 
@@ -733,12 +738,15 @@ export class ManageListingsService {
         continue;
       }
 
-      // Mark duplicate desired listings with an error
-      dupes.forEach((d) => {
+      // The listing stays with the first desired listing, the others are marked as duplicates of
+      // it (same as when duplicates are created in one batch)
+      dupes.slice(1).forEach((d) => {
         d.setError(ListingError.DuplicateListing);
+        d.setID(null);
+        create.delete(d.getHash());
+        update.delete(d.getHash());
+        changes.set(d.getHash(), { id, duplicate: true });
       });
-
-      remove.add(id);
     }
 
     const inventory = await this.inventoriesService.getInventory(steamid);
@@ -824,15 +832,24 @@ export class ManageListingsService {
       );
     }
 
-    if (desired.length > 0) {
-      DesiredListingsService.chainableSaveDesired(
-        transaction,
-        steamid,
-        desired,
-      );
-    }
-
     await transaction.exec();
+
+    await this.desiredListingsService.updateDesired(
+      steamid,
+      Array.from(changes.keys()),
+      (stored) =>
+        stored.forEach((d) => {
+          const change = changes.get(d.getHash());
+          if (!change || d.getID() !== change.id) {
+            return;
+          }
+
+          d.setID(null);
+          if (change.duplicate) {
+            d.setError(ListingError.DuplicateListing);
+          }
+        }),
+    );
 
     this.logger.debug(
       'Queued ' +
