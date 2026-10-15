@@ -25,17 +25,6 @@ jobs:
         projectName: ${{fromJson(needs.affected.outputs.test)}}
     env:
       PROJECT: ${{ matrix.projectName }}
-      REDIS_URL: redis://localhost:6379
-    services:
-      redis:
-        image: redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
