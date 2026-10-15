@@ -7,27 +7,39 @@ on:
       - synchronize
       - edited
 
+permissions: {}
+
 jobs:
   affected:
+    permissions:
+      contents: read
     uses: ./.github/workflows/affected.yml
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     needs: [affected]
     if: ${{ fromJson(needs.affected.outputs.test)[0] }}
     strategy:
       matrix:
         projectName: ${{fromJson(needs.affected.outputs.test)}}
+    env:
+      PROJECT: ${{ matrix.projectName }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup Node
         uses: ./.github/actions/setup-node
       - name: Build
-        run: node ./scripts/nx.js run ${{ matrix.projectName }}:build
+        run: node ./scripts/nx.js run "$PROJECT:build"
       - name: Test
-        run: node ./scripts/nx.js run ${{ matrix.projectName }}:test
+        run: node ./scripts/nx.js run "$PROJECT:test"
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     needs: [affected, test]
     if: ${{ fromJson(needs.affected.outputs.e2e)[0] }}
     strategy:
@@ -35,13 +47,17 @@ jobs:
         projectName: ${{fromJson(needs.affected.outputs.e2e)}}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup Node
         uses: ./.github/actions/setup-node
       - name: End to end test
-        run: node ./scripts/nx.js run ${{ matrix.projectName }}:e2e
+        run: node ./scripts/nx.js run "$PROJECT:e2e"
+        env:
+          PROJECT: ${{ matrix.projectName }}
   ci-finished:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [affected, test, e2e]
     if: always()
     steps:

@@ -6,6 +6,7 @@
   "targets": {
     "build": {
       "executor": "@nx/webpack:webpack",
+      "dependsOn": [],
       "outputs": ["{options.outputPath}"],
       "options": {
         "target": "node",
@@ -61,17 +62,7 @@
           "codeCoverage": true
         }
       }
-    },
-    "docker": {
-      "executor": "@nx-tools/nx-container:build",
-      "options": {
-        "push": true,
-        "cache-from": ["type=local,src=/tmp/.buildx-cache"],
-        "cache-to": ["type=local,dest=/tmp/.buildx-cache-new,mode=max"],
-        "platforms": ["linux/amd64", "linux/arm64"],
-        "file": "./Dockerfile"
-      }
     }
   },
-  "tags": []
+  "tags": ["docker"]
 }

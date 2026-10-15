@@ -18,9 +18,6 @@
         "{workspaceRoot}/.eslintrc.publish.json"
       ]
     },
-    "docker": {
-      "dependsOn": ["build"]
-    },
     "npm": {
       "dependsOn": ["build"]
     },
@@ -55,15 +52,6 @@
     ],
     "sharedGlobals": []
   },
-  "plugins": [
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "eslint:lint",
-        "extensions": ["ts", "tsx", "js", "jsx", "html", "vue"]
-      }
-    }
-  ],
   "tui": {
     "enabled": false
   },

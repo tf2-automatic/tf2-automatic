@@ -18,7 +18,9 @@ on:
 
 jobs:
   affected:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       docker: ${{ steps.affected.outputs.DOCKER }}
       npm: ${{ steps.affected.outputs.NPM }}
@@ -26,17 +28,31 @@ jobs:
       e2e: ${{ steps.affected.outputs.E2E }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Derive SHAs for nx affected
-        uses: nrwl/nx-set-shas@v5
-      - name: Setup Node
-        uses: ./.github/actions/setup-node
+        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5.0.1
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          run_install: false
+      - name: Install nx
+        # Only nx + typescript, at the versions in pnpm-lock.yaml. nx needs the real package.json and lockfile, so restore them.
+        run: |
+          jq '{name, packageManager, devDependencies: {nx: .devDependencies.nx, typescript: .devDependencies.typescript}}' package.json > package.tmp.json
+          mv package.tmp.json package.json
+          pnpm install --no-frozen-lockfile --ignore-scripts --config.allow-unused-patches=true
+          git restore package.json pnpm-lock.yaml
       - name: Get affected
         id: affected
+        # One affected query + the full project graph, split with jq instead of one nx call per output
         run: |
-          echo "DOCKER=$(pnpm exec nx show projects --affected --withTarget=docker --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
-          echo "NPM=$(pnpm exec nx show projects --affected --withTarget=npm --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
-          echo "TEST=$(pnpm exec nx show projects --affected --withTarget=build,test --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
-          echo "E2E=$(pnpm exec nx show projects --affected --withTarget=e2e --json | tail -n 1 | jq -c '.')" >> $GITHUB_OUTPUT
+          node_modules/.bin/nx graph --print | jq -r --argjson affected "$(node_modules/.bin/nx show projects --affected --json | tail -n 1)" '
+            [.graph.nodes[$affected[]]] as $p
+            | def names(f): [$p[] | select(f) | .name] | tojson;
+            "DOCKER=\(names(.data.tags | index("docker")))",
+            "NPM=\(names(.data.targets.npm))",
+            "TEST=\(names(.data.targets.build or .data.targets.test))",
+            "E2E=\(names(.data.targets.e2e))"' >> "$GITHUB_OUTPUT"
