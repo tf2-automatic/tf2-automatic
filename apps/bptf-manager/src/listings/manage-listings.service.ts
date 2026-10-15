@@ -389,8 +389,9 @@ export class ManageListingsService {
     const originalKey = ManageListingsService.getCreateKey(steamid);
     const copyKey = originalKey + ':copy';
 
-    // Replace a copy left behind by a crashed job
-    await this.redis.copy(originalKey, copyKey, 'REPLACE');
+    // Remove a copy left behind by a crashed job
+    await this.redis.del(copyKey);
+    await this.redis.copy(originalKey, copyKey);
 
     if (desiredHashes.length > 0) {
       // Check if the desired listings are already in the queue

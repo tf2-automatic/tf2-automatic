@@ -100,6 +100,19 @@ describe('ManageListingsService', () => {
       expect(hashes).toEqual(['a', 'b']);
     });
 
+    it('removes a leftover copy before copying the create queue', async () => {
+      const { service, redis, listingLimitsService } = setup();
+      listingLimitsService.getLimits.mockResolvedValue({ cap: 10, used: 10 });
+
+      await service.getListingsToCreate(steamid, 5);
+
+      const copyKey = 'listings:create:' + steamid.getSteamID64() + ':copy';
+      expect(redis.del).toHaveBeenCalledWith(copyKey);
+      expect(redis.del.mock.invocationCallOrder[0]).toBeLessThan(
+        redis.copy.mock.invocationCallOrder[0],
+      );
+    });
+
     it('takes no new listings when the cap is reached', async () => {
       const { service, redis, listingLimitsService } = setup();
       listingLimitsService.getLimits.mockResolvedValue({ cap: 10, used: 10 });
