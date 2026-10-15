@@ -82,8 +82,7 @@ export class DesiredListingsListener {
         }),
     );
 
-    // Emitted even when no desired listing is left: listings whose desired listing was removed
-    // while they were being created are then queued for deletion by the created handlers
+    // Also emitted when empty so orphaned listings get deleted
     this.eventEmitter.emit('desired-listings.created', {
       steamid: event.steamid,
       desired,

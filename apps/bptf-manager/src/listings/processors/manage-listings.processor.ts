@@ -416,8 +416,7 @@ export class ManageListingsProcessor
   onCompleted(job: CustomJob): void {
     const steamid = new SteamID(job.data.steamid64);
 
-    // Re-run when the batch was full, or when a job was requested while this one was running (that
-    // request was dropped because this job had the same id)
+    // Re-run when the batch was full or a job was requested while running
     const rerun =
       job.returnvalue === true
         ? Promise.resolve(true)

@@ -203,8 +203,7 @@ export class ManageListingsService {
 
     const transaction = this.redis.multi();
 
-    // Listing ids are deterministic (per item / asset), so a listing that was just (re)created can
-    // still be queued for deletion from when its desired listing was removed; it is desired again
+    // Recreated listings can still be queued for deletion
     transaction
       .srem(ManageListingsService.getDeleteKey(event.steamid), ...ids)
       .srem(ManageListingsService.getArchivedDeleteKey(event.steamid), ...ids);
@@ -301,8 +300,7 @@ export class ManageListingsService {
         break;
     }
 
-    // A job with the same id that is already running makes queue.add a no-op, so flag that there is
-    // new work; the running job re-queues itself on completion when the flag is set
+    // A running job re-queues itself when this is set
     await this.redis.set(ManageListingsService.getPendingKey(steamid, type), 1);
 
     const data: JobData = {
@@ -391,7 +389,7 @@ export class ManageListingsService {
     const originalKey = ManageListingsService.getCreateKey(steamid);
     const copyKey = originalKey + ':copy';
 
-    // REPLACE: a copy left behind by a crashed job would otherwise make the copy a no-op
+    // Replace a copy left behind by a crashed job
     await this.redis.copy(originalKey, copyKey, 'REPLACE');
 
     if (desiredHashes.length > 0) {
@@ -726,8 +724,7 @@ export class ManageListingsService {
 
     const remove = new Set<string>();
 
-    // Hash -> change to persist. Applied to the stored desired listing (not this snapshot) and only
-    // while it still holds the id it had here, so concurrent writes are neither clobbered nor undone
+    // Hash -> change, only applied if the stored listing still has the same id
     const changes = new Map<string, { id: string; duplicate: boolean }>();
 
     // Go through all desired and check if the listing is still active
@@ -738,7 +735,7 @@ export class ManageListingsService {
       }
 
       if (d.getError() === ListingError.DuplicateListing) {
-        // The listing belongs to the desired listing it is a duplicate of, only drop the reference
+        // The listing belongs to another desired listing
         d.setID(null);
         changes.set(d.getHash(), { id, duplicate: false });
         return;
@@ -774,8 +771,7 @@ export class ManageListingsService {
         continue;
       }
 
-      // The listing stays with the first desired listing, the others are marked as duplicates of
-      // it (same as when duplicates are created in one batch)
+      // The first desired listing keeps the listing
       dupes.slice(1).forEach((d) => {
         d.setError(ListingError.DuplicateListing);
         d.setID(null);
