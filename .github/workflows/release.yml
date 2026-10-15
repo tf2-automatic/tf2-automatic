@@ -6,86 +6,90 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  id-token: write # For OIDC
-  contents: write # For semantic-release
-  packages: write # For publishing to GitHub Container Registry
+permissions: {}
 
 jobs:
   affected:
+    permissions:
+      contents: read
     uses: ./.github/workflows/affected.yml
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # push the tag and create the GitHub release
     needs: [affected]
     if: needs.affected.outputs.docker != '[]' || needs.affected.outputs.npm != '[]'
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Setup Node
-        uses: ./.github/actions/setup-node
-      - name: Release
-        uses: cycjimmy/semantic-release-action@v6
-        id: semantic
+          persist-credentials: false # semantic-release pushes with GITHUB_TOKEN itself
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          semantic_version: 25
+          run_install: false
+      - name: Use Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: package.json
+      - name: Install semantic-release
+        # Only semantic-release + plugins, at the versions in pnpm-lock.yaml
+        run: |
+          jq '{name, packageManager, devDependencies: (.devDependencies | with_entries(select(.key | test("semantic-release"))))}' package.json > package.tmp.json
+          mv package.tmp.json package.json
+          pnpm install --no-frozen-lockfile --ignore-scripts --config.allow-unused-patches=true
+          git restore package.json pnpm-lock.yaml
+      - name: Release
+        id: semantic
+        run: node scripts/release.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
-      new_release_channel: ${{ steps.semantic.outputs.new_release_channel || 'latest' }}
-      new_release_major_version: ${{ steps.semantic.outputs.new_release_major_version }}
-      new_release_minor_version: ${{ steps.semantic.outputs.new_release_minor_version }}
-      new_release_patch_version: ${{ steps.semantic.outputs.new_release_patch_version }}
+      new_release_channel: ${{ steps.semantic.outputs.new_release_channel }}
   publish_to_docker:
-    runs-on: ubuntu-latest
     needs: [affected, release]
     if: needs.release.outputs.new_release_published == 'true' && needs.affected.outputs.docker != '[]'
     strategy:
       fail-fast: false
       matrix:
-        projectName: ${{fromJson(needs.affected.outputs.docker)}}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.projectName }}
-          flavor: |
-            latest=false
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=semver,pattern={{version}},enable=true,value=v${{ needs.release.outputs.new_release_version }}
-            type=semver,pattern={{major}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_version }}
-            type=semver,pattern={{major}}.{{minor}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_version }}
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-        with:
-          image: tonistiigi/binfmt:qemu-v10.2.3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
+        projectName: ${{ fromJson(needs.affected.outputs.docker) }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    uses: docker/github-builder/.github/workflows/build.yml@58cb9f5b71b1836d6f690c1e95effdeb9b98cb8a # v1.17.0
+    with:
+      output: image
+      push: true
+      platforms: linux/amd64,linux/arm64
+      cache: true
+      cache-mode: max # default "min" does not cache the deps/build/installer stages
+      cache-scope: ${{ matrix.projectName }}
+      set-meta-labels: true
+      build-args: |
+        APP=${{ matrix.projectName }}
+        VERSION=${{ needs.release.outputs.new_release_version }}
+      meta-images: ghcr.io/${{ github.repository_owner }}/${{ matrix.projectName }}
+      meta-flavor: |
+        latest=false
+      meta-tags: |
+        type=raw,value=latest,enable={{is_default_branch}}
+        type=semver,pattern={{version}},enable=true,value=v${{ needs.release.outputs.new_release_version }}
+        type=semver,pattern={{major}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_version }}
+        type=semver,pattern={{major}}.{{minor}},enable={{is_default_branch}},value=v${{ needs.release.outputs.new_release_version }}
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Node
-        uses: ./.github/actions/setup-node
-      - name: Build and push
-        run: node ./scripts/nx.js run ${{ matrix.projectName }}:docker
-        env:
-          INPUT_TAGS: ${{ steps.meta.outputs.tags }}
-          INPUT_LABELS: ${{ steps.meta.outputs.labels }}
-          INPUT_BUILD_ARGS: |
-            VERSION=${{ needs.release.outputs.new_release_version }}
-            SOURCE_DIR=dist/apps/${{ matrix.projectName }}
   publish_to_npm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC)
     needs: [affected, release]
     if: needs.release.outputs.new_release_published == 'true' && needs.affected.outputs.npm != '[]'
     strategy:
@@ -94,8 +98,14 @@ jobs:
         projectName: ${{fromJson(needs.affected.outputs.npm)}}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup Node
         uses: ./.github/actions/setup-node
       - name: Build and publish
-        run: pnpm exec nx run ${{ matrix.projectName }}:npm --access=public --release-version=${{ needs.release.outputs.new_release_version }} --release-tag=${{ needs.release.outputs.new_release_channel }}
+        run: pnpm exec nx run "$PROJECT:npm" --access=public --release-version="$VERSION" --release-tag="$CHANNEL"
+        env:
+          PROJECT: ${{ matrix.projectName }}
+          VERSION: ${{ needs.release.outputs.new_release_version }}
+          CHANNEL: ${{ needs.release.outputs.new_release_channel }}

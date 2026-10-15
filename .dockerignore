@@ -1,0 +1,9 @@
+.git
+.claude
+.nx
+node_modules
+dist
+tmp
+coverage
+.env
+.env.*
