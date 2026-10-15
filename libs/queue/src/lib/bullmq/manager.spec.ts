@@ -8,19 +8,20 @@ type TestJobData = JobData<Params>;
 
 const cls = { has: () => false } as unknown as ClsService;
 
-function makeJob(changeDelay: () => Promise<void>) {
-  return {
+function setup(
+  existingDelay: number,
+  changeDelay: () => Promise<void> = () => Promise.resolve(),
+) {
+  const existing = {
     id: 'job',
     timestamp: Date.now(),
-    delay: 60000,
+    delay: existingDelay,
     changeDelay: jest.fn(changeDelay),
     updateData: jest.fn(() => Promise.resolve()),
   };
-}
 
-function makeManager(existing: ReturnType<typeof makeJob> | null) {
   const queue = {
-    getJob: jest.fn(() => Promise.resolve(existing ?? undefined)),
+    getJob: jest.fn(() => Promise.resolve(existing)),
     add: jest.fn(() => Promise.resolve({ id: 'job' })),
   };
 
@@ -29,42 +30,57 @@ function makeManager(existing: ReturnType<typeof makeJob> | null) {
     cls,
   );
 
-  return { manager, queue };
+  return { manager, queue, existing };
 }
 
-describe('QueueManager.addJob', () => {
-  it('changes the delay and updates the data of a delayed job', async () => {
-    const existing = makeJob(() => Promise.resolve());
-    const { manager, queue } = makeManager(existing);
+describe('QueueManager.addJob with an existing job', () => {
+  it('runs a delayed job now and updates its data when added without a delay', async () => {
+    const { manager, queue, existing } = setup(60000);
 
     const job = await manager.addJob('job', 'load', { value: 2 });
 
     expect(job).toBe(existing);
     expect(existing.changeDelay).toHaveBeenCalledWith(0);
-    expect(existing.updateData).toHaveBeenCalledTimes(1);
+    expect(existing.updateData).toHaveBeenCalledWith(
+      expect.objectContaining({ options: { value: 2 } }),
+    );
     expect(queue.add).not.toHaveBeenCalled();
   });
 
-  it('falls back to adding the job when it is no longer delayed', async () => {
+  it('postpones a delayed job when added with a longer delay', async () => {
+    const { manager, existing } = setup(1000);
+
+    await manager.addJob('job', 'load', { value: 2 }, { delay: 60000 });
+
+    expect(existing.changeDelay).toHaveBeenCalledWith(60000);
+    expect(existing.updateData).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a delayed job that runs later than the requested delay', async () => {
+    const { manager, queue, existing } = setup(60000);
+
+    await manager.addJob('job', 'load', { value: 2 }, { delay: 1000 });
+
+    expect(existing.changeDelay).not.toHaveBeenCalled();
+    expect(existing.updateData).not.toHaveBeenCalled();
+    expect(queue.add).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not update a job that is no longer delayed', async () => {
     // BullMQ rejects when the job left the delayed state after it was fetched
-    const existing = makeJob(() =>
+    const { manager, queue, existing } = setup(60000, () =>
       Promise.reject(new Error('Job job is not in the delayed state.')),
     );
-    const { manager, queue } = makeManager(existing);
 
     await expect(
       manager.addJob('job', 'load', { value: 2 }),
     ).resolves.toBeDefined();
 
     expect(existing.updateData).not.toHaveBeenCalled();
-    expect(queue.add).toHaveBeenCalledTimes(1);
-  });
-
-  it('adds the job when none exists', async () => {
-    const { manager, queue } = makeManager(null);
-
-    await manager.addJob('job', 'load', { value: 1 });
-
-    expect(queue.add).toHaveBeenCalledTimes(1);
+    expect(queue.add).toHaveBeenCalledWith(
+      'job',
+      expect.objectContaining({ options: { value: 2 } }),
+      expect.objectContaining({ jobId: 'job' }),
+    );
   });
 });
