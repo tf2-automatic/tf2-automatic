@@ -172,6 +172,12 @@ export class ManageListingsProcessor
   }
 
   async process(job: CustomJob): Promise<JobResult> {
+    // Work queued from here on is picked up by a re-run, see onCompleted
+    await this.manageListingsService.clearPending(
+      new SteamID(job.data.steamid64),
+      job.name,
+    );
+
     switch (job.name) {
       case JobType.Create:
         return this.handleCreateAction(job);
@@ -410,12 +416,23 @@ export class ManageListingsProcessor
   onCompleted(job: CustomJob): void {
     const steamid = new SteamID(job.data.steamid64);
 
-    if (job.returnvalue === true) {
-      this.manageListingsService.createJob(steamid, job.name).catch((err) => {
+    // Re-run when the batch was full, or when a job was requested while this one was running (that
+    // request was dropped because this job had the same id)
+    const rerun =
+      job.returnvalue === true
+        ? Promise.resolve(true)
+        : this.manageListingsService.isPending(steamid, job.name);
+
+    rerun
+      .then((shouldRerun) =>
+        shouldRerun
+          ? this.manageListingsService.createJob(steamid, job.name)
+          : undefined,
+      )
+      .catch((err) => {
         this.logger.error('Failed to create job');
         console.error(err);
       });
-    }
   }
 
   onModuleDestroy() {
