@@ -46,21 +46,24 @@ export class QueueManager<
 
     // Look for existing job
     const existing = await this.getJobById(id);
-    if (existing) {
-      const delayed = await existing.isDelayed();
-      if (delayed) {
-        const newDelay = options?.delay ?? 0;
+    const newDelay = options?.delay ?? 0;
+    if (
+      existing &&
+      (newDelay === 0 ||
+        existing.timestamp + existing.delay <= Date.now() + newDelay)
+    ) {
+      // changeDelay atomically checks that the job is still delayed. If it is
+      // not (waiting, active or removed) it is handled by queue.add below. Data
+      // is only updated once the delay changed so an active job is never
+      // modified.
+      const changed = await existing.changeDelay(newDelay).then(
+        () => true,
+        () => false,
+      );
 
-        if (
-          newDelay === 0 ||
-          existing.timestamp + existing.delay <= Date.now() + newDelay
-        ) {
-          await Promise.all([
-            existing.changeDelay(newDelay),
-            existing.updateData(data),
-          ]);
-          return existing;
-        }
+      if (changed) {
+        await existing.updateData(data);
+        return existing;
       }
     }
 
