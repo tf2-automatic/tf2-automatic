@@ -84,14 +84,6 @@ export class ManageListingsService {
 
   @OnEvent('desired-listings.added')
   private async addedDesired(event: DesiredListingsAddedEvent) {
-    const transaction = this.redis.multi();
-
-    // Remove from delete queue
-    transaction.srem(
-      ManageListingsService.getDeleteKey(event.steamid),
-      ...event.desired.map((d) => d.getHash()),
-    );
-
     // Add to create queue
     const create: DesiredListingClass[] = [];
     const update: DesiredListingClass[] = [];
@@ -113,6 +105,12 @@ export class ManageListingsService {
         update.push(d);
       }
     });
+
+    if (create.length === 0 && update.length === 0) {
+      return;
+    }
+
+    const transaction = this.redis.multi();
 
     if (create.length > 0) {
       ManageListingsService.chainableQueueDesired(
@@ -186,28 +184,46 @@ export class ManageListingsService {
     suppressErrors: false,
   })
   private async createdDesired(event: DesiredListingsAddedEvent) {
+    const ids = event.desired
+      .map((d) => d.getID())
+      .filter((id): id is string => !!id);
+
+    if (ids.length === 0) {
+      return;
+    }
+
     const listings = await this.currentListingsService.getListingsByIds(
       event.steamid,
-      event.desired.map((d) => d.getID()).filter((id): id is string => !!id),
+      ids,
     );
 
     const archivedIds = Array.from(listings.values())
       .filter((l) => l.archived === true)
       .map((l) => l.id);
 
+    const transaction = this.redis.multi();
+
+    // Listing ids are deterministic (per item / asset), so a listing that was just (re)created can
+    // still be queued for deletion from when its desired listing was removed; it is desired again
+    transaction
+      .srem(ManageListingsService.getDeleteKey(event.steamid), ...ids)
+      .srem(ManageListingsService.getArchivedDeleteKey(event.steamid), ...ids);
+
     if (archivedIds.length > 0) {
       // Queue active listings to be deleted
-      await this.redis
-        .multi()
+      transaction
         .sadd(ManageListingsService.getDeleteKey(event.steamid), ...archivedIds)
         .sadd(
           this.currentListingsService.getCurrentShouldNotDeleteEntryKey(
             event.steamid,
           ),
           ...archivedIds,
-        )
-        .exec();
+        );
+    }
 
+    await transaction.exec();
+
+    if (archivedIds.length > 0) {
       await this.createJob(event.steamid, ManageJobType.Delete);
     }
   }
