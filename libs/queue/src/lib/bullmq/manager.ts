@@ -44,28 +44,24 @@ export class QueueManager<
       data.metadata.userAgent = this.cls.get('userAgent');
     }
 
-    let delay = options?.delay ?? 0;
-
-    // Replace an existing job so it uses the new data
     const existing = await this.getJobById(id);
-    if (existing) {
-      if (delay > 0) {
-        // Don't run sooner than the existing job
-        delay = Math.max(
-          delay,
-          existing.timestamp + existing.delay - Date.now(),
-        );
+    const state = await existing?.getState();
+    if (existing && state !== 'unknown') {
+      // Don't modify a job a worker is processing
+      if (state !== 'active') {
+        await existing.updateData(data);
+
+        const newDelay = options?.delay ?? 0;
+        if (
+          newDelay === 0 ||
+          existing.timestamp + existing.delay <= Date.now() + newDelay
+        ) {
+          // Fails if the job is no longer delayed
+          await existing.changeDelay(newDelay).catch(() => undefined);
+        }
       }
 
-      // Fails if a worker is processing the job
-      const removed = await existing.remove().then(
-        () => true,
-        () => false,
-      );
-
-      if (!removed) {
-        return existing;
-      }
+      return existing;
     }
 
     return this.queue.add(id, data, {
@@ -73,7 +69,7 @@ export class QueueManager<
       backoff: {
         type: 'custom',
       },
-      delay: delay || undefined,
+      delay: options?.delay ?? undefined,
     });
   }
 
