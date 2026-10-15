@@ -52,10 +52,7 @@ export class QueueManager<
       (newDelay === 0 ||
         existing.timestamp + existing.delay <= Date.now() + newDelay)
     ) {
-      // changeDelay atomically checks that the job is still delayed. If it is
-      // not (waiting, active or removed) it is handled by queue.add below. Data
-      // is only updated once the delay changed so an active job is never
-      // modified.
+      // Fails if the job is no longer delayed
       const changed = await existing.changeDelay(newDelay).then(
         () => true,
         () => false,

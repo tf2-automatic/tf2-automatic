@@ -67,7 +67,7 @@ describe('QueueManager.addJob with an existing job', () => {
   });
 
   it('does not update a job that is no longer delayed', async () => {
-    // BullMQ rejects when the job left the delayed state after it was fetched
+    // Job left the delayed state after it was fetched
     const { manager, queue, existing } = setup(60000, () =>
       Promise.reject(new Error('Job job is not in the delayed state.')),
     );
