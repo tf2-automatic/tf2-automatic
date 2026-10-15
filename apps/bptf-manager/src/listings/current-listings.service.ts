@@ -508,8 +508,8 @@ export class CurrentListingsService {
       // Loop through the current listings and overwrite properties with the updated listing
       const overwritten: Listing[] = [];
 
-      for (const id in current.keys()) {
-        overwritten.push({ ...current[id], ...updated.get(id) });
+      for (const [id, listing] of current) {
+        overwritten.push({ ...listing, ...updated.get(id) });
       }
 
       if (overwritten.length > 0) {
