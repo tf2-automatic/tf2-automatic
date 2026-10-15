@@ -315,22 +315,14 @@ export class ManageListingsService {
     await this.queue.add(type, data, opts);
   }
 
-  /**
-   * Clears the pending flag of a job type, called when a job of that type starts
-   */
   async clearPending(steamid: SteamID, type: ManageJobType): Promise<void> {
     await this.redis.del(ManageListingsService.getPendingKey(steamid, type));
   }
 
-  /**
-   * True when a job of that type was requested after the running one started
-   */
+  // True when a job was requested after the running one started
   async isPending(steamid: SteamID, type: ManageJobType): Promise<boolean> {
-    return (
-      (await this.redis.exists(
-        ManageListingsService.getPendingKey(steamid, type),
-      )) === 1
-    );
+    const key = ManageListingsService.getPendingKey(steamid, type);
+    return (await this.redis.exists(key)) === 1;
   }
 
   @OnEvent('current-listings.refreshed', {

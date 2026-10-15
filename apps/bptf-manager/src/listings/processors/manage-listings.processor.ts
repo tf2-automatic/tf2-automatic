@@ -413,25 +413,21 @@ export class ManageListingsProcessor
   }
 
   @OnWorkerEvent('completed')
-  onCompleted(job: CustomJob): void {
+  async onCompleted(job: CustomJob): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
-    // Re-run when the batch was full or a job was requested while running
-    const rerun =
-      job.returnvalue === true
-        ? Promise.resolve(true)
-        : this.manageListingsService.isPending(steamid, job.name);
-
-    rerun
-      .then((shouldRerun) =>
-        shouldRerun
-          ? this.manageListingsService.createJob(steamid, job.name)
-          : undefined,
-      )
-      .catch((err) => {
-        this.logger.error('Failed to create job');
-        console.error(err);
-      });
+    try {
+      // Re-run when the batch was full or a job was requested while running
+      if (
+        job.returnvalue === true ||
+        (await this.manageListingsService.isPending(steamid, job.name))
+      ) {
+        await this.manageListingsService.createJob(steamid, job.name);
+      }
+    } catch (err) {
+      this.logger.error('Failed to create job');
+      console.error(err);
+    }
   }
 
   onModuleDestroy() {
