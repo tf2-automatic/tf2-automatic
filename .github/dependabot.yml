@@ -9,6 +9,12 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    groups:
+      # One PR per action across all directories, instead of one per directory
+      actions:
+        patterns:
+          - '*'
+        group-by: dependency-name
     commit-message:
       prefix: chore
       include: scope
