@@ -41,6 +41,9 @@ import assert from 'assert';
 // Keeps temp keys non-empty, Redis can't store an empty hash
 const TEMP_PLACEHOLDER = 'placeholder';
 
+// Seconds before temp keys expire
+const TEMP_TTL = 5 * 60;
+
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
@@ -72,9 +75,9 @@ export class CurrentListingsService {
     await this.redis
       .multi()
       .hmset(tempKey, { [TEMP_PLACEHOLDER]: '' })
-      .expire(tempKey, 5 * 60)
+      .expire(tempKey, TEMP_TTL)
       .sadd(tempKeysKey, tempKey)
-      .expire(tempKeysKey, 5 * 60)
+      .expire(tempKeysKey, TEMP_TTL)
       .exec();
 
     await this.producer.add(
@@ -616,8 +619,8 @@ export class CurrentListingsService {
     // Keep the temp key alive while pages are still being fetched
     await this.redis
       .multi()
-      .expire(tempKey, 5 * 60)
-      .expire(this.getTempKeysKey(steamid), 5 * 60)
+      .expire(tempKey, TEMP_TTL)
+      .expire(this.getTempKeysKey(steamid), TEMP_TTL)
       .exec();
 
     if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
@@ -709,7 +712,7 @@ export class CurrentListingsService {
     // Remember deleted listings so stale pages don't add them back
     transaction
       .sadd(this.getTempDeletedKey(steamid), ...ids)
-      .expire(this.getTempDeletedKey(steamid), 5 * 60);
+      .expire(this.getTempDeletedKey(steamid), TEMP_TTL);
 
     await transaction.exec();
   }
