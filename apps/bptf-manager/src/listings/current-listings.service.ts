@@ -12,7 +12,6 @@ import {
   BatchDeleteListingResponse,
   BatchUpdateListingResponse,
   DeleteAllListingsResponse,
-  DeleteListingsResponse,
   GetListingsResponse,
   UpdateListingBody,
 } from './interfaces/bptf.interface';
@@ -775,13 +774,13 @@ export class CurrentListingsService {
   private _deleteListings(
     token: Token,
     ids: string[],
-  ): Promise<DeleteListingsResponse> {
+  ): Promise<BatchDeleteListingResponse> {
     return firstValueFrom(
-      this.httpService.delete<DeleteListingsResponse>(
-        'https://api.backpack.tf/api/classifieds/delete/v1',
+      this.httpService.delete<BatchDeleteListingResponse>(
+        'https://api.backpack.tf/api/v2/classifieds/listings/batch',
         {
           data: {
-            listing_ids: ids,
+            ids,
           },
           headers: {
             'X-Auth-Token': token.value,

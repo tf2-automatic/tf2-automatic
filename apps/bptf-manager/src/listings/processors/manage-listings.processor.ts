@@ -287,9 +287,17 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    await this.manageListingsService.deleteListings(token, ids);
+    const key = steamid.getSteamID64() + ':delete';
 
-    return ids.length === this.deleteBatchSize;
+    return this.batchGroup.key(key).schedule(async () => {
+      await this.manageListingsService
+        .deleteListings(token, ids)
+        .catch((err) => {
+          return this.handleBatchError(key, err);
+        });
+
+      return ids.length === this.deleteBatchSize;
+    });
   }
 
   async handleDeleteArchivedAction(job: CustomJob): Promise<JobResult> {
