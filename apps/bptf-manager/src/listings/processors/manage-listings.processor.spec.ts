@@ -1,4 +1,5 @@
 import Bottleneck from 'bottleneck';
+import fs from 'fs';
 import { ManageListingsProcessor } from './manage-listings.processor';
 
 jest.mock('bottleneck', () => ({
@@ -11,10 +12,17 @@ jest.mock('bottleneck', () => ({
   },
 }));
 
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
+  readFileSync: jest.fn(),
+}));
+
 describe('ManageListingsProcessor', () => {
   const Group = Bottleneck.Group as unknown as jest.Mock;
 
-  function createProcessor(storedHash: string | null) {
+  async function start(version: string, storedHash: string | null) {
+    jest.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ version }));
+
     const redis = {
       get: jest.fn().mockResolvedValue(storedHash),
       set: jest.fn(),
@@ -28,26 +36,26 @@ describe('ManageListingsProcessor', () => {
       { getOrThrow: () => redis } as never,
     );
 
-    return { processor, redis };
+    Group.mockClear();
+    await processor.onModuleInit();
+
+    const cleared = Group.mock.calls.filter(
+      ([options]) => options.clearDatastore,
+    ).length;
+
+    return { cleared, savedHash: redis.set.mock.calls[0]?.[1] };
   }
 
-  const clearedGroups = () =>
-    Group.mock.calls.filter(([options]) => options.clearDatastore).length;
+  it('clears the limiters only when the version or settings changed', async () => {
+    const first = await start('1.0.0', null);
+    expect(first.cleared).toBe(2);
 
-  it('clears the limiters only when their settings changed', async () => {
-    const first = createProcessor(null);
-    await first.processor.onModuleInit();
+    // Same version and settings keeps the limiter state
+    const restart = await start('1.0.0', first.savedHash);
+    expect(restart.cleared).toBe(0);
+    expect(restart.savedHash).toBeUndefined();
 
-    expect(clearedGroups()).toBe(2);
-    const [key, settingsHash] = first.redis.set.mock.calls[0];
-    expect(key).toBe('limiters:hash');
-
-    // Restart with the same settings keeps the limiter state
-    Group.mockClear();
-    const second = createProcessor(settingsHash);
-    await second.processor.onModuleInit();
-
-    expect(clearedGroups()).toBe(0);
-    expect(second.redis.set).not.toHaveBeenCalled();
+    const upgrade = await start('1.1.0', first.savedHash);
+    expect(upgrade.cleared).toBe(2);
   });
 });
