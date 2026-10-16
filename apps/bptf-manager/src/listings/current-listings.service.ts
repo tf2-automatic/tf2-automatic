@@ -593,12 +593,17 @@ export class CurrentListingsService {
       const mapped = this.mapListings(response.results);
       await this.saveTempListings(steamid, mapped);
 
+      const tempKeysKey = this.getTempKeysKey(steamid);
+
       // Add listings to current temp key
       await this.redis
         .multi()
         .hmset(tempKey, this.mapListings(response.results))
         // Make sure it expires after 5 minutes
         .expire(tempKey, 5 * 60)
+        // Track the temp key so writes during the refresh are added to it
+        .sadd(tempKeysKey, tempKey)
+        .expire(tempKeysKey, 5 * 60)
         .exec();
     }
 
@@ -630,6 +635,8 @@ export class CurrentListingsService {
       transaction.del(this.getCurrentKey(steamid));
     }
 
+    transaction.srem(this.getTempKeysKey(steamid), tempKey);
+
     await transaction.exec();
 
     // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
@@ -644,7 +651,7 @@ export class CurrentListingsService {
       return;
     }
 
-    const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
+    const keys = await this.getTempKeys(steamid);
 
     const transaction = this.redis.multi();
 
@@ -656,6 +663,15 @@ export class CurrentListingsService {
     await transaction.exec();
   }
 
+  // Temp keys of running refreshes, skipping expired ones so they are not recreated
+  private async getTempKeys(steamid: SteamID): Promise<string[]> {
+    const keys = await this.redis.smembers(this.getTempKeysKey(steamid));
+
+    const exists = await Promise.all(keys.map((key) => this.redis.exists(key)));
+
+    return keys.filter((_, index) => exists[index] === 1);
+  }
+
   private async deleteTempListings(
     steamid: SteamID,
     ids: string[],
@@ -664,11 +680,11 @@ export class CurrentListingsService {
       return;
     }
 
-    const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
+    const keys = await this.getTempKeys(steamid);
 
     const transaction = this.redis.multi();
 
-    // Add listings to all temp keys for this steamid
+    // Remove listings from all temp keys for this steamid
     keys.forEach((key) => {
       transaction.hdel(key, ...ids);
     });
@@ -858,8 +874,12 @@ export class CurrentListingsService {
     return `listings:current:${steamid.getSteamID64()}`;
   }
 
-  private getTempCurrentKey(steamid: SteamID, time: number | '*'): string {
+  private getTempCurrentKey(steamid: SteamID, time: number): string {
     return this.getCurrentKey(steamid) + ':' + time;
+  }
+
+  private getTempKeysKey(steamid: SteamID): string {
+    return `listings:temp:${steamid.getSteamID64()}`;
   }
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
