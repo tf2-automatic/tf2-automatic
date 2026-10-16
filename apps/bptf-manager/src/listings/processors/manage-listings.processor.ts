@@ -19,10 +19,26 @@ import { ManageListingsService } from '../manage-listings.service';
 import { Redis as RedisConfig } from '@tf2-automatic/config';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
-import fs from 'fs';
-import path from 'path';
+import hash from 'object-hash';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
+
+// Changing these clears the limiter state on the next start
+const BATCH_LIMITER: Bottleneck.ConstructorOptions = {
+  id: 'listings:batch',
+  maxConcurrent: 1,
+  minTime: 6000,
+  reservoir: 10,
+  reservoirIncreaseAmount: 10,
+  reservoirIncreaseInterval: 60000,
+  reservoirIncreaseMaximum: 10,
+};
+
+const DELETE_ALL_LIMITER: Bottleneck.ConstructorOptions = {
+  id: 'listings:deleteAll',
+  maxConcurrent: 1,
+  minTime: 60000,
+};
 
 @Processor('manage-listings', {
   settings: bullWorkerSettings,
@@ -51,7 +67,7 @@ export class ManageListingsProcessor
   ) {
     super();
 
-    this.createBottlenecks(true);
+    this.createBottlenecks();
   }
 
   private createBottlenecks(clearDatastore = false): void {
@@ -64,13 +80,7 @@ export class ManageListingsProcessor
         ...redisConfig,
         keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
       },
-      id: 'listings:batch',
-      maxConcurrent: 1,
-      minTime: 6000,
-      reservoir: 10,
-      reservoirIncreaseAmount: 10,
-      reservoirIncreaseInterval: 60000,
-      reservoirIncreaseMaximum: 10,
+      ...BATCH_LIMITER,
       clearDatastore,
     });
 
@@ -82,9 +92,7 @@ export class ManageListingsProcessor
         ...redisConfig,
         keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
       },
-      id: 'listings:deleteAll',
-      maxConcurrent: 1,
-      minTime: 60000,
+      ...DELETE_ALL_LIMITER,
       clearDatastore,
     });
 
@@ -141,36 +149,19 @@ export class ManageListingsProcessor
   }
 
   async onModuleInit(): Promise<void> {
-    // Compare current version with old version
-    const oldVersion = await this.redis.get('version');
-
-    const packageJson = fs.readFileSync(
-      path.join(__dirname, 'package.json'),
-      'utf-8',
-    );
-
-    const currentVersion = JSON.parse(packageJson).version;
-    if (oldVersion === currentVersion) {
+    // Redis keeps the old limiter settings unless the datastore is cleared
+    const settingsHash = hash([BATCH_LIMITER, DELETE_ALL_LIMITER]);
+    if ((await this.redis.get('limiters:hash')) === settingsHash) {
       return;
     }
 
-    this.logger.warn(
-      `Running a different version, current: ${currentVersion} previous: ${oldVersion}. Updating limiters...`,
-    );
-
-    this.batchGroup.updateSettings({
-      clearDatastore: true,
-    });
-
-    this.deleteAllGroup.updateSettings({
-      clearDatastore: true,
-    });
+    this.logger.warn('Limiter settings changed, clearing limiters...');
 
     await this.disconnectBottlenecks();
 
     this.createBottlenecks(true);
 
-    await this.redis.set('version', currentVersion);
+    await this.redis.set('limiters:hash', settingsHash);
   }
 
   async process(job: CustomJob): Promise<JobResult> {
