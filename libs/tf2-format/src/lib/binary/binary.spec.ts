@@ -42,8 +42,8 @@ describe('Binary', () => {
 
       expect(encoded).toEqual(
         new Uint8Array([
-          161, 21, 132, 164, 1, 24, 123, 2, 6, 10, 2, 22, 13, 163, 2, 6, 10, 1,
-          22, 12, 162, 2, 6, 22, 10, 162, 2, 6, 22, 11,
+          161, 21, 132, 162, 2, 6, 22, 10, 162, 2, 6, 22, 11, 163, 2, 6, 10, 1,
+          22, 12, 164, 1, 24, 123, 2, 6, 10, 2, 22, 13,
         ]),
       );
     });
@@ -56,6 +56,13 @@ describe('Binary', () => {
       const encoded = Binary.encode(item);
 
       expect(encoded).toEqual(new Uint8Array([161, 17, 133, 1, 2, 3, 10, 20]));
+    });
+
+    it('should sort parts that differ in bytes above 0x7f', () => {
+      const expected = new Uint8Array([161, 17, 130, 25, 23, 128, 25, 23, 129]);
+
+      expect(Binary.encode({ parts: [6016, 6017] })).toEqual(expected);
+      expect(Binary.encode({ parts: [6017, 6016] })).toEqual(expected);
     });
 
     it('should not include empty parts, spells and inputs', () => {
@@ -172,17 +179,17 @@ describe('Binary', () => {
       expect(decoded).toEqual({
         inputs: [
           {
-            killstreak: 1,
-            quality: 6,
-            quantity: 12,
-          },
-          {
             quality: 6,
             quantity: 10,
           },
           {
             quality: 6,
             quantity: 11,
+          },
+          {
+            killstreak: 1,
+            quality: 6,
+            quantity: 12,
           },
         ],
       });
