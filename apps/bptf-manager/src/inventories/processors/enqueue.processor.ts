@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { InventoriesService } from '../inventories.service';
 import { Job } from 'bullmq';
@@ -9,7 +10,9 @@ import {
   EnqueueJobResult,
 } from '../interfaces/queue.interface';
 
-@Processor('enqueueInventories')
+@Processor('enqueueInventories', {
+  settings: bullWorkerSettings,
+})
 export class EnqueueInventoriesProcessor extends WorkerHost {
   private readonly logger = new Logger(EnqueueInventoriesProcessor.name);
 

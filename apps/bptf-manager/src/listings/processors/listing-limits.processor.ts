@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from '../listing-limits.service';
 import { TokensService } from '../../tokens/tokens.service';
@@ -8,7 +9,9 @@ import { Token } from '@tf2-automatic/bptf-manager-data';
 import { ListingLimitsResponse } from '../interfaces/bptf.interface';
 import SteamID from 'steamid';
 
-@Processor('listing-limits')
+@Processor('listing-limits', {
+  settings: bullWorkerSettings,
+})
 export class ListingLimitsProcessor extends WorkerHost {
   private readonly logger = new Logger(ListingLimitsProcessor.name);
 

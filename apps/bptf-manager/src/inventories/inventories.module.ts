@@ -6,17 +6,7 @@ import { InventoriesProcessor } from './processors/inventories.processor';
 import { TokensModule } from '../tokens/tokens.module';
 import { EnqueueInventoriesProcessor } from './processors/enqueue.processor';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
-import { DefaultJobOptions } from 'bullmq';
-
-const defaultJobOptions: DefaultJobOptions = {
-  attempts: Number.MAX_SAFE_INTEGER,
-  backoff: {
-    type: 'exponential',
-    delay: 100,
-  },
-  removeOnComplete: true,
-  removeOnFail: true,
-};
+import { defaultJobOptions } from '@tf2-automatic/queue';
 
 @Module({
   imports: [
