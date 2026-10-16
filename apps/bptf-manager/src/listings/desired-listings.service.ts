@@ -28,9 +28,25 @@ export class DesiredListingsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async addDesired(
+  addDesired(
     steamid: SteamID,
     add: DesiredListingDto[],
+  ): Promise<DesiredListing[]> {
+    return this.saveDesired(steamid, add, false);
+  }
+
+  // Replaces all desired listings, an empty set removes all of them
+  setDesired(
+    steamid: SteamID,
+    set: DesiredListingDto[],
+  ): Promise<DesiredListing[]> {
+    return this.saveDesired(steamid, set, true);
+  }
+
+  private async saveDesired(
+    steamid: SteamID,
+    add: DesiredListingDto[],
+    replace: boolean,
   ): Promise<DesiredListing[]> {
     const now = Math.floor(Date.now() / 1000);
 
@@ -38,16 +54,26 @@ export class DesiredListingsService {
       ListingFactory.CreateDesiredListingFromDto(steamid, create, now),
     );
 
-    const resources = desired.map(
-      (d) => `desired:${steamid.getSteamID64()}:${d.getHash()}`,
+    const hashes = desired.map((d) => d.getHash());
+    const keep = new Set(hashes);
+
+    if (replace) {
+      // Listings added after this read are not locked and therefore not removed
+      const existing = await this.getAllDesiredHashes(steamid);
+      hashes.push(...existing.filter((hash) => !keep.has(hash)));
+    }
+
+    if (hashes.length === 0) {
+      return [];
+    }
+
+    const resources = hashes.map(
+      (hash) => `desired:${steamid.getSteamID64()}:${hash}`,
     );
 
     return this.locker.using(resources, LockDuration.MEDIUM, async (signal) => {
       // Get current listings and check if they are different from the new listings
-      const current = await this.getDesiredByHashes(
-        steamid,
-        desired.map((d) => d.getHash()),
-      );
+      const current = await this.getDesiredByHashes(steamid, hashes);
 
       if (signal.aborted) {
         throw signal.error;
@@ -58,12 +84,24 @@ export class DesiredListingsService {
         current,
       );
 
+      const removed = replace
+        ? Array.from(current.values()).filter((c) => !keep.has(c.getHash()))
+        : [];
+
       const transaction = this.redis.multi();
-      DesiredListingsService.chainableSaveDesired(
-        transaction,
-        steamid,
-        desired,
-      );
+      if (desired.length > 0) {
+        DesiredListingsService.chainableSaveDesired(
+          transaction,
+          steamid,
+          desired,
+        );
+      }
+      if (removed.length > 0) {
+        transaction.hdel(
+          DesiredListingsService.getDesiredKey(steamid),
+          ...removed.map((d) => d.getHash()),
+        );
+      }
       await transaction.exec();
 
       if (changed.length > 0) {
@@ -71,6 +109,13 @@ export class DesiredListingsService {
           steamid,
           desired: changed,
         } satisfies DesiredListingsAddedEvent);
+      }
+
+      if (removed.length > 0) {
+        this.eventEmitter.emit('desired-listings.removed', {
+          steamid,
+          desired: removed,
+        } satisfies DesiredListingsRemovedEvent);
       }
 
       return desired;
