@@ -7,6 +7,7 @@ import SteamID from 'steamid';
 import { DesiredListing } from './classes/desired-listing.class';
 import { CurrentListingsService } from './current-listings.service';
 import { ListingLimitsService } from './listing-limits.service';
+import { mock } from '@tf2-automatic/testing';
 
 jest.mock('bullmq', () => ({
   ...jest.requireActual('bullmq'),
@@ -82,74 +83,8 @@ describe('CurrentListingsService', () => {
 
     const prefix = 'tf2-automatic:bptf-manager:data:';
 
-    // Minimal in-memory Redis with the commands used by the refresh flow.
-    // Like ioredis with a keyPrefix, keys are prefixed except KEYS patterns.
-    function createRedis() {
-      const hashes = new Map<string, Map<string, Buffer>>();
-      const sets = new Map<string, Set<string>>();
-
-      const commands = {
-        hmset: (key: string, values: Record<string, Buffer>) => {
-          const hash = hashes.get(prefix + key) ?? new Map();
-          Object.entries(values).forEach(([field, value]) =>
-            hash.set(field, value),
-          );
-          hashes.set(prefix + key, hash);
-        },
-        hdel: (key: string, ...fields: string[]) => {
-          fields.forEach((field) => hashes.get(prefix + key)?.delete(field));
-        },
-        expire: () => undefined,
-        persist: () => undefined,
-        sadd: (key: string, member: string) => {
-          sets.set(
-            prefix + key,
-            (sets.get(prefix + key) ?? new Set()).add(member),
-          );
-        },
-        srem: (key: string, member: string) => {
-          sets.get(prefix + key)?.delete(member);
-        },
-        copy: (source: string, destination: string) => {
-          hashes.set(
-            prefix + destination,
-            new Map(hashes.get(prefix + source)),
-          );
-        },
-        del: (key: string) => {
-          hashes.delete(prefix + key);
-        },
-      };
-
-      const redis = {
-        ...commands,
-        keys: async (pattern: string) => {
-          const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
-          return Array.from(hashes.keys()).filter((key) => regex.test(key));
-        },
-        smembers: async (key: string) =>
-          Array.from(sets.get(prefix + key) ?? []),
-        exists: async (key: string) => (hashes.has(prefix + key) ? 1 : 0),
-        multi: () => {
-          const queued: (() => void)[] = [];
-          const transaction = {
-            exec: async () => queued.forEach((command) => command()),
-          };
-          Object.entries(commands).forEach(([name, command]) => {
-            transaction[name] = (...args: never[]) => {
-              queued.push(() => (command as (...a: never[]) => void)(...args));
-              return transaction;
-            };
-          });
-          return transaction;
-        },
-      };
-
-      return { redis, hashes };
-    }
-
     it('keeps listings created and deleted while refreshing', async () => {
-      const { redis, hashes } = createRedis();
+      const { redis, hashes } = mock.createMemoryRedis(prefix);
 
       const service = new CurrentListingsService(
         { getOrThrow: () => redis } as unknown as RedisService,
@@ -195,7 +130,7 @@ describe('CurrentListingsService', () => {
     });
 
     it('does not recreate an expired temp key', async () => {
-      const { redis, hashes } = createRedis();
+      const { redis, hashes } = mock.createMemoryRedis(prefix);
 
       const service = new CurrentListingsService(
         { getOrThrow: () => redis } as unknown as RedisService,
