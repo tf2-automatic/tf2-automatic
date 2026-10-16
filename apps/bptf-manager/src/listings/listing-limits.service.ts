@@ -53,10 +53,12 @@ export class ListingLimitsService {
     );
   }
 
-  async waitForRefresh(steamid: SteamID): Promise<void> {
+  async waitForRefresh(steamid: SteamID, timeout = 10000): Promise<void> {
     let job: Job | undefined;
 
     let logged = false;
+
+    const deadline = Date.now() + timeout;
 
     do {
       const start = Date.now();
@@ -80,6 +82,16 @@ export class ListingLimitsService {
           'Waiting for refresh job for ' + steamid.getSteamID64() + '...',
         );
         logged = true;
+      }
+
+      if (Date.now() >= deadline) {
+        // A failing refresh job retries forever, don't block on it
+        this.logger.warn(
+          'Refresh job for ' +
+            steamid.getSteamID64() +
+            ' did not finish in time, using stored limits',
+        );
+        break;
       }
 
       // Wait 100 ms between checks
