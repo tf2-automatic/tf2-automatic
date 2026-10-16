@@ -20,12 +20,10 @@ import { Redis as RedisConfig } from '@tf2-automatic/config';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import hash from 'object-hash';
-import fs from 'fs';
-import path from 'path';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 
-// Changing these or the version clears the limiter state on the next start
+// Changing these clears the limiter state on the next start
 const BATCH_LIMITER: Bottleneck.ConstructorOptions = {
   id: 'listings:batch',
   maxConcurrent: 1,
@@ -151,22 +149,13 @@ export class ManageListingsProcessor
   }
 
   async onModuleInit(): Promise<void> {
-    const { version } = JSON.parse(
-      fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'),
-    );
-
     // Redis keeps the old limiter settings unless the datastore is cleared
-    const settingsHash = hash({
-      version,
-      limiters: [BATCH_LIMITER, DELETE_ALL_LIMITER],
-    });
+    const settingsHash = hash([BATCH_LIMITER, DELETE_ALL_LIMITER]);
     if ((await this.redis.get('limiters:hash')) === settingsHash) {
       return;
     }
 
-    this.logger.warn(
-      'Version or limiter settings changed, clearing limiters...',
-    );
+    this.logger.warn('Limiter settings changed, clearing limiters...');
 
     await this.disconnectBottlenecks();
 
