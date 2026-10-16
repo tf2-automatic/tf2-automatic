@@ -1,22 +1,25 @@
+import { NotFoundException } from '@nestjs/common';
 import SteamID from 'steamid';
 import { ListingLimitsService } from './listing-limits.service';
 
 describe('ListingLimitsService', () => {
-  it('stops waiting for a refresh job that never finishes', async () => {
-    const queue = {
-      // A refresh job that keeps failing and is never finished
-      getJob: jest.fn().mockResolvedValue({ finishedOn: undefined }),
-    };
+  it('queues a refresh when no limits are stored', async () => {
+    const queue = { add: jest.fn() };
+    // Only used is known, e.g. before the first limits refresh finished
+    const redis = { hgetall: jest.fn().mockResolvedValue({ used: '1' }) };
 
     const service = new ListingLimitsService(
       queue as never,
-      { getOrThrow: () => ({}) } as never,
+      { getOrThrow: () => redis } as never,
     );
 
-    const start = Date.now();
-    await service.waitForRefresh(new SteamID('76561198120070906'), 300);
-
-    expect(Date.now() - start).toBeLessThan(1000);
-    expect(queue.getJob.mock.calls.length).toBeGreaterThan(1);
+    await expect(
+      service.getLimits(new SteamID('76561198120070906')),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(queue.add).toHaveBeenCalledWith(
+      'refresh',
+      { steamid64: '76561198120070906' },
+      { jobId: 'refresh_76561198120070906' },
+    );
   });
 });
