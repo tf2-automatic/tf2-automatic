@@ -369,6 +369,21 @@ export class ManageListingsProcessor
       throw err;
     }
 
+    const { maxWindowRequests, windowSeconds } = err.response.data ?? {};
+    if (
+      typeof maxWindowRequests === 'number' &&
+      typeof windowSeconds === 'number'
+    ) {
+      // Wait for the window and follow the limit backpack.tf told us about
+      await match.limiter.updateSettings({
+        reservoir: 0,
+        reservoirIncreaseAmount: maxWindowRequests,
+        reservoirIncreaseMaximum: maxWindowRequests,
+        reservoirIncreaseInterval: windowSeconds * 1000,
+      });
+      throw err;
+    }
+
     const waitTime = new String(err.response.data.message).match(
       /Try again in (\d+) seconds./,
     );

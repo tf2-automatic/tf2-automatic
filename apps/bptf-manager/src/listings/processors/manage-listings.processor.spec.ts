@@ -1,5 +1,8 @@
 import Bottleneck from 'bottleneck';
+import { AxiosError } from 'axios';
 import { ManageListingsProcessor } from './manage-listings.processor';
+
+const mockLimiter = { updateSettings: jest.fn() };
 
 jest.mock('bottleneck', () => ({
   __esModule: true,
@@ -7,6 +10,7 @@ jest.mock('bottleneck', () => ({
     Group: jest.fn().mockImplementation(() => ({
       on: jest.fn(),
       disconnect: jest.fn().mockResolvedValue(undefined),
+      limiters: () => [{ key: '123:update', limiter: mockLimiter }],
     })),
   },
 }));
@@ -49,5 +53,33 @@ describe('ManageListingsProcessor', () => {
 
     expect(clearedGroups()).toBe(0);
     expect(second.redis.set).not.toHaveBeenCalled();
+  });
+
+  it('follows the rate limit from a 429 response', async () => {
+    const { processor } = createProcessor(null);
+
+    const err = new AxiosError('Request failed with status code 429');
+    err.response = {
+      status: 429,
+      data: {
+        message: 'Request limit exceeded.',
+        maxWindowRequests: 3,
+        windowSeconds: 60,
+      },
+    } as never;
+
+    const internals = processor as unknown as {
+      handleBatchError: (key: string, err: Error) => Promise<void>;
+    };
+    await expect(internals.handleBatchError('123:update', err)).rejects.toBe(
+      err,
+    );
+
+    expect(mockLimiter.updateSettings).toHaveBeenCalledWith({
+      reservoir: 0,
+      reservoirIncreaseAmount: 3,
+      reservoirIncreaseMaximum: 3,
+      reservoirIncreaseInterval: 60000,
+    });
   });
 });
