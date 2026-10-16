@@ -635,6 +635,31 @@ describe('EconParser', () => {
       expect(extracted.killstreaker).toEqual('Flames');
       expect(extracted.sheen).toEqual('Mean Green');
     });
+
+    it('will not modify the descriptions of the item', () => {
+      const item = TestData.getStrangifierChemistrySet();
+      const length = item.descriptions.length;
+      const copy = structuredClone(item.descriptions);
+
+      parser.extract(item);
+      parser.extract(item);
+
+      expect(item.descriptions.length).toEqual(length);
+      expect(item.descriptions).toEqual(copy);
+    });
+
+    it('will not modify the descriptions of the item when parsing throws', () => {
+      const item = TestData.getStrangifierChemistrySet();
+      item.descriptions[0] = Object.defineProperty({}, 'value', {
+        get() {
+          throw new Error('boom');
+        },
+      }) as EconItem['descriptions'][number];
+      const length = item.descriptions.length;
+
+      expect(() => parser.extract(item)).toThrow('boom');
+      expect(item.descriptions.length).toEqual(length);
+    });
   });
 
   describe('#parse', () => {
