@@ -213,16 +213,13 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    this.logger.debug(
-      'Scheduling create listings for ' + steamid.getSteamID64() + '...',
-    );
-
     const key = steamid.getSteamID64() + ':create';
 
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup.key(key),
+      this.batchGroup,
+      key,
       BATCH_LIMITER,
       async () => {
         // Create listings
@@ -260,16 +257,13 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    this.logger.debug(
-      'Scheduling update listings for ' + steamid.getSteamID64() + '...',
-    );
-
     const key = steamid.getSteamID64() + ':update';
 
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup.key(key),
+      this.batchGroup,
+      key,
       BATCH_LIMITER,
       async () => {
         // Create listings
@@ -306,7 +300,8 @@ export class ManageListingsProcessor
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup.key(key),
+      this.batchGroup,
+      key,
       BATCH_LIMITER,
       async () => {
         await this.manageListingsService
@@ -335,18 +330,13 @@ export class ManageListingsProcessor
       return false;
     }
 
-    this.logger.debug(
-      'Scheduling delete archived listings for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
     const token = await this.tokensService.getToken(steamid);
 
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup.key(steamid.getSteamID64() + ':create'),
+      this.batchGroup,
+      steamid.getSteamID64() + ':create',
       BATCH_LIMITER,
       async () => {
         await this.manageListingsService.deleteArchivedListings(token, ids);
@@ -364,14 +354,11 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    this.logger.debug(
-      'Scheduling to delete all listings for ' + steamid.getSteamID64() + '...',
-    );
-
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.deleteAllGroup.key(steamid.getSteamID64()),
+      this.deleteAllGroup,
+      steamid.getSteamID64(),
       DELETE_ALL_LIMITER,
       async () => {
         await this.manageListingsService.deleteAllListings(token);
@@ -393,19 +380,34 @@ export class ManageListingsProcessor
   private async scheduleOrDelay(
     job: CustomJob,
     lockToken: string | undefined,
-    limiter: Bottleneck,
+    group: Bottleneck.Group,
+    key: string,
     options: Bottleneck.ConstructorOptions,
     task: () => Promise<JobResult>,
   ): Promise<JobResult> {
-    if (!(await limiter.check())) {
-      await job.moveToDelayed(
-        Date.now() + Math.max(options.minTime ?? 0, 1000),
-        lockToken,
+    const limiter = group.key(key);
+
+    // Wait out a known rate limit window in one go instead of polling
+    let delay = await this.redis.pttl(this.getRateLimitedKey(group, key));
+    if (delay <= 0 && !(await limiter.check())) {
+      delay = Math.max(options.minTime ?? 0, 1000);
+    }
+
+    if (delay > 0) {
+      this.logger.debug(
+        `Rate limited ${job.name} for ${job.data.steamid64}, delaying ${Math.ceil(delay / 1000)}s...`,
       );
+      await job.moveToDelayed(Date.now() + delay, lockToken);
       throw new DelayedError();
     }
 
+    this.logger.debug(`Scheduling ${job.name} for ${job.data.steamid64}...`);
+
     return limiter.schedule(task);
+  }
+
+  private getRateLimitedKey(group: Bottleneck.Group, key: string): string {
+    return `ratelimited:${group.id}:${key}`;
   }
 
   private async handleBatchError(
@@ -441,6 +443,12 @@ export class ManageListingsProcessor
         reservoirIncreaseMaximum: maxWindowRequests,
         reservoirIncreaseInterval: windowSeconds * 1000,
       });
+      await this.redis.set(
+        this.getRateLimitedKey(this.batchGroup, key),
+        1,
+        'PX',
+        windowSeconds * 1000,
+      );
       throw err;
     }
 
@@ -455,6 +463,13 @@ export class ManageListingsProcessor
       const tryAgainTime = parseInt(waitTime[1]);
       // Decrement by 1 for every 6 seconds we need to wait
       decrementAmount = Math.min(Math.ceil(tryAgainTime / 6), 10);
+
+      await this.redis.set(
+        this.getRateLimitedKey(this.batchGroup, key),
+        1,
+        'PX',
+        tryAgainTime * 1000,
+      );
     }
 
     const current = await match.limiter.currentReservoir();

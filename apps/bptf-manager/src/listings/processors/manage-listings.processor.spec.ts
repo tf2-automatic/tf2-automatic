@@ -8,7 +8,8 @@ const mockLimiter = { updateSettings: jest.fn() };
 jest.mock('bottleneck', () => ({
   __esModule: true,
   default: {
-    Group: jest.fn().mockImplementation(() => ({
+    Group: jest.fn().mockImplementation((options) => ({
+      id: options.id,
       on: jest.fn(),
       disconnect: jest.fn().mockResolvedValue(undefined),
       limiters: () => [{ key: '123:update', limiter: mockLimiter }],
@@ -23,6 +24,7 @@ describe('ManageListingsProcessor', () => {
     const redis = {
       get: jest.fn().mockResolvedValue(storedHash),
       set: jest.fn(),
+      pttl: jest.fn().mockResolvedValue(-2),
     };
 
     const processor = new ManageListingsProcessor(
@@ -57,7 +59,7 @@ describe('ManageListingsProcessor', () => {
   });
 
   it('follows the rate limit from a 429 response', async () => {
-    const { processor } = createProcessor(null);
+    const { processor, redis } = createProcessor(null);
 
     const err = new AxiosError('Request failed with status code 429');
     err.response = {
@@ -82,33 +84,51 @@ describe('ManageListingsProcessor', () => {
       reservoirIncreaseMaximum: 3,
       reservoirIncreaseInterval: 60000,
     });
+    expect(redis.set).toHaveBeenCalledWith(
+      'ratelimited:listings:batch:123:update',
+      1,
+      'PX',
+      60000,
+    );
   });
 
   it('delays the job instead of waiting when the limiter is busy', async () => {
-    const { processor } = createProcessor(null);
+    const { processor, redis } = createProcessor(null);
     const internals = processor as unknown as {
       scheduleOrDelay: (...args: unknown[]) => Promise<boolean>;
     };
 
-    const job = { moveToDelayed: jest.fn() };
+    const job = { name: 'update', data: {}, moveToDelayed: jest.fn() };
     const task = jest.fn().mockResolvedValue(true);
-    const busy = {
+    const limiter = {
       check: jest.fn().mockResolvedValue(false),
-      schedule: jest.fn(),
-    };
-
-    await expect(
-      internals.scheduleOrDelay(job, 'lock', busy, { minTime: 6000 }, task),
-    ).rejects.toBeInstanceOf(DelayedError);
-    expect(job.moveToDelayed).toHaveBeenCalledWith(expect.any(Number), 'lock');
-    expect(busy.schedule).not.toHaveBeenCalled();
-
-    const free = {
-      check: jest.fn().mockResolvedValue(true),
       schedule: jest.fn((fn: () => Promise<boolean>) => fn()),
     };
-    await expect(
-      internals.scheduleOrDelay(job, 'lock', free, { minTime: 6000 }, task),
-    ).resolves.toBe(true);
+    const group = { id: 'listings:batch', key: () => limiter };
+    const run = () =>
+      internals.scheduleOrDelay(
+        job,
+        'lock',
+        group,
+        '123:update',
+        { minTime: 6000 },
+        task,
+      );
+    jest.spyOn(Date, 'now').mockReturnValue(1000);
+
+    // A known rate limit window is waited out in one go
+    redis.pttl.mockResolvedValueOnce(45000);
+    await expect(run()).rejects.toBeInstanceOf(DelayedError);
+    expect(job.moveToDelayed).toHaveBeenLastCalledWith(46000, 'lock');
+
+    // Otherwise a busy limiter delays by its minTime
+    await expect(run()).rejects.toBeInstanceOf(DelayedError);
+    expect(job.moveToDelayed).toHaveBeenLastCalledWith(7000, 'lock');
+    expect(limiter.schedule).not.toHaveBeenCalled();
+
+    limiter.check.mockResolvedValue(true);
+    await expect(run()).resolves.toBe(true);
+
+    jest.restoreAllMocks();
   });
 });
