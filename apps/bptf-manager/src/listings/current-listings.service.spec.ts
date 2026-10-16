@@ -139,15 +139,20 @@ describe('CurrentListingsService', () => {
       expect(Array.from(current?.keys() ?? []).sort()).toEqual(['L1', 'L3']);
     });
 
-    it('does not recreate an expired temp key', async () => {
-      const { internals, hashes } = await startRefresh();
+    it('keeps current listings when the temp key expired', async () => {
+      const { service, internals, hashes } = await startRefresh();
+
+      const currentKey = prefix + 'listings:current:' + steamid.getSteamID64();
+      hashes.set(currentKey, new Map([['L1', pack(listing('L1'))]]));
 
       // The temp key expired but is still tracked
       hashes.delete(prefix + tempKey);
 
-      await internals.saveTempListings(steamid, { L1: pack(listing('L1')) });
-
+      await internals.saveTempListings(steamid, { L2: pack(listing('L2')) });
       expect(hashes.has(prefix + tempKey)).toBe(false);
+
+      await service.handleListingsFetched(steamid, start);
+      expect(Array.from(hashes.get(currentKey)?.keys() ?? [])).toEqual(['L1']);
     });
   });
 });

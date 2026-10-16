@@ -640,25 +640,30 @@ export class CurrentListingsService {
   async handleListingsFetched(steamid: SteamID, time: number): Promise<void> {
     const tempKey = this.getTempCurrentKey(steamid, time);
 
-    // Check if a temp key exists
+    // The temp key exists from the start, so a missing one expired or was removed by delete all
     const exists = await this.redis.exists(tempKey);
 
-    const transaction = this.redis.multi();
+    if (!exists) {
+      this.logger.warn(
+        'Temp listings of refresh ' +
+          time +
+          ' for ' +
+          steamid.getSteamID64() +
+          ' are gone, keeping current listings',
+      );
 
-    if (exists) {
-      // It exists, copy it to the current key and remove expiration
-      transaction
-        .copy(tempKey, this.getCurrentKey(steamid), 'REPLACE')
-        .persist(this.getCurrentKey(steamid))
-        .hdel(this.getCurrentKey(steamid), TEMP_PLACEHOLDER);
-    } else {
-      // It does not exist, delete current key
-      transaction.del(this.getCurrentKey(steamid));
+      await this.redis.srem(this.getTempKeysKey(steamid), tempKey);
+      return;
     }
 
-    transaction.srem(this.getTempKeysKey(steamid), tempKey);
-
-    await transaction.exec();
+    // Copy the temp key to the current key and remove expiration
+    await this.redis
+      .multi()
+      .copy(tempKey, this.getCurrentKey(steamid), 'REPLACE')
+      .persist(this.getCurrentKey(steamid))
+      .hdel(this.getCurrentKey(steamid), TEMP_PLACEHOLDER)
+      .srem(this.getTempKeysKey(steamid), tempKey)
+      .exec();
 
     // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
     await this.eventEmitter.emitAsync('current-listings.refreshed', steamid);
