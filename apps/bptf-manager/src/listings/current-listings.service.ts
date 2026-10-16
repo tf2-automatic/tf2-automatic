@@ -38,6 +38,9 @@ import { DesiredListing } from './classes/desired-listing.class';
 import { pack, unpack } from 'msgpackr';
 import assert from 'assert';
 
+// Keeps temp keys non-empty, Redis can't store an empty hash
+const TEMP_PLACEHOLDER = 'placeholder';
+
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
@@ -61,6 +64,18 @@ export class CurrentListingsService {
 
   async refreshListings(steamid: SteamID): Promise<void> {
     const time = Date.now();
+
+    const tempKey = this.getTempCurrentKey(steamid, time);
+    const tempKeysKey = this.getTempKeysKey(steamid);
+
+    // Track the temp key before fetching so writes made before the first page are kept
+    await this.redis
+      .multi()
+      .hmset(tempKey, { [TEMP_PLACEHOLDER]: '' })
+      .expire(tempKey, 5 * 60)
+      .sadd(tempKeysKey, tempKey)
+      .expire(tempKeysKey, 5 * 60)
+      .exec();
 
     await this.producer.add(
       {
@@ -195,11 +210,11 @@ export class CurrentListingsService {
 
     this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
 
-    await this.deleteTempListings(steamid, ids);
-
     // Filter out listings that should not be deleted (for example, when deleting active listing because newest was archived)
     const remove =
       exists.length === 0 ? ids : ids.filter((id, index) => !exists[index]);
+
+    await this.deleteTempListings(steamid, remove);
 
     // Delete current listings in database
     const transaction = this.redis.multi();
@@ -589,23 +604,21 @@ export class CurrentListingsService {
 
     const tempKey = this.getTempCurrentKey(steamid, job.data.start);
 
-    if (response.results.length > 0) {
-      const mapped = this.mapListings(response.results);
-      await this.saveTempListings(steamid, mapped);
+    // backpack.tf can still return listings that were just deleted
+    const deleted = new Set(
+      await this.redis.smembers(this.getTempDeletedKey(steamid)),
+    );
+    const results = response.results.filter((l) => !deleted.has(l.id));
 
-      const tempKeysKey = this.getTempKeysKey(steamid);
+    // Adds the listings to the temp key tracked when the refresh started
+    await this.saveTempListings(steamid, this.mapListings(results));
 
-      // Add listings to current temp key
-      await this.redis
-        .multi()
-        .hmset(tempKey, this.mapListings(response.results))
-        // Make sure it expires after 5 minutes
-        .expire(tempKey, 5 * 60)
-        // Track the temp key so writes during the refresh are added to it
-        .sadd(tempKeysKey, tempKey)
-        .expire(tempKeysKey, 5 * 60)
-        .exec();
-    }
+    // Keep the temp key alive while pages are still being fetched
+    await this.redis
+      .multi()
+      .expire(tempKey, 5 * 60)
+      .expire(this.getTempKeysKey(steamid), 5 * 60)
+      .exec();
 
     if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
       // Fetch more listings
@@ -629,7 +642,8 @@ export class CurrentListingsService {
       // It exists, copy it to the current key and remove expiration
       transaction
         .copy(tempKey, this.getCurrentKey(steamid), 'REPLACE')
-        .persist(this.getCurrentKey(steamid));
+        .persist(this.getCurrentKey(steamid))
+        .hdel(this.getCurrentKey(steamid), TEMP_PLACEHOLDER);
     } else {
       // It does not exist, delete current key
       transaction.del(this.getCurrentKey(steamid));
@@ -660,6 +674,9 @@ export class CurrentListingsService {
       transaction.hmset(key, listings);
     });
 
+    // Recreated listings are no longer deleted
+    transaction.srem(this.getTempDeletedKey(steamid), ...Object.keys(listings));
+
     await transaction.exec();
   }
 
@@ -688,6 +705,11 @@ export class CurrentListingsService {
     keys.forEach((key) => {
       transaction.hdel(key, ...ids);
     });
+
+    // Remember deleted listings so stale pages don't add them back
+    transaction
+      .sadd(this.getTempDeletedKey(steamid), ...ids)
+      .expire(this.getTempDeletedKey(steamid), 5 * 60);
 
     await transaction.exec();
   }
@@ -880,6 +902,10 @@ export class CurrentListingsService {
 
   private getTempKeysKey(steamid: SteamID): string {
     return `listings:temp:${steamid.getSteamID64()}`;
+  }
+
+  private getTempDeletedKey(steamid: SteamID): string {
+    return this.getTempKeysKey(steamid) + ':deleted';
   }
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {
