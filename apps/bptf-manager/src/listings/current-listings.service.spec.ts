@@ -102,12 +102,17 @@ describe('CurrentListingsService', () => {
         { getOrThrow: () => redis } as unknown as RedisService,
         {} as HttpService,
         { emitAsync: jest.fn() } as unknown as EventEmitter2,
-        { saveLimits: jest.fn() } as unknown as ListingLimitsService,
+        {
+          saveLimits: jest.fn(),
+          chainableClearUsed: jest.fn(),
+        } as unknown as ListingLimitsService,
         {} as never,
       );
 
       const internals = service as unknown as {
         producer: { add: jest.Mock };
+        _deleteAllActiveListings: jest.Mock;
+        _deleteAllArchivedListings: jest.Mock;
         saveTempListings: (
           steamid: SteamID,
           listings: Record<string, Buffer>,
@@ -187,6 +192,34 @@ describe('CurrentListingsService', () => {
 
       const current = hashes.get(currentKey);
       expect(Array.from(current?.keys() ?? []).sort()).toEqual(['L2', 'L3']);
+    });
+
+    it('does not copy back listings deleted by delete all', async () => {
+      const { service, internals, hashes } = await startRefresh();
+
+      await service.handleListingsResponse(
+        job,
+        page([listing('L1'), listing('L2')]),
+      );
+
+      internals._deleteAllActiveListings = jest
+        .fn()
+        .mockResolvedValue({ deleted: 2 });
+      internals._deleteAllArchivedListings = jest
+        .fn()
+        .mockResolvedValue({ deleted: 0 });
+
+      await service.deleteAllListings({
+        steamid64: steamid.getSteamID64(),
+        value: 'token',
+      });
+
+      // backpack.tf still returns L1 after it was deleted
+      await service.handleListingsResponse(job, page([listing('L1')]));
+
+      await service.handleListingsFetched(steamid, start);
+
+      expect(Array.from(hashes.get(currentKey)?.keys() ?? [])).toEqual([]);
     });
   });
 });

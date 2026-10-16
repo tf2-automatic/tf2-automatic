@@ -577,10 +577,15 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
+    const tempKeys = await this.getTempKeys(steamid);
+
     const transaction = this.redis.multi();
 
     // Delete all listings in database
     transaction.del(this.getCurrentKey(steamid));
+
+    // Running refreshes must not copy the deleted listings back
+    tempKeys.forEach((key) => transaction.del(key));
 
     // Clear used listings
     this.listingLimitsService.chainableClearUsed(transaction, steamid);
