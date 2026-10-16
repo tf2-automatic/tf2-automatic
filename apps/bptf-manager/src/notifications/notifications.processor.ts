@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { TokensService } from '../tokens/tokens.service';
@@ -7,7 +8,9 @@ import { AxiosError } from 'axios';
 import { NotificationsService } from './notifications.service';
 import { JobData } from './interfaces/queue';
 
-@Processor('notifications')
+@Processor('notifications', {
+  settings: bullWorkerSettings,
+})
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 

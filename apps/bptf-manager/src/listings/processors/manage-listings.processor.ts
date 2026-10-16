@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
 import SteamID from 'steamid';
@@ -24,6 +25,7 @@ import path from 'path';
 type CustomJob = Job<JobData, JobResult, JobName>;
 
 @Processor('manage-listings', {
+  settings: bullWorkerSettings,
   concurrency: 4,
 })
 export class ManageListingsProcessor

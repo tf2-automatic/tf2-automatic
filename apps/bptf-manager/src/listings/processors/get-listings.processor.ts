@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { CurrentListingsService } from '../current-listings.service';
@@ -9,6 +10,7 @@ import { JobData, JobType } from '../interfaces/get-listings.queue.interface';
 import { GetListingsResponse } from '../interfaces/bptf.interface';
 
 @Processor('get-listings', {
+  settings: bullWorkerSettings,
   concurrency: 2,
 })
 export class GetListingsProcessor extends WorkerHost {

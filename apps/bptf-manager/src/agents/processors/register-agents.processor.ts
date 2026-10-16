@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import SteamID from 'steamid';
@@ -6,7 +7,9 @@ import { TokensService } from '../../tokens/tokens.service';
 import { AgentsService } from '../agents.service';
 import { AgentJobData } from '../interfaces/queue.interface';
 
-@Processor('registerAgents')
+@Processor('registerAgents', {
+  settings: bullWorkerSettings,
+})
 export class RegisterAgentsProcessor extends WorkerHost {
   private readonly logger = new Logger(RegisterAgentsProcessor.name);
 
