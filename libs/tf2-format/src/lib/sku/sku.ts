@@ -94,8 +94,13 @@ export class SKU {
       }
     }
 
-    // We have to set the quality outside of the loop because there may not be a second seperator
-    item.quality = numValue;
+    // We have to set the last value outside of the loop because there may not be a second seperator
+    if (start === 0) {
+      // No seperator, so the SKU only has a defindex
+      item.defindex = numValue;
+    } else {
+      item.quality = numValue;
+    }
 
     // Now process remaining attributes
     while (start < length) {
