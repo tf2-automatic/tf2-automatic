@@ -56,7 +56,6 @@ function setup() {
     getCurrentShouldNotDeleteEntryKey: jest.fn(() => 'should-not-delete'),
   };
   const listingLimitsService = {
-    waitForRefresh: jest.fn(),
     getLimits: jest.fn(),
   };
   const inventoriesService = {

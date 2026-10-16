@@ -362,8 +362,6 @@ export class ManageListingsService {
     steamid: SteamID,
     count: number,
   ): Promise<string[]> {
-    await this.listingLimitsService.waitForRefresh(steamid);
-
     const limits = await this.listingLimitsService.getLimits(steamid);
 
     // Prioritize updating listings over creating new ones
@@ -432,8 +430,6 @@ export class ManageListingsService {
     steamid: SteamID,
     count: number,
   ): Promise<string[]> {
-    await this.listingLimitsService.waitForRefresh(steamid);
-
     return this.redis.zrange(
       ManageListingsService.getUpdateKey(steamid),
       0,
