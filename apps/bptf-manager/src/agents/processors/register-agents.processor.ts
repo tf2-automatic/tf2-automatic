@@ -1,11 +1,18 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
-import { Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
+import { Logger, NotFoundException } from '@nestjs/common';
+import { Job, UnrecoverableError } from 'bullmq';
 import SteamID from 'steamid';
 import { TokensService } from '../../tokens/tokens.service';
 import { AgentsService } from '../agents.service';
 import { AgentJobData } from '../interfaces/queue.interface';
+
+// A missing token is not transient, so fail once instead of retrying
+export function failWithoutToken(err: unknown): never {
+  throw err instanceof NotFoundException
+    ? new UnrecoverableError(err.message)
+    : err;
+}
 
 @Processor('registerAgents', {
   settings: bullWorkerSettings,
@@ -36,7 +43,9 @@ export class RegisterAgentsProcessor extends WorkerHost {
       `Registering agent for ${job.data.steamid64} attempt #${job.attemptsMade}...`,
     );
 
-    const token = await this.tokensService.getToken(steamid);
+    const token = await this.tokensService
+      .getToken(steamid)
+      .catch(failWithoutToken);
 
     await this.agentsService.registerAgent(token, agent.userAgent ?? undefined);
   }
