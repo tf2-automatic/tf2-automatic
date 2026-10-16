@@ -151,11 +151,10 @@ export class ManageListingsService {
 
     const transaction = this.redis.multi();
 
-    // Remove hashes from create queue
-    transaction.zrem(
-      ManageListingsService.getCreateKey(event.steamid),
-      ...hashes,
-    );
+    // Remove hashes from create and update queues
+    transaction
+      .zrem(ManageListingsService.getCreateKey(event.steamid), ...hashes)
+      .zrem(ManageListingsService.getUpdateKey(event.steamid), ...hashes);
 
     const ids = event.desired
       .map((d) => d.getID())
@@ -587,6 +586,12 @@ export class ManageListingsService {
     const desired = Array.from(desiredMap.values());
 
     if (desired.length === 0) {
+      // The listings were removed, don't try to update them again
+      await this.redis.zrem(
+        ManageListingsService.getUpdateKey(new SteamID(token.steamid64)),
+        ...hashes,
+      );
+
       return {
         updated: [],
         errors: [],

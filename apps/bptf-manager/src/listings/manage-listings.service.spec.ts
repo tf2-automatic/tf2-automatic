@@ -16,6 +16,7 @@ function makeTransaction() {
     srem: jest.fn(() => transaction),
     sadd: jest.fn(() => transaction),
     zadd: jest.fn(() => transaction),
+    zrem: jest.fn(() => transaction),
     exec: jest.fn(() => Promise.resolve([])),
   };
   return transaction;
@@ -149,6 +150,41 @@ describe('ManageListingsService', () => {
         'L1',
       );
       expect(transaction.exec).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('removed desired listings', () => {
+    it('are removed from the update queue', async () => {
+      const { service, redis, transaction, desiredListingsService } = setup();
+      const updateKey = 'listings:update:' + steamid.getSteamID64();
+
+      const desired = new DesiredListing(
+        steamid,
+        { id: '1', currencies: { keys: 1 } },
+        0,
+      );
+
+      // Private event handler for desired-listings.removed
+      const handler = service as unknown as {
+        removedDesired: (event: unknown) => Promise<void>;
+      };
+      await handler.removedDesired({ steamid, desired: [desired] });
+
+      expect(transaction.zrem).toHaveBeenCalledWith(
+        updateKey,
+        desired.getHash(),
+      );
+
+      // An update job that only finds removed listings drops their hashes
+      Object.assign(desiredListingsService, {
+        getDesiredByHashes: jest.fn().mockResolvedValue(new Map()),
+      });
+      await service.updateListings(
+        { steamid64: steamid.getSteamID64(), value: 'token' },
+        ['stale'],
+      );
+
+      expect(redis.zrem).toHaveBeenCalledWith(updateKey, 'stale');
     });
   });
 
