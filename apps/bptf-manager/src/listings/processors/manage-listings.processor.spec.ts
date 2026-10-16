@@ -1,5 +1,6 @@
 import Bottleneck from 'bottleneck';
 import { AxiosError } from 'axios';
+import { DelayedError } from 'bullmq';
 import { ManageListingsProcessor } from './manage-listings.processor';
 
 const mockLimiter = { updateSettings: jest.fn() };
@@ -81,5 +82,33 @@ describe('ManageListingsProcessor', () => {
       reservoirIncreaseMaximum: 3,
       reservoirIncreaseInterval: 60000,
     });
+  });
+
+  it('delays the job instead of waiting when the limiter is busy', async () => {
+    const { processor } = createProcessor(null);
+    const internals = processor as unknown as {
+      scheduleOrDelay: (...args: unknown[]) => Promise<boolean>;
+    };
+
+    const job = { moveToDelayed: jest.fn() };
+    const task = jest.fn().mockResolvedValue(true);
+    const busy = {
+      check: jest.fn().mockResolvedValue(false),
+      schedule: jest.fn(),
+    };
+
+    await expect(
+      internals.scheduleOrDelay(job, 'lock', busy, { minTime: 6000 }, task),
+    ).rejects.toBeInstanceOf(DelayedError);
+    expect(job.moveToDelayed).toHaveBeenCalledWith(expect.any(Number), 'lock');
+    expect(busy.schedule).not.toHaveBeenCalled();
+
+    const free = {
+      check: jest.fn().mockResolvedValue(true),
+      schedule: jest.fn((fn: () => Promise<boolean>) => fn()),
+    };
+    await expect(
+      internals.scheduleOrDelay(job, 'lock', free, { minTime: 6000 }, task),
+    ).resolves.toBe(true);
   });
 });
