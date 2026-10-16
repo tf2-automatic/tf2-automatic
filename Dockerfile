@@ -23,7 +23,7 @@ ARG APP
 RUN test -n "$APP"
 RUN node_modules/.bin/nx build $APP --skip-nx-cache --skipTypeChecking
 
-# 4. Production dependencies for that app, offline from the dev install's pnpm store.
+# 4. Production dependencies for that app, reusing the dev install's pnpm store.
 #    Cached while the app's generated package.json + lockfile are unchanged.
 FROM base AS installer
 ARG APP
@@ -32,7 +32,7 @@ COPY pnpm-workspace.yaml .pnpmfile.cjs ./
 COPY patches ./patches
 RUN --mount=type=bind,from=deps,source=/root/.local/share/pnpm/store,target=/root/.local/share/pnpm/store,rw \
     --mount=type=bind,from=deps,source=/root/.cache/pnpm,target=/root/.cache/pnpm,rw \
-    pnpm install --frozen-lockfile --prod --offline
+    pnpm install --frozen-lockfile --prod --prefer-offline
 
 FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS runner
 ENV NODE_ENV=production
