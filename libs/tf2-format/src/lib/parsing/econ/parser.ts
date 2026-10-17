@@ -291,6 +291,9 @@ export class EconParser extends Parser<
     let wear: number | null = null;
     if (raw.wear !== null) {
       wear = WEAR_NAMES_TO_LEVELS[raw.wear];
+      if (wear === undefined) {
+        throw new Error(`Unknown wear "${raw.wear}"`);
+      }
     }
 
     let target: NumberOrNull = null;
@@ -614,12 +617,26 @@ export class EconParser extends Parser<
       return attributes;
     }
 
+    // Sentinel avoids out of bounds errors, removed again so the item is untouched
+    item.descriptions.push({ value: '' });
+    try {
+      EconParser.parseDescriptions(item, tags, start, attributes);
+    } finally {
+      item.descriptions.pop();
+    }
+
+    return attributes;
+  }
+
+  private static parseDescriptions(
+    item: EconItem,
+    tags: TagAttributes,
+    start: IdentifiableDescription,
+    attributes: DescriptionAttributes,
+  ): void {
     let next = start;
 
     const descriptions = item.descriptions;
-
-    // Add empty description to make sure we do not get out of bounds errors
-    descriptions.push({ value: '' });
 
     let i = 0;
 
@@ -824,7 +841,10 @@ export class EconParser extends Parser<
             const inputs: ExtractedRecipeInput[] = [];
             attributes.inputs = inputs;
 
-            while (descriptions[i].value !== ' ') {
+            while (
+              i < descriptions.length - 1 &&
+              descriptions[i].value !== ' '
+            ) {
               const split = descriptions[i].value.lastIndexOf(' x ');
               const name = descriptions[i].value.slice(0, split);
 
@@ -909,8 +929,6 @@ export class EconParser extends Parser<
       }
       /* eslint-enable no-fallthrough */
     }
-
-    return attributes;
   }
 }
 

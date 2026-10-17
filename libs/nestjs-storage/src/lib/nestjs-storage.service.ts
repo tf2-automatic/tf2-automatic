@@ -51,8 +51,10 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
   private readonly currentWrites = new Map<string, Promise<WriteFileResult>>();
   private readonly nextWrites = new Map<string, NextWrite>();
 
-  private readonly writeQueue: queueAsPromised<WriteTask, WriteFileResult> =
-    fastq.promise(this.processWriteQueue.bind(this), 1);
+  // Limits concurrent engine calls so a burst (e.g. one file per inventory
+  // asset) can't open more files or connections than the system allows
+  private readonly readQueue: queueAsPromised<() => Promise<unknown>, unknown>;
+  private readonly writeQueue: queueAsPromised<WriteTask, WriteFileResult>;
 
   private readonly engine: StorageEngine;
 
@@ -69,6 +71,15 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
     } else {
       throw new Error(`Unsupported storage engine type`);
     }
+
+    this.readQueue = fastq.promise(
+      (task) => task(),
+      this.options.readConcurrency,
+    );
+    this.writeQueue = fastq.promise(
+      this.processWriteQueue.bind(this),
+      this.options.writeConcurrency,
+    );
   }
 
   getEngine(): StorageEngine {
@@ -101,7 +112,9 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
 
     this.logger.debug(`Checking file "${path}"`);
 
-    return this.engine.exists(path);
+    return this.readQueue.push(() =>
+      this.engine.exists(path),
+    ) as Promise<boolean>;
   }
 
   async read(relativePath: string): Promise<ReadFileResult> {
@@ -114,7 +127,11 @@ export class NestStorageService implements OnApplicationShutdown, OnModuleInit {
 
     this.logger.debug(`Reading file "${path}"`);
 
-    const promise = this.engine.read(path).catch((err) => {
+    const promise = (
+      this.readQueue.push(() =>
+        this.engine.read(path),
+      ) as Promise<ReadFileResult>
+    ).catch((err) => {
       this.logger.error(`Failed to read file "${path}": ${err.message}`);
       throw err;
     });

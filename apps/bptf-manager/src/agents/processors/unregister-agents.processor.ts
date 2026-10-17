@@ -1,11 +1,15 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import SteamID from 'steamid';
 import { AgentsService } from '../agents.service';
 import { AgentJobData } from '../interfaces/queue.interface';
+import { failWithoutToken } from './register-agents.processor';
 
-@Processor('unregisterAgents')
+@Processor('unregisterAgents', {
+  settings: bullWorkerSettings,
+})
 export class UnregisterAgentsProcessor extends WorkerHost {
   private readonly logger = new Logger(UnregisterAgentsProcessor.name);
 
@@ -29,7 +33,9 @@ export class UnregisterAgentsProcessor extends WorkerHost {
       `Unregistering agent for ${job.data.steamid64} attempt #${job.attemptsMade}...`,
     );
 
-    await this.agentsService.cleanupAndUnregisterAgent(steamid);
+    await this.agentsService
+      .cleanupAndUnregisterAgent(steamid)
+      .catch(failWithoutToken);
   }
 
   @OnWorkerEvent('error')

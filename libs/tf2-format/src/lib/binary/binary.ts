@@ -41,7 +41,7 @@ export class Binary {
           const array = value.map((v) =>
             key === 'inputs' ? this.toIdMap(v) : v,
           );
-          array.sort((a, b) => (encode(a) > encode(b) ? 1 : -1));
+          array.sort((a, b) => Buffer.compare(encode(a), encode(b)));
 
           if (array.length > 0) {
             result.set(ITEM_FIELD_ID[key], array);

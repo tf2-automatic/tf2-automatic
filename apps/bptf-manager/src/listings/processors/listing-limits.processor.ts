@@ -1,4 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from '../listing-limits.service';
 import { TokensService } from '../../tokens/tokens.service';
@@ -8,7 +9,9 @@ import { Token } from '@tf2-automatic/bptf-manager-data';
 import { ListingLimitsResponse } from '../interfaces/bptf.interface';
 import SteamID from 'steamid';
 
-@Processor('listing-limits')
+@Processor('listing-limits', {
+  settings: bullWorkerSettings,
+})
 export class ListingLimitsProcessor extends WorkerHost {
   private readonly logger = new Logger(ListingLimitsProcessor.name);
 
@@ -20,21 +23,35 @@ export class ListingLimitsProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
-    this.logger.debug('Processing job ' + job.id);
-
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
 
+    const start = Date.now();
     const result = await this.getLimits(token);
+    const duration = Date.now() - start;
 
-    await this.listingLimitsService.saveLimits(steamid, {
+    const limits = {
       cap: result.listings.total,
       used: result.listings.used,
       promoted: result.listings.promotionSlotsAvailable,
-    });
+    };
 
-    this.logger.log('Refreshed limits for ' + steamid.getSteamID64());
+    this.logger.debug(
+      'Got limits response for ' +
+        steamid.getSteamID64() +
+        ' (cap: ' +
+        limits.cap +
+        ', used: ' +
+        limits.used +
+        ', promoted: ' +
+        limits.promoted +
+        ') in ' +
+        duration +
+        'ms',
+    );
+
+    await this.listingLimitsService.saveLimits(steamid, limits);
   }
 
   private getLimits(token: Token): Promise<ListingLimitsResponse> {

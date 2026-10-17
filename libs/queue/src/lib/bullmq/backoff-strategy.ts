@@ -12,6 +12,7 @@ export const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
     job?.data.retry?.strategy,
     job?.data.retry?.delay,
     job?.data.retry?.maxDelay,
+    job?.data.retry?.jitter,
   );
 };
 
@@ -26,6 +27,7 @@ export function calculateBackoff(
   strategy: RetryOptions['strategy'] = 'exponential',
   delay: RetryOptions['delay'] = 1000,
   maxDelay: RetryOptions['maxDelay'] = 60000,
+  jitter: RetryOptions['jitter'] = 0.2,
 ): number {
   let wait = delay;
 
@@ -35,5 +37,6 @@ export function calculateBackoff(
     wait = attempts * delay;
   }
 
-  return Math.min(wait, maxDelay);
+  // Randomly shorten the delay so jobs that failed together don't retry together
+  return Math.round(Math.min(wait, maxDelay) * (1 - jitter * Math.random()));
 }
