@@ -82,18 +82,6 @@ export class GetListingsProcessor extends WorkerHost {
       return;
     }
 
-    let debugStr = 'Getting ' + job.name + ' listings for ' + token.steamid64;
-
-    if (skip && limit) {
-      debugStr += ' using skip ' + skip + ' and limit ' + limit;
-    } else if (skip) {
-      debugStr += ' using skip ' + skip;
-    } else if (limit) {
-      debugStr += ' using limit ' + limit;
-    }
-
-    debugStr += '...';
-
     const key = steamid.getSteamID64();
 
     const response = await this.rateLimitsService.scheduleOrDelay(
@@ -101,13 +89,10 @@ export class GetListingsProcessor extends WorkerHost {
       lockToken,
       endpoint,
       key,
-      () => {
-        this.logger.debug(debugStr);
-
-        return fetch().catch((err) =>
+      () =>
+        fetch().catch((err) =>
           this.rateLimitsService.handleError(endpoint, key, err),
-        );
-      },
+        ),
     );
 
     this.logger.debug(

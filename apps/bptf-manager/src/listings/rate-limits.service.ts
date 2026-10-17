@@ -194,8 +194,6 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
       throw new DelayedError();
     }
 
-    this.logger.debug(`Scheduling ${job.name} for ${job.data.steamid64}...`);
-
     return limiter.schedule(task);
   }
 
