@@ -25,15 +25,6 @@ export class UnregisterAgentsProcessor extends AccountWorkerHost {
   async processJob(job: Job<AgentJobData>): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
-    const agent = await this.agentsService.getAgent(steamid);
-
-    if (agent) {
-      this.logger.debug(
-        'Skipping unregistering agent because it is no longer needed',
-      );
-      return;
-    }
-
     await this.agentsService
       .cleanupAndUnregisterAgent(steamid)
       .catch(failWithoutToken);
@@ -48,10 +39,5 @@ export class UnregisterAgentsProcessor extends AccountWorkerHost {
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
     this.logger.warn(`Failed to unregister agent: ${err.message}`);
-  }
-
-  @OnWorkerEvent('completed')
-  onCompleted(): void {
-    this.logger.log('Unregistered agent');
   }
 }
