@@ -40,7 +40,8 @@ export async function getJobs(
     const end = start + batchSize;
     const jobs = await queue.getJobs(undefined, start, end, true);
 
-    if (jobs.length !== 1 + end - start) {
+    // The range applies per state, so a short page does not mean the last one
+    if (jobs.length === 0) {
       moreJobs = false;
     }
 
