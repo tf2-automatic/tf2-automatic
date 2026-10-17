@@ -40,4 +40,32 @@ describe('parseInputs', () => {
     expect(schema.fetchDefindexByName).toHaveBeenCalledTimes(1);
     expect(schema.fetchDefindexByName).toHaveBeenCalledWith('Foo');
   });
+
+  it('will fall back to the full name when the stripped name is cached as an error', async () => {
+    (schema.getDefindexByName as jest.Mock).mockImplementation(
+      (name: string) => (name === 'The Foo' ? 123 : new Error('Not found')),
+    );
+
+    const inputs = await parseInputs(
+      [{ name: 'The Foo', quantity: 1 }],
+      schema,
+    );
+
+    expect(inputs).toEqual([{ quality: 6, quantity: 1, defindex: 123 }]);
+    expect(schema.fetchDefindexByName).not.toHaveBeenCalled();
+  });
+
+  it('will use a cached defindex of 0 for the stripped name', async () => {
+    (schema.getDefindexByName as jest.Mock).mockImplementation(
+      (name: string) => (name === 'Foo' ? 0 : undefined),
+    );
+
+    const inputs = await parseInputs(
+      [{ name: 'The Foo', quantity: 1 }],
+      schema,
+    );
+
+    expect(inputs).toEqual([{ quality: 6, quantity: 1, defindex: 0 }]);
+    expect(schema.fetchDefindexByName).not.toHaveBeenCalled();
+  });
 });
