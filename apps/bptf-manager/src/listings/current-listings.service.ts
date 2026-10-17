@@ -284,15 +284,32 @@ export class CurrentListingsService {
     const duration = Date.now() - start;
 
     const ids = new Set<string>();
+    const failures = new Map<string, number>();
+    let failed = 0;
     for (const listing of result) {
       if (listing.result !== undefined) {
         ids.add(listing.result.id);
+      } else {
+        // An empty message means the item does not exist, see handleCreatedListings
+        const message = listing.error?.message;
+        const reason =
+          message === '' ? 'Item does not exist' : (message ?? 'Unknown error');
+        failures.set(reason, (failures.get(reason) ?? 0) + 1);
+        failed++;
       }
     }
 
+    const created = failed > 0 ? `${ids.size} of ${result.length}` : ids.size;
     this.logger[ids.size > 0 ? 'log' : 'debug'](
-      `Created ${ids.size} listing(s) in ${duration}ms`,
+      `Created ${created} listing(s) in ${duration}ms`,
     );
+
+    if (failed > 0) {
+      const reasons = [...failures]
+        .map(([reason, count]) => `${reason} (${count})`)
+        .join(', ');
+      this.logger.warn(`Failed to create ${failed} listing(s): ${reasons}`);
+    }
 
     const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
     for (const index in result) {
