@@ -52,35 +52,12 @@ export class InventoriesProcessor extends AccountWorkerHost {
         ' second(s) ago',
     );
 
-    // If the inventory was refreshed since the job started
-    const refreshed = status.timestamp > job.data.refreshed;
-
-    // Check if the inventory has been refreshed since we last requested it to be refreshed
-    if (refreshed && inventory !== null) {
-      // Get the refresh point of the inventory
-      const refreshPoint =
-        await this.inventoriesService.getRefreshPoint(steamid);
-
-      // Check if the inventory was refreshed after the refresh point
-      if (refreshPoint === null || inventory.refresh >= refreshPoint) {
-        // Inventory has been refreshed since we last requested it to be refreshed
-        // and it was refreshed after the refresh point
-        return { done: true, status: inventory.status };
-      }
-    }
-
-    // Add a new job to the queue to continue refreshing the inventory
-    await this.inventoriesService.enqueueRefresh(
+    return this.inventoriesService.continueRefresh(
       steamid,
       status,
-      job.data.attempts + 1,
-      refreshed ? 0 : job.data.attemptsSinceLastRefresh + 1,
+      inventory,
+      job.data,
     );
-
-    return {
-      done: false,
-      status,
-    };
   }
 
   @OnWorkerEvent('error')
@@ -96,7 +73,7 @@ export class InventoriesProcessor extends AccountWorkerHost {
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job<InventoriesJobData, InventoriesJobResult>): void {
-    if (job.returnvalue.done) {
+    if (job.returnvalue.done && !job.returnvalue.cancelled) {
       this.logger.log(
         `Inventory has been updated after a total of ${job.data.attempts + 1} attempt(s)`,
       );

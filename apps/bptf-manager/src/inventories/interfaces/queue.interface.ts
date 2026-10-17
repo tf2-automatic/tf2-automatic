@@ -13,6 +13,7 @@ export interface InventoriesJobData {
 
 export interface InventoriesJobResult {
   done: boolean;
+  cancelled?: boolean;
   status: InventoryStatus;
 }
 

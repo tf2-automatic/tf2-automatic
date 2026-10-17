@@ -55,10 +55,13 @@ export class InventoriesService {
       [`inventories:${steamid64}`],
       LockDuration.SHORT,
       async (signal) => {
-        const refreshPoint = await this.getRefreshPoint(steamid);
+        const [refreshPoint, inventory] = await Promise.all([
+          this.getRefreshPoint(steamid),
+          this.getInventory(steamid),
+        ]);
 
-        if (refreshPoint && refreshPoint > time) {
-          // The time requested is before the current refresh point, skip it
+        if (inventory && inventory.status.timestamp >= time) {
+          // The inventory snapshot is already newer than the requested time
           return;
         }
 
@@ -66,10 +69,14 @@ export class InventoriesService {
           throw signal.error;
         }
 
-        // Check if job already exists
-        const jobs = await this.getJobs(steamid);
-        if (jobs.length === 0) {
-          // Add job to the queue
+        // Set refresh point before the job is added so the enqueue processor sees it
+        await this.setRefreshPoint(steamid, Math.max(refreshPoint ?? 0, time));
+
+        // Start a chain if there is none, or if it died
+        if (
+          refreshPoint === null ||
+          (await this.getJobs(steamid)).length === 0
+        ) {
           await this.enqueueInventoriesQueue.add(
             steamid64,
             {
@@ -80,9 +87,6 @@ export class InventoriesService {
             },
           );
         }
-
-        // Set refresh point after the job has been added to ensure no deadlocks
-        await this.setRefreshPoint(steamid, time);
       },
     );
   }
@@ -124,18 +128,70 @@ export class InventoriesService {
   }
 
   async dequeueRefresh(steamid: SteamID): Promise<void> {
-    await this.deleteRefreshPoint(steamid);
+    await this.locker.using(
+      [`inventories:${steamid.getSteamID64()}`],
+      LockDuration.SHORT,
+      () => this.deleteRefreshPoint(steamid),
+    );
 
+    // Active jobs cannot be removed, they stop on their own when the refresh point is missing
     const jobs = await this.getJobs(steamid);
 
     await Promise.allSettled(jobs.map((job) => job.remove()));
   }
 
-  async getJobs(steamid: SteamID): Promise<Job<InventoriesJobData>[]> {
-    return getJobs(
-      this.inventoriesQueue,
-      (job) => job.data.steamid64 === steamid.getSteamID64(),
+  async continueRefresh(
+    steamid: SteamID,
+    status: InventoryStatus,
+    inventory: Inventory | null,
+    data: InventoriesJobData,
+  ): Promise<InventoriesJobResult> {
+    const refreshed = status.timestamp > data.refreshed;
+
+    // Decide under the lock so a new refresh point can't be lost
+    return this.locker.using(
+      [`inventories:${steamid.getSteamID64()}`],
+      LockDuration.SHORT,
+      async () => {
+        const refreshPoint = await this.getRefreshPoint(steamid);
+
+        if (refreshPoint === null) {
+          // The refresh was cancelled
+          return { done: true, cancelled: true, status };
+        }
+
+        if (
+          refreshed &&
+          inventory !== null &&
+          inventory.refresh >= refreshPoint
+        ) {
+          await this.deleteRefreshPoint(steamid);
+          return { done: true, status: inventory.status };
+        }
+
+        await this.enqueueRefresh(
+          steamid,
+          status,
+          data.attempts + 1,
+          refreshed ? 0 : data.attemptsSinceLastRefresh + 1,
+        );
+
+        return { done: false, status };
+      },
     );
+  }
+
+  async getJobs(
+    steamid: SteamID,
+  ): Promise<Job<InventoriesJobData | EnqueueJobData>[]> {
+    const filter = (job: Job) => job.data.steamid64 === steamid.getSteamID64();
+
+    const [inventories, enqueue] = await Promise.all([
+      getJobs(this.inventoriesQueue, filter),
+      getJobs(this.enqueueInventoriesQueue, filter),
+    ]);
+
+    return [...inventories, ...enqueue];
   }
 
   private getInventoryKey(steamid64: string) {
