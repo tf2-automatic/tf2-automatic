@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import SteamID from 'steamid';
+import { getJobs } from '@tf2-automatic/queue';
 import {
   InventoryStatus,
   RefreshInventoryDto,
@@ -131,34 +132,10 @@ export class InventoriesService {
   }
 
   async getJobs(steamid: SteamID): Promise<Job<InventoriesJobData>[]> {
-    const match: Job[] = [];
-
-    let start = 0;
-    let moreJobs = true;
-
-    while (moreJobs) {
-      const end = start + 100;
-      const jobs = await this.inventoriesQueue.getJobs(
-        undefined,
-        start,
-        end,
-        true,
-      );
-
-      if (jobs.length !== 1 + end - start) {
-        moreJobs = false;
-      }
-
-      jobs.forEach((job) => {
-        if (job.data.steamid64 === steamid.getSteamID64()) {
-          match.push(job);
-        }
-      });
-
-      start = end + 1;
-    }
-
-    return match;
+    return getJobs(
+      this.inventoriesQueue,
+      (job) => job.data.steamid64 === steamid.getSteamID64(),
+    );
   }
 
   private getInventoryKey(steamid64: string) {
