@@ -84,6 +84,24 @@ describe('QueueManager.addJob', () => {
     expect(added[0].data.options).toEqual({ value: 2 });
   });
 
+  it('throws other errors from updating the job', async () => {
+    await addJob(1, 60000);
+
+    const spy = jest
+      .spyOn(Job.prototype, 'updateData')
+      .mockRejectedValue(new Error('Connection is closed.'));
+
+    try {
+      await expect(addJob(2)).rejects.toThrow('Connection is closed.');
+    } finally {
+      spy.mockRestore();
+    }
+
+    const added = await jobs();
+    expect(added).toHaveLength(1);
+    expect(added[0].data.options).toEqual({ value: 1 });
+  });
+
   it('does not throw when added concurrently while the delay expires', async () => {
     worker = new Worker(queue.name, async () => undefined, {
       connection,

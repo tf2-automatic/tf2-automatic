@@ -51,9 +51,12 @@ export class QueueManager<
       if (state !== 'active') {
         const removed = await existing.updateData(data).then(
           () => false,
-          async (err) => {
-            // Fails if the job completed and was removed after it was read
-            if ((await this.getJobById(id)) === null) {
+          (err) => {
+            // bullmq has no error code, the job completed and was removed after it was read
+            if (
+              err instanceof Error &&
+              err.message.startsWith('Missing key for job ')
+            ) {
               return true;
             }
             throw err;
