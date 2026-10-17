@@ -42,7 +42,7 @@ export class GetListingsProcessor extends AccountWorkerHost {
         await this.getListings(job, lockToken);
         break;
       default:
-        this.logger.warn('Unknown job type ' + job.name);
+        this.logger.error('Unknown job type ' + job.name);
     }
   }
 
@@ -53,8 +53,6 @@ export class GetListingsProcessor extends AccountWorkerHost {
       new SteamID(job.data.steamid64),
       job.data.start,
     );
-
-    this.logger.debug('Refreshed listings');
   }
 
   private async getListings(
@@ -104,7 +102,7 @@ export class GetListingsProcessor extends AccountWorkerHost {
     const duration = Date.now() - start;
 
     this.logger.debug(
-      `Got ${job.name} listings (skip: ${response.cursor.skip}, limit: ${response.cursor.limit}, total: ${response.cursor.total}, results: ${response.results.length}) in ${duration}ms`,
+      `Got ${response.results.length} ${job.name} listing(s) (${response.cursor.skip + response.results.length} of ${response.cursor.total}) in ${duration}ms`,
     );
 
     await this.currentListingsService.handleListingsResponse(job, response);

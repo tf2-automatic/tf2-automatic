@@ -64,7 +64,7 @@ export class ManageListingsProcessor extends AccountWorkerHost<
       case JobType.Plan:
         return this.handlePlanAction(job);
       default:
-        this.logger.warn('Unknown task type: ' + job.name);
+        this.logger.error('Unknown task type: ' + job.name);
         return false;
     }
   }

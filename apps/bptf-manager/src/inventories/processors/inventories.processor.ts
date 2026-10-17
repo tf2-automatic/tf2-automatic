@@ -29,7 +29,7 @@ export class InventoriesProcessor extends AccountWorkerHost {
   async processJob(
     job: Job<InventoriesJobData, InventoriesJobResult>,
   ): Promise<InventoriesJobResult> {
-    this.logger.log(
+    this.logger.debug(
       `Refreshing inventory attempt #${
         job.data.attemptsSinceLastRefresh + 1
       }...`,

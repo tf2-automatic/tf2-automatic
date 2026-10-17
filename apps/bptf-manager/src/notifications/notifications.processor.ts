@@ -38,8 +38,6 @@ export class NotificationsProcessor extends AccountWorkerHost {
   }
 
   private async done(job: Job<JobData>): Promise<void> {
-    this.logger.debug('Refreshed notifications');
-
     await this.notificationsService.handleNotificationsFetched(job);
   }
 
@@ -74,7 +72,7 @@ export class NotificationsProcessor extends AccountWorkerHost {
     const duration = Date.now() - start;
 
     this.logger.debug(
-      `Got notifications (skip: ${response.cursor.skip}, limit: ${response.cursor.limit}, total: ${response.cursor.total}, results: ${response.results.length}) in ${duration}ms`,
+      `Got ${response.results.length} notification(s) (${response.cursor.skip + response.results.length} of ${response.cursor.total}) in ${duration}ms`,
     );
 
     await this.notificationsService.handleNotifications(job, response);

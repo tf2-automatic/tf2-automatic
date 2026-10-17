@@ -75,7 +75,7 @@ export class RegisterAgentsProcessor extends AccountWorkerHost {
           return this.agentsService.cleanupAndUnregisterAgent(steamid);
         }
 
-        this.logger.log('Registered agent');
+        this.logger.debug('Registered agent');
       })
       .catch((err) => {
         this.logger.warn(`Error while unregistering agent: ${err.message}`);

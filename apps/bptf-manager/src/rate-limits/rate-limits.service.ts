@@ -147,7 +147,7 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.logger.warn('Limiter settings changed, clearing limiters...');
+    this.logger.log('Limiter settings changed, clearing limiters...');
 
     await this.disconnectBottlenecks();
 

@@ -6,10 +6,15 @@ import { Config } from './common/config/configuration';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json } from 'express';
 import { AccountLogger } from './common/logger';
+import { getEnv } from '@tf2-automatic/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: new AccountLogger(),
+    logger: new AccountLogger({
+      logLevels: getEnv('DEBUG', 'boolean')
+        ? ['log', 'debug', 'error', 'verbose', 'warn']
+        : ['log', 'warn', 'error'],
+    }),
   });
 
   const config = new DocumentBuilder()

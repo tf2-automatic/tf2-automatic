@@ -203,7 +203,7 @@ export class CurrentListingsService {
     const start = Date.now();
     const result = await this._deleteListings(token, ids);
 
-    this.logger.log(
+    this.logger[result.deleted > 0 ? 'log' : 'debug'](
       `Deleted ${result.deleted} active listing(s) in ${Date.now() - start}ms`,
     );
 
@@ -249,7 +249,7 @@ export class CurrentListingsService {
     const start = Date.now();
     const result = await this._deleteArchivedListings(token, ids);
 
-    this.logger.log(
+    this.logger[result.deleted > 0 ? 'log' : 'debug'](
       `Deleted ${result.deleted} archived listing(s) in ${Date.now() - start}ms`,
     );
 
@@ -290,7 +290,9 @@ export class CurrentListingsService {
       }
     }
 
-    this.logger.log(`Created ${ids.size} listing(s) in ${duration}ms`);
+    this.logger[ids.size > 0 ? 'log' : 'debug'](
+      `Created ${ids.size} listing(s) in ${duration}ms`,
+    );
 
     const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
     for (const index in result) {
@@ -481,7 +483,7 @@ export class CurrentListingsService {
     const start = Date.now();
     const result = await this._updateListings(token, listings);
 
-    this.logger.log(
+    this.logger[result.updated.length > 0 ? 'log' : 'debug'](
       `Updated ${result.updated.length} listing(s) in ${Date.now() - start}ms`,
     );
 
@@ -539,7 +541,7 @@ export class CurrentListingsService {
       this._deleteAllArchivedListings(token),
     ]);
 
-    this.logger.log(
+    this.logger[active.deleted + archived.deleted > 0 ? 'log' : 'debug'](
       `Deleted ${active.deleted} active and ${archived.deleted} archived listing(s) in ${Date.now() - start}ms`,
     );
 
