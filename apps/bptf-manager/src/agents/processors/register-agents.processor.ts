@@ -1,4 +1,6 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger, NotFoundException } from '@nestjs/common';
 import { Job, UnrecoverableError } from 'bullmq';
@@ -17,31 +19,28 @@ export function failWithoutToken(err: unknown): never {
 @Processor('registerAgents', {
   settings: bullWorkerSettings,
 })
-export class RegisterAgentsProcessor extends WorkerHost {
+export class RegisterAgentsProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(RegisterAgentsProcessor.name);
 
   constructor(
     private readonly agentsService: AgentsService,
     private readonly tokensService: TokensService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(job: Job<AgentJobData>): Promise<void> {
+  async processJob(job: Job<AgentJobData>): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
     const agent = await this.agentsService.getAgent(steamid);
 
     if (!agent) {
       this.logger.debug(
-        `Skipping registering agent for ${job.data.steamid64} because it is no longer needed`,
+        'Skipping registering agent because it is no longer needed',
       );
       return;
     }
-
-    this.logger.debug(
-      `Registering agent for ${job.data.steamid64} attempt #${job.attemptsMade}...`,
-    );
 
     const token = await this.tokensService
       .getToken(steamid)
@@ -58,9 +57,7 @@ export class RegisterAgentsProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
-    this.logger.warn(
-      `Failed to register agent for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to register agent: ${err.message}`);
   }
 
   @OnWorkerEvent('completed')
@@ -76,7 +73,7 @@ export class RegisterAgentsProcessor extends WorkerHost {
           return this.agentsService.cleanupAndUnregisterAgent(steamid);
         }
 
-        this.logger.log(`Registered agent for ${job.data.steamid64}`);
+        this.logger.debug('Registered agent');
       })
       .catch((err) => {
         this.logger.warn(`Error while unregistering agent: ${err.message}`);

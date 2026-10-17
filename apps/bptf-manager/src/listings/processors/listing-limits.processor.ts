@@ -1,4 +1,6 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { ListingLimitsService } from '../listing-limits.service';
@@ -12,17 +14,18 @@ import SteamID from 'steamid';
 @Processor('listing-limits', {
   settings: bullWorkerSettings,
 })
-export class ListingLimitsProcessor extends WorkerHost {
+export class ListingLimitsProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(ListingLimitsProcessor.name);
 
   constructor(
     private readonly listingLimitsService: ListingLimitsService,
     private readonly tokensService: TokensService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(job: Job): Promise<void> {
+  async processJob(job: Job): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
@@ -38,17 +41,7 @@ export class ListingLimitsProcessor extends WorkerHost {
     };
 
     this.logger.debug(
-      'Got limits response for ' +
-        steamid.getSteamID64() +
-        ' (cap: ' +
-        limits.cap +
-        ', used: ' +
-        limits.used +
-        ', promoted: ' +
-        limits.promoted +
-        ') in ' +
-        duration +
-        'ms',
+      `Got listing limits (cap: ${limits.cap}, used: ${limits.used}, promoted: ${limits.promoted}) in ${duration}ms`,
     );
 
     await this.listingLimitsService.saveLimits(steamid, limits);
@@ -76,7 +69,7 @@ export class ListingLimitsProcessor extends WorkerHost {
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
     this.logger.warn(
-      `Failed get listing limits for job ${job.id}: ${err.message}`,
+      `Failed to get listing limits for job ${job.id}: ${err.message}`,
     );
 
     if (err instanceof AxiosError) {

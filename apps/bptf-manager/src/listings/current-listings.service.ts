@@ -192,14 +192,6 @@ export class CurrentListingsService {
   async deleteListings(token: Token, ids: string[]) {
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Deleting ' +
-        ids.length +
-        ' active listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
     // Figure out what listings should be deleted from the database
     const exists = await this.redis.smismember(
       this.getCurrentShouldNotDeleteEntryKey(steamid),
@@ -208,9 +200,12 @@ export class CurrentListingsService {
 
     const limits = await this.listingLimitsService.getLimits(steamid);
 
+    const start = Date.now();
     const result = await this._deleteListings(token, ids);
 
-    this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
+    this.logger[result.deleted > 0 ? 'log' : 'debug'](
+      `Deleted ${result.deleted} active listing(s) in ${Date.now() - start}ms`,
+    );
 
     // Filter out listings that should not be deleted (for example, when deleting active listing because newest was archived)
     const remove =
@@ -251,17 +246,12 @@ export class CurrentListingsService {
   async deleteArchivedListings(token: Token, ids: string[]) {
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Deleting ' +
-        ids.length +
-        ' archived listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
+    const start = Date.now();
     const result = await this._deleteArchivedListings(token, ids);
 
-    this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
+    this.logger[result.deleted > 0 ? 'log' : 'debug'](
+      `Deleted ${result.deleted} archived listing(s) in ${Date.now() - start}ms`,
+    );
 
     // Delete current listings in database
     await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
@@ -287,28 +277,37 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Creating ' +
-        listings.length +
-        ' listing(s) for ' +
-        token.steamid64 +
-        '...',
-    );
-
     const limits = await this.listingLimitsService.getLimits(steamid);
 
+    const start = Date.now();
     const result = await this._createListings(token, listings);
+    const duration = Date.now() - start;
 
     const ids = new Set<string>();
+    const failures = new Map<string, number>();
+    let failed = 0;
     for (const listing of result) {
       if (listing.result !== undefined) {
         ids.add(listing.result.id);
+      } else {
+        // An empty message means the item does not exist, see handleCreatedListings
+        const message = listing.error?.message;
+        const reason =
+          message === '' ? 'Item does not exist' : (message ?? 'Unknown error');
+        failures.set(reason, (failures.get(reason) ?? 0) + 1);
+        failed++;
       }
     }
 
-    this.logger.log(
-      'Created ' + ids.size + ' listing(s) for ' + token.steamid64,
-    );
+    const created = failed > 0 ? `${ids.size} of ${result.length}` : ids.size;
+    this.logger.log(`Created ${created} listing(s) in ${duration}ms`);
+
+    if (failed > 0) {
+      const reasons = [...failures]
+        .map(([reason, count]) => `${reason} (${count})`)
+        .join(', ');
+      this.logger.warn(`Failed to create ${failed} listing(s): ${reasons}`);
+    }
 
     const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
     for (const index in result) {
@@ -496,18 +495,11 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Updating ' +
-        listings.length +
-        ' listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
+    const start = Date.now();
     const result = await this._updateListings(token, listings);
 
-    this.logger.log(
-      'Updated ' + result.updated.length + ' listing(s) for ' + token.steamid64,
+    this.logger[result.updated.length > 0 ? 'log' : 'debug'](
+      `Updated ${result.updated.length} listing(s) in ${Date.now() - start}ms`,
     );
 
     const updated = new Map<string, Listing>();
@@ -558,20 +550,14 @@ export class CurrentListingsService {
   }
 
   async deleteAllListings(token: Token): Promise<number> {
-    this.logger.log('Deleting all listings for ' + token.steamid64 + '...');
-
+    const start = Date.now();
     const [active, archived] = await Promise.all([
       this._deleteAllActiveListings(token),
       this._deleteAllArchivedListings(token),
     ]);
 
-    this.logger.log(
-      'Deleted ' +
-        active.deleted +
-        ' active and ' +
-        archived.deleted +
-        ' archived listing(s) for ' +
-        token.steamid64,
+    this.logger[active.deleted + archived.deleted > 0 ? 'log' : 'debug'](
+      `Deleted ${active.deleted} active and ${archived.deleted} archived listing(s) in ${Date.now() - start}ms`,
     );
 
     const steamid = new SteamID(token.steamid64);
@@ -647,8 +633,6 @@ export class CurrentListingsService {
       this.logger.warn(
         'Temp listings of refresh ' +
           time +
-          ' for ' +
-          steamid.getSteamID64() +
           ' are gone, keeping current listings',
       );
 

@@ -1,5 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Job, UnrecoverableError } from 'bullmq';
+import { AsyncLocalStorage } from 'async_hooks';
+import { ClsService } from 'nestjs-cls';
 import { RegisterAgentsProcessor } from './register-agents.processor';
 
 describe('RegisterAgentsProcessor', () => {
@@ -17,6 +19,7 @@ describe('RegisterAgentsProcessor', () => {
     const processor = new RegisterAgentsProcessor(
       agentsService as never,
       tokensService as never,
+      new ClsService(new AsyncLocalStorage()),
     );
 
     await expect(
