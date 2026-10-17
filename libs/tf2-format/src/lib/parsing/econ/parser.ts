@@ -290,7 +290,7 @@ export class EconParser extends Parser<
 
     let wear: number | null = null;
     if (raw.wear !== null) {
-      wear = WEAR_NAMES_TO_LEVELS[raw.wear];
+      wear = WEAR_NAMES_TO_LEVELS[raw.wear] ?? null;
     }
 
     let target: NumberOrNull = null;

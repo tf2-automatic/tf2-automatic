@@ -767,6 +767,19 @@ describe('EconParser', () => {
       expect(parsed.quality).toEqual(6);
     });
 
+    it('will set wear to null if the exterior name is unknown', async () => {
+      const item = TestData.getDecoratedWeapon();
+      const exterior = item.tags?.find((tag) => tag.category === 'Exterior');
+      exterior!.name = 'Bogus Wear';
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+      const parsed = await parser.parse(extracted);
+
+      expect(parsed.wear).toBeNull();
+    });
+
     it('will throw if `fetch` throws', async () => {
       schema.getQualityByName.mockReturnValue(undefined);
       schema.fetchQualityByName.mockRejectedValue(
