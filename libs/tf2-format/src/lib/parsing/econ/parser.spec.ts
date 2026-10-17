@@ -767,7 +767,7 @@ describe('EconParser', () => {
       expect(parsed.quality).toEqual(6);
     });
 
-    it('will set wear to null if the exterior name is unknown', async () => {
+    it('will throw if the exterior name is unknown', async () => {
       const item = TestData.getDecoratedWeapon();
       for (const tag of item.tags) {
         if (tag.category === 'Exterior') {
@@ -778,9 +778,10 @@ describe('EconParser', () => {
       mockSchema();
 
       const extracted = parser.extract(item);
-      const parsed = await parser.parse(extracted);
 
-      expect(parsed.wear).toBeNull();
+      await expect(parser.parse(extracted)).rejects.toThrow(
+        'Unknown wear "Bogus Wear"',
+      );
     });
 
     it('will throw if `fetch` throws', async () => {
