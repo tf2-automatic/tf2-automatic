@@ -31,19 +31,27 @@ export class ListingLimitsProcessor extends WorkerHost {
     const result = await this.getLimits(token);
     const duration = Date.now() - start;
 
-    await this.listingLimitsService.saveLimits(steamid, {
+    const limits = {
       cap: result.listings.total,
       used: result.listings.used,
       promoted: result.listings.promotionSlotsAvailable,
-    });
+    };
 
     this.logger.debug(
-      'Refreshed limits for ' +
+      'Got limits response for ' +
         steamid.getSteamID64() +
-        ' in ' +
+        ' (cap: ' +
+        limits.cap +
+        ', used: ' +
+        limits.used +
+        ', promoted: ' +
+        limits.promoted +
+        ') in ' +
         duration +
         'ms',
     );
+
+    await this.listingLimitsService.saveLimits(steamid, limits);
   }
 
   private getLimits(token: Token): Promise<ListingLimitsResponse> {
