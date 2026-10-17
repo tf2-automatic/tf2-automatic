@@ -192,8 +192,6 @@ export class CurrentListingsService {
   async deleteListings(token: Token, ids: string[]) {
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log('Deleting ' + ids.length + ' active listing(s)');
-
     // Figure out what listings should be deleted from the database
     const exists = await this.redis.smismember(
       this.getCurrentShouldNotDeleteEntryKey(steamid),
@@ -202,9 +200,12 @@ export class CurrentListingsService {
 
     const limits = await this.listingLimitsService.getLimits(steamid);
 
+    const start = Date.now();
     const result = await this._deleteListings(token, ids);
 
-    this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
+    this.logger.log(
+      `Deleted ${result.deleted} active listing(s) in ${Date.now() - start}ms`,
+    );
 
     // Filter out listings that should not be deleted (for example, when deleting active listing because newest was archived)
     const remove =
@@ -245,11 +246,12 @@ export class CurrentListingsService {
   async deleteArchivedListings(token: Token, ids: string[]) {
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log('Deleting ' + ids.length + ' archived listing(s)');
-
+    const start = Date.now();
     const result = await this._deleteArchivedListings(token, ids);
 
-    this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
+    this.logger.log(
+      `Deleted ${result.deleted} archived listing(s) in ${Date.now() - start}ms`,
+    );
 
     // Delete current listings in database
     await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
@@ -275,11 +277,11 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log('Creating ' + listings.length + ' listing(s)');
-
     const limits = await this.listingLimitsService.getLimits(steamid);
 
+    const start = Date.now();
     const result = await this._createListings(token, listings);
+    const duration = Date.now() - start;
 
     const ids = new Set<string>();
     for (const listing of result) {
@@ -288,7 +290,7 @@ export class CurrentListingsService {
       }
     }
 
-    this.logger.log('Created ' + ids.size + ' listing(s)');
+    this.logger.log(`Created ${ids.size} listing(s) in ${duration}ms`);
 
     const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
     for (const index in result) {
@@ -476,11 +478,12 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log('Updating ' + listings.length + ' listing(s)');
-
+    const start = Date.now();
     const result = await this._updateListings(token, listings);
 
-    this.logger.log('Updated ' + result.updated.length + ' listing(s)');
+    this.logger.log(
+      `Updated ${result.updated.length} listing(s) in ${Date.now() - start}ms`,
+    );
 
     const updated = new Map<string, Listing>();
     result.updated.forEach((listing) => {
@@ -530,19 +533,14 @@ export class CurrentListingsService {
   }
 
   async deleteAllListings(token: Token): Promise<number> {
-    this.logger.log('Deleting all listings');
-
+    const start = Date.now();
     const [active, archived] = await Promise.all([
       this._deleteAllActiveListings(token),
       this._deleteAllArchivedListings(token),
     ]);
 
     this.logger.log(
-      'Deleted ' +
-        active.deleted +
-        ' active and ' +
-        archived.deleted +
-        ' archived listing(s)',
+      `Deleted ${active.deleted} active and ${archived.deleted} archived listing(s) in ${Date.now() - start}ms`,
     );
 
     const steamid = new SteamID(token.steamid64);
