@@ -272,6 +272,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       case eEconItemOrigin.kEconItemOrigin_Foreign:
       case eEconItemOrigin.kEconItemOrigin_PreviewItem:
       case eEconItemOrigin.kEconItemOrigin_SteamWorkshopContribution:
+      case eEconItemOrigin.kEconItemOrigin_UntradableFreeContractReward:
         return false;
     }
 
