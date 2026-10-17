@@ -482,5 +482,106 @@ describe('TF2GCParser', () => {
       expect(schema.getPaintByColor).not.toHaveBeenCalled();
       expect(parsed.paint).toEqual(null);
     });
+
+    function uint32Attribute(defIndex: number, value: number) {
+      const bytes = Buffer.alloc(4);
+      bytes.writeUInt32LE(value);
+      return {
+        def_index: defIndex,
+        value: null,
+        value_bytes: { type: 'Buffer' as const, data: [...bytes] },
+      };
+    }
+
+    async function parse(
+      overrides: Partial<ReturnType<typeof TestData.getBasicItem>>,
+      schemaItem: ItemsGameItem = { name: 'Item' },
+    ) {
+      const [extracted, context] = parser.extract({
+        ...TestData.getBasicItem(),
+        def_index: 1178,
+        flags: 0,
+        origin: 0,
+        attribute: [],
+        ...overrides,
+      });
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue(schemaItem);
+      return parser.parse(extracted, context);
+    }
+
+    const alwaysTradable: ItemsGameItem = {
+      name: 'Item',
+      attributes: {
+        'always tradable': { attribute_class: 'always_tradable', value: '1' },
+      },
+    };
+
+    it('will make a plain item craftable and tradable', async () => {
+      const parsed = await parse({});
+
+      expect(parsed.craftable).toEqual(true);
+      expect(parsed.tradable).toEqual(true);
+    });
+
+    it('will not make non economy items craftable or tradable', async () => {
+      const parsed = await parse({ flags: 1 << 3 }, alwaysTradable);
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(false);
+    });
+
+    it('will not make items flagged as not usable in crafting craftable', async () => {
+      const parsed = await parse({ flags: 1 << 1 });
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(true);
+    });
+
+    it('will make always tradable items craftable even when flagged as not usable in crafting', async () => {
+      const parsed = await parse({ flags: 1 << 1 }, alwaysTradable);
+
+      expect(parsed.craftable).toEqual(true);
+    });
+
+    it('will not make preview items craftable', async () => {
+      const parsed = await parse({ origin: 17 });
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(false);
+    });
+
+    it('will not make quest loaner items craftable or tradable', async () => {
+      const parsed = await parse({ attribute: [uint32Attribute(2051, 1)] });
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(false);
+    });
+
+    it('will not make items whose definition expires craftable or tradable', async () => {
+      const parsed = await parse(
+        {},
+        { name: 'Item', expiration_date: '2014-11-11 01:00:00' },
+      );
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(false);
+    });
+
+    it('will not make items tradable before their tradable after date', async () => {
+      const tomorrow = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+
+      const parsed = await parse(
+        { attribute: [uint32Attribute(211, tomorrow)] },
+        alwaysTradable,
+      );
+
+      expect(parsed.tradable).toEqual(false);
+    });
+
+    it('will make items tradable after their tradable after date', async () => {
+      const parsed = await parse({ attribute: [uint32Attribute(211, 1)] });
+
+      expect(parsed.tradable).toEqual(true);
+    });
   });
 });

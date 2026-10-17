@@ -46,4 +46,8 @@ export interface Context {
   origin: number;
   flags: number;
   attributes: Set<number>;
+  /**
+   * Unix time from the "tradable after date" attribute, or null if the item has none
+   */
+  tradableAfter: number | null;
 }
