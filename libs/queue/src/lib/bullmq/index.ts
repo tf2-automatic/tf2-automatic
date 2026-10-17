@@ -1,5 +1,6 @@
 export * from './backoff-strategy';
 export * from './errors';
+export * from './cls-worker-host';
 export * from './processor';
 export * from './types';
 export * from './job-options';

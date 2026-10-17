@@ -1,4 +1,4 @@
-import { OnWorkerEvent, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import type { CustomJob, CustomWorker, JobData } from './types';
@@ -8,42 +8,46 @@ import { CustomError, CustomUnrecoverableError } from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
 import { HttpException, Logger } from '@nestjs/common';
 import { AssertionError } from 'assert';
+import { ClsWorkerHost } from './cls-worker-host';
 
 export abstract class CustomWorkerHost<
   DataType extends JobData,
   ReturnType = unknown,
   NameType extends string = string,
-> extends WorkerHost<CustomWorker<DataType>> {
+> extends ClsWorkerHost<
+  CustomJob<DataType, ReturnType, NameType>,
+  CustomWorker<DataType>
+> {
   logger = new Logger(this.constructor.name);
 
-  #cls: ClsService;
-
-  constructor(cls: ClsService) {
-    super();
-
-    this.#cls = cls;
-  }
-
-  process(job: CustomJob<DataType, ReturnType, NameType>) {
+  override process(job: CustomJob<DataType, ReturnType, NameType>) {
     this.logger.log(
       `Processing job ${
         job.data.type !== undefined ? job.data.type + ' ' : ''
       }${job.id} attempt #${job.attemptsMade + 1}...`,
     );
 
-    this.#cls.enter();
+    return super.process(job);
+  }
 
-    this.#cls.set('timestamp', Math.floor(Date.now() / 1000));
+  protected override setContext(
+    cls: ClsService,
+    job: CustomJob<DataType, ReturnType, NameType>,
+  ): void {
+    cls.set('timestamp', Math.floor(Date.now() / 1000));
 
-    for (const key in job.data.metadata) {
-      const value = job.data.metadata[key as keyof typeof job.data.metadata];
-      this.#cls.set(key, value);
+    if (job.data.metadata.userAgent !== undefined) {
+      cls.set('userAgent', job.data.metadata.userAgent);
     }
+  }
 
+  protected override processInContext(
+    job: CustomJob<DataType, ReturnType, NameType>,
+  ): Promise<unknown> {
     return this.processJobWithErrorHandler(job);
   }
 
-  abstract processJob(
+  abstract override processJob(
     job: CustomJob<DataType, ReturnType, NameType>,
   ): Promise<ReturnType>;
 
