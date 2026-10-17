@@ -87,6 +87,7 @@ export interface ItemsGameItem {
       value: string;
     }
   >;
+  tool?: { type?: string };
 }
 
 export interface SchemaItem {
