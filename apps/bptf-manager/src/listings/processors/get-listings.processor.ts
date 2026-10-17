@@ -8,6 +8,8 @@ import SteamID from 'steamid';
 import { AxiosError } from 'axios';
 import { JobData, JobType } from '../interfaces/get-listings.queue.interface';
 import { GetListingsResponse } from '../interfaces/bptf.interface';
+import { RateLimitedEndpoint } from '../../common/config/configuration';
+import { RateLimitsService } from '../rate-limits.service';
 
 @Processor('get-listings', {
   settings: bullWorkerSettings,
@@ -19,18 +21,22 @@ export class GetListingsProcessor extends WorkerHost {
   constructor(
     private readonly currentListingsService: CurrentListingsService,
     private readonly tokensService: TokensService,
+    private readonly rateLimitsService: RateLimitsService,
   ) {
     super();
   }
 
-  async process(job: Job<JobData, unknown, JobType>): Promise<void> {
+  async process(
+    job: Job<JobData, unknown, JobType>,
+    lockToken?: string,
+  ): Promise<void> {
     switch (job.name) {
       case JobType.Done:
         await this.doneGettingListings(job);
         break;
       case JobType.Active:
       case JobType.Archived:
-        await this.getListings(job);
+        await this.getListings(job, lockToken);
         break;
       default:
         this.logger.warn('Unknown job type ' + job.name);
@@ -52,6 +58,7 @@ export class GetListingsProcessor extends WorkerHost {
 
   private async getListings(
     job: Job<JobData, unknown, JobType>,
+    lockToken?: string,
   ): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
@@ -60,20 +67,17 @@ export class GetListingsProcessor extends WorkerHost {
     const skip = job.data.skip;
     const limit = job.data.limit;
 
-    let promise: Promise<GetListingsResponse>;
+    let fetch: () => Promise<GetListingsResponse>;
+    let endpoint: RateLimitedEndpoint;
 
     if (job.name === JobType.Active) {
-      promise = this.currentListingsService.fetchActiveListings(
-        token,
-        skip,
-        limit,
-      );
+      fetch = () =>
+        this.currentListingsService.fetchActiveListings(token, skip, limit);
+      endpoint = 'listingsGet';
     } else if (job.name === JobType.Archived) {
-      promise = this.currentListingsService.fetchArchivedListings(
-        token,
-        skip,
-        limit,
-      );
+      fetch = () =>
+        this.currentListingsService.fetchArchivedListings(token, skip, limit);
+      endpoint = 'archiveGet';
     } else {
       return;
     }
@@ -92,7 +96,18 @@ export class GetListingsProcessor extends WorkerHost {
 
     this.logger.debug(debugStr);
 
-    const response = await promise;
+    const key = steamid.getSteamID64();
+
+    const response = await this.rateLimitsService.scheduleOrDelay(
+      job,
+      lockToken,
+      endpoint,
+      key,
+      () =>
+        fetch().catch((err) =>
+          this.rateLimitsService.handleError(endpoint, key, err),
+        ),
+    );
 
     this.logger.debug(
       'Got response for ' +

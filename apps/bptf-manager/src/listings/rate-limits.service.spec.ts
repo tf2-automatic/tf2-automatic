@@ -1,9 +1,13 @@
 import Bottleneck from 'bottleneck';
 import { AxiosError } from 'axios';
 import { DelayedError } from 'bullmq';
-import { ManageListingsProcessor } from './manage-listings.processor';
+import { RateLimitsService } from './rate-limits.service';
 
-const mockLimiter = { updateSettings: jest.fn() };
+const mockLimiter = {
+  updateSettings: jest.fn(),
+  check: jest.fn(),
+  schedule: jest.fn((fn: () => Promise<unknown>) => fn()),
+};
 
 jest.mock('bottleneck', () => ({
   __esModule: true,
@@ -12,15 +16,16 @@ jest.mock('bottleneck', () => ({
       id: options.id,
       on: jest.fn(),
       disconnect: jest.fn().mockResolvedValue(undefined),
+      key: () => mockLimiter,
       limiters: () => [{ key: '123', limiter: mockLimiter }],
     })),
   },
 }));
 
-describe('ManageListingsProcessor', () => {
+describe('RateLimitsService', () => {
   const Group = Bottleneck.Group as unknown as jest.Mock;
 
-  function createProcessor(storedHash: string | null) {
+  function createService(storedHash: string | null) {
     const redis = {
       get: jest.fn().mockResolvedValue(storedHash),
       set: jest.fn(),
@@ -31,38 +36,37 @@ describe('ManageListingsProcessor', () => {
       redis: { keyPrefix: 'prefix:' },
       listings: {
         rateLimits: {
-          listings: { requests: 3, window: 60000 },
-          archive: { requests: 5, window: 30000 },
+          listingsBatch: { requests: 3, window: 60000 },
+          archiveBatch: { requests: 10, window: 60000 },
+          listingsGet: { requests: 20, window: 60000 },
+          archiveGet: { requests: 5, window: 30000 },
         },
       },
     };
 
-    const processor = new ManageListingsProcessor(
-      {} as never,
-      {} as never,
+    const service = new RateLimitsService(
       { getOrThrow: (key: keyof typeof config) => config[key] } as never,
-      {} as never,
       { getOrThrow: () => redis } as never,
     );
 
-    return { processor, redis };
+    return { service, redis };
   }
 
   const clearedGroups = () =>
     Group.mock.calls.filter(([options]) => options.clearDatastore).length;
 
   it('clears the limiters only when their settings changed', async () => {
-    const first = createProcessor(null);
-    await first.processor.onModuleInit();
+    const first = createService(null);
+    await first.service.onModuleInit();
 
-    expect(clearedGroups()).toBe(3);
+    expect(clearedGroups()).toBe(5);
     const [key, settingsHash] = first.redis.set.mock.calls[0];
     expect(key).toBe('limiters:hash');
 
     // Restart with the same settings keeps the limiter state
     Group.mockClear();
-    const second = createProcessor(settingsHash);
-    await second.processor.onModuleInit();
+    const second = createService(settingsHash);
+    await second.service.onModuleInit();
 
     expect(clearedGroups()).toBe(0);
     expect(second.redis.set).not.toHaveBeenCalled();
@@ -70,11 +74,11 @@ describe('ManageListingsProcessor', () => {
 
   it('configures a limiter per endpoint from the config', () => {
     Group.mockClear();
-    createProcessor(null);
+    createService(null);
 
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'batch:listings',
+        id: 'listingsBatch',
         minTime: 20000,
         reservoir: 3,
         reservoirIncreaseAmount: 3,
@@ -83,8 +87,11 @@ describe('ManageListingsProcessor', () => {
       }),
     );
     expect(Group).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'listingsGet', reservoir: 20 }),
+    );
+    expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'batch:archive',
+        id: 'archiveGet',
         minTime: 6000,
         reservoir: 5,
         reservoirIncreaseInterval: 30000,
@@ -93,37 +100,30 @@ describe('ManageListingsProcessor', () => {
   });
 
   it('follows the rate limit from a 429 response', async () => {
-    const { processor, redis } = createProcessor(null);
+    const { service, redis } = createService(null);
 
     const err = new AxiosError('Request failed with status code 429');
     err.response = {
       status: 429,
       data: {
         message: 'Request limit exceeded.',
-        maxWindowRequests: 3,
+        maxWindowRequests: 20,
         windowSeconds: 60,
       },
     } as never;
 
-    const internals = processor as unknown as {
-      handleBatchError: (
-        endpoint: string,
-        key: string,
-        err: Error,
-      ) => Promise<void>;
-    };
-    await expect(
-      internals.handleBatchError('listings', '123', err),
-    ).rejects.toBe(err);
+    await expect(service.handleError('listingsGet', '123', err)).rejects.toBe(
+      err,
+    );
 
     expect(mockLimiter.updateSettings).toHaveBeenCalledWith({
       reservoir: 0,
-      reservoirIncreaseAmount: 3,
-      reservoirIncreaseMaximum: 3,
+      reservoirIncreaseAmount: 20,
+      reservoirIncreaseMaximum: 20,
       reservoirIncreaseInterval: 60000,
     });
     expect(redis.set).toHaveBeenCalledWith(
-      'ratelimited:batch:listings:123',
+      'ratelimited:listingsGet:123',
       1,
       'PX',
       60000,
@@ -131,28 +131,14 @@ describe('ManageListingsProcessor', () => {
   });
 
   it('delays the job instead of waiting when the limiter is busy', async () => {
-    const { processor, redis } = createProcessor(null);
-    const internals = processor as unknown as {
-      scheduleOrDelay: (...args: unknown[]) => Promise<boolean>;
-    };
+    const { service, redis } = createService(null);
 
-    const job = { name: 'update', data: {}, moveToDelayed: jest.fn() };
+    const job = { name: 'archived', data: {}, moveToDelayed: jest.fn() };
     const task = jest.fn().mockResolvedValue(true);
-    const limiter = {
-      check: jest.fn().mockResolvedValue(false),
-      schedule: jest.fn((fn: () => Promise<boolean>) => fn()),
-    };
-    const group = { id: 'listings:batch', key: () => limiter };
     const run = () =>
-      internals.scheduleOrDelay(
-        job,
-        'lock',
-        group,
-        '123:update',
-        { minTime: 6000 },
-        task,
-      );
+      service.scheduleOrDelay(job as never, 'lock', 'archiveGet', '123', task);
     jest.spyOn(Date, 'now').mockReturnValue(1000);
+    mockLimiter.check.mockResolvedValue(false);
 
     // A known rate limit window is waited out in one go
     redis.pttl.mockResolvedValueOnce(45000);
@@ -162,9 +148,9 @@ describe('ManageListingsProcessor', () => {
     // Otherwise a busy limiter delays by its minTime
     await expect(run()).rejects.toBeInstanceOf(DelayedError);
     expect(job.moveToDelayed).toHaveBeenLastCalledWith(7000, 'lock');
-    expect(limiter.schedule).not.toHaveBeenCalled();
+    expect(mockLimiter.schedule).not.toHaveBeenCalled();
 
-    limiter.check.mockResolvedValue(true);
+    mockLimiter.check.mockResolvedValue(true);
     await expect(run()).resolves.toBe(true);
 
     jest.restoreAllMocks();

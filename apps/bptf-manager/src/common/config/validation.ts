@@ -7,16 +7,25 @@ const validation = Joi.object({
   ...Redis.getRules(),
   ...getLockRules(),
   AGENTS_REGISTER_INTERVAL: Joi.number().positive().optional().min(60000),
-  LISTINGS_RATE_LIMIT_REQUESTS: Joi.number().integer().positive().optional(),
-  LISTINGS_RATE_LIMIT_WINDOW: Joi.number().integer().positive().optional(),
-  ARCHIVED_LISTINGS_RATE_LIMIT_REQUESTS: Joi.number()
-    .integer()
-    .positive()
-    .optional(),
-  ARCHIVED_LISTINGS_RATE_LIMIT_WINDOW: Joi.number()
-    .integer()
-    .positive()
-    .optional(),
+  ...[
+    'LISTINGS_BATCH',
+    'ARCHIVED_LISTINGS_BATCH',
+    'LISTINGS_GET',
+    'ARCHIVED_LISTINGS_GET',
+  ].reduce(
+    (rules, prefix) => ({
+      ...rules,
+      [`${prefix}_RATE_LIMIT_REQUESTS`]: Joi.number()
+        .integer()
+        .positive()
+        .optional(),
+      [`${prefix}_RATE_LIMIT_WINDOW`]: Joi.number()
+        .integer()
+        .positive()
+        .optional(),
+    }),
+    {},
+  ),
 });
 
 export { validation };
