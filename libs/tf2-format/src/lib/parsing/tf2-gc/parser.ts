@@ -181,6 +181,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
 
   private static isCraftable(
     schemaItem: ItemsGameItem,
+    extracted: ExtractedTF2GCItem,
     context: Context,
   ): boolean {
     // Always craftable
@@ -233,6 +234,11 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
         break;
     }
 
+    // Community, Valve and Self-Made
+    if (extracted.quality >= 7 && extracted.quality <= 9) {
+      return false;
+    }
+
     return true;
   }
 
@@ -272,6 +278,14 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     }
 
     if (context.origin === eEconItemOrigin.kEconItemOrigin_PreviewItem) {
+      return false;
+    }
+
+    // Temporary item
+    if (
+      context.attributes.has(AttributeTokens['expiration date']) ||
+      this.hasAttribute('expiration date', schemaItem)
+    ) {
       return false;
     }
 
@@ -377,7 +391,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       crateSeries,
       quantity,
       TF2GCParser.isTradable(schemaItem, extracted, context),
-      TF2GCParser.isCraftable(schemaItem, context),
+      TF2GCParser.isCraftable(schemaItem, extracted, context),
     );
   }
 }
