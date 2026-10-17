@@ -291,6 +291,9 @@ export class EconParser extends Parser<
     let wear: number | null = null;
     if (raw.wear !== null) {
       wear = WEAR_NAMES_TO_LEVELS[raw.wear];
+      if (wear === undefined) {
+        throw new Error(`Unknown wear "${raw.wear}"`);
+      }
     }
 
     let target: NumberOrNull = null;
