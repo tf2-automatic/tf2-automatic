@@ -119,9 +119,7 @@ export class InventoriesService {
       },
     );
 
-    this.logger.log(
-      'Enqueued refresh for ' + steamid64 + ' in ' + delay + ' second(s)',
-    );
+    this.logger.log('Enqueued inventory refresh in ' + delay + ' second(s)');
   }
 
   async dequeueRefresh(steamid: SteamID): Promise<void> {

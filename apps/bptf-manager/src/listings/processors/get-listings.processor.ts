@@ -1,4 +1,6 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
@@ -15,18 +17,19 @@ import { RateLimitsService } from '../../rate-limits/rate-limits.service';
   settings: bullWorkerSettings,
   concurrency: 2,
 })
-export class GetListingsProcessor extends WorkerHost {
+export class GetListingsProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(GetListingsProcessor.name);
 
   constructor(
     private readonly currentListingsService: CurrentListingsService,
     private readonly tokensService: TokensService,
     private readonly rateLimitsService: RateLimitsService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(
+  async processJob(
     job: Job<JobData, unknown, JobType>,
     lockToken?: string,
   ): Promise<void> {
@@ -46,14 +49,12 @@ export class GetListingsProcessor extends WorkerHost {
   private async doneGettingListings(
     job: Job<JobData, unknown, JobType>,
   ): Promise<void> {
-    const steamid = new SteamID(job.data.steamid64);
-
     await this.currentListingsService.handleListingsFetched(
       new SteamID(job.data.steamid64),
       job.data.start,
     );
 
-    this.logger.debug('Refreshed listings for ' + steamid);
+    this.logger.debug('Refreshed listings');
   }
 
   private async getListings(
@@ -103,21 +104,7 @@ export class GetListingsProcessor extends WorkerHost {
     const duration = Date.now() - start;
 
     this.logger.debug(
-      'Got response for ' +
-        job.name +
-        ' listings for ' +
-        token.steamid64 +
-        ' (skip: ' +
-        response.cursor.skip +
-        ', limit: ' +
-        response.cursor.limit +
-        ', total: ' +
-        response.cursor.total +
-        ', results: ' +
-        response.results.length +
-        ') in ' +
-        duration +
-        'ms',
+      `Got ${job.name} listings (skip: ${response.cursor.skip}, limit: ${response.cursor.limit}, total: ${response.cursor.total}, results: ${response.results.length}) in ${duration}ms`,
     );
 
     await this.currentListingsService.handleListingsResponse(job, response);

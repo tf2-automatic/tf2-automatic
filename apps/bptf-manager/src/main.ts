@@ -5,9 +5,12 @@ import { AppModule } from './app.module';
 import { Config } from './common/config/configuration';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json } from 'express';
+import { AccountLogger } from './common/logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new AccountLogger(),
+  });
 
   const config = new DocumentBuilder()
     .setTitle('Backpack.tf manager API Documentation')

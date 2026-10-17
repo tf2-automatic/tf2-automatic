@@ -1,4 +1,6 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { InventoriesService } from '../inventories.service';
@@ -13,21 +15,22 @@ import {
 @Processor('enqueueInventories', {
   settings: bullWorkerSettings,
 })
-export class EnqueueInventoriesProcessor extends WorkerHost {
+export class EnqueueInventoriesProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(EnqueueInventoriesProcessor.name);
 
   constructor(
     private readonly inventoriesService: InventoriesService,
     private readonly tokensService: TokensService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(
+  async processJob(
     job: Job<EnqueueJobData, EnqueueJobResult>,
   ): Promise<EnqueueJobResult> {
     this.logger.debug(
-      `Scheduling refresh job for ${job.data.steamid64} attempt #${job.attemptsMade}...`,
+      `Scheduling inventory refresh attempt #${job.attemptsMade}...`,
     );
 
     const token = await this.tokensService.getRandomToken();

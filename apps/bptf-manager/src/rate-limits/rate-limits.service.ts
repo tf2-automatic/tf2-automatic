@@ -189,7 +189,7 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
 
     if (delay > 0) {
       this.logger.debug(
-        `Rate limited ${job.name} for ${job.data.steamid64}, delaying ${Math.ceil(delay / 1000)}s...`,
+        `Rate limited ${job.name}, delaying ${Math.ceil(delay / 1000)}s`,
       );
       await job.moveToDelayed(Date.now() + delay, lockToken);
       throw new DelayedError();
