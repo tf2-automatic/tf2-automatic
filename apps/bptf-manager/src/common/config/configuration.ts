@@ -19,10 +19,11 @@ export interface AgentsConfig {
   registerInterval: number;
 }
 
-export type BatchOperation = 'create' | 'update' | 'delete' | 'deleteArchived';
+// Batch create, update and delete share the active listings limit
+export type BatchEndpoint = 'listings' | 'archive';
 
 export interface ListingsConfig {
-  rateLimits: Record<BatchOperation, RateLimitConfig>;
+  rateLimits: Record<BatchEndpoint, RateLimitConfig>;
 }
 
 export interface RateLimitConfig {
@@ -30,9 +31,13 @@ export interface RateLimitConfig {
   window: number;
 }
 
-function getRateLimit(prefix: string): RateLimitConfig {
+function getRateLimit(prefix: string, requests: number): RateLimitConfig {
   return {
-    requests: getEnvWithDefault(`${prefix}_RATE_LIMIT_REQUESTS`, 'integer', 3),
+    requests: getEnvWithDefault(
+      `${prefix}_RATE_LIMIT_REQUESTS`,
+      'integer',
+      requests,
+    ),
     window: getEnvWithDefault(
       `${prefix}_RATE_LIMIT_WINDOW`,
       'integer',
@@ -55,10 +60,8 @@ export default (): Config => {
     },
     listings: {
       rateLimits: {
-        create: getRateLimit('LISTINGS_CREATE'),
-        update: getRateLimit('LISTINGS_UPDATE'),
-        delete: getRateLimit('LISTINGS_DELETE'),
-        deleteArchived: getRateLimit('LISTINGS_DELETE_ARCHIVED'),
+        listings: getRateLimit('LISTINGS', 3),
+        archive: getRateLimit('ARCHIVED_LISTINGS', 10),
       },
     },
     locking: getLockConfig(),

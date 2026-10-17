@@ -8,7 +8,7 @@ import { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
 import {
-  BatchOperation,
+  BatchEndpoint,
   Config,
   ListingsConfig,
   RateLimitConfig,
@@ -28,20 +28,15 @@ import hash from 'object-hash';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 
-const BATCH_OPERATIONS: BatchOperation[] = [
-  'create',
-  'update',
-  'delete',
-  'deleteArchived',
-];
+const BATCH_ENDPOINTS: BatchEndpoint[] = ['listings', 'archive'];
 
 // Changing these clears the limiter state on the next start
 function getBatchLimiter(
-  operation: BatchOperation,
+  endpoint: BatchEndpoint,
   { requests, window }: RateLimitConfig,
 ): Bottleneck.ConstructorOptions {
   return {
-    id: 'listings:' + operation,
+    id: 'batch:' + endpoint,
     maxConcurrent: 1,
     minTime: Math.ceil(window / requests),
     reservoir: requests,
@@ -66,7 +61,7 @@ export class ManageListingsProcessor
   implements OnModuleDestroy, OnModuleInit
 {
   private readonly logger = new Logger(ManageListingsProcessor.name);
-  private batchGroups: Record<BatchOperation, Bottleneck.Group>;
+  private batchGroups: Record<BatchEndpoint, Bottleneck.Group>;
   private deleteAllGroup: Bottleneck.Group;
 
   private readonly createBatchSize = 100;
@@ -75,9 +70,9 @@ export class ManageListingsProcessor
 
   private readonly redis: Redis = this.redisService.getOrThrow();
 
-  private readonly rateLimits: Record<BatchOperation, RateLimitConfig>;
+  private readonly rateLimits: Record<BatchEndpoint, RateLimitConfig>;
   private readonly batchLimiters: Record<
-    BatchOperation,
+    BatchEndpoint,
     Bottleneck.ConstructorOptions
   >;
 
@@ -94,11 +89,11 @@ export class ManageListingsProcessor
       this.configService.getOrThrow<ListingsConfig>('listings').rateLimits;
 
     this.batchLimiters = Object.fromEntries(
-      BATCH_OPERATIONS.map((operation) => [
-        operation,
-        getBatchLimiter(operation, this.rateLimits[operation]),
+      BATCH_ENDPOINTS.map((endpoint) => [
+        endpoint,
+        getBatchLimiter(endpoint, this.rateLimits[endpoint]),
       ]),
-    ) as Record<BatchOperation, Bottleneck.ConstructorOptions>;
+    ) as Record<BatchEndpoint, Bottleneck.ConstructorOptions>;
 
     this.createBottlenecks();
   }
@@ -108,22 +103,22 @@ export class ManageListingsProcessor
       this.configService.getOrThrow<RedisConfig.Config>('redis');
 
     this.batchGroups = Object.fromEntries(
-      BATCH_OPERATIONS.map((operation) => {
+      BATCH_ENDPOINTS.map((endpoint) => {
         const group = new Bottleneck.Group({
           datastore: 'ioredis',
           clientOptions: {
             ...redisConfig,
             keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
           },
-          ...this.batchLimiters[operation],
+          ...this.batchLimiters[endpoint],
           clearDatastore,
         });
 
         this.createGroupListeners(group);
 
-        return [operation, group];
+        return [endpoint, group];
       }),
-    ) as Record<BatchOperation, Bottleneck.Group>;
+    ) as Record<BatchEndpoint, Bottleneck.Group>;
 
     this.deleteAllGroup = new Bottleneck.Group({
       datastore: 'ioredis',
@@ -257,15 +252,15 @@ export class ManageListingsProcessor
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroups.create,
+      this.batchGroups.listings,
       key,
-      this.batchLimiters.create,
+      this.batchLimiters.listings,
       async () => {
         // Create listings
         await this.manageListingsService
           .createListings(token, hashes)
           .catch((err) => {
-            return this.handleBatchError('create', key, err);
+            return this.handleBatchError('listings', key, err);
           });
 
         return hashes.length === this.createBatchSize;
@@ -301,15 +296,15 @@ export class ManageListingsProcessor
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroups.update,
+      this.batchGroups.listings,
       key,
-      this.batchLimiters.update,
+      this.batchLimiters.listings,
       async () => {
         // Create listings
         await this.manageListingsService
           .updateListings(token, hashes)
           .catch((err) => {
-            return this.handleBatchError('update', key, err);
+            return this.handleBatchError('listings', key, err);
           });
 
         return hashes.length === this.createBatchSize;
@@ -339,14 +334,14 @@ export class ManageListingsProcessor
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroups.delete,
+      this.batchGroups.listings,
       key,
-      this.batchLimiters.delete,
+      this.batchLimiters.listings,
       async () => {
         await this.manageListingsService
           .deleteListings(token, ids)
           .catch((err) => {
-            return this.handleBatchError('delete', key, err);
+            return this.handleBatchError('listings', key, err);
           });
 
         return ids.length === this.deleteBatchSize;
@@ -376,14 +371,14 @@ export class ManageListingsProcessor
     return this.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroups.deleteArchived,
+      this.batchGroups.archive,
       key,
-      this.batchLimiters.deleteArchived,
+      this.batchLimiters.archive,
       async () => {
         await this.manageListingsService
           .deleteArchivedListings(token, ids)
           .catch((err) => {
-            return this.handleBatchError('deleteArchived', key, err);
+            return this.handleBatchError('archive', key, err);
           });
 
         return ids.length === this.deleteArchivedBatchSize;
@@ -456,7 +451,7 @@ export class ManageListingsProcessor
   }
 
   private async handleBatchError(
-    operation: BatchOperation,
+    endpoint: BatchEndpoint,
     key: string,
     err: Error | AxiosError,
   ): Promise<void> {
@@ -469,7 +464,7 @@ export class ManageListingsProcessor
     }
 
     // We are rate limited, find the correct reservoir
-    const group = this.batchGroups[operation];
+    const group = this.batchGroups[endpoint];
     const limiters = group.limiters();
     const match = limiters.find((l) => l.key === key);
 
@@ -503,7 +498,7 @@ export class ManageListingsProcessor
       /Try again in (\d+) seconds./,
     );
 
-    const { requests, window } = this.rateLimits[operation];
+    const { requests, window } = this.rateLimits[endpoint];
 
     // Wait a full window by default
     let decrementAmount = requests;

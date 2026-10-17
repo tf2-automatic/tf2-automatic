@@ -31,10 +31,8 @@ describe('ManageListingsProcessor', () => {
       redis: { keyPrefix: 'prefix:' },
       listings: {
         rateLimits: {
-          create: { requests: 3, window: 60000 },
-          update: { requests: 5, window: 30000 },
-          delete: { requests: 3, window: 60000 },
-          deleteArchived: { requests: 10, window: 60000 },
+          listings: { requests: 3, window: 60000 },
+          archive: { requests: 5, window: 30000 },
         },
       },
     };
@@ -57,7 +55,7 @@ describe('ManageListingsProcessor', () => {
     const first = createProcessor(null);
     await first.processor.onModuleInit();
 
-    expect(clearedGroups()).toBe(5);
+    expect(clearedGroups()).toBe(3);
     const [key, settingsHash] = first.redis.set.mock.calls[0];
     expect(key).toBe('limiters:hash');
 
@@ -70,30 +68,27 @@ describe('ManageListingsProcessor', () => {
     expect(second.redis.set).not.toHaveBeenCalled();
   });
 
-  it('configures a limiter per operation from the config', () => {
+  it('configures a limiter per endpoint from the config', () => {
     Group.mockClear();
     createProcessor(null);
 
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'listings:create',
+        id: 'batch:listings',
         minTime: 20000,
         reservoir: 3,
+        reservoirIncreaseAmount: 3,
         reservoirIncreaseInterval: 60000,
+        reservoirIncreaseMaximum: 3,
       }),
     );
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'listings:update',
+        id: 'batch:archive',
         minTime: 6000,
         reservoir: 5,
-        reservoirIncreaseAmount: 5,
         reservoirIncreaseInterval: 30000,
-        reservoirIncreaseMaximum: 5,
       }),
-    );
-    expect(Group).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'listings:deleteArchived', reservoir: 10 }),
     );
   });
 
@@ -112,14 +107,14 @@ describe('ManageListingsProcessor', () => {
 
     const internals = processor as unknown as {
       handleBatchError: (
-        operation: string,
+        endpoint: string,
         key: string,
         err: Error,
       ) => Promise<void>;
     };
-    await expect(internals.handleBatchError('update', '123', err)).rejects.toBe(
-      err,
-    );
+    await expect(
+      internals.handleBatchError('listings', '123', err),
+    ).rejects.toBe(err);
 
     expect(mockLimiter.updateSettings).toHaveBeenCalledWith({
       reservoir: 0,
@@ -128,7 +123,7 @@ describe('ManageListingsProcessor', () => {
       reservoirIncreaseInterval: 60000,
     });
     expect(redis.set).toHaveBeenCalledWith(
-      'ratelimited:listings:update:123',
+      'ratelimited:batch:listings:123',
       1,
       'PX',
       60000,

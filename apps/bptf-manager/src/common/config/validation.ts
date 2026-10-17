@@ -7,20 +7,16 @@ const validation = Joi.object({
   ...Redis.getRules(),
   ...getLockRules(),
   AGENTS_REGISTER_INTERVAL: Joi.number().positive().optional().min(60000),
-  ...['CREATE', 'UPDATE', 'DELETE', 'DELETE_ARCHIVED'].reduce(
-    (rules, operation) => ({
-      ...rules,
-      [`LISTINGS_${operation}_RATE_LIMIT_REQUESTS`]: Joi.number()
-        .integer()
-        .positive()
-        .optional(),
-      [`LISTINGS_${operation}_RATE_LIMIT_WINDOW`]: Joi.number()
-        .integer()
-        .positive()
-        .optional(),
-    }),
-    {},
-  ),
+  LISTINGS_RATE_LIMIT_REQUESTS: Joi.number().integer().positive().optional(),
+  LISTINGS_RATE_LIMIT_WINDOW: Joi.number().integer().positive().optional(),
+  ARCHIVED_LISTINGS_RATE_LIMIT_REQUESTS: Joi.number()
+    .integer()
+    .positive()
+    .optional(),
+  ARCHIVED_LISTINGS_RATE_LIMIT_WINDOW: Joi.number()
+    .integer()
+    .positive()
+    .optional(),
 });
 
 export { validation };
