@@ -328,5 +328,45 @@ describe('TF2GCParser', () => {
       expect(parsed.craftable).toEqual(false);
       expect(parsed.tradable).toEqual(false);
     });
+
+    it('will not make purchased items craftable without can_craft_if_purchased', async () => {
+      const item = {
+        ...TestData.getBasicItem(),
+        def_index: 725,
+        origin: 2,
+        flags: 20,
+      };
+
+      const [extracted, context] = parser.extract(item);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: 'Tour of Duty Ticket',
+      } satisfies ItemsGameItem);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(true);
+    });
+
+    it('will make purchased items craftable with can_craft_if_purchased', async () => {
+      const item = {
+        ...TestData.getBasicItem(),
+        def_index: 30921,
+        origin: 2,
+        flags: 20,
+      };
+
+      const [extracted, context] = parser.extract(item);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: "Taunt: Runner's Rhythm",
+        capabilities: { can_craft_count: '1', can_craft_if_purchased: '1' },
+      } satisfies ItemsGameItem);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(parsed.craftable).toEqual(true);
+    });
   });
 });

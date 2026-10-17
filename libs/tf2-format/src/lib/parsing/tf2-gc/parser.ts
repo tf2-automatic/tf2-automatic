@@ -224,10 +224,8 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
           return false;
         }
 
-        if (
-          schemaItem.capabilities &&
-          schemaItem.capabilities['can_craft_if_purchased'] === '0'
-        ) {
+        // Purchased items are only craftable when the definition opts in
+        if (schemaItem.capabilities?.['can_craft_if_purchased'] !== '1') {
           return false;
         }
 
