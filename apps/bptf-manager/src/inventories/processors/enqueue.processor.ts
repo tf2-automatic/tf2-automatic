@@ -42,7 +42,10 @@ export class EnqueueInventoriesProcessor extends AccountWorkerHost {
       token.value,
     );
 
-    await this.inventoriesService.enqueueRefresh(steamid, result);
+    // A missing refresh point means the refresh was cancelled
+    if ((await this.inventoriesService.getRefreshPoint(steamid)) !== null) {
+      await this.inventoriesService.enqueueRefresh(steamid, result);
+    }
 
     return result;
   }
