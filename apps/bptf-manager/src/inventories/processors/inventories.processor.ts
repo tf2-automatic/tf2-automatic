@@ -91,18 +91,14 @@ export class InventoriesProcessor extends AccountWorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job<InventoriesJobData>, err: Error): void {
-    this.logger.warn(
-      `Failed to request refresh for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to request inventory refresh: ${err.message}`);
   }
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job<InventoriesJobData, InventoriesJobResult>): void {
     if (job.returnvalue.done) {
       this.logger.log(
-        `Inventory has been updated for ${
-          job.data.steamid64
-        } after a total of ${job.data.attempts + 1} attempt(s)`,
+        `Inventory has been updated after a total of ${job.data.attempts + 1} attempt(s)`,
       );
     }
   }

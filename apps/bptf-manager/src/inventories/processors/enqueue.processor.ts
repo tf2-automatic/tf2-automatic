@@ -55,8 +55,6 @@ export class EnqueueInventoriesProcessor extends AccountWorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job<EnqueueJobData>, err: Error): void {
-    this.logger.warn(
-      `Failed to schedule refresh job for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to schedule inventory refresh: ${err.message}`);
   }
 }

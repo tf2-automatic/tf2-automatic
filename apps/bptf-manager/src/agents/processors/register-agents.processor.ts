@@ -59,9 +59,7 @@ export class RegisterAgentsProcessor extends AccountWorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
-    this.logger.warn(
-      `Failed to register agent for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to register agent: ${err.message}`);
   }
 
   @OnWorkerEvent('completed')
@@ -77,7 +75,7 @@ export class RegisterAgentsProcessor extends AccountWorkerHost {
           return this.agentsService.cleanupAndUnregisterAgent(steamid);
         }
 
-        this.logger.log(`Registered agent for ${job.data.steamid64}`);
+        this.logger.log('Registered agent');
       })
       .catch((err) => {
         this.logger.warn(`Error while unregistering agent: ${err.message}`);

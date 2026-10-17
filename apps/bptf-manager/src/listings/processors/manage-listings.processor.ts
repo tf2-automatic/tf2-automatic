@@ -276,9 +276,7 @@ export class ManageListingsProcessor extends AccountWorkerHost<
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
-    this.logger.warn(
-      `Failed to ${job.name} listings for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to ${job.name} listings: ${err.message}`);
 
     if (err instanceof AxiosError) {
       console.error(err.response?.data);

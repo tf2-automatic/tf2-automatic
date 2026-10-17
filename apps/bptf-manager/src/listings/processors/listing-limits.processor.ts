@@ -69,7 +69,7 @@ export class ListingLimitsProcessor extends AccountWorkerHost {
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
     this.logger.warn(
-      `Failed get listing limits for job ${job.id}: ${err.message}`,
+      `Failed to get listing limits for job ${job.id}: ${err.message}`,
     );
 
     if (err instanceof AxiosError) {

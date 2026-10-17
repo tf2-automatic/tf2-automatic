@@ -49,13 +49,11 @@ export class UnregisterAgentsProcessor extends AccountWorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
-    this.logger.warn(
-      `Failed to register agent for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to unregister agent: ${err.message}`);
   }
 
   @OnWorkerEvent('completed')
-  onCompleted(job: Job): void {
-    this.logger.log(`Unregistered agent for ${job.data.steamid64}`);
+  onCompleted(): void {
+    this.logger.log('Unregistered agent');
   }
 }

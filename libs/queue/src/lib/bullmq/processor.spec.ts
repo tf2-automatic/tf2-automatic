@@ -54,6 +54,28 @@ function axios404() {
 }
 
 describe('CustomWorkerHost', () => {
+  it('runs the job with the user agent and timestamp in the context', async () => {
+    const cls = new ClsService(new AsyncLocalStorage());
+
+    class ContextProcessor extends CustomWorkerHost<TestJobData> {
+      constructor() {
+        super(cls);
+      }
+
+      async processJob(): Promise<unknown> {
+        return [cls.get('userAgent'), typeof cls.get('timestamp')];
+      }
+    }
+
+    const job = makeJob();
+    job.data.metadata.userAgent = 'test';
+
+    await expect(new ContextProcessor().process(job)).resolves.toEqual([
+      'test',
+      'number',
+    ]);
+  });
+
   it('calls onJobFailed for jobs that are too old to start', async () => {
     const processor = new TestProcessor();
     const spy = jest.spyOn(processor, 'processJob');
