@@ -300,7 +300,7 @@ export class CurrentListingsService {
     }
 
     const created = failed > 0 ? `${ids.size} of ${result.length}` : ids.size;
-    this.logger[ids.size > 0 ? 'log' : 'debug'](
+    this.logger[result.length > 0 ? 'log' : 'debug'](
       `Created ${created} listing(s) in ${duration}ms`,
     );
 
