@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import SteamID from 'steamid';
-import { getJobs } from '../common/utils';
+import { getJobs } from '@tf2-automatic/queue';
 import {
   InventoryStatus,
   RefreshInventoryDto,

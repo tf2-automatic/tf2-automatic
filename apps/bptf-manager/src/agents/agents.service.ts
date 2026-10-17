@@ -13,7 +13,8 @@ import { TokensService } from '../tokens/tokens.service';
 import { ConfigService } from '@nestjs/config';
 import { AgentsConfig, Config } from '../common/config/configuration';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { getJobs, getRepeatableJob } from '../common/utils';
+import { getRepeatableJob } from '../common/utils';
+import { getJobs } from '@tf2-automatic/queue';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
 import { pack, unpack } from 'msgpackr';
 

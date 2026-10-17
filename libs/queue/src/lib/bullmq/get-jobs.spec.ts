@@ -1,5 +1,5 @@
 import { Job, Queue } from 'bullmq';
-import { getJobs } from './utils';
+import { getJobs } from './get-jobs';
 
 describe('getJobs', () => {
   it('returns jobs from every state when ranges apply per state', async () => {
