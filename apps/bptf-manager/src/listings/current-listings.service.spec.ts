@@ -29,7 +29,7 @@ describe('CurrentListingsService', () => {
 
     const redis = {
       hmgetBuffer: jest.fn().mockResolvedValue([pack(current)]),
-      hmset: jest.fn(),
+      eval: jest.fn().mockResolvedValue(['L1']),
     };
 
     const service = new CurrentListingsService(
@@ -43,13 +43,18 @@ describe('CurrentListingsService', () => {
     // Private methods that call backpack.tf / write temporary listings
     const internals = service as unknown as {
       _updateListings: () => Promise<unknown>;
-      saveTempListings: () => Promise<void>;
+      saveTempListings: (
+        s: SteamID,
+        l: Record<string, Buffer>,
+      ) => Promise<void>;
     };
     jest.spyOn(internals, '_updateListings').mockResolvedValue({
       updated: [{ ...current, currencies: { keys: 2 } }],
       errors: [],
     });
-    jest.spyOn(internals, 'saveTempListings').mockResolvedValue(undefined);
+    const temp = jest
+      .spyOn(internals, 'saveTempListings')
+      .mockResolvedValue(undefined);
 
     const desired = new DesiredListing(
       steamid,
@@ -62,13 +67,65 @@ describe('CurrentListingsService', () => {
       [desired],
     );
 
-    expect(redis.hmset).toHaveBeenCalledTimes(1);
-    const [key, saved] = redis.hmset.mock.calls[0];
+    expect(redis.eval).toHaveBeenCalledTimes(1);
+    const [, , key, id, saved] = redis.eval.mock.calls[0];
     expect(key).toBe('listings:current:' + steamid.getSteamID64());
-    expect(unpack(saved['L1'])).toEqual({
-      ...current,
-      currencies: { keys: 2 },
+    expect(id).toBe('L1');
+    expect(unpack(saved)).toEqual({ ...current, currencies: { keys: 2 } });
+    expect(Object.keys(temp.mock.calls[0][1])).toEqual(['L1']);
+  });
+
+  it('does not re-add listings deleted while updating', async () => {
+    const current: Listing = {
+      id: 'L1',
+      currencies: { keys: 1 },
+      item: {},
+      archived: false,
+      listedAt: 0,
+      bumpedAt: 0,
+    };
+
+    // The script finds nothing left to write
+    const redis = {
+      hmgetBuffer: jest.fn().mockResolvedValue([pack(current)]),
+      eval: jest.fn().mockResolvedValue([]),
+    };
+
+    const service = new CurrentListingsService(
+      { getOrThrow: () => redis } as unknown as RedisService,
+      {} as HttpService,
+      { emitAsync: jest.fn() } as unknown as EventEmitter2,
+      {} as ListingLimitsService,
+      {} as never,
+    );
+
+    const internals = service as unknown as {
+      _updateListings: () => Promise<unknown>;
+      saveTempListings: (
+        s: SteamID,
+        l: Record<string, Buffer>,
+      ) => Promise<void>;
+    };
+    jest.spyOn(internals, '_updateListings').mockResolvedValue({
+      updated: [{ ...current, currencies: { keys: 2 } }],
+      errors: [],
     });
+    const temp = jest
+      .spyOn(internals, 'saveTempListings')
+      .mockResolvedValue(undefined);
+
+    await service.updateListings(
+      { steamid64: steamid.getSteamID64(), value: 'token' },
+      [
+        new DesiredListing(
+          steamid,
+          { id: '1', currencies: { keys: 2 } },
+          0,
+        ).setID('L1'),
+      ],
+    );
+
+    expect(temp).toHaveBeenCalledWith(steamid, {});
   });
 
   describe('refreshing listings', () => {

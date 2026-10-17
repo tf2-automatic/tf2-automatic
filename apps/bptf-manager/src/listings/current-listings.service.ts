@@ -43,6 +43,18 @@ const TEMP_PLACEHOLDER = 'placeholder';
 // Seconds before temp keys expire
 const TEMP_TTL = 5 * 60;
 
+// Overwrites only fields that exist, returns the written ones
+const UPDATE_EXISTING_SCRIPT = `
+local written = {}
+for i = 1, #ARGV, 2 do
+  if redis.call('HEXISTS', KEYS[1], ARGV[i]) == 1 then
+    redis.call('HSET', KEYS[1], ARGV[i], ARGV[i + 1])
+    written[#written + 1] = ARGV[i]
+  end
+end
+return written
+`;
+
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
@@ -532,9 +544,18 @@ export class CurrentListingsService {
       if (overwritten.length > 0) {
         const mapped = this.mapListings(overwritten);
 
-        await this.saveTempListings(steamid, mapped);
+        // Skip listings deleted since they were read
+        const written = (await this.redis.eval(
+          UPDATE_EXISTING_SCRIPT,
+          1,
+          this.getCurrentKey(steamid),
+          ...Object.entries(mapped).flat(),
+        )) as string[];
 
-        await this.redis.hmset(this.getCurrentKey(steamid), mapped);
+        await this.saveTempListings(
+          steamid,
+          Object.fromEntries(written.map((id) => [id, mapped[id]])),
+        );
       }
     }
 
