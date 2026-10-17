@@ -769,8 +769,11 @@ describe('EconParser', () => {
 
     it('will set wear to null if the exterior name is unknown', async () => {
       const item = TestData.getDecoratedWeapon();
-      const exterior = item.tags?.find((tag) => tag.category === 'Exterior');
-      exterior!.name = 'Bogus Wear';
+      for (const tag of item.tags) {
+        if (tag.category === 'Exterior') {
+          tag.name = 'Bogus Wear';
+        }
+      }
 
       mockSchema();
 
