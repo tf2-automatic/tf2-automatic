@@ -368,5 +368,26 @@ describe('TF2GCParser', () => {
 
       expect(parsed.craftable).toEqual(true);
     });
+
+    it('will take the paintkit of war paints from the definition', async () => {
+      const item = {
+        ...TestData.getBasicItem(),
+        def_index: 16139,
+        quality: 15,
+        origin: 8,
+        flags: 4,
+      };
+
+      const [extracted, context] = parser.extract(item);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: 'Paintkit 139',
+        static_attrs: { paintkit_proto_def_index: '139' },
+      } satisfies ItemsGameItem);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(parsed.paintkit).toEqual(139);
+    });
   });
 });
