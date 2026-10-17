@@ -49,7 +49,20 @@ export class QueueManager<
     if (existing && state !== 'unknown') {
       // Don't modify a job a worker is processing
       if (state !== 'active') {
-        await existing.updateData(data);
+        const removed = await existing.updateData(data).then(
+          () => false,
+          async (err) => {
+            // Fails if the job completed and was removed after it was read
+            if ((await this.getJobById(id)) === null) {
+              return true;
+            }
+            throw err;
+          },
+        );
+
+        if (removed) {
+          return this.createJob(id, data, options);
+        }
 
         const newDelay = options?.delay ?? 0;
         if (
@@ -64,6 +77,14 @@ export class QueueManager<
       return existing;
     }
 
+    return this.createJob(id, data, options);
+  }
+
+  private createJob(
+    id: string,
+    data: DataType,
+    options?: OptionsType,
+  ): Promise<CustomJob<DataType>> {
     return this.queue.add(id, data, {
       jobId: id,
       backoff: {

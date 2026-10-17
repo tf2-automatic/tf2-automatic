@@ -61,6 +61,29 @@ describe('QueueManager.addJob', () => {
     expect(await jobs()).toHaveLength(1);
   });
 
+  it('adds the job again when it is removed mid-update', async () => {
+    await addJob(1, 60000);
+
+    // Remove the job right before its data is updated, like a completed job
+    const updateData = Job.prototype.updateData;
+    const spy = jest
+      .spyOn(Job.prototype, 'updateData')
+      .mockImplementation(async function (this: Job, data: unknown) {
+        await this.remove();
+        return updateData.call(this, data);
+      });
+
+    try {
+      await expect(addJob(2)).resolves.toBeDefined();
+    } finally {
+      spy.mockRestore();
+    }
+
+    const added = await jobs();
+    expect(added).toHaveLength(1);
+    expect(added[0].data.options).toEqual({ value: 2 });
+  });
+
   it('does not throw when added concurrently while the delay expires', async () => {
     worker = new Worker(queue.name, async () => undefined, {
       connection,
