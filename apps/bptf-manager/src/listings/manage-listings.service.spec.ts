@@ -244,10 +244,10 @@ describe('ManageListingsService.describeQueued', () => {
       'No listing changes',
     );
     expect(ManageListingsService.describeQueued(10, 2, 0)).toBe(
-      'Queued 10 to create, 2 to update',
+      'Queued 10 to be created, 2 to be updated',
     );
     expect(ManageListingsService.describeQueued(0, 0, 1)).toBe(
-      'Queued 1 to delete',
+      'Queued 1 to be deleted',
     );
   });
 });

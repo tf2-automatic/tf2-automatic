@@ -902,17 +902,17 @@ export class ManageListingsService {
     await Promise.all(promises);
   }
 
-  // Only mentions what changes, e.g. "Queued 10 to create, 2 to update"
+  // Only mentions what changes, e.g. "Queued 10 to be created, 2 to be updated"
   static describeQueued(create: number, update: number, remove: number) {
     const parts = (
       [
-        [create, 'create'],
-        [update, 'update'],
-        [remove, 'delete'],
+        [create, 'created'],
+        [update, 'updated'],
+        [remove, 'deleted'],
       ] as const
     )
       .filter(([count]) => count > 0)
-      .map(([count, action]) => `${count} to ${action}`);
+      .map(([count, action]) => `${count} to be ${action}`);
 
     return parts.length === 0
       ? 'No listing changes'
