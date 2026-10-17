@@ -223,6 +223,30 @@ describe('EconParser', () => {
       expect(extracted.uses).toEqual(1);
     });
 
+    it('will parse inputs without a terminating description', () => {
+      const item = TestData.getStrangifierChemistrySet();
+
+      const start = item.descriptions.findIndex(
+        (d) =>
+          d.value === 'The following are the inputs that must be fulfilled.',
+      );
+      const end = item.descriptions.findIndex(
+        (d, i) => i > start && d.value === ' ',
+      );
+      item.descriptions = item.descriptions.slice(0, end);
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.inputs).toEqual([
+        { name: 'The Righteous Bison', quantity: 5 },
+        { name: 'The Winger', quantity: 1 },
+        { name: 'The Backburner', quantity: 1 },
+        { name: 'The Gunboats', quantity: 1 },
+        { name: 'The Half-Zatoichi', quantity: 1 },
+        { name: 'Strange Mad Milk', quantity: 1 },
+      ]);
+    });
+
     it('will parse Strangifiers', () => {
       const item = TestData.getStrangifier();
 
