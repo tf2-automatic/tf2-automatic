@@ -42,8 +42,6 @@ export class RegisterAgentsProcessor extends AccountWorkerHost {
       return;
     }
 
-    this.logger.debug(`Registering agent attempt #${job.attemptsMade}...`);
-
     const token = await this.tokensService
       .getToken(steamid)
       .catch(failWithoutToken);

@@ -34,8 +34,6 @@ export class UnregisterAgentsProcessor extends AccountWorkerHost {
       return;
     }
 
-    this.logger.debug(`Unregistering agent attempt #${job.attemptsMade}...`);
-
     await this.agentsService
       .cleanupAndUnregisterAgent(steamid)
       .catch(failWithoutToken);
