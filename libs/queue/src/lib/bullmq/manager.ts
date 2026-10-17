@@ -5,6 +5,17 @@ import { GatewayTimeoutException, HttpException } from '@nestjs/common';
 import { extractErrorMessage } from './errors';
 import { PaginatedJobs, Job } from '@tf2-automatic/common-data';
 
+const JOB_STATES = [
+  'active',
+  'waiting',
+  'prioritized',
+  'paused',
+  'delayed',
+  'waiting-children',
+  'completed',
+  'failed',
+] as const;
+
 export class QueueManager<
   ParameterType,
   DataType extends JobData,
@@ -104,19 +115,31 @@ export class QueueManager<
 
   async getJobs(page: number, pageSize: number): Promise<PaginatedJobs> {
     const start = (page - 1) * pageSize;
-    const end = start + pageSize;
 
-    const totalPromise = this.queue.getJobCounts().then((counts) => {
-      return Object.values(counts).reduce((acc, count) => acc + count, 0);
-    });
+    const counts = await this.queue.getJobCounts(...JOB_STATES);
+    const total = Object.values(counts).reduce((acc, count) => acc + count, 0);
 
-    const jobsPromise = this.queue
-      .getJobs(undefined, start, end)
-      .then((jobs) => {
-        return jobs.map(this.mapJob);
-      });
+    // BullMQ applies a range per state, so page through the states in order
+    const jobs: CustomJob<DataType>[] = [];
+    let offset = 0;
+    for (const state of JOB_STATES) {
+      const count = counts[state] ?? 0;
+      const from = Math.max(start - offset, 0);
+      const need = pageSize - jobs.length;
+      offset += count;
 
-    const [items, total] = await Promise.all([jobsPromise, totalPromise]);
+      if (from >= count) {
+        continue;
+      }
+
+      jobs.push(...(await this.queue.getJobs([state], from, from + need - 1)));
+
+      if (jobs.length >= pageSize) {
+        break;
+      }
+    }
+
+    const items = jobs.map(this.mapJob);
 
     return {
       data: items,
