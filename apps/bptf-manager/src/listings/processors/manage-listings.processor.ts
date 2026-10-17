@@ -7,7 +7,7 @@ import { TokensService } from '../../tokens/tokens.service';
 import { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@nestjs/config';
-import { Config } from '../../common/config/configuration';
+import { Config, ListingsConfig } from '../../common/config/configuration';
 import {
   JobData,
   JobName,
@@ -24,15 +24,20 @@ import hash from 'object-hash';
 type CustomJob = Job<JobData, JobResult, JobName>;
 
 // Changing these clears the limiter state on the next start
-const BATCH_LIMITER: Bottleneck.ConstructorOptions = {
-  id: 'listings:batch',
-  maxConcurrent: 1,
-  minTime: 6000,
-  reservoir: 10,
-  reservoirIncreaseAmount: 10,
-  reservoirIncreaseInterval: 60000,
-  reservoirIncreaseMaximum: 10,
-};
+function getBatchLimiter({
+  batchLimit,
+  batchLimitInterval,
+}: ListingsConfig): Bottleneck.ConstructorOptions {
+  return {
+    id: 'listings:batch',
+    maxConcurrent: 1,
+    minTime: Math.ceil(batchLimitInterval / batchLimit),
+    reservoir: batchLimit,
+    reservoirIncreaseAmount: batchLimit,
+    reservoirIncreaseInterval: batchLimitInterval,
+    reservoirIncreaseMaximum: batchLimit,
+  };
+}
 
 const DELETE_ALL_LIMITER: Bottleneck.ConstructorOptions = {
   id: 'listings:deleteAll',
@@ -58,6 +63,8 @@ export class ManageListingsProcessor
 
   private readonly redis: Redis = this.redisService.getOrThrow();
 
+  private readonly batchLimiter: Bottleneck.ConstructorOptions;
+
   constructor(
     private readonly manageListingsService: ManageListingsService,
     private readonly tokensService: TokensService,
@@ -66,6 +73,10 @@ export class ManageListingsProcessor
     private readonly redisService: RedisService,
   ) {
     super();
+
+    this.batchLimiter = getBatchLimiter(
+      this.configService.getOrThrow<ListingsConfig>('listings'),
+    );
 
     this.createBottlenecks();
   }
@@ -80,7 +91,7 @@ export class ManageListingsProcessor
         ...redisConfig,
         keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
       },
-      ...BATCH_LIMITER,
+      ...this.batchLimiter,
       clearDatastore,
     });
 
@@ -150,7 +161,7 @@ export class ManageListingsProcessor
 
   async onModuleInit(): Promise<void> {
     // Redis keeps the old limiter settings unless the datastore is cleared
-    const settingsHash = hash([BATCH_LIMITER, DELETE_ALL_LIMITER]);
+    const settingsHash = hash([this.batchLimiter, DELETE_ALL_LIMITER]);
     if ((await this.redis.get('limiters:hash')) === settingsHash) {
       return;
     }
@@ -220,7 +231,7 @@ export class ManageListingsProcessor
       lockToken,
       this.batchGroup,
       key,
-      BATCH_LIMITER,
+      this.batchLimiter,
       async () => {
         // Create listings
         await this.manageListingsService
@@ -264,7 +275,7 @@ export class ManageListingsProcessor
       lockToken,
       this.batchGroup,
       key,
-      BATCH_LIMITER,
+      this.batchLimiter,
       async () => {
         // Create listings
         await this.manageListingsService
@@ -302,7 +313,7 @@ export class ManageListingsProcessor
       lockToken,
       this.batchGroup,
       key,
-      BATCH_LIMITER,
+      this.batchLimiter,
       async () => {
         await this.manageListingsService
           .deleteListings(token, ids)
@@ -337,7 +348,7 @@ export class ManageListingsProcessor
       lockToken,
       this.batchGroup,
       steamid.getSteamID64() + ':create',
-      BATCH_LIMITER,
+      this.batchLimiter,
       async () => {
         await this.manageListingsService.deleteArchivedListings(token, ids);
 
@@ -456,13 +467,19 @@ export class ManageListingsProcessor
       /Try again in (\d+) seconds./,
     );
 
-    // Decrement by 10 by default
-    let decrementAmount = 10;
+    const { batchLimit, batchLimitInterval } =
+      this.configService.getOrThrow<ListingsConfig>('listings');
+
+    // Wait a full window by default
+    let decrementAmount = batchLimit;
 
     if (waitTime) {
       const tryAgainTime = parseInt(waitTime[1]);
-      // Decrement by 1 for every 6 seconds we need to wait
-      decrementAmount = Math.min(Math.ceil(tryAgainTime / 6), 10);
+      // Decrement by 1 for every request interval we need to wait
+      decrementAmount = Math.min(
+        Math.ceil((tryAgainTime * 1000 * batchLimit) / batchLimitInterval),
+        batchLimit,
+      );
 
       await this.redis.set(
         this.getRateLimitedKey(this.batchGroup, key),

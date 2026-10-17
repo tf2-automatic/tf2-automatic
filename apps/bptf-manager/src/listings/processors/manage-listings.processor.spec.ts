@@ -27,10 +27,15 @@ describe('ManageListingsProcessor', () => {
       pttl: jest.fn().mockResolvedValue(-2),
     };
 
+    const config = {
+      redis: { keyPrefix: 'prefix:' },
+      listings: { batchLimit: 3, batchLimitInterval: 60000 },
+    };
+
     const processor = new ManageListingsProcessor(
       {} as never,
       {} as never,
-      { getOrThrow: () => ({ keyPrefix: 'prefix:' }) } as never,
+      { getOrThrow: (key: keyof typeof config) => config[key] } as never,
       {} as never,
       { getOrThrow: () => redis } as never,
     );
@@ -56,6 +61,22 @@ describe('ManageListingsProcessor', () => {
 
     expect(clearedGroups()).toBe(0);
     expect(second.redis.set).not.toHaveBeenCalled();
+  });
+
+  it('configures the batch limiter from the config', () => {
+    Group.mockClear();
+    createProcessor(null);
+
+    expect(Group).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'listings:batch',
+        minTime: 20000,
+        reservoir: 3,
+        reservoirIncreaseAmount: 3,
+        reservoirIncreaseInterval: 60000,
+        reservoirIncreaseMaximum: 3,
+      }),
+    );
   });
 
   it('follows the rate limit from a 429 response', async () => {

@@ -7,6 +7,8 @@ const validation = Joi.object({
   ...Redis.getRules(),
   ...getLockRules(),
   AGENTS_REGISTER_INTERVAL: Joi.number().positive().optional().min(60000),
+  LISTINGS_BATCH_LIMIT: Joi.number().integer().positive().optional(),
+  LISTINGS_BATCH_LIMIT_INTERVAL: Joi.number().integer().positive().optional(),
 });
 
 export { validation };
