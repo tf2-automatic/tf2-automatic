@@ -292,5 +292,41 @@ describe('TF2GCParser', () => {
       expect(parsed.tradable).toEqual(true);
       expect(parsed.paint).toEqual(211);
     });
+
+    it('will not make self-made items craftable', async () => {
+      const item = TestData.getUnusualAndPainted();
+      item.quality = 9;
+
+      const [extracted, context] = parser.extract(item);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: "The Crone's Dome",
+      } satisfies ItemsGameItem);
+      schema.getPaintByColor = jest.fn().mockReturnValue(211);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(false);
+    });
+
+    it('will not make temporary items tradable', async () => {
+      const item = TestData.getUnusualAndPainted();
+
+      const [extracted, context] = parser.extract(item);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: "The Crone's Dome",
+        static_attrs: {
+          'expiration date': '1',
+        },
+      } satisfies ItemsGameItem);
+      schema.getPaintByColor = jest.fn().mockReturnValue(211);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(parsed.craftable).toEqual(false);
+      expect(parsed.tradable).toEqual(false);
+    });
   });
 });

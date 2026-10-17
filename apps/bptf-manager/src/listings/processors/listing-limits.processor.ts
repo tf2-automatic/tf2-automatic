@@ -37,7 +37,7 @@ export class ListingLimitsProcessor extends WorkerHost {
       promoted: result.listings.promotionSlotsAvailable,
     });
 
-    this.logger.log('Refreshed limits for ' + steamid.getSteamID64());
+    this.logger.debug('Refreshed limits for ' + steamid.getSteamID64());
   }
 
   private getLimits(token: Token): Promise<ListingLimitsResponse> {
