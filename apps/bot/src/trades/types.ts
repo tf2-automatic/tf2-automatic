@@ -6,6 +6,8 @@ export interface TradeOfferData {
   conf?: number;
   accept?: number;
   missing?: number;
+  // Last non-None confirmationMethod, survives re-fetches
+  lastConfirmationMethod?: SteamUser.ETradeOfferConfirmationMethod;
 }
 
 export type CreatedTradeOffer = TradeOffer & {

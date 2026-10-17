@@ -39,7 +39,11 @@ import { Logger } from '@nestjs/common/services';
 import { EventsService } from '../events/events.service';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
-import { EResult, ETradeOfferState } from 'steam-user';
+import {
+  EResult,
+  ETradeOfferState,
+  ETradeOfferConfirmationMethod,
+} from 'steam-user';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import type { Counter, Gauge } from 'prom-client';
 import sizeof from 'object-sizeof';
@@ -271,6 +275,8 @@ export class TradesService {
   private handleOffer(offer: ActualTradeOffer, requestedAt: number) {
     this.assertCreatedOffer(offer);
 
+    this.reconcileConfirmationMethod(offer);
+
     this.cacheOffer(offer, requestedAt);
 
     this.ensureOfferPublishedQueue.push(offer).catch(() => {
@@ -297,6 +303,44 @@ export class TradesService {
     }
 
     this.cache.set<CachedOffer>(id, { value, timestamp: requestedAt });
+  }
+
+  // Steam can report None for a still-pending confirmation; keep the last real method.
+  private reconcileConfirmationMethod(offer: CreatedTradeOffer): void {
+    const None = SteamTradeOfferManager.EConfirmationMethod.None;
+
+    if (offer.confirmationMethod !== None) {
+      if (offer.data('lastConfirmationMethod') !== offer.confirmationMethod) {
+        offer.data('lastConfirmationMethod', offer.confirmationMethod);
+      }
+      return;
+    }
+
+    // An Active sent offer is already confirmed, so only received ones can still be pending
+    const pendingConfirmation =
+      !offer.tradeID &&
+      (offer.state === ETradeOfferState.CreatedNeedsConfirmation ||
+        (offer.state === ETradeOfferState.Active && !offer.isOurOffer));
+
+    if (!pendingConfirmation) {
+      if (offer.data('lastConfirmationMethod') !== undefined) {
+        offer.data('lastConfirmationMethod', undefined);
+      }
+      return;
+    }
+
+    const remembered = (offer.data() as TradeOfferData).lastConfirmationMethod;
+    if (remembered !== undefined) {
+      this.logger.warn(
+        `Offer #${offer.id} reported confirmationMethod None while a ${
+          ETradeOfferConfirmationMethod[remembered] ?? remembered
+        } confirmation is still pending (state ${
+          ETradeOfferState[offer.state]
+        }); restoring the remembered method`,
+      );
+      // Typed readonly, but a plain mutable object at runtime
+      (offer as { confirmationMethod: number }).confirmationMethod = remembered;
+    }
   }
 
   private ensurePollData(): void {
