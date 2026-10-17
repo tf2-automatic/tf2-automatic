@@ -101,25 +101,11 @@ export class ManageListingsProcessor
 
   private createGroupListeners(group: Bottleneck.Group): void {
     group.on('created', (limiter, key) => {
-      this.logger.debug(
-        'Created limiter for ' + key + ' for group ' + group.id,
-      );
-
       limiter.on('error', (err) => {
         if (err.message === 'ERR SETTINGS_KEY_NOT_FOUND') {
-          this.logger.debug(
-            'Limiter key ' +
-              key +
-              ' for group ' +
-              group.id +
-              ' disappeared, deleting...',
-          );
           group
             .deleteKey(key)
             .then(() => {
-              this.logger.debug(
-                'Deleted limiter key ' + key + ' from group ' + group.id,
-              );
               limiter.removeAllListeners();
             })
             .catch((err) => {
