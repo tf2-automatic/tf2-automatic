@@ -9,6 +9,8 @@ const mockLimiter = {
   schedule: jest.fn((fn: () => Promise<unknown>) => fn()),
 };
 
+const mockDeleteKey = jest.fn().mockResolvedValue(true);
+
 jest.mock('bottleneck', () => ({
   __esModule: true,
   default: {
@@ -17,6 +19,7 @@ jest.mock('bottleneck', () => ({
       on: jest.fn(),
       disconnect: jest.fn().mockResolvedValue(undefined),
       key: () => mockLimiter,
+      deleteKey: mockDeleteKey,
       limiters: () => [{ key: '123', limiter: mockLimiter }],
     })),
   },
@@ -152,5 +155,22 @@ describe('RateLimitsService', () => {
     await expect(run()).resolves.toBe(true);
 
     jest.restoreAllMocks();
+  });
+
+  it('recreates a limiter whose key expired in Redis', async () => {
+    const { service } = createService(null);
+
+    const job = { name: 'active', data: {}, moveToDelayed: jest.fn() };
+    const task = jest.fn().mockResolvedValue(true);
+    mockLimiter.currentReservoir
+      .mockRejectedValueOnce(new Error('ERR SETTINGS_KEY_NOT_FOUND'))
+      .mockResolvedValueOnce(20);
+
+    await expect(
+      service.scheduleOrDelay(job as never, 'lock', 'listingsGet', '123', task),
+    ).resolves.toBe(true);
+
+    expect(mockDeleteKey).toHaveBeenCalledWith('123');
+    expect(job.moveToDelayed).not.toHaveBeenCalled();
   });
 });
