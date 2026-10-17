@@ -1,9 +1,19 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { ClsService } from 'nestjs-cls';
+import { AgentsService } from '../../agents/agents.service';
+import { RateLimitsService } from '../../rate-limits/rate-limits.service';
+import { TokensService } from '../../tokens/tokens.service';
+import { ManageListingsService } from '../manage-listings.service';
 import { ManageListingsProcessor } from './manage-listings.processor';
 
+type DeleteAllJob = Parameters<
+  ManageListingsProcessor['handleDeleteAllAction']
+>[0];
+
 describe('ManageListingsProcessor delete all', () => {
-  const job = { data: { steamid64: '76561198120070906' } } as never;
+  const job = {
+    data: { steamid64: '76561198120070906' },
+  } as unknown as DeleteAllJob;
 
   function setup(getAgent: jest.Mock) {
     const manageListingsService = { deleteAllListings: jest.fn() };
@@ -11,10 +21,12 @@ describe('ManageListingsProcessor delete all', () => {
       scheduleOrDelay: jest.fn((_j, _l, _t, _k, fn) => fn()),
     };
     const processor = new ManageListingsProcessor(
-      manageListingsService as never,
-      { getToken: jest.fn().mockResolvedValue({}) } as never,
-      { getAgent } as never,
-      rateLimitsService as never,
+      manageListingsService as unknown as ManageListingsService,
+      {
+        getToken: jest.fn().mockResolvedValue({}),
+      } as unknown as TokensService,
+      { getAgent } as unknown as AgentsService,
+      rateLimitsService as unknown as RateLimitsService,
       new ClsService(new AsyncLocalStorage()),
     );
     return { processor, manageListingsService, rateLimitsService };
