@@ -84,16 +84,23 @@ export class GetListingsProcessor extends WorkerHost {
 
     const key = steamid.getSteamID64();
 
+    let start = 0;
+
     const response = await this.rateLimitsService.scheduleOrDelay(
       job,
       lockToken,
       endpoint,
       key,
-      () =>
-        fetch().catch((err) =>
+      () => {
+        start = Date.now();
+
+        return fetch().catch((err) =>
           this.rateLimitsService.handleError(endpoint, key, err),
-        ),
+        );
+      },
     );
+
+    const duration = Date.now() - start;
 
     this.logger.debug(
       'Got response for ' +
@@ -108,7 +115,9 @@ export class GetListingsProcessor extends WorkerHost {
         response.cursor.total +
         ', results: ' +
         response.results.length +
-        ')',
+        ') in ' +
+        duration +
+        'ms',
     );
 
     await this.currentListingsService.handleListingsResponse(job, response);
