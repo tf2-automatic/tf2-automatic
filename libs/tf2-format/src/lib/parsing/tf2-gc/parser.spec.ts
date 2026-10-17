@@ -414,5 +414,73 @@ describe('TF2GCParser', () => {
 
       expect(parsed.paintkit).toEqual(139);
     });
+
+    const paintCan = {
+      attribute: [
+        {
+          def_index: 153,
+          value: null,
+          value_bytes: { type: 'Buffer' as const, data: [0, 0, 0, 0] },
+        },
+      ],
+      id: '15280280552',
+      def_index: 5031,
+      quantity: 1,
+      level: 5,
+      quality: 6,
+      flags: 0,
+      origin: 6,
+      inventory: 2147485382,
+      account_id: 454318713,
+      equipped_state: [],
+      custom_name: null,
+      custom_desc: null,
+      interior_item: null,
+      in_use: false,
+      style: 0,
+      original_id: null,
+      contains_equipped_state: null,
+      contains_equipped_state_v2: true,
+      position: 1734,
+    };
+
+    const tint = {
+      'set item tint RGB': {
+        attribute_class: 'set_item_tint_rgb',
+        value: '8208497',
+      },
+    };
+
+    it('will take the paint of paint cans from the definition', async () => {
+      const [extracted, context] = parser.extract(paintCan);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: 'Paint Can 6',
+        tool: { type: 'paint_can' },
+        attributes: tint,
+      } satisfies ItemsGameItem);
+      schema.getPaintByColor = jest.fn().mockReturnValue(5031);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(schema.getPaintByColor).toHaveBeenCalledWith('7d4071');
+      expect(parsed.paint).toEqual(5031);
+    });
+
+    it('will not give a paint to non paint cans with a tint', async () => {
+      const [extracted, context] = parser.extract(paintCan);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: 'Halloween Spell: Putrescent Pigmentation',
+        tool: { type: 'apply_custom_attrib' },
+        attributes: tint,
+      } satisfies ItemsGameItem);
+      schema.getPaintByColor = jest.fn().mockReturnValue(5031);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(schema.getPaintByColor).not.toHaveBeenCalled();
+      expect(parsed.paint).toEqual(null);
+    });
   });
 });

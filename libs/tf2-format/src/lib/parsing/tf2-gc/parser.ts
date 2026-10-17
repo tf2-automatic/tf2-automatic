@@ -361,6 +361,16 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       };
     }
 
+    // Paint cans have their colour on the definition, not on the item
+    const tint = schemaItem.attributes?.['set item tint RGB']?.value;
+    if (
+      !extracted.primaryPaint &&
+      schemaItem.tool?.type === 'paint_can' &&
+      tint !== undefined
+    ) {
+      extracted = { ...extracted, primaryPaint: Number(tint) };
+    }
+
     let paint: number | undefined | null | Error = null;
     if (extracted.primaryPaint) {
       const hex = extracted.primaryPaint.toString(16);
