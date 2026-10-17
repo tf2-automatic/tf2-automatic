@@ -262,6 +262,9 @@ export class ManageListingsProcessor extends AccountWorkerHost<
       async () => {
         // The job may have waited, check again
         if (await this.agentsService.getAgent(steamid)) {
+          this.logger.debug(
+            'Skipping deleting all listings because the agent is registered again',
+          );
           return false;
         }
 

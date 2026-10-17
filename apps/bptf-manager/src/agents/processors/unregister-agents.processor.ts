@@ -40,9 +40,4 @@ export class UnregisterAgentsProcessor extends AccountWorkerHost {
   onFailed(job: Job, err: Error): void {
     this.logger.warn(`Failed to unregister agent: ${err.message}`);
   }
-
-  @OnWorkerEvent('completed')
-  onCompleted(): void {
-    this.logger.log('Unregistered agent');
-  }
 }

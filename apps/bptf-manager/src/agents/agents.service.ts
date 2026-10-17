@@ -159,7 +159,7 @@ export class AgentsService {
     await this.locker.using(
       [`agents:${steamid.getSteamID64()}`],
       LockDuration.MEDIUM,
-      async () => {
+      async (signal) => {
         if (await this.getAgent(steamid)) {
           this.logger.debug(
             'Skipping unregistering agent because it is registered again',
@@ -179,10 +179,16 @@ export class AgentsService {
           return Promise.allSettled(jobs.map((job) => job.remove()));
         });
 
+        if (signal.aborted) {
+          throw signal.error;
+        }
+
         // Unregister agent, stop is sent before a register can pulse again
         await this.tokensService.getToken(steamid).then((token) => {
           return this.unregisterAgent(token);
         });
+
+        this.logger.log('Unregistered agent');
       },
     );
   }
@@ -229,6 +235,8 @@ export class AgentsService {
         'https://api.backpack.tf/api/agent/stop',
         {},
         {
+          // Registers wait for this while holding the agent lock
+          timeout: 10000,
           headers: {
             'X-Auth-Token': token.value,
           },
