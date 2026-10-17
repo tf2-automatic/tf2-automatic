@@ -1,6 +1,9 @@
 import { PossibleInventoryItem, RecipeInput } from '../types';
-import { encode, decode } from 'cbor';
+import { Encoder } from 'cbor-x';
 import { DEFAULT_ITEM, ITEM_FIELD_ID, Utils } from '../utils';
+
+// Plain maps without records or tags, and decode all maps as Map objects
+const encoder = new Encoder({ useRecords: false, mapsAsObjects: false });
 
 const ITEM_ID_FIELD = Object.fromEntries(
   Object.entries(ITEM_FIELD_ID).map(([k, v]) => [v, k]),
@@ -8,7 +11,7 @@ const ITEM_ID_FIELD = Object.fromEntries(
 
 // This ensures keys are sorted in the bytewise lexicographic order
 const ITEM_FIELDS_SORTED = Object.keys(DEFAULT_ITEM).sort((a, b) =>
-  encode(ITEM_FIELD_ID[a]) > encode(ITEM_FIELD_ID[b]) ? 1 : -1,
+  encoder.encode(ITEM_FIELD_ID[a]) > encoder.encode(ITEM_FIELD_ID[b]) ? 1 : -1,
 ) as ReadonlyArray<keyof PossibleInventoryItem>;
 
 export type ItemMap = Map<number, unknown>;
@@ -20,13 +23,11 @@ export class Binary {
     Utils.compact(copy);
     Utils.canonicalize(copy);
 
-    return encode(this.toIdMap(copy));
+    return encoder.encode(this.toIdMap(copy));
   }
 
   static decode(encoded: Uint8Array): Partial<PossibleInventoryItem> {
-    // If we don't do `preferMap: true` then it would return an object for empty
-    // maps.
-    return this.fromIdMap(decode(encoded, { preferMap: true }));
+    return this.fromIdMap(encoder.decode(encoded));
   }
 
   private static toIdMap(item: Partial<PossibleInventoryItem>): ItemMap {
@@ -41,7 +42,7 @@ export class Binary {
           const array = value
             .map((v) => (key === 'inputs' ? this.toIdMap(v) : v))
             // Encode each element once instead of on every comparison
-            .map((v) => [encode(v), v] as const)
+            .map((v) => [encoder.encode(v), v] as const)
             .sort(([a], [b]) => Buffer.compare(a, b))
             .map(([, v]) => v);
 

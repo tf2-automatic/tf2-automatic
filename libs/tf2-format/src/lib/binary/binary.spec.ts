@@ -58,6 +58,49 @@ describe('Binary', () => {
       expect(encoded).toEqual(new Uint8Array([161, 17, 133, 1, 2, 3, 10, 20]));
     });
 
+    it('should encode an item with all properties to the same bytes', () => {
+      const item: Partial<Item> = {
+        assetid: '15243278945',
+        defindex: 30743,
+        quality: 5,
+        craftable: false,
+        tradable: false,
+        australium: true,
+        festivized: true,
+        effect: 3017,
+        wear: 2,
+        paintkit: 391,
+        killstreak: 3,
+        target: 1071,
+        output: 6526,
+        outputQuality: 6,
+        elevated: true,
+        crateSeries: 101,
+        paint: 15185211,
+        parts: [64, 17],
+        spells: [
+          [1009, 1],
+          [1004, 2],
+        ],
+        sheen: 4,
+        killstreaker: 2008,
+        quantity: -1,
+      };
+
+      const encoded = Binary.encode(item);
+
+      // Encoded items are used as keys, so the bytes must never change
+      expect(encoded).toEqual(
+        new Uint8Array([
+          182, 0, 107, 49, 53, 50, 52, 51, 50, 55, 56, 57, 52, 53, 1, 25, 120,
+          23, 2, 32, 3, 244, 4, 244, 5, 245, 6, 245, 7, 25, 11, 201, 8, 2, 9,
+          25, 1, 135, 10, 3, 11, 25, 4, 47, 12, 25, 25, 126, 13, 6, 14, 245, 15,
+          24, 101, 16, 26, 0, 231, 181, 59, 17, 130, 17, 24, 64, 18, 130, 130,
+          25, 3, 236, 2, 130, 25, 3, 241, 1, 19, 4, 20, 25, 7, 216, 22, 32,
+        ]),
+      );
+    });
+
     it('should sort parts that differ in bytes above 0x7f', () => {
       const expected = new Uint8Array([161, 17, 130, 25, 23, 128, 25, 23, 129]);
 

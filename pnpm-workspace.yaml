@@ -3,6 +3,7 @@ allowBuilds:
   '@parcel/watcher': false
   '@scarf/scarf': false
   '@swc/core': true
+  cbor-extract: true
   less: false
   msgpackr-extract: true
   nx: false
