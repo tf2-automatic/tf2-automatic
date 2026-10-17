@@ -68,7 +68,8 @@ export class SKU {
     let sign = 1;
 
     // Extract only defindex and quality
-    for (let i = 0; i < length; i++) {
+    let i = 0;
+    for (; i < length; i++) {
       const charCode = sku.charCodeAt(i);
       if (charCode === 45) {
         sign = -1;
@@ -100,6 +101,11 @@ export class SKU {
       item.defindex = numValue;
     } else {
       item.quality = numValue;
+    }
+
+    // Reached the end without a second seperator, so there are no attributes
+    if (i === length) {
+      return item;
     }
 
     // Now process remaining attributes
