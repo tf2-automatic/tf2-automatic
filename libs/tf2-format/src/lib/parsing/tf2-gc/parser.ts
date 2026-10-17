@@ -348,6 +348,18 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       crateSeries = Number(schemaItem.static_attrs['set supply crate series']);
     }
 
+    // War paints have their paintkit on the definition, not on the item
+    if (
+      extracted.paintkit === null &&
+      schemaItem.static_attrs &&
+      schemaItem.static_attrs['paintkit_proto_def_index'] !== undefined
+    ) {
+      extracted = {
+        ...extracted,
+        paintkit: Number(schemaItem.static_attrs['paintkit_proto_def_index']),
+      };
+    }
+
     let paint: number | undefined | null | Error = null;
     if (extracted.primaryPaint) {
       const hex = extracted.primaryPaint.toString(16);
