@@ -915,7 +915,7 @@ export class ManageListingsService {
       .map(([count, action]) => `${count} to be ${action}`);
 
     return parts.length === 0
-      ? 'No listing changes'
+      ? 'Queued no listing changes'
       : 'Queued ' + parts.join(', ');
   }
 

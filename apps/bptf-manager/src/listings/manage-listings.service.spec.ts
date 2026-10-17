@@ -241,7 +241,7 @@ describe('ManageListingsService', () => {
 describe('ManageListingsService.describeQueued', () => {
   it('only mentions what changes', () => {
     expect(ManageListingsService.describeQueued(0, 0, 0)).toBe(
-      'No listing changes',
+      'Queued no listing changes',
     );
     expect(ManageListingsService.describeQueued(10, 2, 0)).toBe(
       'Queued 10 to be created, 2 to be updated',
