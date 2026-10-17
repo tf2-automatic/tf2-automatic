@@ -14,7 +14,7 @@ import Redis from 'ioredis';
 import hash from 'object-hash';
 import {
   Config,
-  ListingsConfig,
+  RateLimitsConfig,
   RateLimitConfig,
   RateLimitedEndpoint,
 } from '../common/config/configuration';
@@ -26,6 +26,7 @@ const RATE_LIMITED_ENDPOINTS: RateLimitedEndpoint[] = [
   'archiveBatch',
   'listingsGet',
   'archiveGet',
+  'notificationsGet',
 ];
 
 // Changing these clears the limiter state on the next start
@@ -67,7 +68,7 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
     private readonly redisService: RedisService,
   ) {
     this.rateLimits =
-      this.configService.getOrThrow<ListingsConfig>('listings').rateLimits;
+      this.configService.getOrThrow<RateLimitsConfig>('rateLimits');
 
     this.options = {
       ...(Object.fromEntries(

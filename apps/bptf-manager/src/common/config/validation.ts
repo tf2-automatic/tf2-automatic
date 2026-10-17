@@ -12,6 +12,7 @@ const validation = Joi.object({
     'ARCHIVED_LISTINGS_BATCH',
     'LISTINGS_GET',
     'ARCHIVED_LISTINGS_GET',
+    'NOTIFICATIONS_GET',
   ].reduce(
     (rules, prefix) => ({
       ...rules,

@@ -34,13 +34,12 @@ describe('RateLimitsService', () => {
 
     const config = {
       redis: { keyPrefix: 'prefix:' },
-      listings: {
-        rateLimits: {
-          listingsBatch: { requests: 3, window: 60000 },
-          archiveBatch: { requests: 10, window: 60000 },
-          listingsGet: { requests: 20, window: 60000 },
-          archiveGet: { requests: 5, window: 30000 },
-        },
+      rateLimits: {
+        listingsBatch: { requests: 3, window: 60000 },
+        archiveBatch: { requests: 10, window: 60000 },
+        listingsGet: { requests: 20, window: 60000 },
+        archiveGet: { requests: 5, window: 30000 },
+        notificationsGet: { requests: 20, window: 60000 },
       },
     };
 
@@ -59,7 +58,7 @@ describe('RateLimitsService', () => {
     const first = createService(null);
     await first.service.onModuleInit();
 
-    expect(clearedGroups()).toBe(5);
+    expect(clearedGroups()).toBe(6);
     const [key, settingsHash] = first.redis.set.mock.calls[0];
     expect(key).toBe('limiters:hash');
 

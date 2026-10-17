@@ -23,13 +23,13 @@ export class ListingLimitsProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
-    this.logger.debug('Processing job ' + job.id);
-
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
 
+    const start = Date.now();
     const result = await this.getLimits(token);
+    const duration = Date.now() - start;
 
     await this.listingLimitsService.saveLimits(steamid, {
       cap: result.listings.total,
@@ -37,7 +37,13 @@ export class ListingLimitsProcessor extends WorkerHost {
       promoted: result.listings.promotionSlotsAvailable,
     });
 
-    this.logger.debug('Refreshed limits for ' + steamid.getSteamID64());
+    this.logger.debug(
+      'Refreshed limits for ' +
+        steamid.getSteamID64() +
+        ' in ' +
+        duration +
+        'ms',
+    );
   }
 
   private getLimits(token: Token): Promise<ListingLimitsResponse> {

@@ -9,7 +9,7 @@ import { AxiosError } from 'axios';
 import { JobData, JobType } from '../interfaces/get-listings.queue.interface';
 import { GetListingsResponse } from '../interfaces/bptf.interface';
 import { RateLimitedEndpoint } from '../../common/config/configuration';
-import { RateLimitsService } from '../rate-limits.service';
+import { RateLimitsService } from '../../rate-limits/rate-limits.service';
 
 @Processor('get-listings', {
   settings: bullWorkerSettings,

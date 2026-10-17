@@ -13,7 +13,7 @@ import {
 } from '../interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../../agents/agents.service';
 import { ManageListingsService } from '../manage-listings.service';
-import { RateLimitsService } from '../rate-limits.service';
+import { RateLimitsService } from '../../rate-limits/rate-limits.service';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
 

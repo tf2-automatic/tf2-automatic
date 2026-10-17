@@ -11,7 +11,7 @@ export interface Config {
   keepAliveTimeout: number;
   redis: Redis.Config;
   agents: AgentsConfig;
-  listings: ListingsConfig;
+  rateLimits: RateLimitsConfig;
   locking: LockConfig;
 }
 
@@ -21,11 +21,13 @@ export interface AgentsConfig {
 
 // Batch create, update and delete share the active listings batch limit
 export type RateLimitedEndpoint =
-  'listingsBatch' | 'archiveBatch' | 'listingsGet' | 'archiveGet';
+  | 'listingsBatch'
+  | 'archiveBatch'
+  | 'listingsGet'
+  | 'archiveGet'
+  | 'notificationsGet';
 
-export interface ListingsConfig {
-  rateLimits: Record<RateLimitedEndpoint, RateLimitConfig>;
-}
+export type RateLimitsConfig = Record<RateLimitedEndpoint, RateLimitConfig>;
 
 export interface RateLimitConfig {
   requests: number;
@@ -59,13 +61,12 @@ export default (): Config => {
         5 * 60 * 1000,
       ),
     },
-    listings: {
-      rateLimits: {
-        listingsBatch: getRateLimit('LISTINGS_BATCH', 3),
-        archiveBatch: getRateLimit('ARCHIVED_LISTINGS_BATCH', 10),
-        listingsGet: getRateLimit('LISTINGS_GET', 20),
-        archiveGet: getRateLimit('ARCHIVED_LISTINGS_GET', 20),
-      },
+    rateLimits: {
+      listingsBatch: getRateLimit('LISTINGS_BATCH', 3),
+      archiveBatch: getRateLimit('ARCHIVED_LISTINGS_BATCH', 10),
+      listingsGet: getRateLimit('LISTINGS_GET', 20),
+      archiveGet: getRateLimit('ARCHIVED_LISTINGS_GET', 20),
+      notificationsGet: getRateLimit('NOTIFICATIONS_GET', 20),
     },
     locking: getLockConfig(),
   };
