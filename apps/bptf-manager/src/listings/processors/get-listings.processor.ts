@@ -94,8 +94,6 @@ export class GetListingsProcessor extends WorkerHost {
 
     debugStr += '...';
 
-    this.logger.debug(debugStr);
-
     const key = steamid.getSteamID64();
 
     const response = await this.rateLimitsService.scheduleOrDelay(
@@ -103,10 +101,13 @@ export class GetListingsProcessor extends WorkerHost {
       lockToken,
       endpoint,
       key,
-      () =>
-        fetch().catch((err) =>
+      () => {
+        this.logger.debug(debugStr);
+
+        return fetch().catch((err) =>
           this.rateLimitsService.handleError(endpoint, key, err),
-        ),
+        );
+      },
     );
 
     this.logger.debug(

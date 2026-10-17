@@ -5,7 +5,7 @@ import { RateLimitsService } from './rate-limits.service';
 
 const mockLimiter = {
   updateSettings: jest.fn(),
-  check: jest.fn(),
+  currentReservoir: jest.fn(),
   schedule: jest.fn((fn: () => Promise<unknown>) => fn()),
 };
 
@@ -79,7 +79,6 @@ describe('RateLimitsService', () => {
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'listingsBatch',
-        minTime: 20000,
         reservoir: 3,
         reservoirIncreaseAmount: 3,
         reservoirIncreaseInterval: 60000,
@@ -92,7 +91,6 @@ describe('RateLimitsService', () => {
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'archiveGet',
-        minTime: 6000,
         reservoir: 5,
         reservoirIncreaseInterval: 30000,
       }),
@@ -130,7 +128,7 @@ describe('RateLimitsService', () => {
     );
   });
 
-  it('delays the job instead of waiting when the limiter is busy', async () => {
+  it('delays the job instead of waiting when the limiter is empty', async () => {
     const { service, redis } = createService(null);
 
     const job = { name: 'archived', data: {}, moveToDelayed: jest.fn() };
@@ -138,19 +136,20 @@ describe('RateLimitsService', () => {
     const run = () =>
       service.scheduleOrDelay(job as never, 'lock', 'archiveGet', '123', task);
     jest.spyOn(Date, 'now').mockReturnValue(1000);
-    mockLimiter.check.mockResolvedValue(false);
+    mockLimiter.currentReservoir.mockResolvedValue(0);
 
     // A known rate limit window is waited out in one go
     redis.pttl.mockResolvedValueOnce(45000);
     await expect(run()).rejects.toBeInstanceOf(DelayedError);
     expect(job.moveToDelayed).toHaveBeenLastCalledWith(46000, 'lock');
 
-    // Otherwise a busy limiter delays by its minTime
+    // An empty reservoir waits for its refill instead of polling
     await expect(run()).rejects.toBeInstanceOf(DelayedError);
-    expect(job.moveToDelayed).toHaveBeenLastCalledWith(7000, 'lock');
+    expect(job.moveToDelayed).toHaveBeenLastCalledWith(31000, 'lock');
     expect(mockLimiter.schedule).not.toHaveBeenCalled();
 
-    mockLimiter.check.mockResolvedValue(true);
+    // Requests left run right away
+    mockLimiter.currentReservoir.mockResolvedValue(1);
     await expect(run()).resolves.toBe(true);
 
     jest.restoreAllMocks();

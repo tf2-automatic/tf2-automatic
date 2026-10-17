@@ -36,7 +36,6 @@ function getLimiterOptions(
   return {
     id: endpoint,
     maxConcurrent: 1,
-    minTime: Math.ceil(window / requests),
     reservoir: requests,
     reservoirIncreaseAmount: requests,
     reservoirIncreaseInterval: window,
@@ -169,11 +168,22 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
     task: () => Promise<T>,
   ): Promise<T> {
     const limiter = this.groups[endpoint].key(key);
+    const options = this.options[endpoint];
 
     // Wait out a known rate limit window in one go instead of polling
     let delay = await this.redis.pttl(this.getRateLimitedKey(endpoint, key));
-    if (delay <= 0 && !(await limiter.check())) {
-      delay = Math.max(this.options[endpoint].minTime ?? 0, 1000);
+    if (delay <= 0) {
+      const reservoir = await limiter.currentReservoir();
+      const busy =
+        reservoir === null ? !(await limiter.check()) : reservoir <= 0;
+
+      if (busy) {
+        // The reservoir refills at least once within its interval
+        delay = Math.max(
+          options.reservoirIncreaseInterval ?? options.minTime ?? 0,
+          1000,
+        );
+      }
     }
 
     if (delay > 0) {
