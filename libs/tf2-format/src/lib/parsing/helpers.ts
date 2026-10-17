@@ -6,7 +6,7 @@ import { ExtractedRecipeInput } from './econ/types';
 export function getInputByName(name: string, schema: DefindexByName) {
   if (name.startsWith('The ')) {
     const input = schema.getDefindexByName(name.slice(4));
-    if (input) {
+    if (typeof input === 'number') {
       return input;
     }
   }
