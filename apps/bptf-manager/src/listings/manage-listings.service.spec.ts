@@ -237,3 +237,17 @@ describe('ManageListingsService', () => {
     });
   });
 });
+
+describe('ManageListingsService.describeQueued', () => {
+  it('only mentions what changes', () => {
+    expect(ManageListingsService.describeQueued(0, 0, 0)).toBe(
+      'No listing changes',
+    );
+    expect(ManageListingsService.describeQueued(10, 2, 0)).toBe(
+      'Queued 10 to create, 2 to update',
+    );
+    expect(ManageListingsService.describeQueued(0, 0, 1)).toBe(
+      'Queued 1 to delete',
+    );
+  });
+});

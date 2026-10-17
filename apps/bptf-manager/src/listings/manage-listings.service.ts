@@ -541,13 +541,11 @@ export class ManageListingsService {
     await transaction.exec();
 
     this.logger.debug(
-      'Queued ' +
-        create.length +
-        ' listing(s) to be created, ' +
-        update.length +
-        ' listing(s) to be updated and ' +
-        remove.length +
-        ' listing(s) to be deleted',
+      ManageListingsService.describeQueued(
+        create.length,
+        update.length,
+        remove.length,
+      ),
     );
 
     const promises: Promise<unknown>[] = [];
@@ -878,13 +876,11 @@ export class ManageListingsService {
     );
 
     this.logger.debug(
-      'Queued ' +
-        create.size +
-        ' listing(s) to be created, ' +
-        update.size +
-        ' listing(s) to be updated and ' +
-        remove.size +
-        ' listing(s) to be deleted',
+      ManageListingsService.describeQueued(
+        create.size,
+        update.size,
+        remove.size,
+      ),
     );
 
     const promises: Promise<unknown>[] = [];
@@ -904,6 +900,23 @@ export class ManageListingsService {
 
     // Create jobs
     await Promise.all(promises);
+  }
+
+  // Only mentions what changes, e.g. "Queued 10 to create, 2 to update"
+  static describeQueued(create: number, update: number, remove: number) {
+    const parts = (
+      [
+        [create, 'create'],
+        [update, 'update'],
+        [remove, 'delete'],
+      ] as const
+    )
+      .filter(([count]) => count > 0)
+      .map(([count, action]) => `${count} to ${action}`);
+
+    return parts.length === 0
+      ? 'No listing changes'
+      : 'Queued ' + parts.join(', ');
   }
 
   private static compareCurrentAndDesired(
