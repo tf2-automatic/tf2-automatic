@@ -614,12 +614,26 @@ export class EconParser extends Parser<
       return attributes;
     }
 
+    // Sentinel avoids out of bounds errors, removed again so the item is untouched
+    item.descriptions.push({ value: '' });
+    try {
+      EconParser.parseDescriptions(item, tags, start, attributes);
+    } finally {
+      item.descriptions.pop();
+    }
+
+    return attributes;
+  }
+
+  private static parseDescriptions(
+    item: EconItem,
+    tags: TagAttributes,
+    start: IdentifiableDescription,
+    attributes: DescriptionAttributes,
+  ): void {
     let next = start;
 
     const descriptions = item.descriptions;
-
-    // Add empty description to make sure we do not get out of bounds errors
-    descriptions.push({ value: '' });
 
     let i = 0;
 
@@ -909,8 +923,6 @@ export class EconParser extends Parser<
       }
       /* eslint-enable no-fallthrough */
     }
-
-    return attributes;
   }
 }
 
