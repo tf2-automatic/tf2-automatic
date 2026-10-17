@@ -22,6 +22,8 @@ const TAGS_OF_INTEREST = new Set<keyof TagAttributes>([
   'Type',
 ]);
 
+const WIKI_ID_REGEX = /[?&]id=(\d+)/;
+
 const NON_CRAFTABLE_DESCRIPTIONS = {
   '( Not Usable in Crafting )': true,
   '( Not Tradable, Marketable, or Usable in Crafting )': true,
@@ -348,7 +350,11 @@ export class EconParser extends Parser<
       }
     }
 
-    const spells = await helpers.getSpellByName(raw.spells, this.schema);
+    // skip needless async hops
+    const spells =
+      raw.spells.length === 0
+        ? []
+        : await helpers.getSpellByName(raw.spells, this.schema);
 
     let paint: NumberOrNull = null;
     if (raw.paint !== null) {
@@ -388,10 +394,10 @@ export class EconParser extends Parser<
       }
     }
 
-    const inputs: RecipeInput[] | null = await helpers.parseInputs(
-      raw.inputs,
-      this.schema,
-    );
+    const inputs: RecipeInput[] | null =
+      raw.inputs === null
+        ? null
+        : await helpers.parseInputs(raw.inputs, this.schema);
 
     let crateSeries: number | null = raw.crateSeries;
     if (crateSeries === null && raw.type === 'Crate') {
@@ -476,12 +482,13 @@ export class EconParser extends Parser<
         continue;
       }
 
-      const defindex = new URL(action.link).searchParams.get('id');
-      if (defindex === null) {
+      // regex is much faster than new URL
+      const match = WIKI_ID_REGEX.exec(action.link);
+      if (match === null) {
         return null;
       }
 
-      return parseInt(defindex, 10);
+      return parseInt(match[1], 10);
     }
 
     return null;
