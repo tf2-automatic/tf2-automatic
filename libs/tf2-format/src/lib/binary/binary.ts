@@ -38,10 +38,12 @@ export class Binary {
 
       if (value !== undefined) {
         if (Array.isArray(value)) {
-          const array = value.map((v) =>
-            key === 'inputs' ? this.toIdMap(v) : v,
-          );
-          array.sort((a, b) => Buffer.compare(encode(a), encode(b)));
+          const array = value
+            .map((v) => (key === 'inputs' ? this.toIdMap(v) : v))
+            // Encode each element once instead of on every comparison
+            .map((v) => [encode(v), v] as const)
+            .sort(([a], [b]) => Buffer.compare(a, b))
+            .map(([, v]) => v);
 
           if (array.length > 0) {
             result.set(ITEM_FIELD_ID[key], array);
