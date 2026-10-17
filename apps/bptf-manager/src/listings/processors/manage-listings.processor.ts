@@ -1,4 +1,6 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
@@ -21,7 +23,8 @@ type CustomJob = Job<JobData, JobResult, JobName>;
   settings: bullWorkerSettings,
   concurrency: 4,
 })
-export class ManageListingsProcessor extends WorkerHost<
+export class ManageListingsProcessor extends AccountWorkerHost<
+  CustomJob,
   Worker<JobData, JobResult, JobName>
 > {
   private readonly logger = new Logger(ManageListingsProcessor.name);
@@ -35,11 +38,12 @@ export class ManageListingsProcessor extends WorkerHost<
     private readonly tokensService: TokensService,
     private readonly agentsService: AgentsService,
     private readonly rateLimitsService: RateLimitsService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(job: CustomJob, lockToken?: string): Promise<JobResult> {
+  async processJob(job: CustomJob, lockToken?: string): Promise<JobResult> {
     // Work queued from here on is picked up by a re-run, see onCompleted
     await this.manageListingsService.clearPending(
       new SteamID(job.data.steamid64),
@@ -60,7 +64,7 @@ export class ManageListingsProcessor extends WorkerHost<
       case JobType.Plan:
         return this.handlePlanAction(job);
       default:
-        this.logger.warn('Unknown task type: ' + job.name);
+        this.logger.error('Unknown task type: ' + job.name);
         return false;
     }
   }
@@ -272,9 +276,7 @@ export class ManageListingsProcessor extends WorkerHost<
 
   @OnWorkerEvent('failed')
   onFailed(job: Job, err: Error): void {
-    this.logger.warn(
-      `Failed to ${job.name} listings for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to ${job.name} listings: ${err.message}`);
 
     if (err instanceof AxiosError) {
       console.error(err.response?.data);
