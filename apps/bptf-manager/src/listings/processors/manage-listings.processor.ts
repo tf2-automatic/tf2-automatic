@@ -245,6 +245,13 @@ export class ManageListingsProcessor extends AccountWorkerHost<
   ): Promise<JobResult> {
     const steamid = new SteamID(job.data.steamid64);
 
+    if (await this.agentsService.getAgent(steamid)) {
+      this.logger.debug(
+        'Skipping deleting all listings because the agent is registered again',
+      );
+      return false;
+    }
+
     const token = await this.tokensService.getToken(steamid);
 
     return this.rateLimitsService.scheduleOrDelay(
@@ -253,6 +260,11 @@ export class ManageListingsProcessor extends AccountWorkerHost<
       'deleteAll',
       steamid.getSteamID64(),
       async () => {
+        // The job may have waited, check again
+        if (await this.agentsService.getAgent(steamid)) {
+          return false;
+        }
+
         await this.manageListingsService.deleteAllListings(token);
 
         return false;

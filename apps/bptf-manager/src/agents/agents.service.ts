@@ -1,6 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { CreateAgentDto, Token, Agent } from '@tf2-automatic/bptf-manager-data';
 import { AgentResponse } from './interfaces/agent-response.interface';
@@ -24,6 +24,7 @@ const KEY = 'agents';
 export class AgentsService {
   private readonly redis: Redis = this.redisService.getOrThrow();
   private readonly locker: Locker = new Locker(this.redis);
+  private readonly logger = new Logger(AgentsService.name);
 
   constructor(
     @InjectQueue('registerAgents')
@@ -154,22 +155,36 @@ export class AgentsService {
   }
 
   async cleanupAndUnregisterAgent(steamid: SteamID): Promise<void> {
-    // Remove repeatable job if one exists
-    await this.getRepeatableJob(steamid).then((job) => {
-      if (job) {
-        return this.registerAgentsQueue.removeRepeatableByKey(job.key);
-      }
-    });
+    // Under the same lock as registering, so a register can't land halfway
+    await this.locker.using(
+      [`agents:${steamid.getSteamID64()}`],
+      LockDuration.MEDIUM,
+      async () => {
+        if (await this.getAgent(steamid)) {
+          this.logger.debug(
+            'Skipping unregistering agent because it is registered again',
+          );
+          return;
+        }
 
-    // Remove all jobs for the agent
-    await this.getJobs(steamid).then((jobs) => {
-      return Promise.allSettled(jobs.map((job) => job.remove()));
-    });
+        // Remove repeatable job if one exists
+        await this.getRepeatableJob(steamid).then((job) => {
+          if (job) {
+            return this.registerAgentsQueue.removeRepeatableByKey(job.key);
+          }
+        });
 
-    // Unregister agent
-    await this.tokensService.getToken(steamid).then((token) => {
-      return this.unregisterAgent(token);
-    });
+        // Remove all jobs for the agent
+        await this.getJobs(steamid).then((jobs) => {
+          return Promise.allSettled(jobs.map((job) => job.remove()));
+        });
+
+        // Unregister agent, stop is sent before a register can pulse again
+        await this.tokensService.getToken(steamid).then((token) => {
+          return this.unregisterAgent(token);
+        });
+      },
+    );
   }
 
   private getRepeatableJob(steamid: SteamID) {
