@@ -838,7 +838,10 @@ export class EconParser extends Parser<
             const inputs: ExtractedRecipeInput[] = [];
             attributes.inputs = inputs;
 
-            while (descriptions[i].value !== ' ') {
+            while (
+              i < descriptions.length - 1 &&
+              descriptions[i].value !== ' '
+            ) {
               const split = descriptions[i].value.lastIndexOf(' x ');
               const name = descriptions[i].value.slice(0, split);
 
