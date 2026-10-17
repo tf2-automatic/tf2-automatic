@@ -15,6 +15,7 @@ import { TF2Parser } from '../tf2/parser';
 enum AttributeTokens {
   'cannot trade' = 153,
   'always tradable' = 195,
+  'tradable after date' = 211,
   'expiration date' = 302,
   'never craftable' = 449,
   'non economy' = 777,
@@ -22,6 +23,8 @@ enum AttributeTokens {
   'killstreak effect' = 2013,
   'killstreak idleeffect' = 2014,
   'killstreak tier' = 2025,
+  'quest loaner id low' = 2051,
+  'quest loaner id hi' = 2052,
 }
 
 const PROTO: protobuf.INamespace = {
@@ -49,12 +52,21 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
   extract(item: TF2GCItem): [ExtractedTF2GCItem, Context] {
     const [attributes, defindexes] = this.getAttributes(item);
 
+    const tradableAfter = item.attribute.find(
+      (attribute) =>
+        attribute.def_index === AttributeTokens['tradable after date'],
+    );
+
     return [
       this.createExtractedItem(item, attributes),
       {
         flags: item.flags,
         origin: item.origin,
         attributes: defindexes,
+        tradableAfter: tradableAfter
+          ? /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            Buffer.from(tradableAfter.value_bytes as any).readUInt32LE(0)
+          : null,
       },
     ];
   }
@@ -184,6 +196,10 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     extracted: ExtractedTF2GCItem,
     context: Context,
   ): boolean {
+    if ((context.flags & eEconItemFlags.kEconItemFlag_NonEconomy) !== 0) {
+      return false;
+    }
+
     // Always craftable
     if (
       context.attributes.has(AttributeTokens['always tradable']) ||
@@ -200,10 +216,13 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       return false;
     }
 
-    // Temporary item
+    if (TF2GCParser.isTemporary(schemaItem, context)) {
+      return false;
+    }
+
     if (
-      context.attributes.has(AttributeTokens['expiration date']) ||
-      TF2GCParser.hasAttribute('expiration date', schemaItem)
+      (context.flags & eEconItemFlags.kEconItemFlag_CannotBeUsedInCrafting) !==
+      0
     ) {
       return false;
     }
@@ -245,7 +264,16 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     extracted: ExtractedTF2GCItem,
     context: Context,
   ): boolean {
+    // Held until a date, even if the item is always tradable
     if (
+      context.tradableAfter !== null &&
+      context.tradableAfter >= Math.floor(Date.now() / 1000)
+    ) {
+      return false;
+    }
+
+    if (
+      (context.flags & eEconItemFlags.kEconItemFlag_NonEconomy) !== 0 ||
       context.attributes.has(AttributeTokens['non economy']) ||
       this.hasAttribute('non economy', schemaItem)
     ) {
@@ -276,15 +304,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
         return false;
     }
 
-    if (context.origin === eEconItemOrigin.kEconItemOrigin_PreviewItem) {
-      return false;
-    }
-
-    // Temporary item
-    if (
-      context.attributes.has(AttributeTokens['expiration date']) ||
-      this.hasAttribute('expiration date', schemaItem)
-    ) {
+    if (this.isTemporary(schemaItem, context)) {
       return false;
     }
 
@@ -297,6 +317,22 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     }
 
     return true;
+  }
+
+  private static isTemporary(
+    schemaItem: ItemsGameItem,
+    context: Context,
+  ): boolean {
+    // The expiration date is a timestamp, so only its presence matters
+    return (
+      context.origin === eEconItemOrigin.kEconItemOrigin_PreviewItem ||
+      context.attributes.has(AttributeTokens['quest loaner id low']) ||
+      context.attributes.has(AttributeTokens['quest loaner id hi']) ||
+      context.attributes.has(AttributeTokens['expiration date']) ||
+      schemaItem.attributes?.['expiration date'] !== undefined ||
+      schemaItem.static_attrs?.['expiration date'] !== undefined ||
+      schemaItem.expiration_date !== undefined
+    );
   }
 
   private static hasAttribute(

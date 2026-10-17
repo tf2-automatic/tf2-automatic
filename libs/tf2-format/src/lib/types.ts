@@ -88,6 +88,7 @@ export interface ItemsGameItem {
     }
   >;
   tool?: { type?: string };
+  expiration_date?: string;
 }
 
 export interface SchemaItem {
