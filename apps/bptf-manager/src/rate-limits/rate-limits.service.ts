@@ -168,13 +168,23 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
     key: string,
     task: () => Promise<T>,
   ): Promise<T> {
-    const limiter = this.groups[endpoint].key(key);
+    const group = this.groups[endpoint];
+    let limiter = group.key(key);
     const options = this.options[endpoint];
 
     // Wait out a known rate limit window in one go instead of polling
     let delay = await this.redis.pttl(this.getRateLimitedKey(endpoint, key));
     if (delay <= 0) {
-      const reservoir = await limiter.currentReservoir();
+      const reservoir = await limiter.currentReservoir().catch(async (err) => {
+        if (err.message !== 'ERR SETTINGS_KEY_NOT_FOUND') {
+          throw err;
+        }
+
+        // Bottleneck expired the idle key in Redis, start with a new limiter
+        await group.deleteKey(key);
+        limiter = group.key(key);
+        return limiter.currentReservoir();
+      });
       const busy =
         reservoir === null ? !(await limiter.check()) : reservoir <= 0;
 
