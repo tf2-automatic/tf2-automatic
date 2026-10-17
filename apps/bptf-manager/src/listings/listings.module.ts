@@ -13,6 +13,7 @@ import { InventoriesModule } from '../inventories/inventories.module';
 import { defaultJobOptions } from '@tf2-automatic/queue';
 import { GetListingsProcessor } from './processors/get-listings.processor';
 import { DesiredListingsListener } from './listeners/desired-listings.listener';
+import { RateLimitsModule } from '../rate-limits/rate-limits.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { DesiredListingsListener } from './listeners/desired-listings.listener';
     TokensModule,
     AgentsModule,
     InventoriesModule,
+    RateLimitsModule,
   ],
   providers: [
     DesiredListingsService,

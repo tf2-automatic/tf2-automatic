@@ -6,6 +6,7 @@ import { TokensModule } from '../tokens/tokens.module';
 import { BullModule } from '@nestjs/bullmq';
 import { defaultJobOptions } from '@tf2-automatic/queue';
 import { NotificationsProcessor } from './notifications.processor';
+import { RateLimitsModule } from '../rate-limits/rate-limits.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { NotificationsProcessor } from './notifications.processor';
     }),
     RedisModule,
     TokensModule,
+    RateLimitsModule,
   ],
   providers: [NotificationsService, NotificationsProcessor],
   controllers: [NotificationsController],

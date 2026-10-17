@@ -1,13 +1,10 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { bullWorkerSettings } from '@tf2-automatic/queue';
-import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { DelayedError, Job, Worker } from 'bullmq';
+import { Logger } from '@nestjs/common';
+import { Job, Worker } from 'bullmq';
 import SteamID from 'steamid';
 import { TokensService } from '../../tokens/tokens.service';
 import { AxiosError } from 'axios';
-import Bottleneck from 'bottleneck';
-import { ConfigService } from '@nestjs/config';
-import { Config } from '../../common/config/configuration';
 import {
   JobData,
   JobName,
@@ -16,138 +13,30 @@ import {
 } from '../interfaces/manage-listings-queue.interface';
 import { AgentsService } from '../../agents/agents.service';
 import { ManageListingsService } from '../manage-listings.service';
-import { Redis as RedisConfig } from '@tf2-automatic/config';
-import { RedisService } from '@liaoliaots/nestjs-redis';
-import Redis from 'ioredis';
-import hash from 'object-hash';
+import { RateLimitsService } from '../../rate-limits/rate-limits.service';
 
 type CustomJob = Job<JobData, JobResult, JobName>;
-
-// Changing these clears the limiter state on the next start
-const BATCH_LIMITER: Bottleneck.ConstructorOptions = {
-  id: 'listings:batch',
-  maxConcurrent: 1,
-  minTime: 6000,
-  reservoir: 10,
-  reservoirIncreaseAmount: 10,
-  reservoirIncreaseInterval: 60000,
-  reservoirIncreaseMaximum: 10,
-};
-
-const DELETE_ALL_LIMITER: Bottleneck.ConstructorOptions = {
-  id: 'listings:deleteAll',
-  maxConcurrent: 1,
-  minTime: 60000,
-};
 
 @Processor('manage-listings', {
   settings: bullWorkerSettings,
   concurrency: 4,
 })
-export class ManageListingsProcessor
-  extends WorkerHost<Worker<JobData, JobResult, JobName>>
-  implements OnModuleDestroy, OnModuleInit
-{
+export class ManageListingsProcessor extends WorkerHost<
+  Worker<JobData, JobResult, JobName>
+> {
   private readonly logger = new Logger(ManageListingsProcessor.name);
-  private batchGroup: Bottleneck.Group;
-  private deleteAllGroup: Bottleneck.Group;
 
   private readonly createBatchSize = 100;
   private readonly deleteBatchSize = 100;
   private readonly deleteArchivedBatchSize = 100;
 
-  private readonly redis: Redis = this.redisService.getOrThrow();
-
   constructor(
     private readonly manageListingsService: ManageListingsService,
     private readonly tokensService: TokensService,
-    private readonly configService: ConfigService<Config>,
     private readonly agentsService: AgentsService,
-    private readonly redisService: RedisService,
+    private readonly rateLimitsService: RateLimitsService,
   ) {
     super();
-
-    this.createBottlenecks();
-  }
-
-  private createBottlenecks(clearDatastore = false): void {
-    const redisConfig =
-      this.configService.getOrThrow<RedisConfig.Config>('redis');
-
-    this.batchGroup = new Bottleneck.Group({
-      datastore: 'ioredis',
-      clientOptions: {
-        ...redisConfig,
-        keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
-      },
-      ...BATCH_LIMITER,
-      clearDatastore,
-    });
-
-    this.createGroupListeners(this.batchGroup);
-
-    this.deleteAllGroup = new Bottleneck.Group({
-      datastore: 'ioredis',
-      clientOptions: {
-        ...redisConfig,
-        keyPrefix: redisConfig.keyPrefix + 'bottleneck:',
-      },
-      ...DELETE_ALL_LIMITER,
-      clearDatastore,
-    });
-
-    this.createGroupListeners(this.deleteAllGroup);
-  }
-
-  private createGroupListeners(group: Bottleneck.Group): void {
-    group.on('created', (limiter, key) => {
-      limiter.on('error', (err) => {
-        if (err.message === 'ERR SETTINGS_KEY_NOT_FOUND') {
-          group
-            .deleteKey(key)
-            .then(() => {
-              limiter.removeAllListeners();
-            })
-            .catch((err) => {
-              this.logger.warn(
-                'Failed to delete limiter key ' +
-                  key +
-                  ' from group ' +
-                  group.id,
-              );
-              console.error(err);
-            });
-
-          return;
-        }
-
-        this.logger.warn('Limiter error for ' + key + ' for group ' + group.id);
-        console.error(err);
-      });
-    });
-  }
-
-  private async disconnectBottlenecks(): Promise<void> {
-    await Promise.all([
-      this.batchGroup.disconnect(true),
-      this.deleteAllGroup.disconnect(true),
-    ]);
-  }
-
-  async onModuleInit(): Promise<void> {
-    // Redis keeps the old limiter settings unless the datastore is cleared
-    const settingsHash = hash([BATCH_LIMITER, DELETE_ALL_LIMITER]);
-    if ((await this.redis.get('limiters:hash')) === settingsHash) {
-      return;
-    }
-
-    this.logger.warn('Limiter settings changed, clearing limiters...');
-
-    await this.disconnectBottlenecks();
-
-    this.createBottlenecks(true);
-
-    await this.redis.set('limiters:hash', settingsHash);
   }
 
   async process(job: CustomJob, lockToken?: string): Promise<JobResult> {
@@ -199,20 +88,23 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    const key = steamid.getSteamID64() + ':create';
+    const key = steamid.getSteamID64();
 
-    return this.scheduleOrDelay(
+    return this.rateLimitsService.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup,
+      'listingsBatch',
       key,
-      BATCH_LIMITER,
       async () => {
         // Create listings
         await this.manageListingsService
           .createListings(token, hashes)
           .catch((err) => {
-            return this.handleBatchError(key, err);
+            return this.rateLimitsService.handleError(
+              'listingsBatch',
+              key,
+              err,
+            );
           });
 
         return hashes.length === this.createBatchSize;
@@ -243,20 +135,23 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    const key = steamid.getSteamID64() + ':update';
+    const key = steamid.getSteamID64();
 
-    return this.scheduleOrDelay(
+    return this.rateLimitsService.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup,
+      'listingsBatch',
       key,
-      BATCH_LIMITER,
       async () => {
         // Create listings
         await this.manageListingsService
           .updateListings(token, hashes)
           .catch((err) => {
-            return this.handleBatchError(key, err);
+            return this.rateLimitsService.handleError(
+              'listingsBatch',
+              key,
+              err,
+            );
           });
 
         return hashes.length === this.createBatchSize;
@@ -281,19 +176,22 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    const key = steamid.getSteamID64() + ':delete';
+    const key = steamid.getSteamID64();
 
-    return this.scheduleOrDelay(
+    return this.rateLimitsService.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup,
+      'listingsBatch',
       key,
-      BATCH_LIMITER,
       async () => {
         await this.manageListingsService
           .deleteListings(token, ids)
           .catch((err) => {
-            return this.handleBatchError(key, err);
+            return this.rateLimitsService.handleError(
+              'listingsBatch',
+              key,
+              err,
+            );
           });
 
         return ids.length === this.deleteBatchSize;
@@ -318,14 +216,19 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    return this.scheduleOrDelay(
+    const key = steamid.getSteamID64();
+
+    return this.rateLimitsService.scheduleOrDelay(
       job,
       lockToken,
-      this.batchGroup,
-      steamid.getSteamID64() + ':create',
-      BATCH_LIMITER,
+      'archiveBatch',
+      key,
       async () => {
-        await this.manageListingsService.deleteArchivedListings(token, ids);
+        await this.manageListingsService
+          .deleteArchivedListings(token, ids)
+          .catch((err) => {
+            return this.rateLimitsService.handleError('archiveBatch', key, err);
+          });
 
         return ids.length === this.deleteArchivedBatchSize;
       },
@@ -340,12 +243,11 @@ export class ManageListingsProcessor
 
     const token = await this.tokensService.getToken(steamid);
 
-    return this.scheduleOrDelay(
+    return this.rateLimitsService.scheduleOrDelay(
       job,
       lockToken,
-      this.deleteAllGroup,
+      'deleteAll',
       steamid.getSteamID64(),
-      DELETE_ALL_LIMITER,
       async () => {
         await this.manageListingsService.deleteAllListings(token);
 
@@ -360,114 +262,6 @@ export class ManageListingsProcessor
     await this.manageListingsService.planListings(steamid);
 
     return false;
-  }
-
-  // Delay the job instead of holding a worker slot while the limiter is busy
-  private async scheduleOrDelay(
-    job: CustomJob,
-    lockToken: string | undefined,
-    group: Bottleneck.Group,
-    key: string,
-    options: Bottleneck.ConstructorOptions,
-    task: () => Promise<JobResult>,
-  ): Promise<JobResult> {
-    const limiter = group.key(key);
-
-    // Wait out a known rate limit window in one go instead of polling
-    let delay = await this.redis.pttl(this.getRateLimitedKey(group, key));
-    if (delay <= 0 && !(await limiter.check())) {
-      delay = Math.max(options.minTime ?? 0, 1000);
-    }
-
-    if (delay > 0) {
-      this.logger.debug(
-        `Rate limited ${job.name} for ${job.data.steamid64}, delaying ${Math.ceil(delay / 1000)}s...`,
-      );
-      await job.moveToDelayed(Date.now() + delay, lockToken);
-      throw new DelayedError();
-    }
-
-    this.logger.debug(`Scheduling ${job.name} for ${job.data.steamid64}...`);
-
-    return limiter.schedule(task);
-  }
-
-  private getRateLimitedKey(group: Bottleneck.Group, key: string): string {
-    return `ratelimited:${group.id}:${key}`;
-  }
-
-  private async handleBatchError(
-    key: string,
-    err: Error | AxiosError,
-  ): Promise<void> {
-    if (!(err instanceof AxiosError)) {
-      throw err;
-    }
-
-    if (err.response?.status !== 429) {
-      throw err;
-    }
-
-    // We are rate limited, find the correct reservoir
-    const limiters = this.batchGroup.limiters();
-    const match = limiters.find((l) => l.key === key);
-
-    if (!match) {
-      // Shouldn't happen
-      throw err;
-    }
-
-    const { maxWindowRequests, windowSeconds } = err.response.data ?? {};
-    if (
-      typeof maxWindowRequests === 'number' &&
-      typeof windowSeconds === 'number'
-    ) {
-      // Wait for the window and follow the limit backpack.tf told us about
-      await match.limiter.updateSettings({
-        reservoir: 0,
-        reservoirIncreaseAmount: maxWindowRequests,
-        reservoirIncreaseMaximum: maxWindowRequests,
-        reservoirIncreaseInterval: windowSeconds * 1000,
-      });
-      await this.redis.set(
-        this.getRateLimitedKey(this.batchGroup, key),
-        1,
-        'PX',
-        windowSeconds * 1000,
-      );
-      throw err;
-    }
-
-    const waitTime = new String(err.response.data.message).match(
-      /Try again in (\d+) seconds./,
-    );
-
-    // Decrement by 10 by default
-    let decrementAmount = 10;
-
-    if (waitTime) {
-      const tryAgainTime = parseInt(waitTime[1]);
-      // Decrement by 1 for every 6 seconds we need to wait
-      decrementAmount = Math.min(Math.ceil(tryAgainTime / 6), 10);
-
-      await this.redis.set(
-        this.getRateLimitedKey(this.batchGroup, key),
-        1,
-        'PX',
-        tryAgainTime * 1000,
-      );
-    }
-
-    const current = await match.limiter.currentReservoir();
-
-    // Subtract `decrementAmount` because this is how many requests we need to wait for
-    // Subtract `current` because the reservoir needs to be emptied
-    const increment = -decrementAmount - (current ?? 0);
-
-    // No reason to think about parallel requests because it is limited to one at a time
-    return match.limiter.incrementReservoir(increment).then(() => {
-      throw err;
-    });
   }
 
   @OnWorkerEvent('error')
@@ -505,9 +299,5 @@ export class ManageListingsProcessor
       this.logger.error('Failed to create job');
       console.error(err);
     }
-  }
-
-  onModuleDestroy() {
-    return this.disconnectBottlenecks();
   }
 }
