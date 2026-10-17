@@ -329,6 +329,31 @@ describe('TF2GCParser', () => {
       expect(parsed.tradable).toEqual(false);
     });
 
+    it('will not make free contract rewards tradable', async () => {
+      const item = {
+        ...TestData.getBasicItem(),
+        id: '7897088103',
+        account_id: 454318713,
+        inventory: 2147485394,
+        def_index: 1178,
+        level: 30,
+        flags: 0,
+        origin: 29,
+        original_id: null,
+        position: 1746,
+      };
+
+      const [extracted, context] = parser.extract(item);
+
+      schema.getItemsGameItemByDefindex = jest.fn().mockReturnValue({
+        name: "The Dragon's Fury",
+      } satisfies ItemsGameItem);
+
+      const parsed = await parser.parse(extracted, context);
+
+      expect(parsed.tradable).toEqual(false);
+    });
+
     it('will not make purchased items craftable without can_craft_if_purchased', async () => {
       const item = {
         ...TestData.getBasicItem(),
