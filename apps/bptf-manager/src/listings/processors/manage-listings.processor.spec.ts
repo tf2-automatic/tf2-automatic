@@ -12,7 +12,7 @@ jest.mock('bottleneck', () => ({
       id: options.id,
       on: jest.fn(),
       disconnect: jest.fn().mockResolvedValue(undefined),
-      limiters: () => [{ key: '123:update', limiter: mockLimiter }],
+      limiters: () => [{ key: '123', limiter: mockLimiter }],
     })),
   },
 }));
@@ -29,7 +29,14 @@ describe('ManageListingsProcessor', () => {
 
     const config = {
       redis: { keyPrefix: 'prefix:' },
-      listings: { batchLimit: 3, batchLimitInterval: 60000 },
+      listings: {
+        rateLimits: {
+          create: { requests: 3, window: 60000 },
+          update: { requests: 5, window: 30000 },
+          delete: { requests: 3, window: 60000 },
+          deleteArchived: { requests: 10, window: 60000 },
+        },
+      },
     };
 
     const processor = new ManageListingsProcessor(
@@ -50,7 +57,7 @@ describe('ManageListingsProcessor', () => {
     const first = createProcessor(null);
     await first.processor.onModuleInit();
 
-    expect(clearedGroups()).toBe(2);
+    expect(clearedGroups()).toBe(5);
     const [key, settingsHash] = first.redis.set.mock.calls[0];
     expect(key).toBe('limiters:hash');
 
@@ -63,19 +70,30 @@ describe('ManageListingsProcessor', () => {
     expect(second.redis.set).not.toHaveBeenCalled();
   });
 
-  it('configures the batch limiter from the config', () => {
+  it('configures a limiter per operation from the config', () => {
     Group.mockClear();
     createProcessor(null);
 
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'listings:batch',
+        id: 'listings:create',
         minTime: 20000,
         reservoir: 3,
-        reservoirIncreaseAmount: 3,
         reservoirIncreaseInterval: 60000,
-        reservoirIncreaseMaximum: 3,
       }),
+    );
+    expect(Group).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'listings:update',
+        minTime: 6000,
+        reservoir: 5,
+        reservoirIncreaseAmount: 5,
+        reservoirIncreaseInterval: 30000,
+        reservoirIncreaseMaximum: 5,
+      }),
+    );
+    expect(Group).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'listings:deleteArchived', reservoir: 10 }),
     );
   });
 
@@ -93,9 +111,13 @@ describe('ManageListingsProcessor', () => {
     } as never;
 
     const internals = processor as unknown as {
-      handleBatchError: (key: string, err: Error) => Promise<void>;
+      handleBatchError: (
+        operation: string,
+        key: string,
+        err: Error,
+      ) => Promise<void>;
     };
-    await expect(internals.handleBatchError('123:update', err)).rejects.toBe(
+    await expect(internals.handleBatchError('update', '123', err)).rejects.toBe(
       err,
     );
 
@@ -106,7 +128,7 @@ describe('ManageListingsProcessor', () => {
       reservoirIncreaseInterval: 60000,
     });
     expect(redis.set).toHaveBeenCalledWith(
-      'ratelimited:listings:batch:123:update',
+      'ratelimited:listings:update:123',
       1,
       'PX',
       60000,

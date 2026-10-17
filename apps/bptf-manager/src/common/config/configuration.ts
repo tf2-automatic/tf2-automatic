@@ -19,9 +19,26 @@ export interface AgentsConfig {
   registerInterval: number;
 }
 
+export type BatchOperation = 'create' | 'update' | 'delete' | 'deleteArchived';
+
 export interface ListingsConfig {
-  batchLimit: number;
-  batchLimitInterval: number;
+  rateLimits: Record<BatchOperation, RateLimitConfig>;
+}
+
+export interface RateLimitConfig {
+  requests: number;
+  window: number;
+}
+
+function getRateLimit(prefix: string): RateLimitConfig {
+  return {
+    requests: getEnvWithDefault(`${prefix}_RATE_LIMIT_REQUESTS`, 'integer', 3),
+    window: getEnvWithDefault(
+      `${prefix}_RATE_LIMIT_WINDOW`,
+      'integer',
+      60 * 1000,
+    ),
+  };
 }
 
 export default (): Config => {
@@ -37,12 +54,12 @@ export default (): Config => {
       ),
     },
     listings: {
-      batchLimit: getEnvWithDefault('LISTINGS_BATCH_LIMIT', 'integer', 3),
-      batchLimitInterval: getEnvWithDefault(
-        'LISTINGS_BATCH_LIMIT_INTERVAL',
-        'integer',
-        60 * 1000,
-      ),
+      rateLimits: {
+        create: getRateLimit('LISTINGS_CREATE'),
+        update: getRateLimit('LISTINGS_UPDATE'),
+        delete: getRateLimit('LISTINGS_DELETE'),
+        deleteArchived: getRateLimit('LISTINGS_DELETE_ARCHIVED'),
+      },
     },
     locking: getLockConfig(),
   };
