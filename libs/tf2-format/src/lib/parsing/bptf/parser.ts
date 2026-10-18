@@ -60,12 +60,18 @@ export class BptfParser extends Parser<
       }
     }
 
-    const spells = await helpers.getSpellByName(extracted.spells, this.schema);
+    // Skip lookups when there is nothing to look up
+    const spells =
+      extracted.spells.length > 0
+        ? await helpers.getSpellByName(extracted.spells, this.schema)
+        : [];
 
-    const inputs: RecipeInput[] | null = await helpers.parseInputs(
-      extracted.inputs,
-      this.schema,
-    );
+    const inputs: RecipeInput[] | null =
+      extracted.inputs && extracted.inputs.length > 0
+        ? await helpers.parseInputs(extracted.inputs, this.schema)
+        : extracted.inputs === null
+          ? null
+          : [];
 
     return {
       assetid: extracted.assetid,
