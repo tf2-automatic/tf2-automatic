@@ -43,7 +43,8 @@ export class BptfParser extends Parser<
       spells: raw.spells ? raw.spells.map((spell) => spell.name) : [],
       sheen: raw.sheen?.id ?? null,
       killstreaker: raw.killstreaker?.id ?? null,
-      inputs: raw.recipe?.inputItems ?? [],
+      // Null without inputs, like the other parsers
+      inputs: raw.recipe?.inputItems?.length ? raw.recipe.inputItems : null,
       quantity: raw.quantity ?? null,
       level: raw.level ?? null,
     };
@@ -69,9 +70,7 @@ export class BptfParser extends Parser<
     const inputs: RecipeInput[] | null =
       extracted.inputs && extracted.inputs.length > 0
         ? await helpers.parseInputs(extracted.inputs, this.schema)
-        : extracted.inputs === null
-          ? null
-          : [];
+        : null;
 
     return {
       assetid: extracted.assetid,
