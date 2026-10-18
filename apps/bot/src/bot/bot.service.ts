@@ -38,6 +38,7 @@ import { Summary, register } from 'prom-client';
 import jwt from 'jsonwebtoken';
 import objectHash from 'object-hash';
 import path from 'path';
+import { calculateBackoff } from '@tf2-automatic/queue';
 
 type HistogramEndCallback = (labels?: unknown) => void;
 
@@ -950,8 +951,13 @@ export class BotService implements OnModuleDestroy {
 
         const delay =
           attemptsRatelimited > 0
-            ? this.calculateBackoff(5 * 60 * 1000, attemptsRatelimited)
-            : this.calculateBackoff(10000, attempts);
+            ? calculateBackoff(
+                attemptsRatelimited,
+                'exponential',
+                5 * 60 * 1000,
+                30 * 60 * 1000,
+              )
+            : calculateBackoff(attempts, 'exponential', 10000, 5 * 60 * 1000);
 
         this.logger.warn(
           'Failed to connect: ' +
@@ -964,10 +970,6 @@ export class BotService implements OnModuleDestroy {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
-  }
-
-  private calculateBackoff(delay: number, attempts: number): number {
-    return delay * Math.pow(2, attempts - 1) + Math.floor(Math.random() * 1000);
   }
 
   private async getRefreshToken(): Promise<string | null> {
