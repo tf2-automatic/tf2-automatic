@@ -1,5 +1,5 @@
 import { Binary } from './binary';
-import { Item } from '../types';
+import { InventoryItem, Item } from '../types';
 
 describe('Binary', () => {
   describe('#encode', () => {
@@ -59,7 +59,7 @@ describe('Binary', () => {
     });
 
     it('should encode an item with all properties to the same bytes', () => {
-      const item: Partial<Item> = {
+      const item: Partial<InventoryItem> = {
         assetid: '15243278945',
         defindex: 30743,
         quality: 5,
