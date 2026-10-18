@@ -52,6 +52,7 @@ import {
 import Bottleneck from 'bottleneck';
 import CEconItem from 'steamcommunity/classes/CEconItem';
 import { GarbageCollectorService } from './gc.service';
+import { isFullPoll } from './helpers';
 import {
   ActiveTradeOffer,
   CreatedTradeOffer,
@@ -186,10 +187,7 @@ export class TradesService {
         callback(null, sent, received);
 
         setImmediate(() => {
-          const gotAll =
-            args.length === 2 &&
-            args[0] === 3 &&
-            new Date(args[1]).getTime() === 1000;
+          const gotAll = isFullPoll(callArgs);
 
           try {
             this.handleOffers(sent, received, gotAll, requestedAt);
