@@ -132,6 +132,11 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.on('itemRemoved', (item) => {
       this.refreshInventory();
 
+      // The gc emits null for items missing from its cache
+      if (!item) {
+        return;
+      }
+
       this.eventsService
         .publish(TF2_LOST_EVENT, item satisfies TF2LostEvent['data'])
         .catch(() => {
@@ -250,7 +255,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.useItem(assetid);
 
     return this.waitForEvent('itemRemoved', ([item]) => {
-      return item.id == assetid;
+      return item?.id == assetid;
     }).then(() => {
       this.logger.debug('Item used (assetid: ' + assetid + ')');
     });
@@ -277,7 +282,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.deleteItem(assetid);
 
     return this.waitForEvent('itemRemoved', ([item]) => {
-      return item.id == assetid;
+      return item?.id == assetid;
     }).then(() => {
       this.logger.debug('Item deleted (assetid: ' + assetid + ')');
     });
