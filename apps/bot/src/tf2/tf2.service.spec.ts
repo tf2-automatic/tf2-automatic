@@ -60,4 +60,109 @@ describe('TF2Service', () => {
     tf2.emit('itemRemoved', { id: '1' });
     expect(publish).toHaveBeenCalledWith(TF2_LOST_EVENT, { id: '1' });
   });
+
+  describe('event waiting', () => {
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const waitForEvent = (...args: unknown[]) =>
+      (service as any).waitForEvent(...args) as Promise<unknown[]>;
+    const waitForNoEvent = (...args: unknown[]) =>
+      (service as any).waitForNoEvent(...args) as Promise<void>;
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+
+    const counts = () => [
+      tf2.listenerCount('foo'),
+      tf2.listenerCount('disconnectedFromGC'),
+    ];
+
+    it('waitForEvent resolves on a matching event and cleans up', async () => {
+      const base = tf2.listenerCount('disconnectedFromGC');
+      const promise = waitForEvent('foo', ([id]: unknown[]) => id === 2);
+
+      tf2.emit('foo', 1);
+      expect(counts()).toEqual([1, base + 1]);
+      tf2.emit('foo', 2, 'x');
+
+      await expect(promise).resolves.toEqual([2, 'x']);
+      expect(counts()).toEqual([0, base]);
+    });
+
+    it('waitForEvent times out after 10s and cleans up', async () => {
+      const base = tf2.listenerCount('disconnectedFromGC');
+      const promise = waitForEvent('foo');
+      const assertion = expect(promise).rejects.toThrow(
+        'Timed out waiting for event',
+      );
+
+      jest.advanceTimersByTime(9999);
+      expect(counts()).toEqual([1, base + 1]);
+      jest.advanceTimersByTime(1);
+
+      await assertion;
+      expect(counts()).toEqual([0, base]);
+    });
+
+    it('waitForEvent rejects on disconnect and cleans up', async () => {
+      const base = tf2.listenerCount('disconnectedFromGC');
+      const promise = waitForEvent('foo');
+
+      tf2.emit('disconnectedFromGC');
+
+      await expect(promise).rejects.toThrow('Disconnected from GC');
+      expect(counts()).toEqual([0, base]);
+    });
+
+    it('waitForEvent can wait for disconnectedFromGC itself', async () => {
+      const base = tf2.listenerCount('disconnectedFromGC');
+      const promise = waitForEvent('disconnectedFromGC');
+
+      expect(tf2.listenerCount('disconnectedFromGC')).toBe(base + 1);
+      tf2.emit('disconnectedFromGC');
+
+      await expect(promise).resolves.toEqual([]);
+      expect(tf2.listenerCount('disconnectedFromGC')).toBe(base);
+    });
+
+    it('waitForNoEvent resolves after a quiet period, reset by matches', async () => {
+      const base = tf2.listenerCount('disconnectedFromGC');
+      const done = jest.fn();
+      const promise = waitForNoEvent('foo', 1000).then(done);
+
+      jest.advanceTimersByTime(900);
+      tf2.emit('foo');
+      jest.advanceTimersByTime(900);
+      await Promise.resolve();
+      expect(done).not.toHaveBeenCalled();
+      expect(counts()).toEqual([1, base + 1]);
+
+      jest.advanceTimersByTime(100);
+      await promise;
+      expect(done).toHaveBeenCalled();
+      expect(counts()).toEqual([0, base]);
+    });
+
+    it('waitForNoEvent ignores non-matching events', async () => {
+      const promise = waitForNoEvent(
+        'foo',
+        1000,
+        ([id]: unknown[]) => id === 1,
+      );
+
+      jest.advanceTimersByTime(900);
+      tf2.emit('foo', 2);
+      jest.advanceTimersByTime(100);
+
+      await expect(promise).resolves.toBeUndefined();
+    });
+
+    it('waitForNoEvent rejects on disconnect and cleans up', async () => {
+      const base = tf2.listenerCount('disconnectedFromGC');
+      const promise = waitForNoEvent('foo', 1000);
+
+      tf2.emit('disconnectedFromGC');
+
+      await expect(promise).rejects.toThrow('Disconnected from GC');
+      expect(counts()).toEqual([0, base]);
+      jest.advanceTimersByTime(5000);
+    });
+  });
 });
