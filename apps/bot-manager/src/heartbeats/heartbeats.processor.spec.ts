@@ -29,6 +29,11 @@ describe('HeartbeatsProcessor', () => {
       await run();
 
       expect(service.markStopped).toHaveBeenCalledTimes(1);
+      expect(service.markStopped).toHaveBeenCalledWith(
+        expect.anything(),
+        false,
+        1,
+      );
     },
   );
 

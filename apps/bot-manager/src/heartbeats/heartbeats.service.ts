@@ -114,7 +114,7 @@ export class HeartbeatsService {
 
     if (running === null || running.steamid64 !== bot.steamid64) {
       // Bot is not the same as we thought it was
-      return this.markStopped(steamid, false).then(() => {
+      return this.markStopped(steamid, false, bot.lastSeen).then(() => {
         throw new NotFoundException('Bot not found');
       });
     }
@@ -139,9 +139,6 @@ export class HeartbeatsService {
       LockDuration.SHORT,
       async (signal) => {
         const existing = await this.getCachedBot(steamid);
-        if (existing) {
-          await this.deleteHeartbeatJobIfExists(existing);
-        }
 
         const running = await this.getRunningBot(bot);
 
@@ -151,6 +148,11 @@ export class HeartbeatsService {
 
         if (signal.aborted) {
           throw signal.error;
+        }
+
+        // Only drop the old job once the new heartbeat is accepted
+        if (existing) {
+          await this.deleteHeartbeatJobIfExists(existing);
         }
 
         // TODO: Make sure ip and port combination is unique
@@ -180,7 +182,11 @@ export class HeartbeatsService {
     );
   }
 
-  async markStopped(steamid: SteamID, isStopSignal: boolean): Promise<void> {
+  async markStopped(
+    steamid: SteamID,
+    isStopSignal: boolean,
+    expectedLastSeen?: number,
+  ): Promise<void> {
     // Create lock
     await this.locker.using(
       [`bots:${steamid.getSteamID64()}`],
@@ -190,6 +196,14 @@ export class HeartbeatsService {
         if (bot === null) {
           // Bot does not exist
           throw new NotFoundException('Bot not found');
+        }
+
+        // A newer heartbeat won the race, keep the bot running
+        if (
+          expectedLastSeen !== undefined &&
+          bot.lastSeen !== expectedLastSeen
+        ) {
+          return;
         }
 
         await this.deleteHeartbeatJobIfExists(bot);

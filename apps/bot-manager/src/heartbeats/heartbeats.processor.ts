@@ -32,6 +32,7 @@ export class HeartbeatsProcessor extends WorkerHost {
         return this.heartbeatsService.markStopped(
           new SteamID(steamid64),
           false,
+          job.data.lastSeen,
         );
       }
     } catch (err) {
@@ -51,6 +52,7 @@ export class HeartbeatsProcessor extends WorkerHost {
         return this.heartbeatsService.markStopped(
           new SteamID(steamid64),
           false,
+          job.data.lastSeen,
         );
       }
 
