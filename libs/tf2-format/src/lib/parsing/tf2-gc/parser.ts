@@ -56,12 +56,7 @@ function toBuffer(value: ValueBytes | Buffer): Buffer {
 
 export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
   extract(item: TF2GCItem): [ExtractedTF2GCItem, Context] {
-    const [attributes, defindexes] = this.getAttributes(item);
-
-    const tradableAfter = item.attribute.find(
-      (attribute) =>
-        attribute.def_index === AttributeTokens['tradable after date'],
-    );
+    const [attributes, defindexes, tradableAfter] = this.getAttributes(item);
 
     return [
       this.createExtractedItem(item, attributes),
@@ -69,19 +64,21 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
         flags: item.flags,
         origin: item.origin,
         attributes: defindexes,
-        tradableAfter: tradableAfter
-          ? toBuffer(tradableAfter.value_bytes).readUInt32LE(0)
-          : null,
+        tradableAfter,
       },
     ];
   }
 
-  private getAttributes(item: TF2GCItem): [Partial<Attributes>, Set<number>] {
+  private getAttributes(
+    item: TF2GCItem,
+  ): [Partial<Attributes>, Set<number>, number | null] {
     const result: Partial<Attributes> = {};
 
     const inputs: RecipeInput[] = [];
 
     const defindexes = new Set<number>();
+
+    let tradableAfter: number | null = null;
 
     for (let i = 0; i < item.attribute.length; i++) {
       const attribute = item.attribute[i];
@@ -184,6 +181,13 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
           break;
         }
         default:
+          if (
+            tradableAfter === null &&
+            attribute.def_index === AttributeTokens['tradable after date']
+          ) {
+            tradableAfter = value.readUInt32LE(0);
+          }
+
           TF2Parser.extractSimpleAttribute(attribute.def_index, value, result);
           break;
       }
@@ -198,7 +202,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       result.inputs = inputs;
     }
 
-    return [result, defindexes];
+    return [result, defindexes, tradableAfter];
   }
 
   private static isCraftable(
@@ -417,39 +421,8 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       extracted = { ...extracted, primaryPaint: Number(tint) };
     }
 
-    let paint: number | undefined | null | Error = null;
-    if (extracted.primaryPaint) {
-      const hex = extracted.primaryPaint.toString(16);
-
-      if (hex === '1') {
-        // Glitched legacy paint
-        paint = 5046;
-      } else {
-        paint = this.schema.getPaintByColor(hex);
-        if (paint === undefined) {
-          paint = await this.schema.fetchPaintByColor(hex);
-        } else if (paint instanceof Error) {
-          throw paint;
-        }
-      }
-    }
-
-    const parts: number[] = [];
-    if (extracted.parts.length > 0) {
-      for (let i = 0; i < extracted.parts.length; i++) {
-        const part = extracted.parts[i];
-        let match = this.schema.getStrangePartById(part);
-        if (match instanceof Error) {
-          throw match;
-        } else if (match === undefined) {
-          match = await this.schema.fetchStrangePartById(part);
-        }
-
-        if (match !== null) {
-          parts.push(match);
-        }
-      }
-    }
+    const paint = await this.getPaint(extracted);
+    const parts = await this.getParts(extracted);
 
     return this.createParsedItem(
       extracted,
