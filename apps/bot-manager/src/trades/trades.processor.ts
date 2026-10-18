@@ -307,8 +307,12 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
             response.data,
           );
         }
-      } else if (response.status >= 400 && response.status < 500) {
-        // Unrecoverable error, don't retry
+      } else if (
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 429
+      ) {
+        // Unrecoverable error except rate limits, don't retry
         throw new CustomUnrecoverableError(
           response.data?.message ?? err.message,
           response.data,
