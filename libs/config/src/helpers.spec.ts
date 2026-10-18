@@ -33,6 +33,17 @@ describe('Helpers', () => {
     expect(result).toBe(true);
   });
 
+  it.each([
+    ['TRUE', true],
+    ['True', true],
+    ['false', false],
+    ['FALSE', false],
+  ])('should parse boolean %s case-insensitively', (value, expected) => {
+    process.env['TEST'] = value;
+
+    expect(helpers.getEnv('TEST', 'boolean')).toBe(expected);
+  });
+
   it('should throw an error if the type is invalid', () => {
     // @ts-expect-error Testing invalid input
     expect(() => helpers.getEnv('TEST', 'invalid')).toThrow();
