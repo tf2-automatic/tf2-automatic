@@ -71,31 +71,8 @@ export const REQUIRED_ITEM_KEYS: ReadonlyArray<RequiredItemKeys> = [
 
 export class Utils {
   static getDefault(): PossibleInventoryItem {
-    return {
-      assetid: null,
-      defindex: -1,
-      quality: -1,
-      craftable: true,
-      tradable: true,
-      australium: false,
-      festivized: false,
-      effect: null,
-      wear: null,
-      paintkit: null,
-      killstreak: 0,
-      target: null,
-      output: null,
-      outputQuality: null,
-      elevated: false,
-      crateSeries: null,
-      paint: null,
-      parts: [],
-      spells: [],
-      sheen: null,
-      killstreaker: null,
-      inputs: null,
-      quantity: 1,
-    };
+    // Fresh arrays so callers cannot mutate DEFAULT_ITEM
+    return { ...DEFAULT_ITEM, parts: [], spells: [] };
   }
 
   static canonicalize<T extends Items>(item: Partial<T>): void {
