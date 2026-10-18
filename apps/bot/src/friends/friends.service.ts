@@ -165,33 +165,40 @@ export class FriendsService {
   }
 
   deleteFriend(steamid: SteamID): Promise<void> {
-    this.logger.debug(`Deleting friend ${steamid.getSteamID64()}...`);
+    const steamid64 = steamid.getSteamID64();
+    this.logger.debug(`Deleting friend ${steamid64}...`);
 
     return new Promise<void>((resolve, reject) => {
-      this.client.removeFriend(steamid);
+      // Not a friend, nothing to delete
+      if (this.client.myFriends[steamid64] === undefined) {
+        return resolve();
+      }
+
+      // Per-user event isn't in steam-user's typings
+      const event = ('friendRelationship#' + steamid64) as 'friendRelationship';
 
       const timeout = setTimeout(() => {
-        this.client.removeListener('friendRelationship', listener);
+        this.client.removeListener(event, listener);
         reject(new Error('Timeout'));
       }, 5000);
 
       const listener = (
-        sid: SteamID,
+        _sid: SteamID,
         relationship: SteamUser.EFriendRelationship,
       ) => {
-        if (
-          steamid.getSteamID64() === sid.getSteamID64() &&
-          relationship === SteamUser.EFriendRelationship.None
-        ) {
+        if (relationship === SteamUser.EFriendRelationship.None) {
           clearTimeout(timeout);
+          this.client.removeListener(event, listener);
           return resolve();
         }
       };
 
-      this.client.once('friendRelationship', listener);
+      this.client.on(event, listener);
+
+      this.client.removeFriend(steamid);
     })
       .then(() => {
-        this.logger.debug(`Deleted friend ${steamid.getSteamID64()}`);
+        this.logger.debug(`Deleted friend ${steamid64}`);
       })
       .catch((err) => {
         this.logger.error('Error deleting friend: ' + err.message);
