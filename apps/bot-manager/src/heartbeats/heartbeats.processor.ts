@@ -1,6 +1,5 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import {
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   ServiceUnavailableException,
@@ -21,14 +20,14 @@ export class HeartbeatsProcessor extends WorkerHost {
   async process(job: Job<HeartbeatsQueue>): Promise<void> {
     const { steamid64 } = job.data;
 
-    this.logger.warn('Missed heartbeat from bot ' + steamid64);
-
     try {
       // Check if the bot exists and is running
       const bot = await this.heartbeatsService.getBot(new SteamID(steamid64));
 
       // Check if the bot has sent a heartbeat recently
       if (bot.lastSeen === job.data.lastSeen) {
+        this.logger.warn('Missed heartbeat from bot ' + steamid64);
+
         // Bot has not sent a new heartbeat, mark it as stopped
         return this.heartbeatsService.markStopped(
           new SteamID(steamid64),
@@ -43,16 +42,19 @@ export class HeartbeatsProcessor extends WorkerHost {
       ) {
         // Bot does not exist, do nothing
         return;
-      } else if (err instanceof InternalServerErrorException) {
-        // Bot is not running / not available, mark it as stopped
+      }
+
+      // Probe failed (timeout, unreachable, ...), retry and mark stopped on the final attempt
+      if (job.attemptsMade + 1 >= (job.opts.attempts ?? 1)) {
+        this.logger.warn('Missed heartbeat from bot ' + steamid64);
+
         return this.heartbeatsService.markStopped(
           new SteamID(steamid64),
           false,
         );
-      } else {
-        // Unexpected error
-        throw err;
       }
+
+      throw err;
     }
   }
 
