@@ -784,6 +784,33 @@ describe('EconParser', () => {
       );
     });
 
+    it('will not throw if a crate is not in items_game', async () => {
+      mockSchema();
+      schema.fetchItemsGameItemByDefindex.mockResolvedValue(null);
+
+      const extracted = parser.extract(TestData.getCrateWithEffects());
+      expect(extracted.type).toEqual('Crate');
+      expect(extracted.crateSeries).toBeNull();
+
+      const parsed = await parser.parse(extracted);
+
+      expect(parsed.crateSeries).toBeNull();
+    });
+
+    it('will throw if a cached strange part is an error', async () => {
+      mockSchema();
+      schema.getStrangePartByScoreType.mockReturnValue(
+        new Error('Cached part error'),
+      );
+
+      const extracted = parser.extract(TestData.getBasicItem());
+      extracted.parts.push('Kills');
+
+      await expect(parser.parse(extracted)).rejects.toThrow(
+        'Cached part error',
+      );
+    });
+
     it('will throw if `fetch` throws', async () => {
       schema.getQualityByName.mockReturnValue(undefined);
       schema.fetchQualityByName.mockRejectedValue(

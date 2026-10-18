@@ -409,7 +409,8 @@ export class EconParser extends Parser<
       }
 
       if (
-        item.static_attrs &&
+        // The item can be null if it is not in items_game
+        item?.static_attrs &&
         item.static_attrs['set supply crate series'] !== undefined
       ) {
         crateSeries = Number(item.static_attrs['set supply crate series']);
@@ -449,10 +450,12 @@ export class EconParser extends Parser<
     let part = this.schema.getStrangePartByScoreType(scoreType);
     if (part === undefined) {
       part = await this.schema.fetchStrangePartByScoreType(scoreType);
+    } else if (part instanceof Error) {
+      throw part;
     }
 
     if (!part) {
-      return part;
+      return null;
     }
 
     let item = this.schema.getItemsGameItemByDefindex(part);

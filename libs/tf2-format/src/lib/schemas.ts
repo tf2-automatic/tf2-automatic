@@ -4,7 +4,6 @@ import {
   SchemaItem,
   Spell,
   UndefinedOrError,
-  UndefinedOrNull,
 } from './types';
 
 export interface ItemsGameItemByDefindex {
@@ -58,7 +57,7 @@ export interface SpellByName {
 }
 
 export interface StrangePartByScoreType {
-  getStrangePartByScoreType(scoreType: string): UndefinedOrNull<number>;
+  getStrangePartByScoreType(scoreType: string): UndefinedOrError<NumberOrNull>;
   fetchStrangePartByScoreType(scoreType: string): Promise<NumberOrNull>;
 }
 
