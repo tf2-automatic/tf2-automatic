@@ -1,5 +1,5 @@
 import { InventoryItem, ItemsGameItem, RecipeInput } from '../../types';
-import { Context, ExtractedTF2GCItem, TF2GCItem } from './types';
+import { Context, ExtractedTF2GCItem, TF2GCItem, ValueBytes } from './types';
 import {
   CAttribute_DynamicRecipeComponent,
   DynamicRecipeFlags,
@@ -48,6 +48,12 @@ const recipeComponentType = root.lookupType(
 );
 const ATTRIBUTE_SEPERATOR = '|\x01\x02\x01\x03|\x01\x02\x01\x03|';
 
+// Buffers are read-only here, so reuse them instead of copying
+function toBuffer(value: ValueBytes | Buffer): Buffer {
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  return Buffer.isBuffer(value) ? value : Buffer.from(value as any);
+}
+
 export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
   extract(item: TF2GCItem): [ExtractedTF2GCItem, Context] {
     const [attributes, defindexes] = this.getAttributes(item);
@@ -64,8 +70,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
         origin: item.origin,
         attributes: defindexes,
         tradableAfter: tradableAfter
-          ? /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-            Buffer.from(tradableAfter.value_bytes as any).readUInt32LE(0)
+          ? toBuffer(tradableAfter.value_bytes).readUInt32LE(0)
           : null,
       },
     ];
@@ -83,8 +88,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
 
       defindexes.add(attribute.def_index);
 
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      const value = Buffer.from(attribute.value_bytes as any);
+      const value = toBuffer(attribute.value_bytes);
 
       switch (attribute.def_index) {
         case 2000:
