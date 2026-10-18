@@ -24,6 +24,8 @@ import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
 
+const EVENT_TIMEOUT_MS = 10000;
+
 enum TaskType {
   Craft = 'CRAFT',
   Use = 'USE',
@@ -190,14 +192,18 @@ export class TF2Service implements OnApplicationShutdown {
     }
   }
 
+  private enqueue<T extends (...args: never[]) => unknown>(
+    task: Task,
+  ): ReturnType<T> {
+    return this.queue.push(task) as ReturnType<T>;
+  }
+
   craft(craft: CraftDto): Promise<CraftResult> {
     const task: CraftTask = {
       type: TaskType.Craft,
       craft,
     };
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processCraft']>;
-    });
+    return this.enqueue<TF2Service['processCraft']>(task);
   }
 
   private processCraft(craft: CraftDto): Promise<CraftResult> {
@@ -240,9 +246,7 @@ export class TF2Service implements OnApplicationShutdown {
       assetid,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processUseItem']>;
-    });
+    return this.enqueue<TF2Service['processUseItem']>(task);
   }
 
   private processUseItem(assetid: string): Promise<void> {
@@ -267,9 +271,7 @@ export class TF2Service implements OnApplicationShutdown {
       assetid,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processDeleteItem']>;
-    });
+    return this.enqueue<TF2Service['processDeleteItem']>(task);
   }
 
   private processDeleteItem(assetid: string): Promise<void> {
@@ -294,9 +296,7 @@ export class TF2Service implements OnApplicationShutdown {
       sort: sort.sort,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processSortBackpack']>;
-    });
+    return this.enqueue<TF2Service['processSortBackpack']>(task);
   }
 
   getBackpack(): TF2Item[] {
@@ -375,6 +375,51 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   /**
+   * Listens for an event until stopped or disconnected from GC
+   * @param eventName Name of the event
+   * @param filter Filter events based on the arguments
+   * @param onMatch Called with the arguments of each matching event
+   * @param reject Called if disconnected from GC
+   * @param onStop Called when the listeners are removed
+   * @returns Function that removes the listeners
+   */
+  private listen(
+    eventName: string,
+    filter: ((...args) => boolean) | undefined,
+    onMatch: (args: unknown[]) => void,
+    reject: (err: Error) => void,
+    onStop: () => void,
+  ): () => void {
+    const listener = (...args) => {
+      if (filter && !filter(args)) {
+        // Not the event we are looking for
+        return;
+      }
+
+      onMatch(args);
+    };
+
+    const disconnectedListener = () => {
+      stop();
+      reject(new Error('Disconnected from GC'));
+    };
+
+    const stop = () => {
+      onStop();
+      this.tf2.removeListener(eventName, listener);
+      this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
+    };
+
+    if (eventName !== 'disconnectedFromGC') {
+      this.tf2.once('disconnectedFromGC', disconnectedListener);
+    }
+
+    this.tf2.on(eventName, listener);
+
+    return stop;
+  }
+
+  /**
    * Waits for no event to be emitted for a certain amount of time
    * @param eventName Name of the event
    * @param timeoutDuration Amount of time to wait
@@ -388,43 +433,24 @@ export class TF2Service implements OnApplicationShutdown {
     filter?: (...args) => boolean,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const createTimeout = () => {
-        const timeout = setTimeout(() => {
-          removeListeners();
+      const startTimer = () =>
+        setTimeout(() => {
+          stop();
           resolve();
         }, timeoutDuration);
 
-        return timeout;
-      };
+      let timeout = startTimer();
 
-      let timeout = createTimeout();
-
-      const listener = (...args) => {
-        if (filter && !filter(args)) {
-          // Not the event we are looking for
-          return;
-        }
-
-        clearTimeout(timeout);
-        timeout = createTimeout();
-      };
-
-      const disconnectedListener = () => {
-        removeListeners();
-        reject(new Error('Disconnected from GC'));
-      };
-
-      const removeListeners = () => {
-        clearTimeout(timeout);
-        this.tf2.removeListener(eventName, listener);
-        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-      };
-
-      if (eventName !== 'disconnectedFromGC') {
-        this.tf2.once('disconnectedFromGC', disconnectedListener);
-      }
-
-      this.tf2.on(eventName, listener);
+      const stop = this.listen(
+        eventName,
+        filter,
+        () => {
+          clearTimeout(timeout);
+          timeout = startTimer();
+        },
+        reject,
+        () => clearTimeout(timeout),
+      );
     });
   }
 
@@ -432,46 +458,32 @@ export class TF2Service implements OnApplicationShutdown {
    * Waits for an event to be emitted
    * @param eventName Name of the event
    * @param filter Filter events based on the arguments
+   * @param timeoutDuration Amount of time to wait before giving up
    * @returns The arguments of the event
-   * @throws Error if the event is not emitted within 10 seconds
+   * @throws Error if the event is not emitted within `timeoutDuration`
    * @throws Error if disconnected from GC
    */
   private waitForEvent(
     eventName: string,
     filter?: (...args) => boolean,
+    timeoutDuration = EVENT_TIMEOUT_MS,
   ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
-      const listener = (...args) => {
-        if (filter && !filter(args)) {
-          // Not the event we are looking for
-          return;
-        }
-
-        removeListeners();
-        resolve(args);
-      };
-
-      const disconnectedListener = () => {
-        removeListeners();
-        reject(new Error('Disconnected from GC'));
-      };
-
-      const removeListeners = () => {
-        clearTimeout(timeout);
-        this.tf2.removeListener(eventName, listener);
-        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-      };
-
       const timeout = setTimeout(() => {
-        removeListeners();
+        stop();
         reject(new Error('Timed out waiting for event'));
-      }, 10000);
+      }, timeoutDuration);
 
-      if (eventName !== 'disconnectedFromGC') {
-        this.tf2.once('disconnectedFromGC', disconnectedListener);
-      }
-
-      this.tf2.on(eventName, listener);
+      const stop = this.listen(
+        eventName,
+        filter,
+        (args) => {
+          stop();
+          resolve(args);
+        },
+        reject,
+        () => clearTimeout(timeout),
+      );
     });
   }
 }
