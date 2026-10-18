@@ -1,3 +1,4 @@
+import protobuf from 'protobufjs/light';
 import { TF2GCParser } from './parser';
 import * as TestData from './test-data';
 import { ItemsGameItem } from '../../types';
@@ -134,6 +135,45 @@ describe('TF2GCParser', () => {
       expect(extracted.killstreaker).toEqual(2004);
       expect(extracted.output).toEqual(6526);
       expect(extracted.target).toEqual(406);
+    });
+
+    it('will skip fulfilled recipe inputs', () => {
+      const item = TestData.getProfessionalKillstreakKitFabricator();
+      const component = protobuf.Root.fromJSON({
+        nested: {
+          C: {
+            fields: {
+              defIndex: { type: 'uint32', id: 1 },
+              itemQuality: { type: 'uint32', id: 2 },
+              componentFlags: { type: 'uint32', id: 3 },
+              numRequired: { type: 'uint32', id: 5 },
+              numFulfilled: { type: 'uint32', id: 6 },
+            },
+          },
+        },
+      }).lookupType('C');
+
+      // Fulfilled input that requires 2 of defindex 5706 and has 2
+      item.attribute.push({
+        def_index: 2009,
+        value: null,
+        value_bytes: Buffer.from(
+          component
+            .encode({
+              defIndex: 5706,
+              itemQuality: 6,
+              componentFlags: 12,
+              numRequired: 2,
+              numFulfilled: 2,
+            })
+            .finish(),
+        ),
+      });
+
+      const [extracted] = parser.extract(item);
+
+      expect(extracted.inputs).toHaveLength(6);
+      expect(extracted.inputs?.some((input) => input.quantity < 1)).toBe(false);
     });
 
     it('will parse strangifier chemistry sets', () => {
