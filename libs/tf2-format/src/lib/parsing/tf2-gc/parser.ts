@@ -117,10 +117,16 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
             component.componentFlags & DynamicRecipeFlags.IS_OUTPUT;
 
           if (!isOutput) {
+            const quantity =
+              (component.numRequired ?? 0) - (component.numFulfilled ?? 0);
+            if (quantity < 1) {
+              // Skip inputs that are already fulfilled, like the TF2 API parser
+              break;
+            }
+
             const input: RecipeInput = {
               quality: 6,
-              quantity:
-                (component.numRequired ?? 0) - (component.numFulfilled ?? 0),
+              quantity,
             };
 
             if (

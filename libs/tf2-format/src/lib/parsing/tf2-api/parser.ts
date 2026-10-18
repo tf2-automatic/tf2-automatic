@@ -40,11 +40,12 @@ export class TF2APIParser extends TF2Parser<TF2APIItem> {
                 quantity,
               };
 
-              if (attribute.itemdef) {
+              // Defindex 0 and quality 0 are valid values
+              if (attribute.itemdef !== undefined) {
                 input.defindex = attribute.itemdef;
               }
 
-              if (attribute.quality) {
+              if (attribute.quality !== undefined) {
                 input.quality = attribute.quality;
               }
 
@@ -58,11 +59,11 @@ export class TF2APIParser extends TF2Parser<TF2APIItem> {
                 result[key] = recipeAttributes[key];
               }
 
-              if (attribute.itemdef) {
+              if (attribute.itemdef !== undefined) {
                 result.output = attribute.itemdef;
               }
 
-              if (attribute.quality) {
+              if (attribute.quality !== undefined) {
                 result.outputQuality = attribute.quality;
               }
             }
