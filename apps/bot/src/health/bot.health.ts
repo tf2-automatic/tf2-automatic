@@ -12,8 +12,8 @@ export class BotHealthIndicator extends HealthIndicator {
     super();
   }
 
-  async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const readyOrReason = await this.botService.isReady();
+  isHealthy(key: string): HealthIndicatorResult {
+    const readyOrReason = this.botService.isReady();
     if (readyOrReason === true) {
       return this.getStatus(key, true);
     }

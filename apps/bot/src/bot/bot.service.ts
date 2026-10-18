@@ -152,8 +152,6 @@ export class BotService implements OnModuleDestroy {
       dataDirectory: '',
       savePollData: true,
       pollInterval: tradeConfig.pollInterval,
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       pollFullUpdateInterval: tradeConfig.pollFullUpdateInterval,
       pendingCancelTime: tradeConfig.pendingCancelTime,
       cancelTime: tradeConfig.cancelTime,
@@ -234,8 +232,6 @@ export class BotService implements OnModuleDestroy {
         });
     });
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     this.client.on('refreshToken', (token: string) => {
       this.storageService
         .write(FILE_PATHS.TOKEN(this.username), token)
@@ -283,18 +279,16 @@ export class BotService implements OnModuleDestroy {
     };
   }
 
-  isReady(): Promise<boolean | string> {
-    return new Promise((resolve) => {
-      if (!this.running) {
-        return resolve('Bot is not running');
-      }
+  isReady(): boolean | string {
+    if (!this.running) {
+      return 'Bot is not running';
+    }
 
-      if (this.client.steamID === null) {
-        return resolve('Bot is not connected to Steam');
-      }
+    if (this.client.steamID === null) {
+      return 'Bot is not connected to Steam';
+    }
 
-      resolve(true);
-    });
+    return true;
   }
 
   isRunning(): boolean {
@@ -455,23 +449,19 @@ export class BotService implements OnModuleDestroy {
     return false;
   }
 
-  private async setDisabled(reason: string | null): Promise<void> {
+  private async setDisabled(reason: string): Promise<void> {
     this.logger.warn('Disabling bot, reason: ' + reason);
 
     const filename = FILE_PATHS.DISABLED(this.username);
 
-    if (reason === null) {
-      await this.storageService.delete(filename);
-    } else {
-      const data = {
-        reason,
-        hash: objectHash(
-          this.configService.getOrThrow<SteamAccountConfig>('steam'),
-        ),
-      };
+    const data = {
+      reason,
+      hash: objectHash(
+        this.configService.getOrThrow<SteamAccountConfig>('steam'),
+      ),
+    };
 
-      await this.storageService.write(filename, JSON.stringify(data));
-    }
+    await this.storageService.write(filename, JSON.stringify(data));
   }
 
   private async getLastRatelimited(): Promise<Date | null> {
@@ -482,11 +472,7 @@ export class BotService implements OnModuleDestroy {
       return null;
     }
 
-    try {
-      return new Date(ratelimited);
-    } catch {
-      return null;
-    }
+    return new Date(ratelimited);
   }
 
   private async setRatelimited(time: Date): Promise<void> {
@@ -1001,7 +987,7 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async deleteRefreshToken(): Promise<void> {
-    const filename = path.join(`bots/${this.username}`, 'token.txt');
+    const filename = FILE_PATHS.TOKEN(this.username);
 
     await this.storageService.delete(filename).catch(() => {
       // Ignore error
