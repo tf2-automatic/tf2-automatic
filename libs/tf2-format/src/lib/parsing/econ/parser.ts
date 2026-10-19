@@ -925,7 +925,11 @@ export class EconParser extends Parser<
             i++;
           }
         case IdentifiableDescription.Craftable:
-          if (NON_CRAFTABLE_DESCRIPTIONS[descriptions[i].value]) {
+          // All start with "(", a cheap check before the slow string key lookup
+          if (
+            descriptions[i].value.charCodeAt(0) === 40 &&
+            NON_CRAFTABLE_DESCRIPTIONS[descriptions[i].value]
+          ) {
             attributes.craftable = false;
             // We found everything we could possibly look for.
             break loop;
