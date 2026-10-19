@@ -225,6 +225,38 @@ describe('Utils', () => {
     });
   });
 
+  describe('#getDefault', () => {
+    it('should return the default item', () => {
+      const item = Utils.getDefault();
+
+      expect(item).toEqual(DEFAULT_ITEM);
+      expect(Object.keys(item)).toEqual(Object.keys(DEFAULT_ITEM));
+    });
+
+    it('should not share arrays between calls or with DEFAULT_ITEM', () => {
+      const first = Utils.getDefault();
+      const second = Utils.getDefault();
+
+      expect(first.parts).not.toBe(second.parts);
+      expect(first.spells).not.toBe(second.spells);
+      expect(first.parts).not.toBe(DEFAULT_ITEM.parts);
+      expect(first.spells).not.toBe(DEFAULT_ITEM.spells);
+    });
+
+    it('should not change DEFAULT_ITEM or later calls when mutated', () => {
+      const item = Utils.getDefault();
+
+      item.parts.push(1);
+      item.spells.push([1004, 1]);
+      item.defindex = 5021;
+
+      expect(DEFAULT_ITEM.parts).toEqual([]);
+      expect(DEFAULT_ITEM.spells).toEqual([]);
+      expect(DEFAULT_ITEM.defindex).toEqual(-1);
+      expect(Utils.getDefault()).toEqual(DEFAULT_ITEM);
+    });
+  });
+
   describe('#hasAttribute', () => {
     it('will return true if the attribute is present and different', () => {
       const item = { ...Utils.getDefault(), defindex: 1 };
