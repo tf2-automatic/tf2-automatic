@@ -38,7 +38,7 @@ import { Summary, register } from 'prom-client';
 import jwt from 'jsonwebtoken';
 import objectHash from 'object-hash';
 import path from 'path';
-import { calculateBackoff } from '@tf2-automatic/queue';
+import { calculateBackoff, waitForEvent } from '@tf2-automatic/utils';
 
 type HistogramEndCallback = (labels?: unknown) => void;
 
@@ -774,19 +774,10 @@ export class BotService implements OnModuleDestroy {
   }
 
   private waitForWebSession(): Promise<string[]> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.client.removeListener('webSession', listener);
-        reject(new Error('Timed out waiting for web session'));
-      }, 10000);
-
-      const listener = (_, cookies: string[]) => {
-        clearTimeout(timeout);
-        resolve(cookies);
-      };
-
-      this.client.once('webSession', listener);
-    });
+    return waitForEvent(this.client, 'webSession', {
+      timeout: 10000,
+      timeoutError: 'Timed out waiting for web session',
+    }).then((args) => args[1] as string[]);
   }
 
   private async login(refreshToken?: string): Promise<void> {

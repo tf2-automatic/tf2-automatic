@@ -1,4 +1,4 @@
-import { calculateBackoff } from './backoff-strategy';
+import { calculateBackoff } from './backoff';
 
 describe('calculateBackoff', () => {
   afterEach(() => jest.restoreAllMocks());

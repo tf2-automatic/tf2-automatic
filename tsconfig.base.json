@@ -47,7 +47,8 @@
       "@tf2-automatic/queue": ["libs/queue/src/index.ts"],
       "@tf2-automatic/swagger": ["libs/swagger/src/index.ts"],
       "@tf2-automatic/testing": ["libs/testing/src/index.ts"],
-      "@tf2-automatic/tf2-format": ["libs/tf2-format/src/index.ts"]
+      "@tf2-automatic/tf2-format": ["libs/tf2-format/src/index.ts"],
+      "@tf2-automatic/utils": ["libs/utils/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
