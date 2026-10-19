@@ -474,7 +474,8 @@ export class BotService implements OnModuleDestroy {
       return null;
     }
 
-    return new Date(ratelimited);
+    const date = new Date(ratelimited);
+    return isNaN(date.getTime()) ? null : date;
   }
 
   private async setRatelimited(time: Date): Promise<void> {
