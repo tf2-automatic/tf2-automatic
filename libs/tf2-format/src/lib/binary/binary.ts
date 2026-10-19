@@ -5,9 +5,11 @@ import { DEFAULT_ITEM, ITEM_FIELD_ID, Utils } from '../utils';
 // Plain maps without records or tags, and decode all maps as Map objects
 const encoder = new Encoder({ useRecords: false, mapsAsObjects: false });
 
-const ITEM_ID_FIELD = Object.fromEntries(
-  Object.entries(ITEM_FIELD_ID).map(([k, v]) => [v, k]),
-) as Record<number, keyof typeof ITEM_FIELD_ID>;
+// Array indexed by field id, faster to look up than an object keyed by id
+const ITEM_ID_FIELD: (keyof typeof ITEM_FIELD_ID)[] = [];
+for (const [key, id] of Object.entries(ITEM_FIELD_ID)) {
+  ITEM_ID_FIELD[id] = key as keyof typeof ITEM_FIELD_ID;
+}
 
 // This ensures keys are sorted in the bytewise lexicographic order
 const ITEM_FIELDS_SORTED = Object.keys(DEFAULT_ITEM).sort((a, b) =>
