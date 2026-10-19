@@ -7,11 +7,20 @@ export function createMemoryRedis(keyPrefix = '') {
   const sets = new Map<string, Set<string>>();
 
   const commands = {
-    hmset: (key: string, values: Record<string, Buffer>) => {
+    // Takes an object or field/value pairs, like ioredis
+    hmset: (
+      key: string,
+      ...args: [Record<string, Buffer>] | (string | Buffer)[]
+    ) => {
       const hash = hashes.get(keyPrefix + key) ?? new Map();
-      Object.entries(values).forEach(([field, value]) =>
-        hash.set(field, value),
-      );
+      const entries =
+        args.length === 1
+          ? Object.entries(args[0] as Record<string, Buffer>)
+          : Array.from({ length: args.length / 2 }, (_, i) => [
+              args[i * 2] as string,
+              args[i * 2 + 1] as Buffer,
+            ]);
+      entries.forEach(([field, value]) => hash.set(field, value));
       hashes.set(keyPrefix + key, hash);
     },
     hdel: (key: string, ...fields: string[]) => {
@@ -47,6 +56,8 @@ export function createMemoryRedis(keyPrefix = '') {
         regex.test(key),
       );
     },
+    hmgetBuffer: async (key: string, ...fields: string[]) =>
+      fields.map((field) => hashes.get(keyPrefix + key)?.get(field) ?? null),
     smembers: async (key: string) =>
       Array.from(sets.get(keyPrefix + key) ?? []),
     exists: async (key: string) =>
