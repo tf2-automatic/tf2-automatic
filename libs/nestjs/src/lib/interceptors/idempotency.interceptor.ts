@@ -94,7 +94,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
             ? error
             : new InternalServerErrorException();
 
-        if (httpError.getStatus() <= 500 || httpError.getStatus() > 600) {
+        const status = httpError.getStatus();
+
+        if (status < 500 || status >= 600) {
           const result: IdempotencyResponse = {
             statusCode: httpError.getStatus(),
             body: httpError.getResponse(),
