@@ -1,5 +1,6 @@
 import { Binary } from './binary';
-import { InventoryItem, Item } from '../types';
+import { InventoryItem, Item, PossibleInventoryItem } from '../types';
+import { Utils } from '../utils';
 
 describe('Binary', () => {
   describe('#encode', () => {
@@ -191,6 +192,46 @@ describe('Binary', () => {
         const encoded = Binary.encode(item);
 
         expect(encoded).toEqual(new Uint8Array([162, 1, 25, 19, 157, 2, 6]));
+      }
+    });
+
+    it('should encode the same as compacting and canonicalizing first', () => {
+      const skin = { defindex: 15013, paintkit: 102, wear: 3 };
+      const items: Partial<PossibleInventoryItem>[] = [
+        {},
+        Utils.getDefault(),
+        { ...Utils.getDefault(), defindex: 5021, quality: 6 },
+        { ...skin, quality: 15 },
+        { ...skin, quality: 15, effect: 703 },
+        { ...skin, quality: 11 },
+        { ...skin, quality: 11, effect: 703 },
+        { ...skin, quality: 15, elevated: true },
+        { ...skin, quality: 5, effect: 703, elevated: true },
+        { ...skin, quality: -1, elevated: true },
+        { defindex: 15013, quality: 15, paintkit: 102 },
+        { defindex: 15013, quality: 11, wear: 1 },
+        { defindex: 200, quality: 5, effect: 13, elevated: true },
+        { defindex: 200, quality: -1, elevated: false, effect: null },
+        {
+          ...Utils.getDefault(),
+          defindex: 200,
+          quality: 11,
+          parts: [3, 1],
+          spells: [[1009, 1]],
+          inputs: [{ quality: 6, quantity: 2 }],
+        },
+      ];
+
+      for (const item of items) {
+        const before = JSON.stringify(item);
+
+        const copy = { ...item };
+        Utils.compact(copy);
+        Utils.canonicalize(copy);
+
+        expect(Binary.encode(item)).toEqual(Binary.encode(copy));
+        // Encoding must not modify the item
+        expect(JSON.stringify(item)).toEqual(before);
       }
     });
   });
