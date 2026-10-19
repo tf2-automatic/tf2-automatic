@@ -1,5 +1,4 @@
 import { ChildProcess, spawn } from 'child_process';
-import { waitForEvent } from '@tf2-automatic/utils';
 import compose from 'docker-compose';
 
 interface SetupOptions {
@@ -33,28 +32,30 @@ export async function setup(options: SetupOptions) {
   console.log('Starting application...');
 
   const app = options.app;
-  const childProcess = spawn(`pnpm exec nx run ${app}:serve:e2e`, {
-    shell: true,
-  });
-
-  globalThis.__childProcess = childProcess;
-
-  if (!childProcess.stdout) {
-    throw new Error('No stdout');
-  }
-
-  try {
-    await waitForEvent(childProcess.stdout, 'data', {
-      filter: (data) =>
-        data.indexOf('Nest application successfully started') !== -1,
-      timeout: 60000,
-      timeoutError: 'Application did not start',
+  await new Promise<void>((resolve, reject) => {
+    const childProcess = spawn(`pnpm exec nx run ${app}:serve:e2e`, {
+      shell: true,
     });
-  } catch (err) {
-    childProcess.removeAllListeners();
-    childProcess.kill();
-    throw err;
-  }
+
+    globalThis.__childProcess = childProcess;
+
+    if (!childProcess.stdout) {
+      return reject(new Error('No stdout'));
+    }
+
+    const timeout = setTimeout(() => {
+      childProcess.removeAllListeners();
+      childProcess.kill();
+      reject(new Error('Application did not start'));
+    }, 60000).unref();
+
+    childProcess.stdout.on('data', (data) => {
+      if (data.indexOf('Nest application successfully started') !== -1) {
+        clearTimeout(timeout);
+        resolve();
+      }
+    });
+  });
 
   console.log('Application started\n');
 }
