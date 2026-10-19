@@ -24,6 +24,8 @@ import type { queueAsPromised } from 'fastq';
 import { EventsService } from '../events/events.service';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
 
+const EVENT_TIMEOUT_MS = 10000;
+
 enum TaskType {
   Craft = 'CRAFT',
   Use = 'USE',
@@ -190,14 +192,18 @@ export class TF2Service implements OnApplicationShutdown {
     }
   }
 
+  private enqueue<T extends (...args: never[]) => unknown>(
+    task: Task,
+  ): ReturnType<T> {
+    return this.queue.push(task) as ReturnType<T>;
+  }
+
   craft(craft: CraftDto): Promise<CraftResult> {
     const task: CraftTask = {
       type: TaskType.Craft,
       craft,
     };
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processCraft']>;
-    });
+    return this.enqueue<TF2Service['processCraft']>(task);
   }
 
   private processCraft(craft: CraftDto): Promise<CraftResult> {
@@ -240,9 +246,7 @@ export class TF2Service implements OnApplicationShutdown {
       assetid,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processUseItem']>;
-    });
+    return this.enqueue<TF2Service['processUseItem']>(task);
   }
 
   private processUseItem(assetid: string): Promise<void> {
@@ -267,9 +271,7 @@ export class TF2Service implements OnApplicationShutdown {
       assetid,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processDeleteItem']>;
-    });
+    return this.enqueue<TF2Service['processDeleteItem']>(task);
   }
 
   private processDeleteItem(assetid: string): Promise<void> {
@@ -294,9 +296,7 @@ export class TF2Service implements OnApplicationShutdown {
       sort: sort.sort,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processSortBackpack']>;
-    });
+    return this.enqueue<TF2Service['processSortBackpack']>(task);
   }
 
   getBackpack(): TF2Item[] {
@@ -379,7 +379,6 @@ export class TF2Service implements OnApplicationShutdown {
    * @param eventName Name of the event
    * @param timeoutDuration Amount of time to wait
    * @param filter Filter events based on the arguments
-   * @returns Promise that resolves when no event has been emitted for `timeoutDuration`
    * @throws Error if disconnected from GC
    */
   private waitForNoEvent(
@@ -387,91 +386,73 @@ export class TF2Service implements OnApplicationShutdown {
     timeoutDuration: number,
     filter?: (...args) => boolean,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const createTimeout = () => {
-        const timeout = setTimeout(() => {
-          removeListeners();
-          resolve();
-        }, timeoutDuration);
-
-        return timeout;
-      };
-
-      let timeout = createTimeout();
-
-      const listener = (...args) => {
-        if (filter && !filter(args)) {
-          // Not the event we are looking for
-          return;
-        }
-
-        clearTimeout(timeout);
-        timeout = createTimeout();
-      };
-
-      const disconnectedListener = () => {
-        removeListeners();
-        reject(new Error('Disconnected from GC'));
-      };
-
-      const removeListeners = () => {
-        clearTimeout(timeout);
-        this.tf2.removeListener(eventName, listener);
-        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-      };
-
-      if (eventName !== 'disconnectedFromGC') {
-        this.tf2.once('disconnectedFromGC', disconnectedListener);
-      }
-
-      this.tf2.on(eventName, listener);
-    });
+    return this.waitForEvent(eventName, filter, timeoutDuration, true).then(
+      () => undefined,
+    );
   }
 
   /**
    * Waits for an event to be emitted
    * @param eventName Name of the event
    * @param filter Filter events based on the arguments
+   * @param timeoutDuration Amount of time to wait
+   * @param quiet Resolve once no event has been emitted for `timeoutDuration` instead
    * @returns The arguments of the event
-   * @throws Error if the event is not emitted within 10 seconds
+   * @throws Error if the event is not emitted within `timeoutDuration`
    * @throws Error if disconnected from GC
    */
   private waitForEvent(
     eventName: string,
     filter?: (...args) => boolean,
+    timeoutDuration = EVENT_TIMEOUT_MS,
+    quiet = false,
   ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
+      let timeout: NodeJS.Timeout;
+
+      const stop = () => {
+        clearTimeout(timeout);
+        this.tf2.removeListener(eventName, listener);
+        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
+      };
+
+      const startTimer = () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          stop();
+          if (quiet) {
+            resolve([]);
+          } else {
+            reject(new Error('Timed out waiting for event'));
+          }
+        }, timeoutDuration);
+      };
+
       const listener = (...args) => {
         if (filter && !filter(args)) {
           // Not the event we are looking for
           return;
         }
 
-        removeListeners();
+        if (quiet) {
+          return startTimer();
+        }
+
+        stop();
         resolve(args);
       };
 
       const disconnectedListener = () => {
-        removeListeners();
+        stop();
         reject(new Error('Disconnected from GC'));
       };
-
-      const removeListeners = () => {
-        clearTimeout(timeout);
-        this.tf2.removeListener(eventName, listener);
-        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-      };
-
-      const timeout = setTimeout(() => {
-        removeListeners();
-        reject(new Error('Timed out waiting for event'));
-      }, 10000);
 
       if (eventName !== 'disconnectedFromGC') {
         this.tf2.once('disconnectedFromGC', disconnectedListener);
       }
 
       this.tf2.on(eventName, listener);
+      startTimer();
     });
   }
 }
