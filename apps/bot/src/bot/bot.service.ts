@@ -512,6 +512,13 @@ export class BotService implements OnModuleDestroy {
 
     await this.reconnect();
 
+    // Login works, so a stale disabled file is no longer relevant
+    await this.storageService
+      .delete(FILE_PATHS.DISABLED(this.username))
+      .catch(() => {
+        // Ignore error
+      });
+
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
     await this.waitForAPIKey();
