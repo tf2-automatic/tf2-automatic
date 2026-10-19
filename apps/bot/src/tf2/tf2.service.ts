@@ -375,56 +375,10 @@ export class TF2Service implements OnApplicationShutdown {
   }
 
   /**
-   * Listens for an event until stopped or disconnected from GC
-   * @param eventName Name of the event
-   * @param filter Filter events based on the arguments
-   * @param onMatch Called with the arguments of each matching event
-   * @param reject Called if disconnected from GC
-   * @param onStop Called when the listeners are removed
-   * @returns Function that removes the listeners
-   */
-  private listen(
-    eventName: string,
-    filter: ((...args) => boolean) | undefined,
-    onMatch: (args: unknown[]) => void,
-    reject: (err: Error) => void,
-    onStop: () => void,
-  ): () => void {
-    const listener = (...args) => {
-      if (filter && !filter(args)) {
-        // Not the event we are looking for
-        return;
-      }
-
-      onMatch(args);
-    };
-
-    const disconnectedListener = () => {
-      stop();
-      reject(new Error('Disconnected from GC'));
-    };
-
-    const stop = () => {
-      onStop();
-      this.tf2.removeListener(eventName, listener);
-      this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-    };
-
-    if (eventName !== 'disconnectedFromGC') {
-      this.tf2.once('disconnectedFromGC', disconnectedListener);
-    }
-
-    this.tf2.on(eventName, listener);
-
-    return stop;
-  }
-
-  /**
    * Waits for no event to be emitted for a certain amount of time
    * @param eventName Name of the event
    * @param timeoutDuration Amount of time to wait
    * @param filter Filter events based on the arguments
-   * @returns Promise that resolves when no event has been emitted for `timeoutDuration`
    * @throws Error if disconnected from GC
    */
   private waitForNoEvent(
@@ -432,33 +386,17 @@ export class TF2Service implements OnApplicationShutdown {
     timeoutDuration: number,
     filter?: (...args) => boolean,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const startTimer = () =>
-        setTimeout(() => {
-          stop();
-          resolve();
-        }, timeoutDuration);
-
-      let timeout = startTimer();
-
-      const stop = this.listen(
-        eventName,
-        filter,
-        () => {
-          clearTimeout(timeout);
-          timeout = startTimer();
-        },
-        reject,
-        () => clearTimeout(timeout),
-      );
-    });
+    return this.waitForEvent(eventName, filter, timeoutDuration, true).then(
+      () => undefined,
+    );
   }
 
   /**
    * Waits for an event to be emitted
    * @param eventName Name of the event
    * @param filter Filter events based on the arguments
-   * @param timeoutDuration Amount of time to wait before giving up
+   * @param timeoutDuration Amount of time to wait
+   * @param quiet Resolve once no event has been emitted for `timeoutDuration` instead
    * @returns The arguments of the event
    * @throws Error if the event is not emitted within `timeoutDuration`
    * @throws Error if disconnected from GC
@@ -467,23 +405,54 @@ export class TF2Service implements OnApplicationShutdown {
     eventName: string,
     filter?: (...args) => boolean,
     timeoutDuration = EVENT_TIMEOUT_MS,
+    quiet = false,
   ): Promise<unknown[]> {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        stop();
-        reject(new Error('Timed out waiting for event'));
-      }, timeoutDuration);
+      let timeout: NodeJS.Timeout;
 
-      const stop = this.listen(
-        eventName,
-        filter,
-        (args) => {
+      const stop = () => {
+        clearTimeout(timeout);
+        this.tf2.removeListener(eventName, listener);
+        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
+      };
+
+      const startTimer = () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
           stop();
-          resolve(args);
-        },
-        reject,
-        () => clearTimeout(timeout),
-      );
+          if (quiet) {
+            resolve([]);
+          } else {
+            reject(new Error('Timed out waiting for event'));
+          }
+        }, timeoutDuration);
+      };
+
+      const listener = (...args) => {
+        if (filter && !filter(args)) {
+          // Not the event we are looking for
+          return;
+        }
+
+        if (quiet) {
+          return startTimer();
+        }
+
+        stop();
+        resolve(args);
+      };
+
+      const disconnectedListener = () => {
+        stop();
+        reject(new Error('Disconnected from GC'));
+      };
+
+      if (eventName !== 'disconnectedFromGC') {
+        this.tf2.once('disconnectedFromGC', disconnectedListener);
+      }
+
+      this.tf2.on(eventName, listener);
+      startTimer();
     });
   }
 }
