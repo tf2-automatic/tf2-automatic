@@ -616,7 +616,6 @@ export class EconParser extends Parser<
       inputs: null,
       output: null,
       target: null,
-      grade: null,
       statclock: false,
     };
 
@@ -655,18 +654,12 @@ export class EconParser extends Parser<
         descriptions[i].value.startsWith(tags.Rarity + ' Grade ') &&
         descriptions[i].value.endsWith(' (' + tags.Exterior + ')')
       ) {
-        attributes.grade = descriptions[i].value;
         i++;
       } else if (
         tags.Rarity === undefined &&
         descriptions[i].value.endsWith('(' + tags.Exterior + ')')
       ) {
-        // This is dumb but sometimes an item does not have a rarity in the tags
-        // but it does in the description...
-        attributes.grade = descriptions[i].value.slice(
-          0,
-          descriptions[i].value.indexOf(' Grade'),
-        );
+        // Some items have no rarity in the tags but do in the description
         i++;
       }
 
