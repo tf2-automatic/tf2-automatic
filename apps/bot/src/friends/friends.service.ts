@@ -14,6 +14,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 import { EventsService } from '../events/events.service';
+import { waitForEvent } from '@tf2-automatic/utils';
 import { Gauge } from 'prom-client';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 
@@ -168,35 +169,21 @@ export class FriendsService {
     const steamid64 = steamid.getSteamID64();
     this.logger.debug(`Deleting friend ${steamid64}...`);
 
-    return new Promise<void>((resolve, reject) => {
-      // Not a friend, nothing to delete
-      if (this.client.myFriends[steamid64] === undefined) {
-        return resolve();
-      }
+    // Not a friend, nothing to delete
+    let removed: Promise<unknown> = Promise.resolve();
 
-      // Per-user event isn't in steam-user's typings
-      const event = ('friendRelationship#' + steamid64) as 'friendRelationship';
-
-      const timeout = setTimeout(() => {
-        this.client.removeListener(event, listener);
-        reject(new Error('Timeout'));
-      }, 5000);
-
-      const listener = (
-        _sid: SteamID,
-        relationship: SteamUser.EFriendRelationship,
-      ) => {
-        if (relationship === SteamUser.EFriendRelationship.None) {
-          clearTimeout(timeout);
-          this.client.removeListener(event, listener);
-          return resolve();
-        }
-      };
-
-      this.client.on(event, listener);
-
+    if (this.client.myFriends[steamid64] !== undefined) {
+      // Register before removing so the event can't be missed
+      removed = waitForEvent(this.client, 'friendRelationship#' + steamid64, {
+        filter: (_sid, relationship) =>
+          relationship === SteamUser.EFriendRelationship.None,
+        timeout: 5000,
+        timeoutError: 'Timeout',
+      });
       this.client.removeFriend(steamid);
-    })
+    }
+
+    return removed
       .then(() => {
         this.logger.debug(`Deleted friend ${steamid64}`);
       })
