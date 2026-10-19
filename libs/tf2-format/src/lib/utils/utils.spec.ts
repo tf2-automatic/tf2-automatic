@@ -243,16 +243,20 @@ describe('Utils', () => {
       expect(first.spells).not.toBe(DEFAULT_ITEM.spells);
     });
 
-    it('should not change DEFAULT_ITEM or later calls when mutated', () => {
+    it('should not change DEFAULT_ITEM or later calls when any field is mutated', () => {
+      const before = JSON.stringify(DEFAULT_ITEM);
       const item = Utils.getDefault();
 
-      item.parts.push(1);
-      item.spells.push([1004, 1]);
-      item.defindex = 5021;
+      for (const key of Object.keys(item)) {
+        const value = item[key];
+        if (Array.isArray(value)) {
+          value.push(1);
+        } else {
+          item[key] = 'mutated';
+        }
+      }
 
-      expect(DEFAULT_ITEM.parts).toEqual([]);
-      expect(DEFAULT_ITEM.spells).toEqual([]);
-      expect(DEFAULT_ITEM.defindex).toEqual(-1);
+      expect(JSON.stringify(DEFAULT_ITEM)).toEqual(before);
       expect(Utils.getDefault()).toEqual(DEFAULT_ITEM);
     });
   });
