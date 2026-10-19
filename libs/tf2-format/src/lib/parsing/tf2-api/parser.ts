@@ -106,8 +106,39 @@ export class TF2APIParser extends TF2Parser<TF2APIItem> {
     extracted: ExtractedTF2Item,
     context: Context,
   ): Promise<InventoryItem> {
-    const paint = await this.getPaint(extracted);
-    const parts = await this.getParts(extracted);
+    let paint: number | undefined | null | Error = null;
+    if (extracted.primaryPaint) {
+      const hex = extracted.primaryPaint.toString(16);
+
+      if (hex === '1') {
+        // Glitched legacy paint
+        paint = 5046;
+      } else {
+        paint = this.schema.getPaintByColor(hex);
+        if (paint === undefined) {
+          paint = await this.schema.fetchPaintByColor(hex);
+        } else if (paint instanceof Error) {
+          throw paint;
+        }
+      }
+    }
+
+    const parts: number[] = [];
+    if (extracted.parts.length > 0) {
+      for (let i = 0; i < extracted.parts.length; i++) {
+        const part = extracted.parts[i];
+        let match = this.schema.getStrangePartById(part);
+        if (match instanceof Error) {
+          throw match;
+        } else if (match === undefined) {
+          match = await this.schema.fetchStrangePartById(part);
+        }
+
+        if (match !== null) {
+          parts.push(match);
+        }
+      }
+    }
 
     return this.createParsedItem(
       extracted,
