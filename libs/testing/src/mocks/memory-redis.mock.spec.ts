@@ -10,4 +10,16 @@ describe('createMemoryRedis', () => {
     expect(await redis.keys('a:*')).toEqual([]);
     expect(await redis.keys('prefix:a:*')).toEqual(['prefix:a:1']);
   });
+
+  it('sets field/value pairs and reads them back with hmgetBuffer', async () => {
+    const { redis } = createMemoryRedis();
+    const value = Buffer.from('value');
+
+    redis.hmset('a', 'field', value);
+
+    expect(await redis.hmgetBuffer('a', 'field', 'missing')).toEqual([
+      value,
+      null,
+    ]);
+  });
 });
