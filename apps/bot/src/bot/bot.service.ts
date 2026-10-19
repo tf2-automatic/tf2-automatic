@@ -279,16 +279,18 @@ export class BotService implements OnModuleDestroy {
     };
   }
 
-  isReady(): boolean | string {
-    if (!this.running) {
-      return 'Bot is not running';
-    }
+  isReady(): Promise<boolean | string> {
+    return new Promise((resolve) => {
+      if (!this.running) {
+        return resolve('Bot is not running');
+      }
 
-    if (this.client.steamID === null) {
-      return 'Bot is not connected to Steam';
-    }
+      if (this.client.steamID === null) {
+        return resolve('Bot is not connected to Steam');
+      }
 
-    return true;
+      resolve(true);
+    });
   }
 
   isRunning(): boolean {
