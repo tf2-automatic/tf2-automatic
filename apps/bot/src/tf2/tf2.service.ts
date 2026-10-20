@@ -36,9 +36,10 @@ enum TaskType {
   Use = 'USE',
   Delete = 'DELETE',
   Sort = 'SORT',
+  Refresh = 'REFRESH',
 }
 
-type Task = CraftTask | UseTask | DeleteTask | SortTask;
+type Task = CraftTask | UseTask | DeleteTask | SortTask | RefreshTask;
 
 type BaseTask = {
   type: TaskType;
@@ -64,6 +65,10 @@ type SortTask = BaseTask & {
   sort: SortBackpackTypes;
 };
 
+type RefreshTask = BaseTask & {
+  type: TaskType.Refresh;
+};
+
 class ItemNotInBackpackException extends BadRequestException {
   constructor(assetid: string) {
     super('Item is not in backpack (assetid: ' + assetid + ')');
@@ -85,6 +90,7 @@ export class TF2Service implements OnApplicationShutdown {
   private account: TF2Account | null = null;
 
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private refreshQueued = false;
   private manuallyDisconnectedFromGC = false;
 
   constructor(
@@ -169,11 +175,28 @@ export class TF2Service implements OnApplicationShutdown {
     }
 
     this.reconnectTimeout = setTimeout(() => {
-      this.logger.debug('Reconnecting to GC to refresh inventory');
-      this.manuallyDisconnectedFromGC = true;
-      this.botService.exitGame(440);
       this.reconnectTimeout = null;
+
+      if (this.refreshQueued) {
+        return;
+      }
+
+      // Queued so the GC is never disconnected in the middle of a task
+      this.refreshQueued = true;
+      this.queue.push({ type: TaskType.Refresh }).catch((err) => {
+        this.logger.warn('Failed to refresh inventory: ' + err.message);
+      });
     }, 10000);
+  }
+
+  private async processRefresh(): Promise<void> {
+    this.refreshQueued = false;
+    this.logger.debug('Reconnecting to GC to refresh inventory');
+
+    const loaded = this.waitForEvent('backpackLoaded');
+    this.manuallyDisconnectedFromGC = true;
+    this.botService.exitGame(440);
+    await loaded;
   }
 
   private async process(task: Task): Promise<unknown> {
@@ -191,6 +214,8 @@ export class TF2Service implements OnApplicationShutdown {
         return this.processDeleteItem(task.assetid);
       case TaskType.Sort:
         return this.processSortBackpack(task.sort);
+      case TaskType.Refresh:
+        return this.processRefresh();
       default:
         // @ts-expect-error Gives compile-time error if not all task types are handled.
         throw new Error('Unknown task type: ' + task.type);
