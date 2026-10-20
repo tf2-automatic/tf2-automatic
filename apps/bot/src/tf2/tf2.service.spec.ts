@@ -19,18 +19,22 @@ describe('TF2Service', () => {
   let service: TF2Service;
   let tf2: EventEmitter;
   let publish: jest.Mock;
+  let bot: {
+    getClient: () => EventEmitter;
+    joinGame: jest.Mock;
+    exitGame: jest.Mock;
+  };
 
   beforeEach(() => {
     jest.useFakeTimers();
     publish = jest.fn().mockResolvedValue(undefined);
-    service = new TF2Service(
-      {
-        getClient: () => new EventEmitter(),
-        joinGame: jest.fn(),
-        exitGame: jest.fn(),
-      } as never,
-      { publish } as never,
-    );
+    const client = Object.assign(new EventEmitter(), { _playingAppIds: [440] });
+    bot = {
+      getClient: () => client,
+      joinGame: jest.fn(),
+      exitGame: jest.fn(),
+    };
+    service = new TF2Service(bot as never, { publish } as never);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tf2 = (service as any).tf2;
   });
@@ -59,6 +63,49 @@ describe('TF2Service', () => {
 
     tf2.emit('itemRemoved', { id: '1' });
     expect(publish).toHaveBeenCalledWith(TF2_LOST_EVENT, { id: '1' });
+  });
+
+  describe('inventory refresh', () => {
+    beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (tf2 as any).haveGCSession = true;
+    });
+
+    it('waits for a running task before reconnecting to the GC', async () => {
+      tf2.emit('itemAcquired', { id: '2' });
+      await jest.advanceTimersByTimeAsync(5000);
+
+      const deleted = service.deleteItem('1');
+      await jest.advanceTimersByTimeAsync(5000);
+
+      // Refresh is due, but the delete is still waiting on the GC
+      expect(bot.exitGame).not.toHaveBeenCalled();
+
+      tf2.emit('itemRemoved', { id: '1' });
+      await expect(deleted).resolves.toBeUndefined();
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(bot.exitGame).toHaveBeenCalledWith(440);
+      tf2.emit('backpackLoaded');
+    });
+
+    it('queues one refresh at a time', async () => {
+      const deleted = service.deleteItem('1');
+      await jest.advanceTimersByTimeAsync(0);
+
+      tf2.emit('itemAcquired', { id: '2' });
+      await jest.advanceTimersByTimeAsync(1000);
+      tf2.emit('itemAcquired', { id: '3' });
+      await jest.advanceTimersByTimeAsync(10000);
+
+      tf2.emit('itemRemoved', { id: '1' });
+      await deleted.catch(() => undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      tf2.emit('backpackLoaded');
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(bot.exitGame).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('event waiting', () => {
