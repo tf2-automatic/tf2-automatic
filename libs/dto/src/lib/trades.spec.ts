@@ -24,7 +24,11 @@ describe('CreateTradeDto message', () => {
     expect(await messageErrors('a'.repeat(129))).toHaveLength(1);
   });
 
-  it.each(['hi', 'a'.repeat(128), undefined])(
+  it('counts emoji as two characters', async () => {
+    expect(await messageErrors('😀'.repeat(65))).toHaveLength(1);
+  });
+
+  it.each(['hi', 'a'.repeat(128), '😀'.repeat(64), undefined])(
     'accepts message %p',
     async (message) => {
       expect(await messageErrors(message)).toHaveLength(0);

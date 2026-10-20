@@ -23,12 +23,11 @@ import {
   IsEnum,
   IsIn,
   IsInt,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Max,
-  MaxLength,
+  Matches,
   Min,
   Validate,
   ValidateNested,
@@ -83,8 +82,10 @@ export class BaseCreateTrade {
   })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(128)
+  // Counts UTF-16 code units like steam-tradeoffer-manager's truncation
+  @Matches(/^[\s\S]{1,128}$/, {
+    message: 'message must be between 1 and 128 characters',
+  })
   message?: string;
 
   @ApiProperty({
