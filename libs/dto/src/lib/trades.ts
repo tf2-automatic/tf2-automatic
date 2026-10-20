@@ -23,10 +23,12 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   Validate,
   ValidateNested,
@@ -74,12 +76,15 @@ export class AssetDto implements Asset {
 
 export class BaseCreateTrade {
   @ApiProperty({
-    description: 'The message to send with the trade offer',
+    description:
+      'The message to send with the trade offer. Max 128 characters.',
     example: 'Hello, I would like to trade with you',
     required: false,
   })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
   message?: string;
 
   @ApiProperty({

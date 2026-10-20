@@ -348,7 +348,8 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         !activeTrade.isOurOffer ||
         activeTrade.createdAt < time ||
         activeTrade.partner !== partnerSteamID64 ||
-        activeTrade.message !== trade.message
+        // Steam returns '' for no message
+        (activeTrade.message || null) !== (trade.message || null)
       ) {
         continue;
       }
