@@ -372,7 +372,6 @@ export class TradesService implements OnApplicationBootstrap {
       {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         bot: event.metadata.steamid64!,
-        // MAX_SAFE_INTEGER because Infinity becomes null in JSON
         retry: { maxTime: Number.MAX_SAFE_INTEGER, maxDelay: 60000 },
       },
     );
