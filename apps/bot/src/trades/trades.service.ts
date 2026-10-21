@@ -718,7 +718,7 @@ export class TradesService {
    * Gets a trade offer and publishes it even if it was already published
    */
   async refreshTrade(id: string): Promise<GetTradeResponse> {
-    const offer = await this.loadOfferWithCaching(id);
+    const offer = await this.loadOfferWithCaching(id, false);
 
     // Publish the offer and say the old state was the last published state
     await this.publishOffer(offer, offer.data('published'));
