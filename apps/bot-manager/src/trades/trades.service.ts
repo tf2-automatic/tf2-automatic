@@ -40,22 +40,22 @@ import {
   Bot,
   QueueTradeResponse,
   QueueTradeJob,
-  EXCHANGE_DETAILS_EVENT,
-  ExchangeDetailsEvent,
 } from '@tf2-automatic/bot-manager-data';
 import { GetExchangeDetailsDto, GetTradesDto } from '@tf2-automatic/dto';
 import { Job as BullJob, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
-import SteamID from 'steamid';
 import { randomUUID } from 'node:crypto';
-import { TradeQueue } from './trades.types';
+import { ExchangeDetailsJobData, TradeQueue } from './trades.types';
 import { Redis } from 'ioredis';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import { LockDuration, Locker } from '@tf2-automatic/locking';
-import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { ClsService } from 'nestjs-cls';
-import { CustomJob, QueueManagerWithEvents } from '@tf2-automatic/queue';
+import {
+  CustomJob,
+  QueueManager,
+  QueueManagerWithEvents,
+} from '@tf2-automatic/queue';
 import { JobWithBot } from '@tf2-automatic/common-data';
 import assert from 'assert';
 import { getBotUrl } from '../heartbeats/heartbeats.utils';
@@ -69,6 +69,11 @@ export class TradesService implements OnApplicationBootstrap {
     TradeQueue
   >;
 
+  private readonly exchangeDetailsQueueManager: QueueManager<
+    ExchangeDetailsJobData['options'],
+    ExchangeDetailsJobData
+  >;
+
   private readonly locker: Locker;
 
   private readonly redis: Redis = this.redisService.getOrThrow();
@@ -77,14 +82,19 @@ export class TradesService implements OnApplicationBootstrap {
     private readonly httpService: HttpService,
     @InjectQueue('trades')
     queue: Queue<CustomJob<TradeQueue>>,
+    @InjectQueue('exchange-details')
+    exchangeDetailsQueue: Queue<CustomJob<ExchangeDetailsJobData>>,
     private readonly redisService: RedisService,
     private readonly eventsService: NestEventsService,
-    private readonly heartbeatService: HeartbeatsService,
     cls: ClsService,
   ) {
     this.locker = new Locker(this.redis);
 
     this.queueManager = new QueueManagerWithEvents(queue, cls);
+    this.exchangeDetailsQueueManager = new QueueManager(
+      exchangeDetailsQueue,
+      cls,
+    );
   }
 
   async onApplicationBootstrap() {
@@ -353,32 +363,18 @@ export class TradesService implements OnApplicationBootstrap {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const steamid = new SteamID(event.metadata.steamid64!);
+    const { offer } = event.data;
 
-    this.logger.debug(
-      'Getting exchange details for offer ' + event.data.offer.id + '...',
-    );
-
-    const bot = await this.heartbeatService.getBot(steamid);
-
-    const details = await this.getExchangeDetails(
-      bot,
-      event.data.offer.id,
-      true,
-    );
-
-    this.logger.debug(
-      'Publishing exchange details for offer ' + event.data.offer.id + '...',
-    );
-
-    await this.eventsService.publish(
-      EXCHANGE_DETAILS_EVENT,
+    await this.exchangeDetailsQueueManager.addJob(
+      'exchange-details_' + offer.id + '_' + offer.state,
+      'exchange-details',
+      { offer },
       {
-        offer: event.data.offer,
-        details,
-      } satisfies ExchangeDetailsEvent['data'],
-      steamid,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        bot: event.metadata.steamid64!,
+        // MAX_SAFE_INTEGER because Infinity becomes null in JSON
+        retry: { maxTime: Number.MAX_SAFE_INTEGER, maxDelay: 60000 },
+      },
     );
   }
 
