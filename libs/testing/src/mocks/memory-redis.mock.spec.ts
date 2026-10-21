@@ -22,4 +22,31 @@ describe('createMemoryRedis', () => {
       null,
     ]);
   });
+
+  it('stores strings with set and removes them with del', async () => {
+    const { redis, strings } = createMemoryRedis('prefix:');
+    const value = Buffer.from('value');
+
+    redis.set('a', value);
+
+    expect(await redis.getBuffer('a')).toBe(value);
+    expect(strings.has('prefix:a')).toBe(true);
+    expect(await redis.getBuffer('missing')).toBeNull();
+
+    redis.del('a');
+
+    expect(await redis.getBuffer('a')).toBeNull();
+  });
+
+  it('reads whole hashes and reports ttl like ioredis', async () => {
+    const { redis } = createMemoryRedis();
+    const value = Buffer.from('value');
+
+    redis.hset('a', { field: value });
+
+    expect(await redis.hgetallBuffer('a')).toEqual({ field: value });
+    expect(await redis.hgetallBuffer('missing')).toEqual({});
+    expect(await redis.ttl('a')).toBe(-1);
+    expect(await redis.ttl('missing')).toBe(-2);
+  });
 });
