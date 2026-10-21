@@ -124,7 +124,7 @@ export abstract class CustomWorkerHost<
 
           const retryable = err instanceof CustomHttpException && err.retryable;
 
-          if (status < 500 && status >= 400 && status !== 429 && !retryable) {
+          if (!retryable && status < 500 && status >= 400 && status !== 429) {
             // Don't retry on 4xx errors except for 429
             if (typeof response === 'object') {
               throw new CustomUnrecoverableError(err.message, response);
