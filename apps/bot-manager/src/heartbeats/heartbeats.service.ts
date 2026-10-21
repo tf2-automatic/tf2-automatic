@@ -5,7 +5,6 @@ import {
   HttpStatus,
   Injectable,
   Logger,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   Bot,
@@ -38,6 +37,12 @@ import { CustomHttpException } from '@tf2-automatic/queue';
 export class BotNotFoundException extends CustomHttpException {
   constructor() {
     super('Bot not found', HttpStatus.NOT_FOUND, true);
+  }
+}
+
+export class BotNotRunningException extends CustomHttpException {
+  constructor() {
+    super('Bot is not running', HttpStatus.SERVICE_UNAVAILABLE, true);
   }
 }
 
@@ -111,7 +116,7 @@ export class HeartbeatsService {
     }
 
     if (bot.running === false) {
-      throw new ServiceUnavailableException('Bot is not running');
+      throw new BotNotRunningException();
     }
 
     // Check if the bot is alive / ip + port combination is valid
