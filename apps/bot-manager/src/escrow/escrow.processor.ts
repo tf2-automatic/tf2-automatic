@@ -88,9 +88,7 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
     if (job.data.bot) {
       const botSteamID = new SteamID(job.data.bot);
 
-      return this.heartbeatsService.getBot(botSteamID).catch((err) => {
-        throw new Error(err.message);
-      });
+      return this.heartbeatsService.getBot(botSteamID);
     }
 
     // Get list of bots
