@@ -1,5 +1,6 @@
 import { Binary } from './binary';
-import { Item } from '../types';
+import { InventoryItem, Item, PossibleInventoryItem } from '../types';
+import { Utils } from '../utils';
 
 describe('Binary', () => {
   describe('#encode', () => {
@@ -42,8 +43,8 @@ describe('Binary', () => {
 
       expect(encoded).toEqual(
         new Uint8Array([
-          161, 21, 132, 164, 1, 24, 123, 2, 6, 10, 2, 22, 13, 163, 2, 6, 10, 1,
-          22, 12, 162, 2, 6, 22, 10, 162, 2, 6, 22, 11,
+          161, 21, 132, 162, 2, 6, 22, 10, 162, 2, 6, 22, 11, 163, 2, 6, 10, 1,
+          22, 12, 164, 1, 24, 123, 2, 6, 10, 2, 22, 13,
         ]),
       );
     });
@@ -56,6 +57,56 @@ describe('Binary', () => {
       const encoded = Binary.encode(item);
 
       expect(encoded).toEqual(new Uint8Array([161, 17, 133, 1, 2, 3, 10, 20]));
+    });
+
+    it('should encode an item with all properties to the same bytes', () => {
+      const item: Partial<InventoryItem> = {
+        assetid: '15243278945',
+        defindex: 30743,
+        quality: 5,
+        craftable: false,
+        tradable: false,
+        australium: true,
+        festivized: true,
+        effect: 3017,
+        wear: 2,
+        paintkit: 391,
+        killstreak: 3,
+        target: 1071,
+        output: 6526,
+        outputQuality: 6,
+        elevated: true,
+        crateSeries: 101,
+        paint: 15185211,
+        parts: [64, 17],
+        spells: [
+          [1009, 1],
+          [1004, 2],
+        ],
+        sheen: 4,
+        killstreaker: 2008,
+        quantity: -1,
+      };
+
+      const encoded = Binary.encode(item);
+
+      // Encoded items are used as keys, so the bytes must never change
+      expect(encoded).toEqual(
+        new Uint8Array([
+          182, 0, 107, 49, 53, 50, 52, 51, 50, 55, 56, 57, 52, 53, 1, 25, 120,
+          23, 2, 32, 3, 244, 4, 244, 5, 245, 6, 245, 7, 25, 11, 201, 8, 2, 9,
+          25, 1, 135, 10, 3, 11, 25, 4, 47, 12, 25, 25, 126, 13, 6, 14, 245, 15,
+          24, 101, 16, 26, 0, 231, 181, 59, 17, 130, 17, 24, 64, 18, 130, 130,
+          25, 3, 236, 2, 130, 25, 3, 241, 1, 19, 4, 20, 25, 7, 216, 22, 32,
+        ]),
+      );
+    });
+
+    it('should sort parts that differ in bytes above 0x7f', () => {
+      const expected = new Uint8Array([161, 17, 130, 25, 23, 128, 25, 23, 129]);
+
+      expect(Binary.encode({ parts: [6016, 6017] })).toEqual(expected);
+      expect(Binary.encode({ parts: [6017, 6016] })).toEqual(expected);
     });
 
     it('should not include empty parts, spells and inputs', () => {
@@ -143,6 +194,46 @@ describe('Binary', () => {
         expect(encoded).toEqual(new Uint8Array([162, 1, 25, 19, 157, 2, 6]));
       }
     });
+
+    it('should encode the same as compacting and canonicalizing first', () => {
+      const skin = { defindex: 15013, paintkit: 102, wear: 3 };
+      const items: Partial<PossibleInventoryItem>[] = [
+        {},
+        Utils.getDefault(),
+        { ...Utils.getDefault(), defindex: 5021, quality: 6 },
+        { ...skin, quality: 15 },
+        { ...skin, quality: 15, effect: 703 },
+        { ...skin, quality: 11 },
+        { ...skin, quality: 11, effect: 703 },
+        { ...skin, quality: 15, elevated: true },
+        { ...skin, quality: 5, effect: 703, elevated: true },
+        { ...skin, quality: -1, elevated: true },
+        { defindex: 15013, quality: 15, paintkit: 102 },
+        { defindex: 15013, quality: 11, wear: 1 },
+        { defindex: 200, quality: 5, effect: 13, elevated: true },
+        { defindex: 200, quality: -1, elevated: false, effect: null },
+        {
+          ...Utils.getDefault(),
+          defindex: 200,
+          quality: 11,
+          parts: [3, 1],
+          spells: [[1009, 1]],
+          inputs: [{ quality: 6, quantity: 2 }],
+        },
+      ];
+
+      for (const item of items) {
+        const before = JSON.stringify(item);
+
+        const copy = { ...item };
+        Utils.compact(copy);
+        Utils.canonicalize(copy);
+
+        expect(Binary.encode(item)).toEqual(Binary.encode(copy));
+        // Encoding must not modify the item
+        expect(JSON.stringify(item)).toEqual(before);
+      }
+    });
   });
 
   describe('#decode', () => {
@@ -172,17 +263,17 @@ describe('Binary', () => {
       expect(decoded).toEqual({
         inputs: [
           {
-            killstreak: 1,
-            quality: 6,
-            quantity: 12,
-          },
-          {
             quality: 6,
             quantity: 10,
           },
           {
             quality: 6,
             quantity: 11,
+          },
+          {
+            killstreak: 1,
+            quality: 6,
+            quantity: 12,
           },
         ],
       });

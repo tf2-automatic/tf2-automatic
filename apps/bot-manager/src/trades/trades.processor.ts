@@ -100,9 +100,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
 
     this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
 
-    const bot = await this.heartbeatsService.getBot(botSteamID).catch((err) => {
-      throw new Error(err.message);
-    });
+    const bot = await this.heartbeatsService.getBot(botSteamID);
 
     switch (job.data.type) {
       case 'CREATE':
@@ -307,8 +305,12 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
             response.data,
           );
         }
-      } else if (response.status >= 400 && response.status < 500) {
-        // Unrecoverable error, don't retry
+      } else if (
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 429
+      ) {
+        // Unrecoverable error except rate limits, don't retry
         throw new CustomUnrecoverableError(
           response.data?.message ?? err.message,
           response.data,
@@ -344,7 +346,8 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
         !activeTrade.isOurOffer ||
         activeTrade.createdAt < time ||
         activeTrade.partner !== partnerSteamID64 ||
-        activeTrade.message !== trade.message
+        // Steam returns '' for no message
+        (activeTrade.message || null) !== (trade.message || null)
       ) {
         continue;
       }

@@ -6,6 +6,8 @@ export type StorageConfig = S3StorageConfig | LocalStorageConfig;
 interface BaseConfig {
   type: unknown;
   directory: string;
+  readConcurrency: number;
+  writeConcurrency: number;
 }
 
 export interface S3StorageConfig extends BaseConfig {
@@ -22,10 +24,26 @@ export interface LocalStorageConfig extends BaseConfig {
   type: 'local';
 }
 
+function getConcurrencyConfig() {
+  return {
+    readConcurrency: getEnvWithDefault(
+      'STORAGE_READ_CONCURRENCY',
+      'integer',
+      64,
+    ),
+    writeConcurrency: getEnvWithDefault(
+      'STORAGE_WRITE_CONCURRENCY',
+      'integer',
+      64,
+    ),
+  };
+}
+
 export function getLocalStorageConfig(): LocalStorageConfig {
   return {
     type: 'local',
     directory: getEnv('STORAGE_LOCAL_PATH', 'string')!,
+    ...getConcurrencyConfig(),
   };
 }
 
@@ -33,6 +51,7 @@ export function getS3StorageConfig(): S3StorageConfig {
   return {
     type: 's3',
     directory: getEnv('STORAGE_S3_PATH', 'string')!,
+    ...getConcurrencyConfig(),
     endpoint: getEnv('STORAGE_S3_ENDPOINT', 'string')!,
     port: getEnv('STORAGE_S3_PORT', 'integer')!,
     useSSL: getEnvWithDefault('STORAGE_S3_USE_SSL', 'boolean', false),

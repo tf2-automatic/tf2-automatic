@@ -223,6 +223,30 @@ describe('EconParser', () => {
       expect(extracted.uses).toEqual(1);
     });
 
+    it('will parse inputs without a terminating description', () => {
+      const item = TestData.getStrangifierChemistrySet();
+
+      const start = item.descriptions.findIndex(
+        (d) =>
+          d.value === 'The following are the inputs that must be fulfilled.',
+      );
+      const end = item.descriptions.findIndex(
+        (d, i) => i > start && d.value === ' ',
+      );
+      item.descriptions = item.descriptions.slice(0, end);
+
+      const extracted = parser.extract(item);
+
+      expect(extracted.inputs).toEqual([
+        { name: 'The Righteous Bison', quantity: 5 },
+        { name: 'The Winger', quantity: 1 },
+        { name: 'The Backburner', quantity: 1 },
+        { name: 'The Gunboats', quantity: 1 },
+        { name: 'The Half-Zatoichi', quantity: 1 },
+        { name: 'Strange Mad Milk', quantity: 1 },
+      ]);
+    });
+
     it('will parse Strangifiers', () => {
       const item = TestData.getStrangifier();
 
@@ -635,6 +659,31 @@ describe('EconParser', () => {
       expect(extracted.killstreaker).toEqual('Flames');
       expect(extracted.sheen).toEqual('Mean Green');
     });
+
+    it('will not modify the descriptions of the item', () => {
+      const item = TestData.getStrangifierChemistrySet();
+      const length = item.descriptions.length;
+      const copy = structuredClone(item.descriptions);
+
+      parser.extract(item);
+      parser.extract(item);
+
+      expect(item.descriptions.length).toEqual(length);
+      expect(item.descriptions).toEqual(copy);
+    });
+
+    it('will not modify the descriptions of the item when parsing throws', () => {
+      const item = TestData.getStrangifierChemistrySet();
+      item.descriptions[0] = Object.defineProperty({}, 'value', {
+        get() {
+          throw new Error('boom');
+        },
+      }) as EconItem['descriptions'][number];
+      const length = item.descriptions.length;
+
+      expect(() => parser.extract(item)).toThrow('boom');
+      expect(item.descriptions.length).toEqual(length);
+    });
   });
 
   describe('#parse', () => {
@@ -716,6 +765,23 @@ describe('EconParser', () => {
       expect(schema.getQualityByName).toHaveBeenNthCalledWith(1, 'Unique');
 
       expect(parsed.quality).toEqual(6);
+    });
+
+    it('will throw if the exterior name is unknown', async () => {
+      const item = TestData.getDecoratedWeapon();
+      for (const tag of item.tags) {
+        if (tag.category === 'Exterior') {
+          tag.name = 'Bogus Wear';
+        }
+      }
+
+      mockSchema();
+
+      const extracted = parser.extract(item);
+
+      await expect(parser.parse(extracted)).rejects.toThrow(
+        'Unknown wear "Bogus Wear"',
+      );
     });
 
     it('will throw if `fetch` throws', async () => {

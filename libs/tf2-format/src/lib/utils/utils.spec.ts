@@ -225,6 +225,42 @@ describe('Utils', () => {
     });
   });
 
+  describe('#getDefault', () => {
+    it('should return the default item', () => {
+      const item = Utils.getDefault();
+
+      expect(item).toEqual(DEFAULT_ITEM);
+      expect(Object.keys(item)).toEqual(Object.keys(DEFAULT_ITEM));
+    });
+
+    it('should not share arrays between calls or with DEFAULT_ITEM', () => {
+      const first = Utils.getDefault();
+      const second = Utils.getDefault();
+
+      expect(first.parts).not.toBe(second.parts);
+      expect(first.spells).not.toBe(second.spells);
+      expect(first.parts).not.toBe(DEFAULT_ITEM.parts);
+      expect(first.spells).not.toBe(DEFAULT_ITEM.spells);
+    });
+
+    it('should not change DEFAULT_ITEM or later calls when any field is mutated', () => {
+      const before = JSON.stringify(DEFAULT_ITEM);
+      const item = Utils.getDefault();
+
+      for (const key of Object.keys(item)) {
+        const value = item[key];
+        if (Array.isArray(value)) {
+          value.push(1);
+        } else {
+          item[key] = 'mutated';
+        }
+      }
+
+      expect(JSON.stringify(DEFAULT_ITEM)).toEqual(before);
+      expect(Utils.getDefault()).toEqual(DEFAULT_ITEM);
+    });
+  });
+
   describe('#hasAttribute', () => {
     it('will return true if the attribute is present and different', () => {
       const item = { ...Utils.getDefault(), defindex: 1 };

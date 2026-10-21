@@ -106,6 +106,15 @@ describe('SKU', () => {
       expect(item.quality).toEqual(-1234);
     });
 
+    it('will decode a SKU with only a defindex', () => {
+      const sku = '5021';
+
+      const item = SKU.fromString(sku);
+
+      expect(item.defindex).toEqual(5021);
+      expect(item.quality).toEqual(-1);
+    });
+
     it('will not throw', () => {
       expect(() => {
         SKU.fromString(`Pe]XD'h(k2lU~{wtVp//CE&;?fz'R@N3}FAQv~D;JOn&B]"Ay$`);

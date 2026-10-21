@@ -21,17 +21,25 @@ import {
 } from '@tf2-automatic/bot-data';
 import fastq from 'fastq';
 import type { queueAsPromised } from 'fastq';
+import { waitForEvent } from '@tf2-automatic/utils';
 import { EventsService } from '../events/events.service';
 import { CraftDto, SortBackpackDto } from '@tf2-automatic/dto';
+
+const EVENT_TIMEOUT_MS = 10000;
+const GC_DISCONNECTED = {
+  event: 'disconnectedFromGC',
+  error: 'Disconnected from GC',
+};
 
 enum TaskType {
   Craft = 'CRAFT',
   Use = 'USE',
   Delete = 'DELETE',
   Sort = 'SORT',
+  Refresh = 'REFRESH',
 }
 
-type Task = CraftTask | UseTask | DeleteTask | SortTask;
+type Task = CraftTask | UseTask | DeleteTask | SortTask | RefreshTask;
 
 type BaseTask = {
   type: TaskType;
@@ -57,6 +65,10 @@ type SortTask = BaseTask & {
   sort: SortBackpackTypes;
 };
 
+type RefreshTask = BaseTask & {
+  type: TaskType.Refresh;
+};
+
 class ItemNotInBackpackException extends BadRequestException {
   constructor(assetid: string) {
     super('Item is not in backpack (assetid: ' + assetid + ')');
@@ -78,6 +90,7 @@ export class TF2Service implements OnApplicationShutdown {
   private account: TF2Account | null = null;
 
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private refreshQueued = false;
   private manuallyDisconnectedFromGC = false;
 
   constructor(
@@ -132,6 +145,11 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.on('itemRemoved', (item) => {
       this.refreshInventory();
 
+      // The gc emits null for items missing from its cache
+      if (!item) {
+        return;
+      }
+
       this.eventsService
         .publish(TF2_LOST_EVENT, item satisfies TF2LostEvent['data'])
         .catch(() => {
@@ -157,11 +175,28 @@ export class TF2Service implements OnApplicationShutdown {
     }
 
     this.reconnectTimeout = setTimeout(() => {
-      this.logger.debug('Reconnecting to GC to refresh inventory');
-      this.manuallyDisconnectedFromGC = true;
-      this.botService.exitGame(440);
       this.reconnectTimeout = null;
+
+      if (this.refreshQueued) {
+        return;
+      }
+
+      // Queued so the GC is never disconnected in the middle of a task
+      this.refreshQueued = true;
+      this.queue.push({ type: TaskType.Refresh }).catch((err) => {
+        this.logger.warn('Failed to refresh inventory: ' + err.message);
+      });
     }, 10000);
+  }
+
+  private async processRefresh(): Promise<void> {
+    this.refreshQueued = false;
+    this.logger.debug('Reconnecting to GC to refresh inventory');
+
+    const loaded = this.waitForEvent('backpackLoaded');
+    this.manuallyDisconnectedFromGC = true;
+    this.botService.exitGame(440);
+    await loaded;
   }
 
   private async process(task: Task): Promise<unknown> {
@@ -178,11 +213,19 @@ export class TF2Service implements OnApplicationShutdown {
       case TaskType.Delete:
         return this.processDeleteItem(task.assetid);
       case TaskType.Sort:
-        return this.processSortBackpack();
+        return this.processSortBackpack(task.sort);
+      case TaskType.Refresh:
+        return this.processRefresh();
       default:
         // @ts-expect-error Gives compile-time error if not all task types are handled.
         throw new Error('Unknown task type: ' + task.type);
     }
+  }
+
+  private enqueue<T extends (...args: never[]) => unknown>(
+    task: Task,
+  ): ReturnType<T> {
+    return this.queue.push(task) as ReturnType<T>;
   }
 
   craft(craft: CraftDto): Promise<CraftResult> {
@@ -190,9 +233,7 @@ export class TF2Service implements OnApplicationShutdown {
       type: TaskType.Craft,
       craft,
     };
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processCraft']>;
-    });
+    return this.enqueue<TF2Service['processCraft']>(task);
   }
 
   private processCraft(craft: CraftDto): Promise<CraftResult> {
@@ -235,9 +276,7 @@ export class TF2Service implements OnApplicationShutdown {
       assetid,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processUseItem']>;
-    });
+    return this.enqueue<TF2Service['processUseItem']>(task);
   }
 
   private processUseItem(assetid: string): Promise<void> {
@@ -250,7 +289,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.useItem(assetid);
 
     return this.waitForEvent('itemRemoved', ([item]) => {
-      return item.id == assetid;
+      return item?.id == assetid;
     }).then(() => {
       this.logger.debug('Item used (assetid: ' + assetid + ')');
     });
@@ -262,9 +301,7 @@ export class TF2Service implements OnApplicationShutdown {
       assetid,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processDeleteItem']>;
-    });
+    return this.enqueue<TF2Service['processDeleteItem']>(task);
   }
 
   private processDeleteItem(assetid: string): Promise<void> {
@@ -277,7 +314,7 @@ export class TF2Service implements OnApplicationShutdown {
     this.tf2.deleteItem(assetid);
 
     return this.waitForEvent('itemRemoved', ([item]) => {
-      return item.id == assetid;
+      return item?.id == assetid;
     }).then(() => {
       this.logger.debug('Item deleted (assetid: ' + assetid + ')');
     });
@@ -289,9 +326,7 @@ export class TF2Service implements OnApplicationShutdown {
       sort: sort.sort,
     };
 
-    return this.queue.push(task).then((result) => {
-      return result as ReturnType<TF2Service['processSortBackpack']>;
-    });
+    return this.enqueue<TF2Service['processSortBackpack']>(task);
   }
 
   getBackpack(): TF2Item[] {
@@ -302,14 +337,13 @@ export class TF2Service implements OnApplicationShutdown {
     return this.tf2.backpack;
   }
 
-  private processSortBackpack(): Promise<void> {
-    this.logger.debug('Sorting backpack');
+  private async processSortBackpack(sort: SortBackpackTypes): Promise<void> {
+    this.logger.debug(`Sorting backpack (type: ${sort})`);
 
-    this.tf2.sortBackpack(102);
+    this.tf2.sortBackpack(sort);
 
-    return this.waitForNoEvent('itemChanged', 1000).then(() => {
-      this.logger.debug('Backpack sorted');
-    });
+    await this.waitForNoEvent('itemChanged', 1000);
+    this.logger.debug('Backpack sorted');
   }
 
   onApplicationShutdown(): void {
@@ -372,10 +406,7 @@ export class TF2Service implements OnApplicationShutdown {
 
   /**
    * Waits for no event to be emitted for a certain amount of time
-   * @param eventName Name of the event
-   * @param timeoutDuration Amount of time to wait
-   * @param filter Filter events based on the arguments
-   * @returns Promise that resolves when no event has been emitted for `timeoutDuration`
+   * @param filter Filter events based on the arguments array
    * @throws Error if disconnected from GC
    */
   private waitForNoEvent(
@@ -383,91 +414,28 @@ export class TF2Service implements OnApplicationShutdown {
     timeoutDuration: number,
     filter?: (...args) => boolean,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const createTimeout = () => {
-        const timeout = setTimeout(() => {
-          removeListeners();
-          resolve();
-        }, timeoutDuration);
-
-        return timeout;
-      };
-
-      let timeout = createTimeout();
-
-      const listener = (...args) => {
-        if (filter && !filter(args)) {
-          // Not the event we are looking for
-          return;
-        }
-
-        clearTimeout(timeout);
-        timeout = createTimeout();
-      };
-
-      const disconnectedListener = () => {
-        removeListeners();
-        reject(new Error('Disconnected from GC'));
-      };
-
-      const removeListeners = () => {
-        clearTimeout(timeout);
-        this.tf2.removeListener(eventName, listener);
-        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-      };
-
-      if (eventName !== 'disconnectedFromGC') {
-        this.tf2.once('disconnectedFromGC', disconnectedListener);
-      }
-
-      this.tf2.on(eventName, listener);
-    });
+    return waitForEvent(this.tf2, eventName, {
+      filter: filter && ((...args) => filter(args)),
+      timeout: timeoutDuration,
+      rejectOn: GC_DISCONNECTED,
+      quiet: true,
+    }).then(() => undefined);
   }
 
   /**
    * Waits for an event to be emitted
-   * @param eventName Name of the event
-   * @param filter Filter events based on the arguments
    * @returns The arguments of the event
-   * @throws Error if the event is not emitted within 10 seconds
+   * @throws Error if the event is not emitted within the timeout
    * @throws Error if disconnected from GC
    */
   private waitForEvent(
     eventName: string,
     filter?: (...args) => boolean,
   ): Promise<unknown[]> {
-    return new Promise((resolve, reject) => {
-      const listener = (...args) => {
-        if (filter && !filter(args)) {
-          // Not the event we are looking for
-          return;
-        }
-
-        removeListeners();
-        resolve(args);
-      };
-
-      const disconnectedListener = () => {
-        removeListeners();
-        reject(new Error('Disconnected from GC'));
-      };
-
-      const removeListeners = () => {
-        clearTimeout(timeout);
-        this.tf2.removeListener(eventName, listener);
-        this.tf2.removeListener('disconnectedFromGC', disconnectedListener);
-      };
-
-      const timeout = setTimeout(() => {
-        removeListeners();
-        reject(new Error('Timed out waiting for event'));
-      }, 10000);
-
-      if (eventName !== 'disconnectedFromGC') {
-        this.tf2.once('disconnectedFromGC', disconnectedListener);
-      }
-
-      this.tf2.on(eventName, listener);
+    return waitForEvent(this.tf2, eventName, {
+      filter: filter && ((...args) => filter(args)),
+      timeout: EVENT_TIMEOUT_MS,
+      rejectOn: GC_DISCONNECTED,
     });
   }
 }

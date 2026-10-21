@@ -3,6 +3,9 @@ import { Context, TF2APIItem } from './types';
 import { Attributes, ExtractedTF2Item } from '../tf2/types';
 import { TF2Parser } from '../tf2/parser';
 
+// Reused for every attribute, it is only read before the next write
+const VALUE = Buffer.alloc(4);
+
 export class TF2APIParser extends TF2Parser<TF2APIItem> {
   private extractAttributes(
     attributes: TF2APIItem['attributes'],
@@ -40,11 +43,12 @@ export class TF2APIParser extends TF2Parser<TF2APIItem> {
                 quantity,
               };
 
-              if (attribute.itemdef) {
+              // Defindex 0 and quality 0 are valid values
+              if (attribute.itemdef !== undefined) {
                 input.defindex = attribute.itemdef;
               }
 
-              if (attribute.quality) {
+              if (attribute.quality !== undefined) {
                 input.quality = attribute.quality;
               }
 
@@ -58,18 +62,18 @@ export class TF2APIParser extends TF2Parser<TF2APIItem> {
                 result[key] = recipeAttributes[key];
               }
 
-              if (attribute.itemdef) {
+              if (attribute.itemdef !== undefined) {
                 result.output = attribute.itemdef;
               }
 
-              if (attribute.quality) {
+              if (attribute.quality !== undefined) {
                 result.outputQuality = attribute.quality;
               }
             }
             break;
           }
           default: {
-            const value = Buffer.allocUnsafe(4);
+            const value = VALUE;
             if (attribute.float_value !== undefined) {
               value.writeFloatLE(attribute.float_value, 0);
             } else if (typeof attribute.value === 'number') {

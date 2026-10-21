@@ -14,6 +14,7 @@ import {
 } from '@tf2-automatic/bot-data';
 import { BotService } from '../bot/bot.service';
 import { EventsService } from '../events/events.service';
+import { waitForEvent } from '@tf2-automatic/utils';
 import { Gauge } from 'prom-client';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 
@@ -165,33 +166,26 @@ export class FriendsService {
   }
 
   deleteFriend(steamid: SteamID): Promise<void> {
-    this.logger.debug(`Deleting friend ${steamid.getSteamID64()}...`);
+    const steamid64 = steamid.getSteamID64();
+    this.logger.debug(`Deleting friend ${steamid64}...`);
 
-    return new Promise<void>((resolve, reject) => {
+    // Not a friend, nothing to delete
+    let removed: Promise<unknown> = Promise.resolve();
+
+    if (this.client.myFriends[steamid64] !== undefined) {
+      // Register before removing so the event can't be missed
+      removed = waitForEvent(this.client, 'friendRelationship#' + steamid64, {
+        filter: (_sid, relationship) =>
+          relationship === SteamUser.EFriendRelationship.None,
+        timeout: 5000,
+        timeoutError: 'Timeout',
+      });
       this.client.removeFriend(steamid);
+    }
 
-      const timeout = setTimeout(() => {
-        this.client.removeListener('friendRelationship', listener);
-        reject(new Error('Timeout'));
-      }, 5000);
-
-      const listener = (
-        sid: SteamID,
-        relationship: SteamUser.EFriendRelationship,
-      ) => {
-        if (
-          steamid.getSteamID64() === sid.getSteamID64() &&
-          relationship === SteamUser.EFriendRelationship.None
-        ) {
-          clearTimeout(timeout);
-          return resolve();
-        }
-      };
-
-      this.client.once('friendRelationship', listener);
-    })
+    return removed
       .then(() => {
-        this.logger.debug(`Deleted friend ${steamid.getSteamID64()}`);
+        this.logger.debug(`Deleted friend ${steamid64}`);
       })
       .catch((err) => {
         this.logger.error('Error deleting friend: ' + err.message);

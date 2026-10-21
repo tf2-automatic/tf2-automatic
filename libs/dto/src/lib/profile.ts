@@ -13,6 +13,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -49,7 +50,7 @@ export class UpdateGamesDto implements UpdateGames {
     example: [440, 570, 730],
   })
   @IsArray()
-  @Type(() => String)
+  @IsInt({ each: true })
   appids: number[];
 }
 
