@@ -363,6 +363,8 @@ export class TradesService implements OnApplicationBootstrap {
       return;
     }
 
+    assert(event.metadata.steamid64, 'SteamID64 is not set');
+
     const { offer } = event.data;
 
     await this.exchangeDetailsQueueManager.addJob(
@@ -370,8 +372,7 @@ export class TradesService implements OnApplicationBootstrap {
       'exchange-details',
       { offer },
       {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        bot: event.metadata.steamid64!,
+        bot: event.metadata.steamid64,
         retry: { maxTime: Number.MAX_SAFE_INTEGER, maxDelay: 60000 },
       },
     );

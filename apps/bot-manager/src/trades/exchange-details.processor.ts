@@ -18,10 +18,6 @@ import { ExchangeDetailsJobData } from './trades.types';
 
 @Processor('exchange-details', {
   settings: bullWorkerSettings,
-  limiter: {
-    max: 5,
-    duration: 5000,
-  },
 })
 export class ExchangeDetailsProcessor extends CustomWorkerHost<ExchangeDetailsJobData> {
   constructor(
