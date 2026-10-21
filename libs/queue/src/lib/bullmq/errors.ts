@@ -1,5 +1,6 @@
 import type { HttpError } from '@tf2-automatic/bot-data';
 import { UnrecoverableError } from 'bullmq';
+import { HttpException } from '@nestjs/common';
 
 export function createErrorMessage(message: string, response: HttpError) {
   let errorMessage = `Upstream error: ${response.message ?? message}`;
@@ -62,4 +63,14 @@ export function errorToEvent(err: unknown): {
         : null,
     unrecoverable: err instanceof UnrecoverableError,
   };
+}
+
+export class CustomHttpException extends HttpException {
+  constructor(
+    message: string,
+    status: number,
+    readonly retryable = false,
+  ) {
+    super(message, status);
+  }
 }

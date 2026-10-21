@@ -2,12 +2,9 @@ import { RedisService } from '@liaoliaots/nestjs-redis';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
-  HttpException,
   HttpStatus,
   Injectable,
   Logger,
-  NotFoundException,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   Bot,
@@ -35,6 +32,19 @@ import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
 import { AxiosError } from 'axios';
 import { getBotUrl } from './heartbeats.utils';
+import { CustomHttpException } from '@tf2-automatic/queue';
+
+export class BotNotFoundException extends CustomHttpException {
+  constructor() {
+    super('Bot not found', HttpStatus.NOT_FOUND, true);
+  }
+}
+
+export class BotNotRunningException extends CustomHttpException {
+  constructor() {
+    super('Bot is not running', HttpStatus.SERVICE_UNAVAILABLE, true);
+  }
+}
 
 const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
@@ -102,11 +112,11 @@ export class HeartbeatsService {
   async getBot(steamid: SteamID): Promise<Bot> {
     const bot = await this.getCachedBot(steamid);
     if (!bot) {
-      throw new NotFoundException('Bot not found');
+      throw new BotNotFoundException();
     }
 
     if (bot.running === false) {
-      throw new ServiceUnavailableException('Bot is not running');
+      throw new BotNotRunningException();
     }
 
     // Check if the bot is alive / ip + port combination is valid
@@ -115,7 +125,7 @@ export class HeartbeatsService {
     if (running === null || running.steamid64 !== bot.steamid64) {
       // Bot is not the same as we thought it was
       return this.markStopped(steamid, false, bot.lastSeen).then(() => {
-        throw new NotFoundException('Bot not found');
+        throw new BotNotFoundException();
       });
     }
 
@@ -195,7 +205,7 @@ export class HeartbeatsService {
         const bot = await this.getCachedBot(steamid);
         if (bot === null) {
           // Bot does not exist
-          throw new NotFoundException('Bot not found');
+          throw new BotNotFoundException();
         }
 
         // A newer heartbeat won the race, keep the bot running
@@ -245,7 +255,7 @@ export class HeartbeatsService {
         const bot = await this.getCachedBot(steamid);
         if (bot === null) {
           // Bot does not exist
-          throw new NotFoundException('Bot not found');
+          throw new BotNotFoundException();
         }
 
         if (signal.aborted) {
@@ -301,9 +311,10 @@ export class HeartbeatsService {
 
       if (errorMessage) {
         this.logger.warn('Bot is inaccessible (' + errorMessage + ')');
-        throw new HttpException(
+        throw new CustomHttpException(
           'Bot is inaccessible (' + errorMessage + ')',
           HttpStatus.FAILED_DEPENDENCY,
+          true,
         );
       }
 

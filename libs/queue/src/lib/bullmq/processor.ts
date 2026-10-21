@@ -4,7 +4,11 @@ import { ClsService } from 'nestjs-cls';
 import type { CustomJob, CustomWorker, JobData } from './types';
 import { customBackoffStrategy } from './backoff-strategy';
 import { AxiosError } from 'axios';
-import { CustomError, CustomUnrecoverableError } from './errors';
+import {
+  CustomError,
+  CustomHttpException,
+  CustomUnrecoverableError,
+} from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
 import { HttpException, Logger } from '@nestjs/common';
 import { AssertionError } from 'assert';
@@ -118,7 +122,9 @@ export abstract class CustomWorkerHost<
         if (statusAndResponse !== null) {
           const { status, response } = statusAndResponse;
 
-          if (status < 500 && status >= 400 && status !== 429) {
+          const retryable = err instanceof CustomHttpException && err.retryable;
+
+          if (!retryable && status < 500 && status >= 400 && status !== 429) {
             // Don't retry on 4xx errors except for 429
             if (typeof response === 'object') {
               throw new CustomUnrecoverableError(err.message, response);

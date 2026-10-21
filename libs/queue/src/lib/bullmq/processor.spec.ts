@@ -3,7 +3,11 @@ import { UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { AsyncLocalStorage } from 'async_hooks';
 import { CustomWorkerHost } from './processor';
-import { CustomError, CustomUnrecoverableError } from './errors';
+import {
+  CustomError,
+  CustomHttpException,
+  CustomUnrecoverableError,
+} from './errors';
 import type { CustomJob, JobData } from './types';
 
 type TestJobData = JobData<unknown>;
@@ -109,6 +113,26 @@ describe('CustomWorkerHost', () => {
 
     expect(processor.failures).toHaveLength(1);
     expect(processor.failures[0]).not.toBeInstanceOf(UnrecoverableError);
+  });
+
+  it('retries a retryable 4xx http exception', async () => {
+    const processor = new TestProcessor(
+      new CustomHttpException('Bot not found', 404, true),
+    );
+
+    await expect(processor.process(makeJob())).rejects.toThrow('Bot not found');
+
+    expect(processor.failures[0]).not.toBeInstanceOf(UnrecoverableError);
+  });
+
+  it('does not retry a 4xx http exception', async () => {
+    const processor = new TestProcessor(
+      new CustomHttpException('Bad request', 400),
+    );
+
+    await expect(processor.process(makeJob())).rejects.toThrow(
+      CustomUnrecoverableError,
+    );
   });
 
   it('reports that the job is too old instead of the last error', async () => {

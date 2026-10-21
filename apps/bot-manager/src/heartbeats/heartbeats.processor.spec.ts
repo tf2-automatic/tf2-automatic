@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BotNotFoundException } from './heartbeats.service';
 import { HeartbeatsProcessor } from './heartbeats.processor';
 
 const steamid64 = '76561197960287930';
@@ -45,7 +45,7 @@ describe('HeartbeatsProcessor', () => {
   });
 
   it('does nothing when the bot is not found', async () => {
-    const { service, run } = setup(new NotFoundException(), 2);
+    const { service, run } = setup(new BotNotFoundException(), 2);
 
     await run();
 
