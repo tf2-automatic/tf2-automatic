@@ -1,6 +1,7 @@
 import { OnWorkerEvent } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
+import SteamID from 'steamid';
 import type { CustomJob, CustomWorker, JobData } from './types';
 import { customBackoffStrategy } from './backoff-strategy';
 import { AxiosError } from 'axios';
@@ -70,7 +71,7 @@ export abstract class CustomWorkerHost<
   }
 
   // Jobs for offline bots are delayed instead of attempted
-  isBotOffline(bot: string): Promise<boolean> {
+  isBotOffline(steamid: SteamID): Promise<boolean> {
     return Promise.resolve(false);
   }
 
@@ -129,7 +130,7 @@ export abstract class CustomWorkerHost<
     if (
       bot !== undefined &&
       token !== undefined &&
-      (await this.isBotOffline(bot))
+      (await this.isBotOffline(new SteamID(bot)))
     ) {
       this.logger.log(`Bot ${bot} is offline, delaying job ${job.id}`);
       const remaining = job.timestamp + maxTime - Date.now();
