@@ -11,14 +11,16 @@ import {
   CustomUnrecoverableError,
 } from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
-import { HttpException, Logger } from '@nestjs/common';
+import { HttpException, Inject, Logger, Optional } from '@nestjs/common';
 import { AssertionError } from 'assert';
 import { ClsWorkerHost } from './cls-worker-host';
 import {
   delayJobForOfflineBot,
+  BotStatus,
   OFFLINE_BOT_DELAY,
   promoteOfflineBotJobs,
 } from './offline-bots';
+import { DelaysOfflineBotJobs } from './offline-bot-jobs.service';
 
 export abstract class CustomWorkerHost<
   DataType extends JobData,
@@ -29,6 +31,10 @@ export abstract class CustomWorkerHost<
   CustomWorker<DataType>
 > {
   logger = new Logger(this.constructor.name);
+
+  @Optional()
+  @Inject(BotStatus)
+  private readonly botStatus?: BotStatus;
 
   override process(
     job: CustomJob<DataType, ReturnType, NameType>,
@@ -74,11 +80,6 @@ export abstract class CustomWorkerHost<
     return Promise.resolve();
   }
 
-  // Jobs for offline bots are delayed instead of attempted
-  isBotOffline(steamid: SteamID): Promise<boolean> {
-    return Promise.resolve(false);
-  }
-
   promoteOfflineBotJobs(steamid: SteamID): Promise<void> {
     return promoteOfflineBotJobs(this.worker, steamid.getSteamID64());
   }
@@ -118,6 +119,19 @@ export abstract class CustomWorkerHost<
   }
 
   /* eslint-enable @typescript-eslint/no-unused-vars */
+
+  // Only processors marked with @DelaysOfflineBotJobs() are also woken up again
+  private isBotOffline(steamid: SteamID): Promise<boolean> {
+    const delays = Reflect.hasMetadata(
+      DelaysOfflineBotJobs.KEY,
+      this.constructor,
+    );
+    if (!delays || this.botStatus === undefined) {
+      return Promise.resolve(false);
+    }
+
+    return this.botStatus.isBotOffline(steamid);
+  }
 
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,

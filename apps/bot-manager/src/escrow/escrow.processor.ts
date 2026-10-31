@@ -33,10 +33,6 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
     super(cls);
   }
 
-  override isBotOffline(steamid: SteamID): Promise<boolean> {
-    return this.heartbeatsService.isBotStopped(steamid);
-  }
-
   async preErrorHandler(
     job: CustomJob<EscrowJobData>,
     err: unknown,

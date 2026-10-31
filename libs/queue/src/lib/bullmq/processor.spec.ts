@@ -3,6 +3,7 @@ import { DelayedError, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { AsyncLocalStorage } from 'async_hooks';
 import { CustomWorkerHost } from './processor';
+import { DelaysOfflineBotJobs } from './offline-bot-jobs.service';
 import {
   CustomError,
   CustomHttpException,
@@ -34,6 +35,8 @@ class TestProcessor extends CustomWorkerHost<TestJobData> {
     this.failures.push(err);
   }
 }
+
+const offlineBotStatus = { isBotOffline: async () => true };
 
 function makeJob(overrides: Partial<CustomJob<TestJobData>> = {}) {
   return {
@@ -186,8 +189,11 @@ describe('CustomWorkerHost', () => {
   });
 
   it('delays a job for an offline bot without attempting it', async () => {
-    const processor = new TestProcessor();
-    jest.spyOn(processor, 'isBotOffline').mockResolvedValue(true);
+    @DelaysOfflineBotJobs()
+    class DelayingProcessor extends TestProcessor {}
+
+    const processor = new DelayingProcessor();
+    Object.assign(processor, { botStatus: offlineBotStatus });
     const spy = jest.spyOn(processor, 'processJob');
 
     const exec = jest.fn().mockResolvedValue([]);
@@ -215,5 +221,15 @@ describe('CustomWorkerHost', () => {
       '1',
     ]);
     expect(processor.failures).toHaveLength(0);
+  });
+
+  it('does not delay jobs of processors without the decorator', async () => {
+    const processor = new TestProcessor();
+    Object.assign(processor, { botStatus: offlineBotStatus });
+
+    const job = makeJob();
+    job.data.bot = '76561198120070906';
+
+    await expect(processor.process(job, 'token')).resolves.toBe('ok');
   });
 });

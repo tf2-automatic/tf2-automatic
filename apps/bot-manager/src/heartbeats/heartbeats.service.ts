@@ -34,6 +34,7 @@ import { AxiosError } from 'axios';
 import { getBotUrl } from './heartbeats.utils';
 import {
   CustomHttpException,
+  BotStatus,
   OfflineBotJobsService,
 } from '@tf2-automatic/queue';
 
@@ -53,7 +54,7 @@ const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 
 @Injectable()
-export class HeartbeatsService {
+export class HeartbeatsService implements BotStatus {
   private readonly logger = new Logger(HeartbeatsService.name);
   private readonly locker: Locker;
 
@@ -113,7 +114,7 @@ export class HeartbeatsService {
     return bot;
   }
 
-  async isBotStopped(steamid: SteamID): Promise<boolean> {
+  async isBotOffline(steamid: SteamID): Promise<boolean> {
     const bot = await this.getCachedBot(steamid);
     return bot?.running === false;
   }

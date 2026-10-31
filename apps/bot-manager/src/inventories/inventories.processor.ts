@@ -41,10 +41,6 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     super(cls);
   }
 
-  override isBotOffline(steamid: SteamID): Promise<boolean> {
-    return this.heartbeatsService.isBotStopped(steamid);
-  }
-
   async preErrorHandler(
     job: CustomJob<InventoryJobData>,
     err: unknown,

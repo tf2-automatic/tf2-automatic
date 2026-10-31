@@ -1,7 +1,7 @@
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { Module } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
-import { OfflineBotJobsService } from '@tf2-automatic/queue';
+import { BotStatus, OfflineBotJobsService } from '@tf2-automatic/queue';
 import { HeartbeatsController } from './heartbeats.controller';
 import { HeartbeatsService } from './heartbeats.service';
 import { BullModule } from '@nestjs/bullmq';
@@ -25,7 +25,12 @@ import { HeartbeatsProcessor } from './heartbeats.processor';
     }),
   ],
   controllers: [HeartbeatsController],
-  providers: [HeartbeatsService, HeartbeatsProcessor, OfflineBotJobsService],
-  exports: [HeartbeatsService],
+  providers: [
+    HeartbeatsService,
+    HeartbeatsProcessor,
+    OfflineBotJobsService,
+    { provide: BotStatus, useExisting: HeartbeatsService },
+  ],
+  exports: [HeartbeatsService, BotStatus],
 })
 export class HeartbeatsModule {}

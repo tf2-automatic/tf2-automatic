@@ -1,7 +1,13 @@
 import { DelayedError, Job, MinimalQueue } from 'bullmq';
+import SteamID from 'steamid';
 
 // Jobs for an offline bot wait this long unless the bot comes back first
 export const OFFLINE_BOT_DELAY = 60 * 1000;
+
+// Provided by the app to tell the queues which bots are offline
+export abstract class BotStatus {
+  abstract isBotOffline(steamid: SteamID): Promise<boolean>;
+}
 
 type KeyedQueue = Pick<MinimalQueue, 'toKey' | 'client'>;
 
@@ -37,14 +43,27 @@ export async function promoteOfflineBotJobs(
 ): Promise<void> {
   const key = getKey(queue, bot);
   const client = await queue.client;
-  const result = await client.multi().smembers(key).del(key).exec();
-  const ids = (result?.[0]?.[1] ?? []) as string[];
+  const ids = await client.smembers(key);
 
   await Promise.all(
     ids.map(async (id) => {
       const job = await Job.fromId(queue, id);
-      // Fails if the job is no longer delayed
-      await job?.promote().catch(() => undefined);
+      await job?.promote().catch((err) => {
+        if (!isGoneFromDelayed(err)) {
+          throw err;
+        }
+      });
+      // Unflag only once handled so a failed promote is retried next heartbeat
+      await client.runCommand('srem', [key, id]);
     }),
+  );
+}
+
+// The job already ran or was removed since it was flagged
+function isGoneFromDelayed(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    (err.message.startsWith('Missing key for job ') ||
+      err.message.includes('is not in the delayed state'))
   );
 }
