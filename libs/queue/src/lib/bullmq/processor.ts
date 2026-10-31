@@ -171,7 +171,7 @@ export abstract class CustomWorkerHost<
       token !== undefined &&
       (await this.isBotOffline(new SteamID(bot)))
     ) {
-      this.logger.warn(`Bot ${bot} is offline, delaying job ${job.id}`);
+      this.logger.warn(`Bot is offline, delaying job ${job.id}`);
       const remaining = job.timestamp + maxTime - Date.now();
       await delayJobForOfflineBot(
         this.worker,
