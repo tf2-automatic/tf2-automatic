@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import { EXCHANGE_DETAILS_EVENT } from '@tf2-automatic/bot-manager-data';
 import { ExchangeDetailsProcessor } from './exchange-details.processor';
 
@@ -34,18 +33,5 @@ describe('ExchangeDetailsProcessor', () => {
       { offer, details: { details: true } },
       expect.anything(),
     );
-  });
-
-  it('rethrows a getBot HttpException as a plain Error', async () => {
-    const { processor, publish } = create(
-      jest.fn().mockRejectedValue(new NotFoundException('Bot not found')),
-    );
-
-    const err = await processor.processJob(job).catch((e) => e);
-
-    expect(err).toBeInstanceOf(Error);
-    expect(err).not.toBeInstanceOf(NotFoundException);
-    expect(err.message).toBe('Bot not found');
-    expect(publish).not.toHaveBeenCalled();
   });
 });

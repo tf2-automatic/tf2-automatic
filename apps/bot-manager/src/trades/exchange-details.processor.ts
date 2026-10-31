@@ -8,6 +8,7 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
   bullWorkerSettings,
   CustomWorkerHost,
+  DelaysOfflineBotJobs,
   errorToEvent,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
@@ -16,6 +17,7 @@ import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 import { TradesService } from './trades.service';
 import { ExchangeDetailsJobData } from './trades.types';
 
+@DelaysOfflineBotJobs()
 @Processor('exchange-details', {
   settings: bullWorkerSettings,
 })
@@ -33,10 +35,7 @@ export class ExchangeDetailsProcessor extends CustomWorkerHost<ExchangeDetailsJo
     const { offer } = job.data.options;
     const steamid = new SteamID(job.data.bot);
 
-    // getBot throws HttpExceptions, which the queue would treat as unrecoverable
-    const bot = await this.heartbeatsService.getBot(steamid).catch((err) => {
-      throw new Error(err.message);
-    });
+    const bot = await this.heartbeatsService.getBot(steamid);
 
     const details = await this.tradesService.getExchangeDetails(
       bot,
