@@ -173,7 +173,7 @@ export abstract class CustomWorkerHost<
       );
       if (first) {
         this.logger.warn(
-          `Processing job ${this.describeJob(job)} delayed until the bot is online`,
+          `Job ${this.describeJob(job)} delayed until the bot is online`,
         );
       }
       throw new DelayedError();
