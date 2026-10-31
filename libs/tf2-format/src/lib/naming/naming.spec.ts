@@ -230,6 +230,27 @@ describe('NameGenerator', () => {
       expect(name).toBe('Red Rock Roscoe Pistol (Factory New)');
     });
 
+    it.each([null, undefined])(
+      'will add the quality to an unusual without an effect (effect: %p)',
+      async (effect) => {
+        schema.getSchemaItemByDefindex.mockReturnValueOnce({
+          item_name: 'Team Captain',
+          proper_name: true,
+          item_quality: 6,
+        });
+        schema.getQualityById.mockReturnValueOnce('Unusual');
+
+        const name = await generator.getName({
+          defindex: 378,
+          quality: 5,
+          effect,
+        });
+
+        expect(name).toBe('Unusual Team Captain');
+        expect(schema.getQualityById).toHaveBeenCalledWith(5);
+      },
+    );
+
     it('will handle Invalid Particle effect', async () => {
       schema.getSchemaItemByDefindex.mockReturnValueOnce({
         item_name: 'Hong Kong Cone',

@@ -13,6 +13,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { NotificationsModule } from './notifications/notifications.module';
 import { getUserAgent, Redis } from '@tf2-automatic/config';
 import { HttpModule } from '@nestjs/axios';
+import { ClsModule } from 'nestjs-cls';
 
 @Module({
   imports: [
@@ -51,6 +52,19 @@ import { HttpModule } from '@nestjs/axios';
     }),
     PrometheusModule.register(),
     EventEmitterModule.forRoot(),
+    ClsModule.forRoot({
+      global: true,
+      interceptor: {
+        mount: true,
+        setup: (cls, context) => {
+          // Requests for an account log with its steamid64, like jobs
+          const steamid = context.switchToHttp().getRequest().params?.steamid;
+          if (typeof steamid === 'string') {
+            cls.set('steamid64', steamid);
+          }
+        },
+      },
+    }),
     ListingsModule,
     InventoriesModule,
     TokensModule,

@@ -4,18 +4,9 @@ import { NotificationsController } from './notifications.controller';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { TokensModule } from '../tokens/tokens.module';
 import { BullModule } from '@nestjs/bullmq';
-import { DefaultJobOptions } from 'bullmq';
+import { defaultJobOptions } from '@tf2-automatic/queue';
 import { NotificationsProcessor } from './notifications.processor';
-
-const defaultJobOptions: DefaultJobOptions = {
-  attempts: Number.MAX_SAFE_INTEGER,
-  backoff: {
-    type: 'exponential',
-    delay: 500,
-  },
-  removeOnComplete: true,
-  removeOnFail: true,
-};
+import { RateLimitsModule } from '../rate-limits/rate-limits.module';
 
 @Module({
   imports: [
@@ -25,6 +16,7 @@ const defaultJobOptions: DefaultJobOptions = {
     }),
     RedisModule,
     TokensModule,
+    RateLimitsModule,
   ],
   providers: [NotificationsService, NotificationsProcessor],
   controllers: [NotificationsController],

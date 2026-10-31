@@ -63,7 +63,7 @@ describe('BptfParser', () => {
       expect(extracted.parts).toEqual([]);
       expect(extracted.paintkit).toEqual(82);
       expect(extracted.quantity).toEqual(null);
-      expect(extracted.inputs).toEqual([]);
+      expect(extracted.inputs).toBeNull();
       expect(extracted.output).toEqual(725);
       expect(extracted.outputQuality).toEqual(6);
       expect(extracted.target).toEqual(null);
@@ -138,7 +138,7 @@ describe('BptfParser', () => {
       expect(extracted.killstreak).toEqual(1);
       expect(extracted.sheen).toEqual(null);
       expect(extracted.killstreaker).toEqual(null);
-      expect(extracted.inputs).toEqual([]);
+      expect(extracted.inputs).toBeNull();
       expect(extracted.target).toEqual(206);
       expect(extracted.output).toEqual(null);
     });

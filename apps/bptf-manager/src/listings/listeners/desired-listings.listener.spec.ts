@@ -107,8 +107,11 @@ describe('DesiredListingsListener', () => {
     ).setID('1234');
 
     jest
-      .spyOn(DesiredListingsService.prototype, 'getAllDesired')
-      .mockResolvedValue([desired]);
+      .spyOn(DesiredListingsService.prototype, 'getAllDesiredHashes')
+      .mockResolvedValue([desired.getHash()]);
+    jest
+      .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
+      .mockResolvedValue(new Map([[desired.getHash(), desired]]));
 
     await service.currentListingsDeletedAll(steamid);
 
@@ -201,6 +204,46 @@ describe('DesiredListingsListener', () => {
             .setID('abc123')
             .setLastAttemptedAt(0),
         ],
+        listings,
+      },
+    );
+  });
+
+  it('should emit created when the desired listing was removed during creation', async () => {
+    const steamid = new SteamID('76561198120070906');
+
+    // The desired listing was removed while the listing was being created
+    jest
+      .spyOn(DesiredListingsService.prototype, 'getDesiredByHashes')
+      .mockResolvedValue(new Map());
+
+    const listings: Record<string, Listing> = {
+      someHash: {
+        id: 'abc123',
+        currencies: {
+          keys: 1,
+        },
+        item: {},
+        archived: false,
+        listedAt: 0,
+        bumpedAt: 0,
+      },
+    };
+
+    await service.currentListingsCreated({
+      steamid,
+      listings,
+    });
+
+    // Nothing is saved, so the removed desired listing is not re-added
+    expect(mock.redis.hset).toHaveBeenCalledTimes(0);
+
+    // The created handlers queue the orphaned listing to be deleted
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      'desired-listings.created',
+      {
+        steamid,
+        desired: [],
         listings,
       },
     );

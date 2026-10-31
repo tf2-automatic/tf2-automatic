@@ -22,6 +22,8 @@ const TAGS_OF_INTEREST = new Set<keyof TagAttributes>([
   'Type',
 ]);
 
+const WIKI_ID_REGEX = /[?&]id=(\d+)/;
+
 const NON_CRAFTABLE_DESCRIPTIONS = {
   '( Not Usable in Crafting )': true,
   '( Not Tradable, Marketable, or Usable in Crafting )': true,
@@ -291,6 +293,9 @@ export class EconParser extends Parser<
     let wear: number | null = null;
     if (raw.wear !== null) {
       wear = WEAR_NAMES_TO_LEVELS[raw.wear];
+      if (wear === undefined) {
+        throw new Error(`Unknown wear "${raw.wear}"`);
+      }
     }
 
     let target: NumberOrNull = null;
@@ -345,7 +350,11 @@ export class EconParser extends Parser<
       }
     }
 
-    const spells = await helpers.getSpellByName(raw.spells, this.schema);
+    // skip needless async hops
+    const spells =
+      raw.spells.length === 0
+        ? []
+        : await helpers.getSpellByName(raw.spells, this.schema);
 
     let paint: NumberOrNull = null;
     if (raw.paint !== null) {
@@ -385,10 +394,10 @@ export class EconParser extends Parser<
       }
     }
 
-    const inputs: RecipeInput[] | null = await helpers.parseInputs(
-      raw.inputs,
-      this.schema,
-    );
+    const inputs: RecipeInput[] | null =
+      raw.inputs === null
+        ? null
+        : await helpers.parseInputs(raw.inputs, this.schema);
 
     let crateSeries: number | null = raw.crateSeries;
     if (crateSeries === null && raw.type === 'Crate') {
@@ -473,12 +482,13 @@ export class EconParser extends Parser<
         continue;
       }
 
-      const defindex = new URL(action.link).searchParams.get('id');
-      if (defindex === null) {
+      // regex is much faster than new URL
+      const match = WIKI_ID_REGEX.exec(action.link);
+      if (match === null) {
         return null;
       }
 
-      return parseInt(defindex, 10);
+      return parseInt(match[1], 10);
     }
 
     return null;
@@ -614,12 +624,26 @@ export class EconParser extends Parser<
       return attributes;
     }
 
+    // Sentinel avoids out of bounds errors, removed again so the item is untouched
+    item.descriptions.push({ value: '' });
+    try {
+      EconParser.parseDescriptions(item, tags, start, attributes);
+    } finally {
+      item.descriptions.pop();
+    }
+
+    return attributes;
+  }
+
+  private static parseDescriptions(
+    item: EconItem,
+    tags: TagAttributes,
+    start: IdentifiableDescription,
+    attributes: DescriptionAttributes,
+  ): void {
     let next = start;
 
     const descriptions = item.descriptions;
-
-    // Add empty description to make sure we do not get out of bounds errors
-    descriptions.push({ value: '' });
 
     let i = 0;
 
@@ -824,7 +848,10 @@ export class EconParser extends Parser<
             const inputs: ExtractedRecipeInput[] = [];
             attributes.inputs = inputs;
 
-            while (descriptions[i].value !== ' ') {
+            while (
+              i < descriptions.length - 1 &&
+              descriptions[i].value !== ' '
+            ) {
               const split = descriptions[i].value.lastIndexOf(' x ');
               const name = descriptions[i].value.slice(0, split);
 
@@ -898,7 +925,11 @@ export class EconParser extends Parser<
             i++;
           }
         case IdentifiableDescription.Craftable:
-          if (NON_CRAFTABLE_DESCRIPTIONS[descriptions[i].value]) {
+          // All start with "(", a cheap check before the slow string key lookup
+          if (
+            descriptions[i].value.charCodeAt(0) === 40 &&
+            NON_CRAFTABLE_DESCRIPTIONS[descriptions[i].value]
+          ) {
             attributes.craftable = false;
             // We found everything we could possibly look for.
             break loop;
@@ -909,8 +940,6 @@ export class EconParser extends Parser<
       }
       /* eslint-enable no-fallthrough */
     }
-
-    return attributes;
   }
 }
 

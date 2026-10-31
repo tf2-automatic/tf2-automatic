@@ -38,6 +38,7 @@ import { Summary, register } from 'prom-client';
 import jwt from 'jsonwebtoken';
 import objectHash from 'object-hash';
 import path from 'path';
+import { calculateBackoff, waitForEvent } from '@tf2-automatic/utils';
 
 type HistogramEndCallback = (labels?: unknown) => void;
 
@@ -151,8 +152,6 @@ export class BotService implements OnModuleDestroy {
       dataDirectory: '',
       savePollData: true,
       pollInterval: tradeConfig.pollInterval,
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       pollFullUpdateInterval: tradeConfig.pollFullUpdateInterval,
       pendingCancelTime: tradeConfig.pendingCancelTime,
       cancelTime: tradeConfig.cancelTime,
@@ -233,8 +232,6 @@ export class BotService implements OnModuleDestroy {
         });
     });
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     this.client.on('refreshToken', (token: string) => {
       this.storageService
         .write(FILE_PATHS.TOKEN(this.username), token)
@@ -454,23 +451,19 @@ export class BotService implements OnModuleDestroy {
     return false;
   }
 
-  private async setDisabled(reason: string | null): Promise<void> {
+  private async setDisabled(reason: string): Promise<void> {
     this.logger.warn('Disabling bot, reason: ' + reason);
 
     const filename = FILE_PATHS.DISABLED(this.username);
 
-    if (reason === null) {
-      await this.storageService.delete(filename);
-    } else {
-      const data = {
-        reason,
-        hash: objectHash(
-          this.configService.getOrThrow<SteamAccountConfig>('steam'),
-        ),
-      };
+    const data = {
+      reason,
+      hash: objectHash(
+        this.configService.getOrThrow<SteamAccountConfig>('steam'),
+      ),
+    };
 
-      await this.storageService.write(filename, JSON.stringify(data));
-    }
+    await this.storageService.write(filename, JSON.stringify(data));
   }
 
   private async getLastRatelimited(): Promise<Date | null> {
@@ -481,11 +474,8 @@ export class BotService implements OnModuleDestroy {
       return null;
     }
 
-    try {
-      return new Date(ratelimited);
-    } catch {
-      return null;
-    }
+    const date = new Date(ratelimited);
+    return isNaN(date.getTime()) ? null : date;
   }
 
   private async setRatelimited(time: Date): Promise<void> {
@@ -522,6 +512,13 @@ export class BotService implements OnModuleDestroy {
     });
 
     await this.reconnect();
+
+    // Login works, so a stale disabled file is no longer relevant
+    await this.storageService
+      .delete(FILE_PATHS.DISABLED(this.username))
+      .catch(() => {
+        // Ignore error
+      });
 
     this.logger.debug('SteamID: ' + this.getSteamID64());
 
@@ -773,19 +770,10 @@ export class BotService implements OnModuleDestroy {
   }
 
   private waitForWebSession(): Promise<string[]> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.client.removeListener('webSession', listener);
-        reject(new Error('Timed out waiting for web session'));
-      }, 10000);
-
-      const listener = (_, cookies: string[]) => {
-        clearTimeout(timeout);
-        resolve(cookies);
-      };
-
-      this.client.once('webSession', listener);
-    });
+    return waitForEvent(this.client, 'webSession', {
+      timeout: 10000,
+      timeoutError: 'Timed out waiting for web session',
+    }).then((args) => args[1] as string[]);
   }
 
   private async login(refreshToken?: string): Promise<void> {
@@ -950,8 +938,13 @@ export class BotService implements OnModuleDestroy {
 
         const delay =
           attemptsRatelimited > 0
-            ? this.calculateBackoff(5 * 60 * 1000, attemptsRatelimited)
-            : this.calculateBackoff(10000, attempts);
+            ? calculateBackoff(
+                attemptsRatelimited,
+                'exponential',
+                5 * 60 * 1000,
+                30 * 60 * 1000,
+              )
+            : calculateBackoff(attempts, 'exponential', 10000, 5 * 60 * 1000);
 
         this.logger.warn(
           'Failed to connect: ' +
@@ -964,10 +957,6 @@ export class BotService implements OnModuleDestroy {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
-  }
-
-  private calculateBackoff(delay: number, attempts: number): number {
-    return delay * Math.pow(2, attempts - 1) + Math.floor(Math.random() * 1000);
   }
 
   private async getRefreshToken(): Promise<string | null> {
@@ -999,7 +988,7 @@ export class BotService implements OnModuleDestroy {
   }
 
   private async deleteRefreshToken(): Promise<void> {
-    const filename = path.join(`bots/${this.username}`, 'token.txt');
+    const filename = FILE_PATHS.TOKEN(this.username);
 
     await this.storageService.delete(filename).catch(() => {
       // Ignore error

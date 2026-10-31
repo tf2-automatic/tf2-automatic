@@ -35,7 +35,11 @@ export class Locker {
     duration: LockDuration,
     routine: (signal: RedlockAbortSignal) => Promise<T>,
   ): Promise<T> {
-    const prefixed = resources.map((resource) => this.prefix + resource);
+    // Redlock fails to release a lock with duplicate resources
+    const prefixed = Array.from(
+      new Set(resources),
+      (resource) => this.prefix + resource,
+    );
 
     return this.redlock.using(
       prefixed,

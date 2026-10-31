@@ -1,5 +1,5 @@
 import { InventoryItem, ItemsGameItem, RecipeInput } from '../../types';
-import { Context, ExtractedTF2GCItem, TF2GCItem } from './types';
+import { Context, ExtractedTF2GCItem, TF2GCItem, ValueBytes } from './types';
 import {
   CAttribute_DynamicRecipeComponent,
   DynamicRecipeFlags,
@@ -15,6 +15,7 @@ import { TF2Parser } from '../tf2/parser';
 enum AttributeTokens {
   'cannot trade' = 153,
   'always tradable' = 195,
+  'tradable after date' = 211,
   'expiration date' = 302,
   'never craftable' = 449,
   'non economy' = 777,
@@ -22,6 +23,8 @@ enum AttributeTokens {
   'killstreak effect' = 2013,
   'killstreak idleeffect' = 2014,
   'killstreak tier' = 2025,
+  'quest loaner id low' = 2051,
+  'quest loaner id hi' = 2052,
 }
 
 const PROTO: protobuf.INamespace = {
@@ -45,9 +48,15 @@ const recipeComponentType = root.lookupType(
 );
 const ATTRIBUTE_SEPERATOR = '|\x01\x02\x01\x03|\x01\x02\x01\x03|';
 
+// Buffers are read-only here, so reuse them instead of copying
+function toBuffer(value: ValueBytes | Buffer): Buffer {
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  return Buffer.isBuffer(value) ? value : Buffer.from(value as any);
+}
+
 export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
   extract(item: TF2GCItem): [ExtractedTF2GCItem, Context] {
-    const [attributes, defindexes] = this.getAttributes(item);
+    const [attributes, defindexes, tradableAfter] = this.getAttributes(item);
 
     return [
       this.createExtractedItem(item, attributes),
@@ -55,24 +64,28 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
         flags: item.flags,
         origin: item.origin,
         attributes: defindexes,
+        tradableAfter,
       },
     ];
   }
 
-  private getAttributes(item: TF2GCItem): [Partial<Attributes>, Set<number>] {
+  private getAttributes(
+    item: TF2GCItem,
+  ): [Partial<Attributes>, Set<number>, number | null] {
     const result: Partial<Attributes> = {};
 
     const inputs: RecipeInput[] = [];
 
     const defindexes = new Set<number>();
 
+    let tradableAfter: number | null = null;
+
     for (let i = 0; i < item.attribute.length; i++) {
       const attribute = item.attribute[i];
 
       defindexes.add(attribute.def_index);
 
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      const value = Buffer.from(attribute.value_bytes as any);
+      const value = toBuffer(attribute.value_bytes);
 
       switch (attribute.def_index) {
         case 2000:
@@ -105,10 +118,16 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
             component.componentFlags & DynamicRecipeFlags.IS_OUTPUT;
 
           if (!isOutput) {
+            const quantity =
+              (component.numRequired ?? 0) - (component.numFulfilled ?? 0);
+            if (quantity < 1) {
+              // Skip inputs that are already fulfilled, like the TF2 API parser
+              break;
+            }
+
             const input: RecipeInput = {
               quality: 6,
-              quantity:
-                (component.numRequired ?? 0) - (component.numFulfilled ?? 0),
+              quantity,
             };
 
             if (
@@ -162,6 +181,13 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
           break;
         }
         default:
+          if (
+            tradableAfter === null &&
+            attribute.def_index === AttributeTokens['tradable after date']
+          ) {
+            tradableAfter = value.readUInt32LE(0);
+          }
+
           TF2Parser.extractSimpleAttribute(attribute.def_index, value, result);
           break;
       }
@@ -176,13 +202,18 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       result.inputs = inputs;
     }
 
-    return [result, defindexes];
+    return [result, defindexes, tradableAfter];
   }
 
   private static isCraftable(
     schemaItem: ItemsGameItem,
+    extracted: ExtractedTF2GCItem,
     context: Context,
   ): boolean {
+    if ((context.flags & eEconItemFlags.kEconItemFlag_NonEconomy) !== 0) {
+      return false;
+    }
+
     // Always craftable
     if (
       context.attributes.has(AttributeTokens['always tradable']) ||
@@ -199,10 +230,13 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       return false;
     }
 
-    // Temporary item
+    if (TF2GCParser.isTemporary(schemaItem, context)) {
+      return false;
+    }
+
     if (
-      context.attributes.has(AttributeTokens['expiration date']) ||
-      TF2GCParser.hasAttribute('expiration date', schemaItem)
+      (context.flags & eEconItemFlags.kEconItemFlag_CannotBeUsedInCrafting) !==
+      0
     ) {
       return false;
     }
@@ -223,14 +257,17 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
           return false;
         }
 
-        if (
-          schemaItem.capabilities &&
-          schemaItem.capabilities['can_craft_if_purchased'] === '0'
-        ) {
+        // Purchased items are only craftable when the definition opts in
+        if (schemaItem.capabilities?.['can_craft_if_purchased'] !== '1') {
           return false;
         }
 
         break;
+    }
+
+    // Community, Valve and Self-Made
+    if (extracted.quality >= 7 && extracted.quality <= 9) {
+      return false;
     }
 
     return true;
@@ -241,7 +278,16 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     extracted: ExtractedTF2GCItem,
     context: Context,
   ): boolean {
+    // Held until a date, even if the item is always tradable
     if (
+      context.tradableAfter !== null &&
+      context.tradableAfter >= Math.floor(Date.now() / 1000)
+    ) {
+      return false;
+    }
+
+    if (
+      (context.flags & eEconItemFlags.kEconItemFlag_NonEconomy) !== 0 ||
       context.attributes.has(AttributeTokens['non economy']) ||
       this.hasAttribute('non economy', schemaItem)
     ) {
@@ -268,10 +314,11 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       case eEconItemOrigin.kEconItemOrigin_Foreign:
       case eEconItemOrigin.kEconItemOrigin_PreviewItem:
       case eEconItemOrigin.kEconItemOrigin_SteamWorkshopContribution:
+      case eEconItemOrigin.kEconItemOrigin_UntradableFreeContractReward:
         return false;
     }
 
-    if (context.origin === eEconItemOrigin.kEconItemOrigin_PreviewItem) {
+    if (this.isTemporary(schemaItem, context)) {
       return false;
     }
 
@@ -284,6 +331,22 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     }
 
     return true;
+  }
+
+  private static isTemporary(
+    schemaItem: ItemsGameItem,
+    context: Context,
+  ): boolean {
+    // The expiration date is a timestamp, so only its presence matters
+    return (
+      context.origin === eEconItemOrigin.kEconItemOrigin_PreviewItem ||
+      context.attributes.has(AttributeTokens['quest loaner id low']) ||
+      context.attributes.has(AttributeTokens['quest loaner id hi']) ||
+      context.attributes.has(AttributeTokens['expiration date']) ||
+      schemaItem.attributes?.['expiration date'] !== undefined ||
+      schemaItem.static_attrs?.['expiration date'] !== undefined ||
+      schemaItem.expiration_date !== undefined
+    );
   }
 
   private static hasAttribute(
@@ -336,6 +399,28 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       crateSeries = Number(schemaItem.static_attrs['set supply crate series']);
     }
 
+    // War paints have their paintkit on the definition, not on the item
+    if (
+      extracted.paintkit === null &&
+      schemaItem.static_attrs &&
+      schemaItem.static_attrs['paintkit_proto_def_index'] !== undefined
+    ) {
+      extracted = {
+        ...extracted,
+        paintkit: Number(schemaItem.static_attrs['paintkit_proto_def_index']),
+      };
+    }
+
+    // Paint cans have their colour on the definition, not on the item
+    const tint = schemaItem.attributes?.['set item tint RGB']?.value;
+    if (
+      !extracted.primaryPaint &&
+      schemaItem.tool?.type === 'paint_can' &&
+      tint !== undefined
+    ) {
+      extracted = { ...extracted, primaryPaint: Number(tint) };
+    }
+
     let paint: number | undefined | null | Error = null;
     if (extracted.primaryPaint) {
       const hex = extracted.primaryPaint.toString(16);
@@ -377,7 +462,7 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
       crateSeries,
       quantity,
       TF2GCParser.isTradable(schemaItem, extracted, context),
-      TF2GCParser.isCraftable(schemaItem, context),
+      TF2GCParser.isCraftable(schemaItem, extracted, context),
     );
   }
 }

@@ -12,7 +12,6 @@ import {
   BatchDeleteListingResponse,
   BatchUpdateListingResponse,
   DeleteAllListingsResponse,
-  DeleteListingsResponse,
   GetListingsResponse,
   UpdateListingBody,
 } from './interfaces/bptf.interface';
@@ -38,6 +37,24 @@ import { DesiredListing } from './classes/desired-listing.class';
 import { pack, unpack } from 'msgpackr';
 import assert from 'assert';
 
+// Keeps temp keys non-empty, Redis can't store an empty hash
+const TEMP_PLACEHOLDER = 'placeholder';
+
+// Seconds before temp keys expire
+const TEMP_TTL = 5 * 60;
+
+// Overwrites only fields that exist, returns the written ones
+const UPDATE_EXISTING_SCRIPT = `
+local written = {}
+for i = 1, #ARGV, 2 do
+  if redis.call('HEXISTS', KEYS[1], ARGV[i]) == 1 then
+    redis.call('HSET', KEYS[1], ARGV[i], ARGV[i + 1])
+    written[#written + 1] = ARGV[i]
+  end
+end
+return written
+`;
+
 export class CurrentListingsService {
   private readonly logger = new Logger(CurrentListingsService.name);
 
@@ -61,6 +78,18 @@ export class CurrentListingsService {
 
   async refreshListings(steamid: SteamID): Promise<void> {
     const time = Date.now();
+
+    const tempKey = this.getTempCurrentKey(steamid, time);
+    const tempKeysKey = this.getTempKeysKey(steamid);
+
+    // Track the temp key before fetching so writes made before the first page are kept
+    await this.redis
+      .multi()
+      .hmset(tempKey, { [TEMP_PLACEHOLDER]: '' })
+      .expire(tempKey, TEMP_TTL)
+      .sadd(tempKeysKey, tempKey)
+      .expire(tempKeysKey, TEMP_TTL)
+      .exec();
 
     await this.producer.add(
       {
@@ -175,14 +204,6 @@ export class CurrentListingsService {
   async deleteListings(token: Token, ids: string[]) {
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Deleting ' +
-        ids.length +
-        ' active listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
     // Figure out what listings should be deleted from the database
     const exists = await this.redis.smismember(
       this.getCurrentShouldNotDeleteEntryKey(steamid),
@@ -191,15 +212,18 @@ export class CurrentListingsService {
 
     const limits = await this.listingLimitsService.getLimits(steamid);
 
+    const start = Date.now();
     const result = await this._deleteListings(token, ids);
 
-    this.logger.log('Deleted ' + result.deleted + ' active listing(s)');
-
-    await this.deleteTempListings(steamid, ids);
+    this.logger[result.deleted > 0 ? 'log' : 'debug'](
+      `Deleted ${result.deleted} active listing(s) in ${Date.now() - start}ms`,
+    );
 
     // Filter out listings that should not be deleted (for example, when deleting active listing because newest was archived)
     const remove =
       exists.length === 0 ? ids : ids.filter((id, index) => !exists[index]);
+
+    await this.deleteTempListings(steamid, remove);
 
     // Delete current listings in database
     const transaction = this.redis.multi();
@@ -234,17 +258,12 @@ export class CurrentListingsService {
   async deleteArchivedListings(token: Token, ids: string[]) {
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Deleting ' +
-        ids.length +
-        ' archived listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
+    const start = Date.now();
     const result = await this._deleteArchivedListings(token, ids);
 
-    this.logger.log('Deleted ' + result.deleted + ' archived listing(s)');
+    this.logger[result.deleted > 0 ? 'log' : 'debug'](
+      `Deleted ${result.deleted} archived listing(s) in ${Date.now() - start}ms`,
+    );
 
     // Delete current listings in database
     await this.redis.hdel(this.getCurrentKey(steamid), ...ids);
@@ -270,28 +289,37 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Creating ' +
-        listings.length +
-        ' listing(s) for ' +
-        token.steamid64 +
-        '...',
-    );
-
     const limits = await this.listingLimitsService.getLimits(steamid);
 
+    const start = Date.now();
     const result = await this._createListings(token, listings);
+    const duration = Date.now() - start;
 
     const ids = new Set<string>();
+    const failures = new Map<string, number>();
+    let failed = 0;
     for (const listing of result) {
       if (listing.result !== undefined) {
         ids.add(listing.result.id);
+      } else {
+        // An empty message means the item does not exist, see handleCreatedListings
+        const message = listing.error?.message;
+        const reason =
+          message === '' ? 'Item does not exist' : (message ?? 'Unknown error');
+        failures.set(reason, (failures.get(reason) ?? 0) + 1);
+        failed++;
       }
     }
 
-    this.logger.log(
-      'Created ' + ids.size + ' listing(s) for ' + token.steamid64,
-    );
+    const created = failed > 0 ? `${ids.size} of ${result.length}` : ids.size;
+    this.logger.log(`Created ${created} listing(s) in ${duration}ms`);
+
+    if (failed > 0) {
+      const reasons = [...failures]
+        .map(([reason, count]) => `${reason} (${count})`)
+        .join(', ');
+      this.logger.warn(`Failed to create ${failed} listing(s): ${reasons}`);
+    }
 
     const mapped: { hash: string; response: BatchCreateListingResponse }[] = [];
     for (const index in result) {
@@ -479,18 +507,11 @@ export class CurrentListingsService {
 
     const steamid = new SteamID(token.steamid64);
 
-    this.logger.log(
-      'Updating ' +
-        listings.length +
-        ' listing(s) for ' +
-        steamid.getSteamID64() +
-        '...',
-    );
-
+    const start = Date.now();
     const result = await this._updateListings(token, listings);
 
-    this.logger.log(
-      'Updated ' + result.updated.length + ' listing(s) for ' + token.steamid64,
+    this.logger[result.updated.length > 0 ? 'log' : 'debug'](
+      `Updated ${result.updated.length} listing(s) in ${Date.now() - start}ms`,
     );
 
     const updated = new Map<string, Listing>();
@@ -508,16 +529,25 @@ export class CurrentListingsService {
       // Loop through the current listings and overwrite properties with the updated listing
       const overwritten: Listing[] = [];
 
-      for (const id in current.keys()) {
-        overwritten.push({ ...current[id], ...updated.get(id) });
+      for (const [id, listing] of current) {
+        overwritten.push({ ...listing, ...updated.get(id) });
       }
 
       if (overwritten.length > 0) {
         const mapped = this.mapListings(overwritten);
 
-        await this.saveTempListings(steamid, mapped);
+        // Skip listings deleted since they were read
+        const written = (await this.redis.eval(
+          UPDATE_EXISTING_SCRIPT,
+          1,
+          this.getCurrentKey(steamid),
+          ...Object.entries(mapped).flat(),
+        )) as string[];
 
-        await this.redis.hmset(this.getCurrentKey(steamid), mapped);
+        await this.saveTempListings(
+          steamid,
+          Object.fromEntries(written.map((id) => [id, mapped[id]])),
+        );
       }
     }
 
@@ -541,28 +571,27 @@ export class CurrentListingsService {
   }
 
   async deleteAllListings(token: Token): Promise<number> {
-    this.logger.log('Deleting all listings for ' + token.steamid64 + '...');
-
+    const start = Date.now();
     const [active, archived] = await Promise.all([
       this._deleteAllActiveListings(token),
       this._deleteAllArchivedListings(token),
     ]);
 
-    this.logger.log(
-      'Deleted ' +
-        active.deleted +
-        ' active and ' +
-        archived.deleted +
-        ' archived listing(s) for ' +
-        token.steamid64,
+    this.logger[active.deleted + archived.deleted > 0 ? 'log' : 'debug'](
+      `Deleted ${active.deleted} active and ${archived.deleted} archived listing(s) in ${Date.now() - start}ms`,
     );
 
     const steamid = new SteamID(token.steamid64);
+
+    const tempKeys = await this.getTempKeys(steamid);
 
     const transaction = this.redis.multi();
 
     // Delete all listings in database
     transaction.del(this.getCurrentKey(steamid));
+
+    // Running refreshes must not copy the deleted listings back
+    tempKeys.forEach((key) => transaction.del(key));
 
     // Clear used listings
     this.listingLimitsService.chainableClearUsed(transaction, steamid);
@@ -589,18 +618,21 @@ export class CurrentListingsService {
 
     const tempKey = this.getTempCurrentKey(steamid, job.data.start);
 
-    if (response.results.length > 0) {
-      const mapped = this.mapListings(response.results);
-      await this.saveTempListings(steamid, mapped);
+    // backpack.tf can still return listings that were just deleted
+    const deleted = new Set(
+      await this.redis.smembers(this.getTempDeletedKey(steamid)),
+    );
+    const results = response.results.filter((l) => !deleted.has(l.id));
 
-      // Add listings to current temp key
-      await this.redis
-        .multi()
-        .hmset(tempKey, this.mapListings(response.results))
-        // Make sure it expires after 5 minutes
-        .expire(tempKey, 5 * 60)
-        .exec();
-    }
+    // Adds the listings to the temp key tracked when the refresh started
+    await this.saveTempListings(steamid, this.mapListings(results));
+
+    // Keep the temp key alive while pages are still being fetched
+    await this.redis
+      .multi()
+      .expire(tempKey, TEMP_TTL)
+      .expire(this.getTempKeysKey(steamid), TEMP_TTL)
+      .exec();
 
     if (response.cursor.skip + response.cursor.limit < response.cursor.total) {
       // Fetch more listings
@@ -615,22 +647,28 @@ export class CurrentListingsService {
   async handleListingsFetched(steamid: SteamID, time: number): Promise<void> {
     const tempKey = this.getTempCurrentKey(steamid, time);
 
-    // Check if a temp key exists
+    // The temp key exists from the start, so a missing one expired or was removed by delete all
     const exists = await this.redis.exists(tempKey);
 
-    const transaction = this.redis.multi();
+    if (!exists) {
+      this.logger.warn(
+        'Temp listings of refresh ' +
+          time +
+          ' are gone, keeping current listings',
+      );
 
-    if (exists) {
-      // It exists, copy it to the current key and remove expiration
-      transaction
-        .copy(tempKey, this.getCurrentKey(steamid), 'REPLACE')
-        .persist(this.getCurrentKey(steamid));
-    } else {
-      // It does not exist, delete current key
-      transaction.del(this.getCurrentKey(steamid));
+      await this.redis.srem(this.getTempKeysKey(steamid), tempKey);
+      return;
     }
 
-    await transaction.exec();
+    // Copy the temp key to the current key and remove expiration
+    await this.redis
+      .multi()
+      .copy(tempKey, this.getCurrentKey(steamid), 'REPLACE')
+      .persist(this.getCurrentKey(steamid))
+      .hdel(this.getCurrentKey(steamid), TEMP_PLACEHOLDER)
+      .srem(this.getTempKeysKey(steamid), tempKey)
+      .exec();
 
     // Publish that the listings have been refreshed (we don't delete temp key because it will expire anyway)
     await this.eventEmitter.emitAsync('current-listings.refreshed', steamid);
@@ -644,7 +682,7 @@ export class CurrentListingsService {
       return;
     }
 
-    const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
+    const keys = await this.getTempKeys(steamid);
 
     const transaction = this.redis.multi();
 
@@ -653,7 +691,19 @@ export class CurrentListingsService {
       transaction.hmset(key, listings);
     });
 
+    // Recreated listings are no longer deleted
+    transaction.srem(this.getTempDeletedKey(steamid), ...Object.keys(listings));
+
     await transaction.exec();
+  }
+
+  // Temp keys of running refreshes, skipping expired ones so they are not recreated
+  private async getTempKeys(steamid: SteamID): Promise<string[]> {
+    const keys = await this.redis.smembers(this.getTempKeysKey(steamid));
+
+    const exists = await Promise.all(keys.map((key) => this.redis.exists(key)));
+
+    return keys.filter((_, index) => exists[index] === 1);
   }
 
   private async deleteTempListings(
@@ -664,14 +714,19 @@ export class CurrentListingsService {
       return;
     }
 
-    const keys = await this.redis.keys(this.getTempCurrentKey(steamid, '*'));
+    const keys = await this.getTempKeys(steamid);
 
     const transaction = this.redis.multi();
 
-    // Add listings to all temp keys for this steamid
+    // Remove listings from all temp keys for this steamid
     keys.forEach((key) => {
       transaction.hdel(key, ...ids);
     });
+
+    // Remember deleted listings so stale pages don't add them back
+    transaction
+      .sadd(this.getTempDeletedKey(steamid), ...ids)
+      .expire(this.getTempDeletedKey(steamid), TEMP_TTL);
 
     await transaction.exec();
   }
@@ -729,13 +784,13 @@ export class CurrentListingsService {
   private _deleteListings(
     token: Token,
     ids: string[],
-  ): Promise<DeleteListingsResponse> {
+  ): Promise<BatchDeleteListingResponse> {
     return firstValueFrom(
-      this.httpService.delete<DeleteListingsResponse>(
-        'https://api.backpack.tf/api/classifieds/delete/v1',
+      this.httpService.delete<BatchDeleteListingResponse>(
+        'https://api.backpack.tf/api/v2/classifieds/listings/batch',
         {
           data: {
-            listing_ids: ids,
+            ids,
           },
           headers: {
             'X-Auth-Token': token.value,
@@ -858,8 +913,16 @@ export class CurrentListingsService {
     return `listings:current:${steamid.getSteamID64()}`;
   }
 
-  private getTempCurrentKey(steamid: SteamID, time: number | '*'): string {
+  private getTempCurrentKey(steamid: SteamID, time: number): string {
     return this.getCurrentKey(steamid) + ':' + time;
+  }
+
+  private getTempKeysKey(steamid: SteamID): string {
+    return `listings:temp:${steamid.getSteamID64()}`;
+  }
+
+  private getTempDeletedKey(steamid: SteamID): string {
+    return this.getTempKeysKey(steamid) + ':deleted';
   }
 
   getCurrentShouldNotDeleteEntryKey(steamid: SteamID): string {

@@ -13,6 +13,7 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
   CustomJob,
   CustomWorkerHost,
+  DelaysOfflineBotJobs,
   CustomUnrecoverableError,
   bullWorkerSettings,
   selectBot,
@@ -22,6 +23,7 @@ import {
 import { ClsService } from 'nestjs-cls';
 import { InventoryJobData } from './inventories.types';
 
+@DelaysOfflineBotJobs()
 @Processor('inventories', {
   settings: bullWorkerSettings,
   limiter: {
@@ -94,9 +96,7 @@ export class InventoriesProcessor extends CustomWorkerHost<InventoryJobData> {
     if (job.data.bot) {
       const botSteamID = new SteamID(job.data.bot);
 
-      return this.heartbeatsService.getBot(botSteamID).catch((err) => {
-        throw new Error(err.message);
-      });
+      return this.heartbeatsService.getBot(botSteamID);
     }
 
     // Get list of bots

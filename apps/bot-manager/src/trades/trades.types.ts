@@ -1,4 +1,4 @@
-import { CreateTrade } from '@tf2-automatic/bot-data';
+import { CreateTrade, TradeChangedEvent } from '@tf2-automatic/bot-data';
 import {
   ManagerCounterTrade,
   QueueTradeType,
@@ -37,3 +37,7 @@ type BaseTradeQueue<
   OptionsType,
   StateType = unknown,
 > = JobDataWithBot<OptionsType, StateType, EventType>;
+
+export type ExchangeDetailsJobData = JobDataWithBot<{
+  offer: TradeChangedEvent['data']['offer'];
+}>;
