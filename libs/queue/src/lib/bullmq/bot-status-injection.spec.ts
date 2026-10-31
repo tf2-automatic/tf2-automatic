@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ClsService } from 'nestjs-cls';
 import { AsyncLocalStorage } from 'async_hooks';
 import { BotStatus } from './offline-bots';
+import { DelaysOfflineBotJobs } from './offline-bot-jobs.service';
 import { CustomWorkerHost } from './processor';
 
 @Injectable()
@@ -34,6 +35,20 @@ describe('CustomWorkerHost bot status injection', () => {
     expect(moduleRef.get(TestProcessor)).not.toHaveProperty(
       'botStatus',
       expect.anything(),
+    );
+  });
+
+  it('fails at startup when a decorated processor has no bot status', async () => {
+    @DelaysOfflineBotJobs()
+    @Injectable()
+    class DelayingProcessor extends TestProcessor {}
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [DelayingProcessor],
+    }).compile();
+
+    await expect(moduleRef.init()).rejects.toThrow(
+      'DelayingProcessor uses @DelaysOfflineBotJobs() but no BotStatus is provided',
     );
   });
 });

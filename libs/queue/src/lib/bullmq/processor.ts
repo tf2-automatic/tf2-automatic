@@ -11,7 +11,13 @@ import {
   CustomUnrecoverableError,
 } from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
-import { HttpException, Inject, Logger, Optional } from '@nestjs/common';
+import {
+  HttpException,
+  Inject,
+  Logger,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { AssertionError } from 'assert';
 import { ClsWorkerHost } from './cls-worker-host';
 import {
@@ -120,13 +126,21 @@ export abstract class CustomWorkerHost<
 
   /* eslint-enable @typescript-eslint/no-unused-vars */
 
+  onModuleInit(): void {
+    if (this.delaysOfflineBotJobs() && this.botStatus === undefined) {
+      throw new Error(
+        `${this.constructor.name} uses @DelaysOfflineBotJobs() but no BotStatus is provided`,
+      );
+    }
+  }
+
+  private delaysOfflineBotJobs(): boolean {
+    return Reflect.hasMetadata(DelaysOfflineBotJobs.KEY, this.constructor);
+  }
+
   // Only processors marked with @DelaysOfflineBotJobs() are also woken up again
   private isBotOffline(steamid: SteamID): Promise<boolean> {
-    const delays = Reflect.hasMetadata(
-      DelaysOfflineBotJobs.KEY,
-      this.constructor,
-    );
-    if (!delays || this.botStatus === undefined) {
+    if (!this.delaysOfflineBotJobs() || this.botStatus === undefined) {
       return Promise.resolve(false);
     }
 
