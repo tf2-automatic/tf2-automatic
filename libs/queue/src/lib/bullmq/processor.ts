@@ -1,5 +1,5 @@
 import { OnWorkerEvent } from '@nestjs/bullmq';
-import { Job, UnrecoverableError } from 'bullmq';
+import { DelayedError, Job, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import SteamID from 'steamid';
 import type { CustomJob, CustomWorker, JobData } from './types';
@@ -44,19 +44,6 @@ export abstract class CustomWorkerHost<
   @Optional()
   @Inject(BotStatus)
   private readonly botStatus?: BotStatus;
-
-  override process(
-    job: CustomJob<DataType, ReturnType, NameType>,
-    token?: string,
-  ) {
-    this.logger.log(
-      `Processing job ${
-        job.data.type !== undefined ? job.data.type + ' ' : ''
-      }${job.id} attempt #${job.attemptsMade + 1}...`,
-    );
-
-    return super.process(job, token);
-  }
 
   protected override setContext(
     cls: ClsService,
@@ -171,16 +158,25 @@ export abstract class CustomWorkerHost<
       token !== undefined &&
       (await this.isBotOffline(new SteamID(bot)))
     ) {
-      this.logger.warn(`Bot is offline, delaying job ${job.id}`);
       const remaining = job.timestamp + maxTime - Date.now();
-      await delayJobForOfflineBot(
+      const first = await delayJobForOfflineBot(
         this.worker,
         job,
         bot,
         token,
         Math.min(OFFLINE_BOT_DELAY, remaining),
       );
+      if (first) {
+        this.logger.warn(`Bot is offline, delaying job ${job.id}`);
+      }
+      throw new DelayedError();
     }
+
+    this.logger.log(
+      `Processing job ${
+        job.data.type !== undefined ? job.data.type + ' ' : ''
+      }${job.id} attempt #${job.attemptsMade + 1}...`,
+    );
 
     return this.processJob(job)
       .catch(async (err) => {

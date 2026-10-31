@@ -195,14 +195,20 @@ describe('CustomWorkerHost', () => {
     const processor = new DelayingProcessor();
     Object.assign(processor, { botStatus: offlineBotStatus });
     const spy = jest.spyOn(processor, 'processJob');
+    const warn = jest.spyOn(processor.logger, 'warn').mockImplementation();
+    const log = jest.spyOn(processor.logger, 'log').mockImplementation();
 
-    const exec = jest.fn().mockResolvedValue([]);
-    const multi = { runCommand: jest.fn(), exec };
-    multi.runCommand.mockReturnValue(multi);
+    // The job is flagged the first time and already flagged the second time
+    const runCommand = jest
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
     Object.defineProperty(processor, 'worker', {
       value: {
         toKey: (type: string) => 'bull:test:' + type,
-        client: Promise.resolve({ multi: () => multi }),
+        client: Promise.resolve({ runCommand }),
       },
     });
 
@@ -210,16 +216,20 @@ describe('CustomWorkerHost', () => {
     const job = makeJob({ moveToDelayed });
     job.data.bot = '76561198120070906';
 
-    await expect(processor.process(job, 'token')).rejects.toBeInstanceOf(
-      DelayedError,
-    );
+    for (let i = 0; i < 2; i++) {
+      await expect(processor.process(job, 'token')).rejects.toBeInstanceOf(
+        DelayedError,
+      );
+    }
 
     expect(spy).not.toHaveBeenCalled();
     expect(moveToDelayed).toHaveBeenCalledWith(expect.any(Number), 'token');
-    expect(multi.runCommand).toHaveBeenCalledWith('sadd', [
+    expect(runCommand).toHaveBeenCalledWith('sadd', [
       'bull:test:offline-bot:76561198120070906',
       '1',
     ]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(log).not.toHaveBeenCalled();
     expect(processor.failures).toHaveLength(0);
   });
 

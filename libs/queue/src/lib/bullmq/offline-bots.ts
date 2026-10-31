@@ -1,4 +1,4 @@
-import { DelayedError, Job, MinimalQueue } from 'bullmq';
+import { Job, MinimalQueue } from 'bullmq';
 import SteamID from 'steamid';
 
 // Jobs for an offline bot wait this long unless the bot comes back first
@@ -21,20 +21,18 @@ export async function delayJobForOfflineBot(
   bot: string,
   token: string,
   delay: number,
-): Promise<never> {
+): Promise<boolean> {
   // Delay before flagging so a promote never misses a flagged job
   await job.moveToDelayed(Date.now() + delay, token);
 
   const key = getKey(queue, bot);
   const client = await queue.client;
+  const added = await client.runCommand('sadd', [key, job.id]);
   // Expires so bots that never come back don't leave sets behind
-  await client
-    .multi()
-    .runCommand('sadd', [key, job.id])
-    .runCommand('pexpire', [key, OFFLINE_BOT_DELAY * 2])
-    .exec();
+  await client.runCommand('pexpire', [key, OFFLINE_BOT_DELAY * 2]);
 
-  throw new DelayedError();
+  // False when the job was already flagged by an earlier delay
+  return added === 1;
 }
 
 export async function promoteOfflineBotJobs(
