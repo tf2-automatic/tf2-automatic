@@ -100,8 +100,6 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   private async handleJob(job: Job<TradeQueue>) {
     const botSteamID = new SteamID(job.data.bot);
 
-    this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
-
     const bot = await this.heartbeatsService.getBot(botSteamID);
 
     switch (job.data.type) {

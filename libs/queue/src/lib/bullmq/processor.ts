@@ -137,6 +137,11 @@ export abstract class CustomWorkerHost<
     return this.botStatus.isBotOffline(steamid);
   }
 
+  private describeJob(job: CustomJob<DataType, ReturnType, NameType>) {
+    const type = job.data.type !== undefined ? job.data.type + ' ' : '';
+    return `${type}${job.id} attempt #${job.attemptsMade + 1}`;
+  }
+
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
     token?: string,
@@ -167,16 +172,14 @@ export abstract class CustomWorkerHost<
         Math.min(OFFLINE_BOT_DELAY, remaining),
       );
       if (first) {
-        this.logger.warn(`Bot is offline, delaying job ${job.id}`);
+        this.logger.warn(
+          `Processing job ${this.describeJob(job)} delayed until the bot is online`,
+        );
       }
       throw new DelayedError();
     }
 
-    this.logger.log(
-      `Processing job ${
-        job.data.type !== undefined ? job.data.type + ' ' : ''
-      }${job.id} attempt #${job.attemptsMade + 1}...`,
-    );
+    this.logger.log(`Processing job ${this.describeJob(job)}...`);
 
     return this.processJob(job)
       .catch(async (err) => {
