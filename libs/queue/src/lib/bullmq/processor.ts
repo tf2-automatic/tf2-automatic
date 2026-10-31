@@ -14,7 +14,11 @@ import { HttpError } from '@tf2-automatic/bot-data';
 import { HttpException, Logger } from '@nestjs/common';
 import { AssertionError } from 'assert';
 import { ClsWorkerHost } from './cls-worker-host';
-import { delayJobForOfflineBot, OFFLINE_BOT_DELAY } from './offline-bots';
+import {
+  delayJobForOfflineBot,
+  OFFLINE_BOT_DELAY,
+  promoteOfflineBotJobs,
+} from './offline-bots';
 
 export abstract class CustomWorkerHost<
   DataType extends JobData,
@@ -73,6 +77,10 @@ export abstract class CustomWorkerHost<
   // Jobs for offline bots are delayed instead of attempted
   isBotOffline(steamid: SteamID): Promise<boolean> {
     return Promise.resolve(false);
+  }
+
+  promoteOfflineBotJobs(steamid: SteamID): Promise<void> {
+    return promoteOfflineBotJobs(this.worker, steamid.getSteamID64());
   }
 
   onJobFailed(

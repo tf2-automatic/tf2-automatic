@@ -1,7 +1,9 @@
-import { Queue } from 'bullmq';
+import { Job, MinimalQueue } from 'bullmq';
 import { promoteOfflineBotJobs } from './offline-bots';
 
 describe('promoteOfflineBotJobs', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   it('promotes and clears the flagged jobs of the bot', async () => {
     const promote = jest.fn().mockResolvedValue(undefined);
     const multi = {
@@ -18,15 +20,18 @@ describe('promoteOfflineBotJobs', () => {
     const queue = {
       toKey: (type: string) => 'bull:test:' + type,
       client: Promise.resolve({ multi: () => multi }),
-      getJob: jest.fn(async (id: string) =>
-        id === '3'
-          ? undefined
-          : {
-              promote:
-                id === '2' ? jest.fn().mockRejectedValue(new Error()) : promote,
-            },
-      ),
-    } as unknown as Queue;
+    } as unknown as MinimalQueue;
+
+    jest.spyOn(Job, 'fromId').mockImplementation(async (_, id) => {
+      if (id === '3') {
+        return undefined;
+      }
+      // Job 2 is no longer delayed
+      return {
+        promote:
+          id === '2' ? jest.fn().mockRejectedValue(new Error()) : promote,
+      } as never;
+    });
 
     await promoteOfflineBotJobs(queue, '76561198120070906');
 

@@ -1,5 +1,7 @@
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
+import { OfflineBotJobsService } from '@tf2-automatic/queue';
 import { HeartbeatsController } from './heartbeats.controller';
 import { HeartbeatsService } from './heartbeats.service';
 import { BullModule } from '@nestjs/bullmq';
@@ -8,6 +10,7 @@ import { HeartbeatsProcessor } from './heartbeats.processor';
 @Module({
   imports: [
     RedisModule,
+    DiscoveryModule,
     BullModule.registerQueue({
       name: 'heartbeats',
       defaultJobOptions: {
@@ -20,15 +23,9 @@ import { HeartbeatsProcessor } from './heartbeats.processor';
         removeOnFail: true,
       },
     }),
-    // Queues with jobs that are delayed while their bot is offline
-    BullModule.registerQueue(
-      { name: 'trades' },
-      { name: 'inventories' },
-      { name: 'escrow' },
-    ),
   ],
   controllers: [HeartbeatsController],
-  providers: [HeartbeatsService, HeartbeatsProcessor],
+  providers: [HeartbeatsService, HeartbeatsProcessor, OfflineBotJobsService],
   exports: [HeartbeatsService],
 })
 export class HeartbeatsModule {}

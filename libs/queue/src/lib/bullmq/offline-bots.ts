@@ -1,9 +1,9 @@
-import { DelayedError, Job, Queue } from 'bullmq';
+import { DelayedError, Job, MinimalQueue } from 'bullmq';
 
 // Jobs for an offline bot wait this long unless the bot comes back first
 export const OFFLINE_BOT_DELAY = 60 * 1000;
 
-type KeyedQueue = Pick<Queue, 'toKey' | 'client'>;
+type KeyedQueue = Pick<MinimalQueue, 'toKey' | 'client'>;
 
 function getKey(queue: KeyedQueue, bot: string): string {
   return queue.toKey('offline-bot:' + bot);
@@ -32,7 +32,7 @@ export async function delayJobForOfflineBot(
 }
 
 export async function promoteOfflineBotJobs(
-  queue: KeyedQueue & Pick<Queue, 'getJob'>,
+  queue: MinimalQueue,
   bot: string,
 ): Promise<void> {
   const key = getKey(queue, bot);
@@ -42,7 +42,7 @@ export async function promoteOfflineBotJobs(
 
   await Promise.all(
     ids.map(async (id) => {
-      const job = await queue.getJob(id);
+      const job = await Job.fromId(queue, id);
       // Fails if the job is no longer delayed
       await job?.promote().catch(() => undefined);
     }),

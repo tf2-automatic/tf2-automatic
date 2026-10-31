@@ -38,10 +38,12 @@ import {
   CustomError,
   CustomUnrecoverableError,
   CustomWorkerHost,
+  DelaysOfflineBotJobs,
   errorToEvent,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
 
+@DelaysOfflineBotJobs()
 @Processor('trades', {
   settings: bullWorkerSettings,
   limiter: {
