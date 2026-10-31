@@ -43,6 +43,9 @@ export enum eEconItemOrigin {
   kEconItemOrigin_QuestLoanerItem,
   kEconItemOrigin_TradeUp,
   kEconItemOrigin_ViralCompetitiveBetaPassSpread,
+  kEconItemOrigin_CYOABloodMoneyPurchase,
+  kEconItemOrigin_Paintkit,
+  kEconItemOrigin_UntradableFreeContractReward,
   kEconItemOrigin_Max,
 }
 

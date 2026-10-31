@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { RetryOptions } from '@tf2-automatic/common-data';
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
 
 export class QueueRetryDto implements RetryOptions {
   @ApiProperty({
@@ -42,4 +42,16 @@ export class QueueRetryDto implements RetryOptions {
   @IsInt()
   @Min(10000)
   maxDelay?: number;
+
+  @ApiProperty({
+    description:
+      'Fraction the delay is randomly reduced by, so retries are spread out',
+    example: 0.2,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  jitter?: number;
 }

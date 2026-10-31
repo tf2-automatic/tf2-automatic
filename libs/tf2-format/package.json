@@ -4,7 +4,7 @@
   "dependencies": {
     "tslib": "^2.7.0",
     "protobufjs": "^8.0.0",
-    "cbor": "^10.0.3"
+    "cbor-x": "^1.6.6"
   },
   "homepage": "https://github.com/tf2-automatic/tf2-automatic",
   "repository": {

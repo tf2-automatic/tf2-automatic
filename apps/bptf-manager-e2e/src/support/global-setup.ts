@@ -3,5 +3,9 @@
 import { setup } from '../../../../libs/testing/src/e2e';
 
 module.exports = async function () {
-  await setup('bptf-manager', true);
+  await setup({
+    cwd: './apps/bptf-manager-e2e',
+    compose: true,
+    app: 'bptf-manager',
+  });
 };

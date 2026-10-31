@@ -137,7 +137,7 @@ const spellLoader = new DataLoader<string, Spell | null>(
     return axios
       .get('http://localhost:3003/schema/spells/' + spell)
       .then((res) => {
-        const result = [res.data.attribute, res.data.value];
+        const result: Spell = [res.data.attribute, res.data.value];
         cache.set('spell:' + spell, result);
         return [result];
       });
@@ -234,15 +234,18 @@ suite
       parsed[i] = parseEconItem(items[i], false, false);
     }
   })
-  .add('@tf2-automatic/tf2-format (numbers)', async () => {
-    const parsed = new Array(items.length);
+  .add('@tf2-automatic/tf2-format (numbers)', {
+    defer: true,
+    fn: (deferred: Benchmark.Deferred) => {
+      const parsed = new Array(items.length);
 
-    for (let i = 0; i < items.length; i++) {
-      const extracted = parser.extract(items[i]);
-      parsed[i] = parser.parse(extracted);
-    }
+      for (let i = 0; i < items.length; i++) {
+        const extracted = parser.extract(items[i]);
+        parsed[i] = parser.parse(extracted);
+      }
 
-    await Promise.all(parsed);
+      Promise.all(parsed).then(() => deferred.resolve());
+    },
   })
   .add('tf2-item-format (numbers)', () => {
     const parsed = new Array(items.length);

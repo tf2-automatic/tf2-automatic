@@ -100,7 +100,10 @@ export class EscrowService implements OnModuleDestroy {
       const cached = await this.getEscrowFromCache(steamid);
       return cached;
     } catch (err) {
-      if (!(err instanceof NotFoundException)) {
+      // A cached error is retried when the query supplies a token or offer id
+      const retry =
+        err instanceof HttpException && (query.token || query.offerId);
+      if (!(err instanceof NotFoundException) && !retry) {
         throw err;
       }
     }

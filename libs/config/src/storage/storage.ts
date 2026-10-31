@@ -58,6 +58,8 @@ export function getStorageConfigRules(types: StorageConfigType[] = []) {
     STORAGE_TYPE: Joi.string()
       .valid(...types)
       .required(),
+    STORAGE_READ_CONCURRENCY: Joi.number().integer().min(1).optional(),
+    STORAGE_WRITE_CONCURRENCY: Joi.number().integer().min(1).optional(),
   };
 
   if (types.length === 0 || types.includes('local')) {

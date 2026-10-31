@@ -3,6 +3,7 @@ export interface RetryOptions {
   maxTime?: number;
   delay?: number;
   maxDelay?: number;
+  jitter?: number;
 }
 
 export interface JobWithBot extends Job {
