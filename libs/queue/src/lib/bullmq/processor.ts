@@ -32,10 +32,13 @@ export abstract class CustomWorkerHost<
   DataType extends JobData,
   ReturnType = unknown,
   NameType extends string = string,
-> extends ClsWorkerHost<
-  CustomJob<DataType, ReturnType, NameType>,
-  CustomWorker<DataType>
-> {
+>
+  extends ClsWorkerHost<
+    CustomJob<DataType, ReturnType, NameType>,
+    CustomWorker<DataType>
+  >
+  implements OnModuleInit
+{
   logger = new Logger(this.constructor.name);
 
   @Optional()
