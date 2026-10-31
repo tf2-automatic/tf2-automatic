@@ -32,7 +32,11 @@ import { pack, unpack } from 'msgpackr';
 import { RelayService } from '@tf2-automatic/nestjs-relay';
 import { AxiosError } from 'axios';
 import { getBotUrl } from './heartbeats.utils';
-import { CustomHttpException } from '@tf2-automatic/queue';
+import {
+  CustomHttpException,
+  BotStatus,
+  OfflineBotJobsService,
+} from '@tf2-automatic/queue';
 
 export class BotNotFoundException extends CustomHttpException {
   constructor() {
@@ -50,7 +54,7 @@ const BOT_PREFIX = 'bots';
 const BOT_KEY = `${BOT_PREFIX}:STEAMID64`;
 
 @Injectable()
-export class HeartbeatsService {
+export class HeartbeatsService implements BotStatus {
   private readonly logger = new Logger(HeartbeatsService.name);
   private readonly locker: Locker;
 
@@ -62,6 +66,7 @@ export class HeartbeatsService {
     @InjectQueue('heartbeats')
     private readonly heartbeatsQueue: Queue<HeartbeatsQueue>,
     private readonly relayService: RelayService,
+    private readonly offlineBotJobsService: OfflineBotJobsService,
   ) {
     this.locker = new Locker(this.redis);
   }
@@ -107,6 +112,11 @@ export class HeartbeatsService {
       });
 
     return bot;
+  }
+
+  async isBotOffline(steamid: SteamID): Promise<boolean> {
+    const bot = await this.getCachedBot(steamid);
+    return bot?.running === false;
   }
 
   async getBot(steamid: SteamID): Promise<Bot> {
@@ -187,9 +197,19 @@ export class HeartbeatsService {
 
         await multi.exec();
 
+        await this.promoteDelayedJobs(steamid);
+
         return bot;
       },
     );
+  }
+
+  // Runs every heartbeat so jobs delayed in a race are picked up too
+  private promoteDelayedJobs(steamid: SteamID): Promise<void> {
+    return this.offlineBotJobsService.promote(steamid).catch((err) => {
+      this.logger.error('Failed to promote delayed jobs');
+      console.error(err);
+    });
   }
 
   async markStopped(

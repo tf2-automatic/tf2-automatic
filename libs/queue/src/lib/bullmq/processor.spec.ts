@@ -1,8 +1,9 @@
 import { AxiosError, AxiosHeaders } from 'axios';
-import { UnrecoverableError } from 'bullmq';
+import { DelayedError, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { AsyncLocalStorage } from 'async_hooks';
 import { CustomWorkerHost } from './processor';
+import { DelaysOfflineBotJobs } from './offline-bot-jobs.service';
 import {
   CustomError,
   CustomHttpException,
@@ -34,6 +35,8 @@ class TestProcessor extends CustomWorkerHost<TestJobData> {
     this.failures.push(err);
   }
 }
+
+const offlineBotStatus = { isBotOffline: async () => true };
 
 function makeJob(overrides: Partial<CustomJob<TestJobData>> = {}) {
   return {
@@ -183,5 +186,60 @@ describe('CustomWorkerHost', () => {
 
     await expect(processor.process(makeJob())).resolves.toBe('ok');
     expect(processor.failures).toHaveLength(0);
+  });
+
+  it('delays a job for an offline bot without attempting it', async () => {
+    @DelaysOfflineBotJobs()
+    class DelayingProcessor extends TestProcessor {}
+
+    const processor = new DelayingProcessor();
+    Object.assign(processor, { botStatus: offlineBotStatus });
+    const spy = jest.spyOn(processor, 'processJob');
+    const warn = jest.spyOn(processor.logger, 'warn').mockImplementation();
+    const log = jest.spyOn(processor.logger, 'log').mockImplementation();
+
+    // The job is flagged the first time and already flagged the second time
+    const runCommand = jest
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
+    Object.defineProperty(processor, 'worker', {
+      value: {
+        toKey: (type: string) => 'bull:test:' + type,
+        client: Promise.resolve({ runCommand }),
+      },
+    });
+
+    const moveToDelayed = jest.fn().mockResolvedValue(undefined);
+    const job = makeJob({ moveToDelayed });
+    job.data.bot = '76561198120070906';
+
+    for (let i = 0; i < 2; i++) {
+      await expect(processor.process(job, 'token')).rejects.toBeInstanceOf(
+        DelayedError,
+      );
+    }
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(moveToDelayed).toHaveBeenCalledWith(expect.any(Number), 'token');
+    expect(runCommand).toHaveBeenCalledWith('sadd', [
+      'bull:test:offline-bot:76561198120070906',
+      '1',
+    ]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(log).not.toHaveBeenCalled();
+    expect(processor.failures).toHaveLength(0);
+  });
+
+  it('does not delay jobs of processors without the decorator', async () => {
+    const processor = new TestProcessor();
+    Object.assign(processor, { botStatus: offlineBotStatus });
+
+    const job = makeJob();
+    job.data.bot = '76561198120070906';
+
+    await expect(processor.process(job, 'token')).resolves.toBe('ok');
   });
 });

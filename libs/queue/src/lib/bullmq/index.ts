@@ -7,3 +7,5 @@ export * from './job-options';
 export * from './manager';
 export * from './select-bot';
 export * from './get-jobs';
+export * from './offline-bots';
+export * from './offline-bot-jobs.service';

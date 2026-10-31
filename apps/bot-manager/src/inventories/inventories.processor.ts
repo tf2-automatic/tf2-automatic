@@ -13,6 +13,7 @@ import { NestEventsService } from '@tf2-automatic/nestjs-events';
 import {
   CustomJob,
   CustomWorkerHost,
+  DelaysOfflineBotJobs,
   CustomUnrecoverableError,
   bullWorkerSettings,
   selectBot,
@@ -22,6 +23,7 @@ import {
 import { ClsService } from 'nestjs-cls';
 import { InventoryJobData } from './inventories.types';
 
+@DelaysOfflineBotJobs()
 @Processor('inventories', {
   settings: bullWorkerSettings,
   limiter: {

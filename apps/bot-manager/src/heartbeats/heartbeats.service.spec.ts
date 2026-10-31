@@ -47,6 +47,7 @@ describe('HeartbeatsService', () => {
       http as never,
       queue as never,
       { publishEvent: jest.fn() } as never,
+      { promote: jest.fn().mockResolvedValue(undefined) } as never,
     );
   });
 
