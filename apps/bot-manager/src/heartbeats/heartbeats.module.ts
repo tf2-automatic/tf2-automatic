@@ -20,6 +20,12 @@ import { HeartbeatsProcessor } from './heartbeats.processor';
         removeOnFail: true,
       },
     }),
+    // Queues with jobs that are delayed while their bot is offline
+    BullModule.registerQueue(
+      { name: 'trades' },
+      { name: 'inventories' },
+      { name: 'escrow' },
+    ),
   ],
   controllers: [HeartbeatsController],
   providers: [HeartbeatsService, HeartbeatsProcessor],

@@ -1,5 +1,5 @@
 import { AxiosError, AxiosHeaders } from 'axios';
-import { UnrecoverableError } from 'bullmq';
+import { DelayedError, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { AsyncLocalStorage } from 'async_hooks';
 import { CustomWorkerHost } from './processor';
@@ -182,6 +182,38 @@ describe('CustomWorkerHost', () => {
     const processor = new TestProcessor();
 
     await expect(processor.process(makeJob())).resolves.toBe('ok');
+    expect(processor.failures).toHaveLength(0);
+  });
+
+  it('delays a job for an offline bot without attempting it', async () => {
+    const processor = new TestProcessor();
+    jest.spyOn(processor, 'isBotOffline').mockResolvedValue(true);
+    const spy = jest.spyOn(processor, 'processJob');
+
+    const exec = jest.fn().mockResolvedValue([]);
+    const multi = { runCommand: jest.fn(), exec };
+    multi.runCommand.mockReturnValue(multi);
+    Object.defineProperty(processor, 'worker', {
+      value: {
+        toKey: (type: string) => 'bull:test:' + type,
+        client: Promise.resolve({ multi: () => multi }),
+      },
+    });
+
+    const moveToDelayed = jest.fn().mockResolvedValue(undefined);
+    const job = makeJob({ moveToDelayed });
+    job.data.bot = '76561198120070906';
+
+    await expect(processor.process(job, 'token')).rejects.toBeInstanceOf(
+      DelayedError,
+    );
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(moveToDelayed).toHaveBeenCalledWith(expect.any(Number), 'token');
+    expect(multi.runCommand).toHaveBeenCalledWith('sadd', [
+      'bull:test:offline-bot:76561198120070906',
+      '1',
+    ]);
     expect(processor.failures).toHaveLength(0);
   });
 });

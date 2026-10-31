@@ -47,6 +47,9 @@ describe('HeartbeatsService', () => {
       http as never,
       queue as never,
       { publishEvent: jest.fn() } as never,
+      queue as never,
+      queue as never,
+      queue as never,
     );
   });
 

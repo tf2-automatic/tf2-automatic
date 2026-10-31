@@ -13,6 +13,7 @@ import { HttpError } from '@tf2-automatic/bot-data';
 import { HttpException, Logger } from '@nestjs/common';
 import { AssertionError } from 'assert';
 import { ClsWorkerHost } from './cls-worker-host';
+import { delayJobForOfflineBot, OFFLINE_BOT_DELAY } from './offline-bots';
 
 export abstract class CustomWorkerHost<
   DataType extends JobData,
@@ -24,14 +25,17 @@ export abstract class CustomWorkerHost<
 > {
   logger = new Logger(this.constructor.name);
 
-  override process(job: CustomJob<DataType, ReturnType, NameType>) {
+  override process(
+    job: CustomJob<DataType, ReturnType, NameType>,
+    token?: string,
+  ) {
     this.logger.log(
       `Processing job ${
         job.data.type !== undefined ? job.data.type + ' ' : ''
       }${job.id} attempt #${job.attemptsMade + 1}...`,
     );
 
-    return super.process(job);
+    return super.process(job, token);
   }
 
   protected override setContext(
@@ -47,8 +51,9 @@ export abstract class CustomWorkerHost<
 
   protected override processInContext(
     job: CustomJob<DataType, ReturnType, NameType>,
+    token?: string,
   ): Promise<unknown> {
-    return this.processJobWithErrorHandler(job);
+    return this.processJobWithErrorHandler(job, token);
   }
 
   abstract override processJob(
@@ -62,6 +67,11 @@ export abstract class CustomWorkerHost<
     err: unknown,
   ): Promise<void> {
     return Promise.resolve();
+  }
+
+  // Jobs for offline bots are delayed instead of attempted
+  isBotOffline(bot: string): Promise<boolean> {
+    return Promise.resolve(false);
   }
 
   onJobFailed(
@@ -102,6 +112,7 @@ export abstract class CustomWorkerHost<
 
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
+    token?: string,
   ): Promise<unknown> {
     // TODO: Allow ignoring max time?
     const maxTime = job.data?.retry?.maxTime ?? 120000;
@@ -112,6 +123,23 @@ export abstract class CustomWorkerHost<
       // processJob is never reached, so call the hook here instead
       await this.jobFailed(job, err);
       throw err;
+    }
+
+    const bot = job.data.bot;
+    if (
+      bot !== undefined &&
+      token !== undefined &&
+      (await this.isBotOffline(bot))
+    ) {
+      this.logger.log(`Bot ${bot} is offline, delaying job ${job.id}`);
+      const remaining = job.timestamp + maxTime - Date.now();
+      await delayJobForOfflineBot(
+        this.worker,
+        job,
+        bot,
+        token,
+        Math.min(OFFLINE_BOT_DELAY, remaining),
+      );
     }
 
     return this.processJob(job)

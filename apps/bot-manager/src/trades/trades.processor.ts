@@ -59,6 +59,10 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
     super(cls);
   }
 
+  override isBotOffline(bot: string): Promise<boolean> {
+    return this.heartbeatsService.isBotStopped(new SteamID(bot));
+  }
+
   async processJob(job: Job<TradeQueue>): Promise<unknown> {
     return this.handleJob(job)
       .then((response) => {
