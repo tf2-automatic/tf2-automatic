@@ -59,6 +59,7 @@ import {
 import { JobWithBot } from '@tf2-automatic/common-data';
 import assert from 'assert';
 import { getBotUrl } from '../heartbeats/heartbeats.utils';
+import { INVENTORY_EXPIRE_TIME } from '../inventories/inventories.service';
 
 @Injectable()
 export class TradesService implements OnApplicationBootstrap {
@@ -373,7 +374,8 @@ export class TradesService implements OnApplicationBootstrap {
       { offer },
       {
         bot: event.metadata.steamid64,
-        retry: { maxTime: Number.MAX_SAFE_INTEGER, maxDelay: 60000 },
+        // Late details could re-add items that are gone from a reloaded inventory
+        retry: { maxTime: INVENTORY_EXPIRE_TIME * 1000, maxDelay: 60000 },
       },
     );
   }
