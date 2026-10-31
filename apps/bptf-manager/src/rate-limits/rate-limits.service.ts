@@ -37,10 +37,8 @@ function getLimiterOptions(
   return {
     id: endpoint,
     maxConcurrent: 1,
-    reservoir: requests,
-    reservoirIncreaseAmount: requests,
-    reservoirIncreaseInterval: window,
-    reservoirIncreaseMaximum: requests,
+    // Even spacing keeps any sliding window under the limit
+    minTime: Math.ceil(window / requests),
   };
 }
 
@@ -175,7 +173,7 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
     // Wait out a known rate limit window in one go instead of polling
     let delay = await this.redis.pttl(this.getRateLimitedKey(endpoint, key));
     if (delay <= 0) {
-      const reservoir = await limiter.currentReservoir().catch(async (err) => {
+      const ready = await limiter.check().catch(async (err) => {
         if (err.message !== 'ERR SETTINGS_KEY_NOT_FOUND') {
           throw err;
         }
@@ -183,17 +181,12 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
         // Bottleneck expired the idle key in Redis, start with a new limiter
         await group.deleteKey(key);
         limiter = group.key(key);
-        return limiter.currentReservoir();
+        return limiter.check();
       });
-      const busy =
-        reservoir === null ? !(await limiter.check()) : reservoir <= 0;
 
-      if (busy) {
-        // The reservoir refills at least once within its interval
-        delay = Math.max(
-          options.reservoirIncreaseInterval ?? options.minTime ?? 0,
-          1000,
-        );
+      if (!ready) {
+        // The next request is allowed at most minTime from now
+        delay = Math.max(options.minTime ?? 0, 1000);
       }
     }
 
@@ -225,68 +218,29 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
       throw err;
     }
 
-    // We are rate limited, find the correct reservoir
-    const match = this.groups[endpoint].limiters().find((l) => l.key === key);
+    const { maxWindowRequests, windowSeconds, message } =
+      err.response.data ?? {};
 
-    if (!match) {
-      // Shouldn't happen
-      throw err;
-    }
+    // Wait a full window by default
+    let wait = this.rateLimits[endpoint].window;
 
-    const { maxWindowRequests, windowSeconds } = err.response.data ?? {};
     if (
       typeof maxWindowRequests === 'number' &&
       typeof windowSeconds === 'number'
     ) {
-      // Wait for the window and follow the limit backpack.tf told us about
-      await match.limiter.updateSettings({
-        reservoir: 0,
-        reservoirIncreaseAmount: maxWindowRequests,
-        reservoirIncreaseMaximum: maxWindowRequests,
-        reservoirIncreaseInterval: windowSeconds * 1000,
-      });
-      await this.redis.set(
-        this.getRateLimitedKey(endpoint, key),
-        1,
-        'PX',
-        windowSeconds * 1000,
-      );
-      throw err;
+      wait = windowSeconds * 1000;
+      // Follow the limit backpack.tf told us about
+      await this.groups[endpoint]
+        .key(key)
+        .updateSettings({ minTime: Math.ceil(wait / maxWindowRequests) });
+    } else {
+      const tryAgain = String(message).match(/Try again in (\d+) seconds./);
+      if (tryAgain) {
+        wait = parseInt(tryAgain[1]) * 1000;
+      }
     }
 
-    const waitTime = new String(err.response.data?.message).match(
-      /Try again in (\d+) seconds./,
-    );
-
-    const { requests, window } = this.rateLimits[endpoint];
-
-    // Wait a full window by default
-    let decrementAmount = requests;
-
-    if (waitTime) {
-      const tryAgainTime = parseInt(waitTime[1]);
-      // Decrement by 1 for every request interval we need to wait
-      decrementAmount = Math.min(
-        Math.ceil((tryAgainTime * 1000 * requests) / window),
-        requests,
-      );
-
-      await this.redis.set(
-        this.getRateLimitedKey(endpoint, key),
-        1,
-        'PX',
-        tryAgainTime * 1000,
-      );
-    }
-
-    const current = await match.limiter.currentReservoir();
-
-    // Subtract `decrementAmount` because this is how many requests we need to wait for
-    // Subtract `current` because the reservoir needs to be emptied
-    const increment = -decrementAmount - (current ?? 0);
-
-    // No reason to think about parallel requests because it is limited to one at a time
-    await match.limiter.incrementReservoir(increment);
+    await this.redis.set(this.getRateLimitedKey(endpoint, key), 1, 'PX', wait);
     throw err;
   }
 }
