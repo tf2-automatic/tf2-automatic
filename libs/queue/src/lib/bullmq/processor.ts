@@ -1,34 +1,49 @@
 import { OnWorkerEvent } from '@nestjs/bullmq';
-import { Job, UnrecoverableError } from 'bullmq';
+import { DelayedError, Job, UnrecoverableError } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
+import SteamID from 'steamid';
 import type { CustomJob, CustomWorker, JobData } from './types';
 import { customBackoffStrategy } from './backoff-strategy';
 import { AxiosError } from 'axios';
-import { CustomError, CustomUnrecoverableError } from './errors';
+import {
+  CustomError,
+  CustomHttpException,
+  CustomUnrecoverableError,
+} from './errors';
 import { HttpError } from '@tf2-automatic/bot-data';
-import { HttpException, Logger } from '@nestjs/common';
+import {
+  HttpException,
+  Inject,
+  Logger,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { AssertionError } from 'assert';
 import { ClsWorkerHost } from './cls-worker-host';
+import {
+  delayJobForOfflineBot,
+  BotStatus,
+  OFFLINE_BOT_DELAY,
+  promoteOfflineBotJobs,
+} from './offline-bots';
+import { DelaysOfflineBotJobs } from './offline-bot-jobs.service';
 
 export abstract class CustomWorkerHost<
   DataType extends JobData,
   ReturnType = unknown,
   NameType extends string = string,
-> extends ClsWorkerHost<
-  CustomJob<DataType, ReturnType, NameType>,
-  CustomWorker<DataType>
-> {
+>
+  extends ClsWorkerHost<
+    CustomJob<DataType, ReturnType, NameType>,
+    CustomWorker<DataType>
+  >
+  implements OnModuleInit
+{
   logger = new Logger(this.constructor.name);
 
-  override process(job: CustomJob<DataType, ReturnType, NameType>) {
-    this.logger.log(
-      `Processing job ${
-        job.data.type !== undefined ? job.data.type + ' ' : ''
-      }${job.id} attempt #${job.attemptsMade + 1}...`,
-    );
-
-    return super.process(job);
-  }
+  @Optional()
+  @Inject(BotStatus)
+  private readonly botStatus?: BotStatus;
 
   protected override setContext(
     cls: ClsService,
@@ -43,8 +58,9 @@ export abstract class CustomWorkerHost<
 
   protected override processInContext(
     job: CustomJob<DataType, ReturnType, NameType>,
+    token?: string,
   ): Promise<unknown> {
-    return this.processJobWithErrorHandler(job);
+    return this.processJobWithErrorHandler(job, token);
   }
 
   abstract override processJob(
@@ -58,6 +74,10 @@ export abstract class CustomWorkerHost<
     err: unknown,
   ): Promise<void> {
     return Promise.resolve();
+  }
+
+  promoteOfflineBotJobs(steamid: SteamID): Promise<void> {
+    return promoteOfflineBotJobs(this.worker, steamid.getSteamID64());
   }
 
   onJobFailed(
@@ -96,8 +116,35 @@ export abstract class CustomWorkerHost<
 
   /* eslint-enable @typescript-eslint/no-unused-vars */
 
+  onModuleInit(): void {
+    if (this.delaysOfflineBotJobs() && this.botStatus === undefined) {
+      throw new Error(
+        `${this.constructor.name} uses @DelaysOfflineBotJobs() but no BotStatus is provided`,
+      );
+    }
+  }
+
+  private delaysOfflineBotJobs(): boolean {
+    return Reflect.hasMetadata(DelaysOfflineBotJobs.KEY, this.constructor);
+  }
+
+  // Only processors marked with @DelaysOfflineBotJobs() are also woken up again
+  private isBotOffline(steamid: SteamID): Promise<boolean> {
+    if (!this.delaysOfflineBotJobs() || this.botStatus === undefined) {
+      return Promise.resolve(false);
+    }
+
+    return this.botStatus.isBotOffline(steamid);
+  }
+
+  private describeJob(job: CustomJob<DataType, ReturnType, NameType>) {
+    const type = job.data.type !== undefined ? job.data.type + ' ' : '';
+    return `${type}${job.id} attempt #${job.attemptsMade + 1}`;
+  }
+
   private async processJobWithErrorHandler(
     job: CustomJob<DataType, ReturnType, NameType>,
+    token?: string,
   ): Promise<unknown> {
     // TODO: Allow ignoring max time?
     const maxTime = job.data?.retry?.maxTime ?? 120000;
@@ -110,6 +157,30 @@ export abstract class CustomWorkerHost<
       throw err;
     }
 
+    const bot = job.data.bot;
+    if (
+      bot !== undefined &&
+      token !== undefined &&
+      (await this.isBotOffline(new SteamID(bot)))
+    ) {
+      const remaining = job.timestamp + maxTime - Date.now();
+      const first = await delayJobForOfflineBot(
+        this.worker,
+        job,
+        bot,
+        token,
+        Math.min(OFFLINE_BOT_DELAY, remaining),
+      );
+      if (first) {
+        this.logger.warn(
+          `Job ${this.describeJob(job)} delayed until the bot is online`,
+        );
+      }
+      throw new DelayedError();
+    }
+
+    this.logger.log(`Processing job ${this.describeJob(job)}...`);
+
     return this.processJob(job)
       .catch(async (err) => {
         await this.preErrorHandler(job, err);
@@ -118,7 +189,9 @@ export abstract class CustomWorkerHost<
         if (statusAndResponse !== null) {
           const { status, response } = statusAndResponse;
 
-          if (status < 500 && status >= 400 && status !== 429) {
+          const retryable = err instanceof CustomHttpException && err.retryable;
+
+          if (!retryable && status < 500 && status >= 400 && status !== 429) {
             // Don't retry on 4xx errors except for 429
             if (typeof response === 'object') {
               throw new CustomUnrecoverableError(err.message, response);

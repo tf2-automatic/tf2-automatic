@@ -3,6 +3,7 @@ import { HeartbeatsProcessor } from './heartbeats.processor';
 import { pack, unpack } from 'msgpackr';
 import { from, of, throwError } from 'rxjs';
 import SteamID from 'steamid';
+import { mock } from '@tf2-automatic/testing';
 
 jest.mock('@tf2-automatic/locking', () => ({
   LockDuration: { SHORT: 1 },
@@ -37,18 +38,8 @@ describe('HeartbeatsService', () => {
     );
 
   beforeEach(() => {
-    store = new Map();
-    const redis = {
-      getBuffer: async (k: string) => store.get(k) ?? null,
-      multi: () => {
-        const ops: [string, Buffer][] = [];
-        const m = {
-          set: (k: string, v: Buffer) => (ops.push([k, v]), m),
-          exec: async () => ops.forEach(([k, v]) => store.set(k, v)),
-        };
-        return m;
-      },
-    };
+    const { redis, strings } = mock.createMemoryRedis();
+    store = strings;
     http = { get: jest.fn() };
     queue = { getJob: jest.fn().mockResolvedValue(undefined), add: jest.fn() };
     service = new HeartbeatsService(
@@ -56,6 +47,7 @@ describe('HeartbeatsService', () => {
       http as never,
       queue as never,
       { publishEvent: jest.fn() } as never,
+      { promote: jest.fn().mockResolvedValue(undefined) } as never,
     );
   });
 

@@ -6,6 +6,7 @@ import { HttpException } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { pack } from 'msgpackr';
 import SteamID from 'steamid';
+import { mock } from '@tf2-automatic/testing';
 import { EscrowService } from './escrow.service';
 
 jest.mock('@tf2-automatic/queue', () => ({
@@ -29,11 +30,18 @@ describe('EscrowService', () => {
   };
 
   let service: EscrowService;
-  let hgetallBuffer: jest.Mock;
+  let hashes: ReturnType<typeof mock.createMemoryRedis>['hashes'];
   let queueManager: { addJob: jest.Mock; waitUntilFinished: jest.Mock };
 
+  const seed = (fields: Record<string, Buffer>) =>
+    hashes.set(
+      `escrow:${steamid.getSteamID64()}`,
+      new Map(Object.entries(fields)),
+    );
+
   beforeEach(async () => {
-    hgetallBuffer = jest.fn();
+    const memory = mock.createMemoryRedis();
+    hashes = memory.hashes;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,10 +49,7 @@ describe('EscrowService', () => {
         {
           provide: RedisService,
           useValue: {
-            getOrThrow: () => ({
-              ttl: jest.fn().mockResolvedValue(100),
-              hgetallBuffer,
-            }),
+            getOrThrow: () => memory.redis,
           },
         },
         { provide: HttpService, useValue: {} },
@@ -59,9 +64,11 @@ describe('EscrowService', () => {
   });
 
   it('refetches a cached error when a token is supplied', async () => {
-    hgetallBuffer
-      .mockResolvedValueOnce({ error })
-      .mockResolvedValueOnce(success);
+    seed({ error });
+    queueManager.addJob.mockImplementation(async () => {
+      seed(success);
+      return { id: 'job' };
+    });
 
     await expect(
       service.getEscrow(steamid, { token: 'abcdefgh' }),
@@ -70,7 +77,7 @@ describe('EscrowService', () => {
   });
 
   it('rethrows a cached error when no token is supplied', async () => {
-    hgetallBuffer.mockResolvedValue({ error });
+    seed({ error });
 
     await expect(service.getEscrow(steamid, {})).rejects.toBeInstanceOf(
       HttpException,
@@ -79,7 +86,7 @@ describe('EscrowService', () => {
   });
 
   it('serves a cached result even when a token is supplied', async () => {
-    hgetallBuffer.mockResolvedValue(success);
+    seed(success);
 
     await expect(
       service.getEscrow(steamid, { token: 'abcdefgh' }),

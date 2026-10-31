@@ -1,10 +1,11 @@
 type Command = (...args: never[]) => unknown;
 
-// In-memory Redis for hashes and sets. Like ioredis with a keyPrefix, keys are
+// In-memory Redis for hashes, sets and strings. Like ioredis with a keyPrefix, keys are
 // prefixed except KEYS patterns.
 export function createMemoryRedis(keyPrefix = '') {
   const hashes = new Map<string, Map<string, Buffer>>();
   const sets = new Map<string, Set<string>>();
+  const strings = new Map<string, Buffer>();
 
   const commands = {
     // Takes an object or field/value pairs, like ioredis
@@ -26,6 +27,12 @@ export function createMemoryRedis(keyPrefix = '') {
     hdel: (key: string, ...fields: string[]) => {
       fields.forEach((field) => hashes.get(keyPrefix + key)?.delete(field));
     },
+    hset: (key: string, fields: Record<string, Buffer>) =>
+      commands.hmset(key, fields),
+    set: (key: string, value: Buffer) => {
+      strings.set(keyPrefix + key, value);
+    },
+    // Expiry is not tracked
     expire: () => undefined,
     persist: () => undefined,
     sadd: (key: string, ...members: string[]) => {
@@ -45,6 +52,7 @@ export function createMemoryRedis(keyPrefix = '') {
     del: (key: string) => {
       hashes.delete(keyPrefix + key);
       sets.delete(keyPrefix + key);
+      strings.delete(keyPrefix + key);
     },
   };
 
@@ -52,16 +60,30 @@ export function createMemoryRedis(keyPrefix = '') {
     ...commands,
     keys: async (pattern: string) => {
       const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
-      return [...hashes.keys(), ...sets.keys()].filter((key) =>
-        regex.test(key),
+      return [...hashes.keys(), ...sets.keys(), ...strings.keys()].filter(
+        (key) => regex.test(key),
       );
     },
     hmgetBuffer: async (key: string, ...fields: string[]) =>
       fields.map((field) => hashes.get(keyPrefix + key)?.get(field) ?? null),
+    getBuffer: async (key: string) => strings.get(keyPrefix + key) ?? null,
+    hgetallBuffer: async (key: string) =>
+      Object.fromEntries(hashes.get(keyPrefix + key) ?? []),
+    // -1 for existing keys because expiry is not tracked
+    ttl: async (key: string) =>
+      hashes.has(keyPrefix + key) ||
+      sets.has(keyPrefix + key) ||
+      strings.has(keyPrefix + key)
+        ? -1
+        : -2,
     smembers: async (key: string) =>
       Array.from(sets.get(keyPrefix + key) ?? []),
     exists: async (key: string) =>
-      hashes.has(keyPrefix + key) || sets.has(keyPrefix + key) ? 1 : 0,
+      hashes.has(keyPrefix + key) ||
+      sets.has(keyPrefix + key) ||
+      strings.has(keyPrefix + key)
+        ? 1
+        : 0,
     multi: () => {
       const queued: (() => void)[] = [];
       const transaction: Record<string, unknown> = {
@@ -77,5 +99,5 @@ export function createMemoryRedis(keyPrefix = '') {
     },
   };
 
-  return { redis, hashes, sets };
+  return { redis, hashes, sets, strings };
 }

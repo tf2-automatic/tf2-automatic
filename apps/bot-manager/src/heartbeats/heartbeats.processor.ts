@@ -1,11 +1,11 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import {
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { HeartbeatsService } from '../heartbeats/heartbeats.service';
+import {
+  BotNotFoundException,
+  BotNotRunningException,
+  HeartbeatsService,
+} from '../heartbeats/heartbeats.service';
 import { HeartbeatsQueue } from './interfaces/queue.interface';
 import SteamID from 'steamid';
 
@@ -37,9 +37,8 @@ export class HeartbeatsProcessor extends WorkerHost {
       }
     } catch (err) {
       if (
-        err instanceof NotFoundException ||
-        (err instanceof ServiceUnavailableException &&
-          err.message === 'Bot is not running')
+        err instanceof BotNotFoundException ||
+        err instanceof BotNotRunningException
       ) {
         // Bot does not exist, do nothing
         return;

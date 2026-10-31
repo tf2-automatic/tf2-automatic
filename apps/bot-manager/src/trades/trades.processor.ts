@@ -38,10 +38,12 @@ import {
   CustomError,
   CustomUnrecoverableError,
   CustomWorkerHost,
+  DelaysOfflineBotJobs,
   errorToEvent,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
 
+@DelaysOfflineBotJobs()
 @Processor('trades', {
   settings: bullWorkerSettings,
   limiter: {
@@ -98,11 +100,7 @@ export class TradesProcessor extends CustomWorkerHost<TradeQueue> {
   private async handleJob(job: Job<TradeQueue>) {
     const botSteamID = new SteamID(job.data.bot);
 
-    this.logger.debug(`Getting bot ${botSteamID.getSteamID64()}...`);
-
-    const bot = await this.heartbeatsService.getBot(botSteamID).catch((err) => {
-      throw new Error(err.message);
-    });
+    const bot = await this.heartbeatsService.getBot(botSteamID);
 
     switch (job.data.type) {
       case 'CREATE':

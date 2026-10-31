@@ -5,7 +5,7 @@ import { RateLimitsService } from './rate-limits.service';
 
 const mockLimiter = {
   updateSettings: jest.fn(),
-  currentReservoir: jest.fn(),
+  check: jest.fn(),
   schedule: jest.fn((fn: () => Promise<unknown>) => fn()),
 };
 
@@ -81,21 +81,18 @@ describe('RateLimitsService', () => {
     expect(Group).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'listingsBatch',
-        reservoir: 3,
-        reservoirIncreaseAmount: 3,
-        reservoirIncreaseInterval: 60000,
-        reservoirIncreaseMaximum: 3,
+        maxConcurrent: 1,
+        minTime: 20000,
       }),
     );
     expect(Group).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'listingsGet', reservoir: 20 }),
+      expect.objectContaining({ id: 'listingsGet', minTime: 3000 }),
     );
     expect(Group).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'archiveGet',
-        reservoir: 5,
-        reservoirIncreaseInterval: 30000,
-      }),
+      expect.objectContaining({ id: 'archiveGet', minTime: 6000 }),
+    );
+    expect(Group).not.toHaveBeenCalledWith(
+      expect.objectContaining({ reservoir: expect.anything() }),
     );
   });
 
@@ -116,12 +113,7 @@ describe('RateLimitsService', () => {
       err,
     );
 
-    expect(mockLimiter.updateSettings).toHaveBeenCalledWith({
-      reservoir: 0,
-      reservoirIncreaseAmount: 20,
-      reservoirIncreaseMaximum: 20,
-      reservoirIncreaseInterval: 60000,
-    });
+    expect(mockLimiter.updateSettings).toHaveBeenCalledWith({ minTime: 3000 });
     expect(redis.set).toHaveBeenCalledWith(
       'ratelimited:listingsGet:123',
       1,
@@ -130,7 +122,38 @@ describe('RateLimitsService', () => {
     );
   });
 
-  it('delays the job instead of waiting when the limiter is empty', async () => {
+  it('waits the time from the 429 message, or a full window', async () => {
+    const { service, redis } = createService(null);
+
+    const err = new AxiosError('Request failed with status code 429');
+    err.response = {
+      status: 429,
+      data: { message: 'Too many requests. Try again in 12 seconds.' },
+    } as never;
+
+    await expect(service.handleError('listingsBatch', '123', err)).rejects.toBe(
+      err,
+    );
+    expect(redis.set).toHaveBeenLastCalledWith(
+      'ratelimited:listingsBatch:123',
+      1,
+      'PX',
+      12000,
+    );
+
+    err.response = { status: 429, data: {} } as never;
+    await expect(service.handleError('listingsBatch', '123', err)).rejects.toBe(
+      err,
+    );
+    expect(redis.set).toHaveBeenLastCalledWith(
+      'ratelimited:listingsBatch:123',
+      1,
+      'PX',
+      60000,
+    );
+  });
+
+  it('delays the job instead of waiting when the limiter is busy', async () => {
     const { service, redis } = createService(null);
 
     const job = { name: 'archived', data: {}, moveToDelayed: jest.fn() };
@@ -138,20 +161,20 @@ describe('RateLimitsService', () => {
     const run = () =>
       service.scheduleOrDelay(job as never, 'lock', 'archiveGet', '123', task);
     jest.spyOn(Date, 'now').mockReturnValue(1000);
-    mockLimiter.currentReservoir.mockResolvedValue(0);
+    mockLimiter.check.mockResolvedValue(false);
 
     // A known rate limit window is waited out in one go
     redis.pttl.mockResolvedValueOnce(45000);
     await expect(run()).rejects.toBeInstanceOf(DelayedError);
     expect(job.moveToDelayed).toHaveBeenLastCalledWith(46000, 'lock');
 
-    // An empty reservoir waits for its refill instead of polling
+    // A busy limiter waits at most minTime instead of polling
     await expect(run()).rejects.toBeInstanceOf(DelayedError);
-    expect(job.moveToDelayed).toHaveBeenLastCalledWith(31000, 'lock');
+    expect(job.moveToDelayed).toHaveBeenLastCalledWith(7000, 'lock');
     expect(mockLimiter.schedule).not.toHaveBeenCalled();
 
-    // Requests left run right away
-    mockLimiter.currentReservoir.mockResolvedValue(1);
+    // A free limiter runs right away
+    mockLimiter.check.mockResolvedValue(true);
     await expect(run()).resolves.toBe(true);
 
     jest.restoreAllMocks();
@@ -162,9 +185,9 @@ describe('RateLimitsService', () => {
 
     const job = { name: 'active', data: {}, moveToDelayed: jest.fn() };
     const task = jest.fn().mockResolvedValue(true);
-    mockLimiter.currentReservoir
+    mockLimiter.check
       .mockRejectedValueOnce(new Error('ERR SETTINGS_KEY_NOT_FOUND'))
-      .mockResolvedValueOnce(20);
+      .mockResolvedValueOnce(true);
 
     await expect(
       service.scheduleOrDelay(job as never, 'lock', 'listingsGet', '123', task),
