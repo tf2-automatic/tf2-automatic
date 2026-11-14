@@ -35,12 +35,22 @@ describe('AgentsService', () => {
   function setup(agent: Agent | null) {
     const redis = {
       hgetBuffer: jest.fn().mockResolvedValue(agent ? pack(agent) : null),
+      hvalsBuffer: jest.fn().mockResolvedValue(agent ? [pack(agent)] : []),
+      hset: jest.fn(),
     };
     const queue = {
-      getRepeatableJobs: jest
-        .fn()
-        .mockResolvedValue([{ key: 'k', name: steamid.getSteamID64() }]),
-      removeRepeatableByKey: jest.fn(),
+      getJobScheduler: jest.fn().mockResolvedValue(undefined),
+      getJobSchedulers: jest.fn().mockResolvedValue([
+        // The old repeatable job, keyed by a hash
+        { key: 'legacy', name: steamid.getSteamID64() },
+        {
+          key: 'register_' + steamid.getSteamID64(),
+          name: steamid.getSteamID64(),
+        },
+        { key: 'register_76561198000000000', name: '76561198000000000' },
+      ]),
+      removeJobScheduler: jest.fn(),
+      upsertJobScheduler: jest.fn(),
       getJobs: jest.fn().mockResolvedValue([]),
     };
     const tokensService = { getToken: jest.fn().mockResolvedValue(token) };
@@ -51,8 +61,10 @@ describe('AgentsService', () => {
       {} as HttpService,
       tokensService as unknown as TokensService,
       { getOrThrow: () => redis } as unknown as RedisService,
-      {} as ConfigService<Config>,
-      {} as EventEmitter2,
+      {
+        getOrThrow: () => ({ registerInterval: 300000 }),
+      } as unknown as ConfigService<Config>,
+      { emitAsync: jest.fn() } as unknown as EventEmitter2,
     );
 
     const stop = jest
@@ -71,17 +83,73 @@ describe('AgentsService', () => {
 
     await service.cleanupAndUnregisterAgent(steamid);
 
-    expect(queue.removeRepeatableByKey).not.toHaveBeenCalled();
+    expect(queue.removeJobScheduler).not.toHaveBeenCalled();
     expect(stop).not.toHaveBeenCalled();
   });
 
-  it('removes the repeatable job and stops the agent', async () => {
+  it('removes the schedules and stops the agent', async () => {
     const { service, queue, stop } = setup(null);
 
     await service.cleanupAndUnregisterAgent(steamid);
 
-    expect(queue.removeRepeatableByKey).toHaveBeenCalledWith('k');
+    expect(queue.removeJobScheduler.mock.calls).toEqual([
+      ['legacy'],
+      ['register_' + steamid.getSteamID64()],
+    ]);
     expect(stop).toHaveBeenCalledWith(token);
+  });
+
+  it('schedules a new agent without an offset so it pulses now', async () => {
+    const { service, queue } = setup(null);
+    const steamid64 = steamid.getSteamID64();
+
+    await service.enqueueRegisterAgent(steamid, {});
+
+    expect(queue.removeJobScheduler.mock.calls).toEqual([['legacy']]);
+    expect(queue.upsertJobScheduler).toHaveBeenCalledWith(
+      'register_' + steamid64,
+      { every: 300000, offset: undefined },
+      { name: steamid64, data: { steamid64 } },
+    );
+  });
+
+  it('does not reschedule an agent that is already scheduled', async () => {
+    const { service, queue } = setup(null);
+    queue.getJobScheduler.mockResolvedValue({});
+
+    await service.enqueueRegisterAgent(steamid, {});
+
+    expect(queue.upsertJobScheduler).not.toHaveBeenCalled();
+  });
+
+  it('moves agents off the old repeatable job on start', async () => {
+    const { service, queue } = setup({
+      steamid64: steamid.getSteamID64(),
+      userAgent: null,
+      updatedAt: 0,
+    });
+
+    await service.onModuleInit();
+
+    expect(queue.removeJobScheduler.mock.calls).toEqual([['legacy']]);
+    expect(queue.upsertJobScheduler).toHaveBeenCalledWith(
+      'register_' + steamid.getSteamID64(),
+      { every: 300000, offset: 0 },
+      expect.anything(),
+    );
+  });
+
+  it('leaves agents already on a scheduler alone on start', async () => {
+    const { service, queue } = setup({
+      steamid64: steamid.getSteamID64(),
+      userAgent: null,
+      updatedAt: 0,
+    });
+    queue.getJobScheduler.mockResolvedValue({});
+
+    await service.onModuleInit();
+
+    expect(queue.upsertJobScheduler).not.toHaveBeenCalled();
   });
 
   it('checks the agent and cleans up under the agent lock', async () => {
