@@ -5,6 +5,7 @@ export * from './lib/friends';
 export * from './lib/inventories';
 export * from './lib/heartbeats';
 export * from './lib/escrow';
+export * from './lib/notifications';
 export * from './lib/misc';
 export * from './lib/prices';
 export * from './lib/schema';
