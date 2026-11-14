@@ -42,6 +42,8 @@ function getLimiterOptions(
   };
 }
 
+const JOB_EXPIRATION = 2 * 60 * 1000;
+
 const DELETE_ALL_LIMITER: Bottleneck.ConstructorOptions = {
   id: 'deleteAll',
   maxConcurrent: 1,
@@ -198,7 +200,8 @@ export class RateLimitsService implements OnModuleInit, OnModuleDestroy {
       throw new DelayedError();
     }
 
-    return limiter.schedule(task);
+    // Frees the slot if this process dies mid request, longer than the 60s request timeouts
+    return limiter.schedule({ expiration: JOB_EXPIRATION }, task);
   }
 
   private getRateLimitedKey(endpoint: LimitedEndpoint, key: string): string {
