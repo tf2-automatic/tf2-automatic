@@ -6,7 +6,7 @@ import { RateLimitsService } from './rate-limits.service';
 const mockLimiter = {
   updateSettings: jest.fn(),
   check: jest.fn(),
-  schedule: jest.fn((fn: () => Promise<unknown>) => fn()),
+  schedule: jest.fn((_opts: unknown, fn: () => Promise<unknown>) => fn()),
 };
 
 const mockDeleteKey = jest.fn().mockResolvedValue(true);
@@ -176,6 +176,11 @@ describe('RateLimitsService', () => {
     // A free limiter runs right away
     mockLimiter.check.mockResolvedValue(true);
     await expect(run()).resolves.toBe(true);
+    // With an expiration, so a slot held by a dead process frees itself
+    expect(mockLimiter.schedule).toHaveBeenCalledWith(
+      { expiration: 120000 },
+      task,
+    );
 
     jest.restoreAllMocks();
   });
