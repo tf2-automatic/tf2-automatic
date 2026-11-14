@@ -401,7 +401,11 @@ export class CurrentListingsService implements OnModuleDestroy {
           errorMessage?.startsWith('Warning: ')
         ) {
           error = ListingError.InvalidItem;
-        } else if (errorMessage === '') {
+        } else if (
+          errorMessage === '' ||
+          errorMessage === 'Item could not be resolved'
+        ) {
+          // The item is not in backpack.tf's snapshot of the inventory yet
           error = ListingError.ItemDoesNotExist;
         } else if (
           errorMessage === 'Listing value cannot be zero.' ||

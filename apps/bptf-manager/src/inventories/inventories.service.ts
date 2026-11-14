@@ -282,6 +282,9 @@ export class InventoriesService {
     await this.redis.set(
       this.getInventoryRefreshPointKey(steamid.getSteamID64()),
       time,
+      // Expires like the inventory so a dead chain can't leave it forever
+      'EX',
+      24 * 60 * 60,
     );
   }
 
