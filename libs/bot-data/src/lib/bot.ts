@@ -16,6 +16,10 @@ export type BotReadyEvent = BaseEvent<BotReadyEventType>;
 export interface Bot {
   steamid64: string;
   apiKey: string;
+  // The name the bot logs in with
+  accountName: string;
+  // The public profile name, unset until the bot has logged on
+  personaName?: string;
 }
 
 export interface BotWebSession {
