@@ -406,8 +406,15 @@ export class InventoriesService
         if (item.rollback_new_assetid || item.rollback_new_contextid) {
           // Item is rolled back, it is moved from receiver to sender
 
-          // Delete item by old assetid
-          this.addAssetIds(lostItems, receiver, item.appid, item.contextid, [
+          // Receiver held the item under its new ids, sender lost the original
+          this.addAssetIds(
+            lostItems,
+            receiver,
+            item.appid,
+            item.new_contextid ?? item.contextid,
+            [item.new_assetid ?? item.assetid],
+          );
+          this.addAssetIds(lostItems, sender, item.appid, item.contextid, [
             item.assetid,
           ]);
 
@@ -430,8 +437,8 @@ export class InventoriesService
         } else if (item.new_assetid || item.new_contextid) {
           // Item is moved from sender to receiver
 
-          // Delete item by old assetid
-          this.addAssetIds(lostItems, receiver, item.appid, item.contextid, [
+          // Delete item by old assetid from the sender
+          this.addAssetIds(lostItems, sender, item.appid, item.contextid, [
             item.assetid,
           ]);
 

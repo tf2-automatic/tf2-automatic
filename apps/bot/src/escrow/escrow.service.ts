@@ -3,6 +3,7 @@ import { BotService } from '../bot/bot.service';
 import SteamID from 'steamid';
 import { FriendsService } from '../friends/friends.service';
 import { TradesService } from '../trades/trades.service';
+import { ETradeOfferState } from 'steam-tradeoffer-manager';
 
 @Injectable()
 export class EscrowService {
@@ -25,6 +26,10 @@ export class EscrowService {
         throw new BadRequestException(
           'Partner steamid does not match provided steamid',
         );
+      }
+
+      if (offer.state !== ETradeOfferState.Active) {
+        throw new BadRequestException('Offer is no longer active');
       }
       return offer;
     }

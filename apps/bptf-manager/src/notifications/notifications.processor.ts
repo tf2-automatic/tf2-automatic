@@ -1,4 +1,7 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../common/account-worker-host';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { TokensService } from '../tokens/tokens.service';
@@ -6,75 +9,70 @@ import SteamID from 'steamid';
 import { AxiosError } from 'axios';
 import { NotificationsService } from './notifications.service';
 import { JobData } from './interfaces/queue';
+import { RateLimitsService } from '../rate-limits/rate-limits.service';
 
-@Processor('notifications')
-export class NotificationsProcessor extends WorkerHost {
+@Processor('notifications', {
+  settings: bullWorkerSettings,
+})
+export class NotificationsProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly tokensService: TokensService,
+    private readonly rateLimitsService: RateLimitsService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(job: Job<JobData>): Promise<void> {
+  async processJob(job: Job<JobData>, lockToken?: string): Promise<void> {
     switch (job.name) {
       case 'done':
         await this.done(job);
         break;
       case 'fetch':
-        await this.getNotifications(job);
+        await this.getNotifications(job, lockToken);
         break;
     }
   }
 
   private async done(job: Job<JobData>): Promise<void> {
-    this.logger.debug('Refreshed notifications for ' + job.data.steamid64);
-
     await this.notificationsService.handleNotificationsFetched(job);
   }
 
-  private async getNotifications(job: Job<JobData>): Promise<void> {
+  private async getNotifications(
+    job: Job<JobData>,
+    lockToken?: string,
+  ): Promise<void> {
     const steamid = new SteamID(job.data.steamid64);
 
     const token = await this.tokensService.getToken(steamid);
 
-    let debugStr = 'Getting notifications for ' + token.steamid64;
+    const key = steamid.getSteamID64();
 
-    const skip = job.data.skip;
-    const limit = job.data.limit;
+    let start = 0;
 
-    if (skip && limit) {
-      debugStr += ' using skip ' + skip + ' and limit ' + limit;
-    } else if (skip) {
-      debugStr += ' using skip ' + skip;
-    } else if (limit) {
-      debugStr += ' using limit ' + limit;
-    }
+    const response = await this.rateLimitsService.scheduleOrDelay(
+      job,
+      lockToken,
+      'notificationsGet',
+      key,
+      () => {
+        start = Date.now();
 
-    debugStr += '...';
-
-    this.logger.debug(debugStr);
-
-    const response = await this.notificationsService.fetchNotifications(
-      token,
-      skip,
-      limit,
+        return this.notificationsService
+          .fetchNotifications(token, job.data.skip, job.data.limit)
+          .catch((err) =>
+            this.rateLimitsService.handleError('notificationsGet', key, err),
+          );
+      },
     );
 
+    const duration = Date.now() - start;
+
     this.logger.debug(
-      'Got notifications response for ' +
-        token.steamid64 +
-        ' (skip: ' +
-        response.cursor.skip +
-        ', limit: ' +
-        response.cursor.limit +
-        ', total: ' +
-        response.cursor.total +
-        ', results: ' +
-        response.results.length +
-        ')',
+      `Got ${response.results.length} notification(s) (${response.cursor.skip + response.results.length} of ${response.cursor.total}) in ${duration}ms`,
     );
 
     await this.notificationsService.handleNotifications(job, response);

@@ -40,7 +40,7 @@ export class NameGenerator {
         item.quality !== 6 &&
         item.quality !== 15 &&
         item.quality !== 5) ||
-      (item.quality === 5 && item.effect === undefined) ||
+      (item.quality === 5 && typeof item.effect !== 'number') ||
       schemaItem.item_quality === 5
     ) {
       let quality = this.schema.getQualityById(item.quality);

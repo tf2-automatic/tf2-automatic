@@ -1,25 +1,37 @@
 import { ChildProcess, spawn } from 'child_process';
 import compose from 'docker-compose';
 
-export async function setup(app: string, useCompose = false) {
-  globalThis.__app = app;
+interface SetupOptions {
+  // Directory of the e2e project
+  cwd: string;
+  // Start the services in the docker-compose.yaml of the project
+  compose?: boolean;
+  // Start this app and wait for it to be ready
+  app?: string;
+}
+
+export async function setup(options: SetupOptions) {
+  globalThis.__setupOptions = options;
 
   console.log('\nSetting up...');
 
-  if (useCompose) {
-    const result = await compose.ps({ cwd: `./apps/${app}-e2e` });
+  if (options.compose) {
+    const result = await compose.ps({ cwd: options.cwd });
     if (result.data.services.length > 0) {
       throw new Error('Docker compose services are already running');
     }
 
     console.log('Starting Docker Compose...');
-    await compose.upAll({ cwd: `./apps/${app}-e2e` });
+    await compose.upAll({ cwd: options.cwd, commandOptions: ['--wait'] });
+  }
 
-    globalThis.__compose = true;
+  if (!options.app) {
+    return;
   }
 
   console.log('Starting application...');
 
+  const app = options.app;
   await new Promise<void>((resolve, reject) => {
     const childProcess = spawn(`pnpm exec nx run ${app}:serve:e2e`, {
       shell: true,
@@ -49,25 +61,24 @@ export async function setup(app: string, useCompose = false) {
 }
 
 export async function teardown() {
+  const options = globalThis.__setupOptions as SetupOptions;
+
   console.log('\nTearing down...');
 
-  console.log('Stopping application...');
-  const childProcess = globalThis.__childProcess as ChildProcess;
-  childProcess.kill();
+  if (options.app) {
+    console.log('Stopping application...');
+    const childProcess = globalThis.__childProcess as ChildProcess;
+    childProcess.kill();
 
-  await new Promise<void>((resolve) => {
-    childProcess.on('exit', () => {
-      resolve();
+    await new Promise<void>((resolve) => {
+      childProcess.on('exit', () => {
+        resolve();
+      });
     });
-  });
-
-  if (!globalThis.__compose) {
-    return;
   }
 
-  console.log('Stopping Docker Compose...');
-  await compose.down({
-    cwd: `./apps/${globalThis.__app}-e2e`,
-    commandOptions: ['--volumes'],
-  });
+  if (options.compose) {
+    console.log('Stopping Docker Compose...');
+    await compose.down({ cwd: options.cwd, commandOptions: ['--volumes'] });
+  }
 }

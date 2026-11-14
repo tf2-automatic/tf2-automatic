@@ -21,3 +21,29 @@ describe('NestStorageService', () => {
     expect(service).toBeDefined();
   });
 });
+
+describe('NestStorageService concurrency', () => {
+  it('limits concurrent reads to readConcurrency', async () => {
+    const service = new NestStorageService({
+      type: 'local',
+      directory: '',
+      readConcurrency: 4,
+      writeConcurrency: 1,
+    });
+
+    let active = 0;
+    let peak = 0;
+    jest.spyOn(service.getEngine(), 'read').mockImplementation(async () => {
+      peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active--;
+      return null;
+    });
+
+    await Promise.all(
+      Array.from({ length: 50 }, (_, i) => service.read(`file_${i}`)),
+    );
+
+    expect(peak).toBe(4);
+  });
+});

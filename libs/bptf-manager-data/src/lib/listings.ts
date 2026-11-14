@@ -8,6 +8,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   ValidateIf,
   ValidateNested,
@@ -92,8 +93,10 @@ export class AddListingDto extends ListingDto {
   @Type(() => ListingCurrenciesDto)
   currencies!: ListingCurrenciesDto;
 
+  // backpack.tf ignores details longer than 200 characters
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   details?: string;
 }
 

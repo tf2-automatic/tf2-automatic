@@ -27,7 +27,7 @@ export class BotsService {
     const index = Math.floor(Math.random() * bots.length);
     const bot = bots[index];
 
-    const info = await this.getBot(bots[0]);
+    const info = await this.getBot(bot);
 
     if (bot.steamid64 !== info.steamid64) {
       throw new NotFoundException('Bot not found');

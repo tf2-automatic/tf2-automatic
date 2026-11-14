@@ -1,4 +1,7 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { InventoriesService } from '../inventories.service';
 import { Job } from 'bullmq';
@@ -9,22 +12,25 @@ import {
   EnqueueJobResult,
 } from '../interfaces/queue.interface';
 
-@Processor('enqueueInventories')
-export class EnqueueInventoriesProcessor extends WorkerHost {
+@Processor('enqueueInventories', {
+  settings: bullWorkerSettings,
+})
+export class EnqueueInventoriesProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(EnqueueInventoriesProcessor.name);
 
   constructor(
     private readonly inventoriesService: InventoriesService,
     private readonly tokensService: TokensService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(
+  async processJob(
     job: Job<EnqueueJobData, EnqueueJobResult>,
   ): Promise<EnqueueJobResult> {
     this.logger.debug(
-      `Scheduling refresh job for ${job.data.steamid64} attempt #${job.attemptsMade}...`,
+      `Scheduling inventory refresh attempt #${job.attemptsMade}...`,
     );
 
     const token = await this.tokensService.getRandomToken();
@@ -36,7 +42,10 @@ export class EnqueueInventoriesProcessor extends WorkerHost {
       token.value,
     );
 
-    await this.inventoriesService.enqueueRefresh(steamid, result);
+    // A missing refresh point means the refresh was cancelled
+    if ((await this.inventoriesService.getRefreshPoint(steamid)) !== null) {
+      await this.inventoriesService.enqueueRefresh(steamid, result);
+    }
 
     return result;
   }
@@ -49,8 +58,6 @@ export class EnqueueInventoriesProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job<EnqueueJobData>, err: Error): void {
-    this.logger.warn(
-      `Failed to schedule refresh job for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to schedule inventory refresh: ${err.message}`);
   }
 }

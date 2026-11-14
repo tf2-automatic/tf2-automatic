@@ -52,6 +52,7 @@ import {
 import Bottleneck from 'bottleneck';
 import CEconItem from 'steamcommunity/classes/CEconItem';
 import { GarbageCollectorService } from './gc.service';
+import { isFullPoll } from './helpers';
 import {
   ActiveTradeOffer,
   CreatedTradeOffer,
@@ -186,10 +187,7 @@ export class TradesService {
         callback(null, sent, received);
 
         setImmediate(() => {
-          const gotAll =
-            args.length === 2 &&
-            args[0] === 3 &&
-            new Date(args[1]).getTime() === 1000;
+          const gotAll = isFullPoll(callArgs);
 
           try {
             this.handleOffers(sent, received, gotAll, requestedAt);
@@ -720,7 +718,7 @@ export class TradesService {
    * Gets a trade offer and publishes it even if it was already published
    */
   async refreshTrade(id: string): Promise<GetTradeResponse> {
-    const offer = await this.loadOfferWithCaching(id);
+    const offer = await this.loadOfferWithCaching(id, false);
 
     // Publish the offer and say the old state was the last published state
     await this.publishOffer(offer, offer.data('published'));
@@ -728,7 +726,21 @@ export class TradesService {
     return this.mapOffer(offer);
   }
 
-  createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
+  private assertNotSelf(partner: string | { getSteamID64(): string }): void {
+    const steamid =
+      typeof partner === 'string' ? partner : partner.getSteamID64();
+
+    if (steamid === this.botService.getSteamID64()) {
+      throw new BadRequestException(
+        'You cannot send a trade offer to yourself',
+      );
+    }
+  }
+
+  async createTrade(dto: CreateTradeDto): Promise<CreateTradeResponse> {
+    // Steam rejects this with an error that would otherwise become a 500
+    this.assertNotSelf(dto.partner);
+
     const offer = this.manager.createOffer(dto.partner);
 
     if (dto.token) {
@@ -1135,6 +1147,8 @@ export class TradesService {
     them: ActualTradeOffer.UserDetails;
   }> {
     return new Promise((resolve, reject) => {
+      this.assertNotSelf(offer.partner);
+
       offer.getUserDetails((err, me, them) => {
         if (err) {
           if (

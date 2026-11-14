@@ -1,0 +1,7 @@
+services:
+  redis:
+    image: redis:alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+    ports:
+      - '6379:6379'

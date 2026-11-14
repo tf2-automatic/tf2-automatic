@@ -28,12 +28,6 @@ export interface BatchUpdateListingResponse {
   }[];
 }
 
-export interface DeleteListingsResponse {
-  deleted: number;
-  skipped: unknown[];
-  errors: unknown[];
-}
-
 export interface BatchDeleteListingResponse {
   deleted: number;
   batchOpLimit: number;

@@ -8,17 +8,13 @@ export function mergeDefinitionPrefab(
   if (sourceItem.prefab) {
     const prefabs = sourceItem.prefab.split(' ');
 
-    let write = writeItem;
-    if (prefabs.length > 1) {
-      write = {};
-    }
-
+    // Iterate backwards so earlier prefabs are applied over later ones
     for (let i = prefabs.length - 1; i >= 0; i--) {
       const prefab = prefabs[i];
       const match = schemaPrefabs[prefab];
 
       if (match) {
-        mergeDefinitionPrefab(write, match, schemaPrefabs);
+        mergeDefinitionPrefab(writeItem, match, schemaPrefabs);
       }
     }
   }

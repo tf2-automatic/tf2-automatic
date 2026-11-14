@@ -1,4 +1,7 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
+import { ClsService } from 'nestjs-cls';
+import { AccountWorkerHost } from '../../common/account-worker-host';
+import { bullWorkerSettings } from '@tf2-automatic/queue';
 import { Logger } from '@nestjs/common';
 import { InventoriesService } from '../inventories.service';
 import { Job } from 'bullmq';
@@ -9,22 +12,25 @@ import {
   InventoriesJobResult,
 } from '../interfaces/queue.interface';
 
-@Processor('inventories')
-export class InventoriesProcessor extends WorkerHost {
+@Processor('inventories', {
+  settings: bullWorkerSettings,
+})
+export class InventoriesProcessor extends AccountWorkerHost {
   private readonly logger = new Logger(InventoriesProcessor.name);
 
   constructor(
     private readonly inventoriesService: InventoriesService,
     private readonly tokensService: TokensService,
+    cls: ClsService,
   ) {
-    super();
+    super(cls);
   }
 
-  async process(
+  async processJob(
     job: Job<InventoriesJobData, InventoriesJobResult>,
   ): Promise<InventoriesJobResult> {
-    this.logger.log(
-      `Refreshing inventory for ${job.data.steamid64} attempt #${
+    this.logger.debug(
+      `Refreshing inventory attempt #${
         job.data.attemptsSinceLastRefresh + 1
       }...`,
     );
@@ -41,42 +47,17 @@ export class InventoriesProcessor extends WorkerHost {
     ]);
 
     this.logger.debug(
-      'Last snapshot for ' +
-        steamid.getSteamID64() +
-        ' was made ' +
+      'Last inventory snapshot was made ' +
         (status.current_time - status.timestamp) +
         ' second(s) ago',
     );
 
-    // If the inventory was refreshed since the job started
-    const refreshed = status.timestamp > job.data.refreshed;
-
-    // Check if the inventory has been refreshed since we last requested it to be refreshed
-    if (refreshed && inventory !== null) {
-      // Get the refresh point of the inventory
-      const refreshPoint =
-        await this.inventoriesService.getRefreshPoint(steamid);
-
-      // Check if the inventory was refreshed after the refresh point
-      if (refreshPoint === null || inventory.refresh >= refreshPoint) {
-        // Inventory has been refreshed since we last requested it to be refreshed
-        // and it was refreshed after the refresh point
-        return { done: true, status: inventory.status };
-      }
-    }
-
-    // Add a new job to the queue to continue refreshing the inventory
-    await this.inventoriesService.enqueueRefresh(
+    return this.inventoriesService.continueRefresh(
       steamid,
       status,
-      job.data.attempts + 1,
-      refreshed ? 0 : job.data.attemptsSinceLastRefresh + 1,
+      inventory,
+      job.data,
     );
-
-    return {
-      done: false,
-      status,
-    };
   }
 
   @OnWorkerEvent('error')
@@ -87,18 +68,14 @@ export class InventoriesProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   onFailed(job: Job<InventoriesJobData>, err: Error): void {
-    this.logger.warn(
-      `Failed to request refresh for ${job.data.steamid64}: ${err.message}`,
-    );
+    this.logger.warn(`Failed to request inventory refresh: ${err.message}`);
   }
 
   @OnWorkerEvent('completed')
   onCompleted(job: Job<InventoriesJobData, InventoriesJobResult>): void {
-    if (job.returnvalue.done) {
+    if (job.returnvalue.done && !job.returnvalue.cancelled) {
       this.logger.log(
-        `Inventory has been updated for ${
-          job.data.steamid64
-        } after a total of ${job.data.attempts + 1} attempt(s)`,
+        `Inventory has been updated after a total of ${job.data.attempts + 1} attempt(s)`,
       );
     }
   }

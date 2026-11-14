@@ -172,7 +172,8 @@ export class ProfileController {
     type: UpdateCustomPersonaStateDto,
   })
   setCustomPersonaState(
-    @Body(new ValidationPipe()) dto: UpdateCustomPersonaStateDto,
+    @Body(new ValidationPipe({ transform: true }))
+    dto: UpdateCustomPersonaStateDto,
   ) {
     return this.profileService.setCustomPersonaState(dto.state);
   }

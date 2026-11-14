@@ -1,5 +1,6 @@
+import { plainToInstance } from 'class-transformer';
 import { Validator } from 'class-validator';
-import { ListingCurrenciesDto } from './listings';
+import { AddListingDto, ListingCurrenciesDto } from './listings';
 
 describe('ListingCurrenciesDto', () => {
   let validator = new Validator();
@@ -74,5 +75,30 @@ describe('ListingCurrenciesDto', () => {
     const validationErrors = await validator.validate(testClass);
 
     expect(validationErrors).toHaveLength(0);
+  });
+});
+
+describe('AddListingDto', () => {
+  const validator = new Validator();
+
+  function create(details: string) {
+    return plainToInstance(AddListingDto, {
+      item: { defindex: 5021, quality: 6 },
+      currencies: { metal: 0.11 },
+      details,
+    });
+  }
+
+  it('should work with 200 character details', async () => {
+    const validationErrors = await validator.validate(create('a'.repeat(200)));
+
+    expect(validationErrors).toHaveLength(0);
+  });
+
+  it('should fail with details longer than 200 characters', async () => {
+    const validationErrors = await validator.validate(create('a'.repeat(201)));
+
+    expect(validationErrors).toHaveLength(1);
+    expect(validationErrors[0].property).toBe('details');
   });
 });

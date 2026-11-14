@@ -17,7 +17,8 @@ if (!args.some(arg => arg.startsWith('--parallel'))) {
 }
 
 const result = spawnSync('pnpm', ['exec', 'nx', ...args], {
-  stdio: 'inherit'
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
 });
 
 process.exit(result.status ?? 1);

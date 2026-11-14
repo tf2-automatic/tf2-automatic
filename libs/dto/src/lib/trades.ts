@@ -27,6 +27,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  Matches,
   Min,
   Validate,
   ValidateNested,
@@ -74,12 +75,17 @@ export class AssetDto implements Asset {
 
 export class BaseCreateTrade {
   @ApiProperty({
-    description: 'The message to send with the trade offer',
+    description:
+      'The message to send with the trade offer. Max 128 characters.',
     example: 'Hello, I would like to trade with you',
     required: false,
   })
   @IsOptional()
   @IsString()
+  // Counts UTF-16 code units like steam-tradeoffer-manager's truncation
+  @Matches(/^[\s\S]{1,128}$/, {
+    message: 'message must be between 1 and 128 characters',
+  })
   message?: string;
 
   @ApiProperty({

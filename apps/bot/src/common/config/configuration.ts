@@ -93,7 +93,7 @@ export default (): Config => {
       pollDataForgetTime: getEnvWithDefault(
         'TRADE_POLL_DATA_FORGET_TIME',
         'integer',
-        14 * 24 * 60 * 1000,
+        14 * 24 * 60 * 60 * 1000,
       ),
     },
     tf2: {

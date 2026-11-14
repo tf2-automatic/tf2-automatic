@@ -1,4 +1,5 @@
 import { RetryOptions } from '@tf2-automatic/common-data';
+import { calculateBackoff } from '@tf2-automatic/utils';
 import { AdvancedOptions, MinimalJob } from 'bullmq';
 
 type BackoffStrategy = (
@@ -12,6 +13,7 @@ export const customBackoffStrategy: BackoffStrategy = (attempts, job) => {
     job?.data.retry?.strategy,
     job?.data.retry?.delay,
     job?.data.retry?.maxDelay,
+    job?.data.retry?.jitter,
   );
 };
 
@@ -20,20 +22,3 @@ export const bullWorkerSettings: AdvancedOptions = {
     return customBackoffStrategy(attempts, job);
   },
 };
-
-export function calculateBackoff(
-  attempts: number,
-  strategy: RetryOptions['strategy'] = 'exponential',
-  delay: RetryOptions['delay'] = 1000,
-  maxDelay: RetryOptions['maxDelay'] = 60000,
-): number {
-  let wait = delay;
-
-  if (strategy === 'exponential') {
-    wait = 2 ** (attempts - 1) * delay;
-  } else if (strategy === 'linear') {
-    wait = attempts * delay;
-  }
-
-  return Math.min(wait, maxDelay);
-}

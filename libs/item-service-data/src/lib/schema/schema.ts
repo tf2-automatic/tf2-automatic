@@ -93,6 +93,7 @@ export interface ItemsGameItem {
   capabilities?: Record<string, Bool>;
   static_attrs?: Record<string, string>;
   tool?: {
+    type?: string;
     usage?: {
       attributes?: Record<string, string>;
     };

@@ -32,7 +32,7 @@ export function getEnv<T extends 'string' | 'float' | 'integer' | 'boolean'>(
   if (type === 'string') {
     return value as ParsedValue<T>;
   } else if (type === 'boolean') {
-    return (value === 'true') as ParsedValue<T>;
+    return (value.toLowerCase() === 'true') as ParsedValue<T>;
   } else if (type === 'float') {
     return parseFloat(value) as ParsedValue<T>;
   } else if (type === 'integer') {

@@ -197,5 +197,40 @@ describe('TF2APIParser', () => {
 
       expect(extracted.wear).toEqual(1);
     });
+
+    it('will keep recipe defindex 0 and quality 0', () => {
+      const [extracted] = parser.extract({
+        id: 1,
+        original_id: 1,
+        defindex: 20006,
+        level: 1,
+        quality: 6,
+        inventory: 0,
+        quantity: 1,
+        origin: 0,
+        attributes: [
+          {
+            defindex: 2000,
+            is_output: false,
+            quantity: 1,
+            itemdef: 0,
+            quality: 0,
+          },
+          {
+            defindex: 2001,
+            is_output: true,
+            quantity: 1,
+            itemdef: 0,
+            quality: 0,
+          },
+        ],
+      });
+
+      expect(extracted.inputs).toEqual([
+        { defindex: 0, quality: 0, quantity: 1 },
+      ]);
+      expect(extracted.output).toEqual(0);
+      expect(extracted.outputQuality).toEqual(0);
+    });
   });
 });

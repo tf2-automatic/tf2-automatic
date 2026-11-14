@@ -10,7 +10,7 @@ import { InventoryCallback } from 'steam-tradeoffer-manager';
 import SteamID from 'steamid';
 import { Inventory } from '@tf2-automatic/bot-data';
 import Bottleneck from 'bottleneck';
-import { calculateBackoff } from '@tf2-automatic/queue';
+import { calculateBackoff } from '@tf2-automatic/utils';
 
 @Injectable()
 export class InventoriesService {

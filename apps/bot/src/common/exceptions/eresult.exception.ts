@@ -17,6 +17,9 @@ interface ExceptionBody extends HttpExceptionBody {
 
 export class SteamException extends InternalServerErrorException {
   constructor(message: string, eresult?: EResult, cause?: string) {
+    // WebAPI errors carry the raw x-eresult header, which is a string
+    eresult = /^\d+$/.test(`${eresult}`) ? Number(eresult) : undefined;
+
     let newMessage = `Steam responded to request with an error`;
 
     if (eresult) {

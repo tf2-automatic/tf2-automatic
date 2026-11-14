@@ -5,6 +5,17 @@ import { GatewayTimeoutException, HttpException } from '@nestjs/common';
 import { extractErrorMessage } from './errors';
 import { PaginatedJobs, Job } from '@tf2-automatic/common-data';
 
+const JOB_STATES = [
+  'active',
+  'waiting',
+  'prioritized',
+  'paused',
+  'delayed',
+  'waiting-children',
+  'completed',
+  'failed',
+] as const;
+
 export class QueueManager<
   ParameterType,
   DataType extends JobData,
@@ -44,26 +55,50 @@ export class QueueManager<
       data.metadata.userAgent = this.cls.get('userAgent');
     }
 
-    // Look for existing job
     const existing = await this.getJobById(id);
-    if (existing) {
-      const delayed = await existing.isDelayed();
-      if (delayed) {
-        const newDelay = options?.delay ?? 0;
+    const state = await existing?.getState();
+    if (existing && state !== 'unknown') {
+      // Don't modify a job a worker is processing
+      if (state !== 'active') {
+        const removed = await existing.updateData(data).then(
+          () => false,
+          (err) => {
+            // bullmq has no error code, the job completed and was removed after it was read
+            if (
+              err instanceof Error &&
+              err.message.startsWith('Missing key for job ')
+            ) {
+              return true;
+            }
+            throw err;
+          },
+        );
 
+        if (removed) {
+          return this.createJob(id, data, options);
+        }
+
+        const newDelay = options?.delay ?? 0;
         if (
           newDelay === 0 ||
           existing.timestamp + existing.delay <= Date.now() + newDelay
         ) {
-          await Promise.all([
-            existing.changeDelay(newDelay),
-            existing.updateData(data),
-          ]);
-          return existing;
+          // Fails if the job is no longer delayed
+          await existing.changeDelay(newDelay).catch(() => undefined);
         }
       }
+
+      return existing;
     }
 
+    return this.createJob(id, data, options);
+  }
+
+  private createJob(
+    id: string,
+    data: DataType,
+    options?: OptionsType,
+  ): Promise<CustomJob<DataType>> {
     return this.queue.add(id, data, {
       jobId: id,
       backoff: {
@@ -80,19 +115,31 @@ export class QueueManager<
 
   async getJobs(page: number, pageSize: number): Promise<PaginatedJobs> {
     const start = (page - 1) * pageSize;
-    const end = start + pageSize;
 
-    const totalPromise = this.queue.getJobCounts().then((counts) => {
-      return Object.values(counts).reduce((acc, count) => acc + count, 0);
-    });
+    const counts = await this.queue.getJobCounts(...JOB_STATES);
+    const total = Object.values(counts).reduce((acc, count) => acc + count, 0);
 
-    const jobsPromise = this.queue
-      .getJobs(undefined, start, end)
-      .then((jobs) => {
-        return jobs.map(this.mapJob);
-      });
+    // BullMQ applies a range per state, so page through the states in order
+    const jobs: CustomJob<DataType>[] = [];
+    let offset = 0;
+    for (const state of JOB_STATES) {
+      const count = counts[state] ?? 0;
+      const from = Math.max(start - offset, 0);
+      const need = pageSize - jobs.length;
+      offset += count;
 
-    const [items, total] = await Promise.all([jobsPromise, totalPromise]);
+      if (from >= count) {
+        continue;
+      }
+
+      jobs.push(...(await this.queue.getJobs([state], from, from + need - 1)));
+
+      if (jobs.length >= pageSize) {
+        break;
+      }
+    }
+
+    const items = jobs.map(this.mapJob);
 
     return {
       data: items,

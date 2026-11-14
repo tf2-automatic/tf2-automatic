@@ -50,3 +50,6 @@ Thumbs.db
 
 # vim
 *.vim
+
+# Claude Code worktrees
+/.claude/worktrees/

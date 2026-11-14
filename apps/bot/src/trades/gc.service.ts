@@ -57,7 +57,12 @@ export class GarbageCollectorService {
     let changed = false;
 
     const checkOffer = (id: string): void => {
-      const offerData: TradeOfferData = this.manager.pollData.offerData[id];
+      const offerData: TradeOfferData | undefined =
+        this.manager.pollData.offerData[id];
+      if (!offerData) {
+        // Offer was never published
+        return;
+      }
 
       // Last published state is not completed
       const completed = helpers.isCompleted(offerData.published);

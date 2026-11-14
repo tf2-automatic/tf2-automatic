@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Notification, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
@@ -13,8 +13,11 @@ import { JobData } from './interfaces/queue';
 import { pack, unpack } from 'msgpackr';
 import assert from 'assert';
 
+// A failed fetch fails its done job, which would otherwise wait for it forever
+const FETCH_JOB_OPTIONS = { failParentOnFailure: true };
+
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleDestroy {
   private readonly producer = new FlowProducer(this.queue.opts);
 
   private readonly redis: Redis = this.redisService.getOrThrow();
@@ -36,12 +39,16 @@ export class NotificationsService {
   }
 
   async refreshNotifications(steamid: SteamID): Promise<void> {
+    // Gives every refresh its own temp key
+    const time = Date.now();
+
     await this.producer.add(
       {
         name: 'done',
         queueName: this.queue.name,
         data: {
           steamid64: steamid.getSteamID64(),
+          time,
         },
         children: [
           {
@@ -49,16 +56,16 @@ export class NotificationsService {
             queueName: this.queue.name,
             data: {
               steamid64: steamid.getSteamID64(),
+              time,
             },
+            opts: FETCH_JOB_OPTIONS,
           },
         ],
       },
       {
         queuesOptions: {
           [this.queue.name]: {
-            defaultJobOptions: {
-              removeOnComplete: true,
-            },
+            defaultJobOptions: this.queue.defaultJobOptions,
           },
         },
       },
@@ -76,8 +83,6 @@ export class NotificationsService {
     const tempKey = key + ':' + time;
 
     if (response.results.length > 0) {
-      await this.saveTempNotifications(steamid, response.results);
-
       await this.redis
         .multi()
         .hmset(tempKey, this.mapNotifications(response.results))
@@ -117,25 +122,6 @@ export class NotificationsService {
     await this.eventEmitter.emitAsync('notifications.refreshed', steamid);
   }
 
-  private async saveTempNotifications(
-    steamid: SteamID,
-    notifications: Notification[],
-  ): Promise<void> {
-    if (notifications.length === 0) {
-      return;
-    }
-
-    const keys = await this.redis.keys(this.getKey(steamid) + ':*');
-
-    const transaction = this.redis.multi();
-
-    keys.forEach((key) => {
-      transaction.hmset(key, this.mapNotifications(notifications));
-    });
-
-    await transaction.exec();
-  }
-
   private mapNotifications(
     notifications: Notification[],
   ): Record<string, Buffer> {
@@ -166,6 +152,7 @@ export class NotificationsService {
         limit,
       },
       {
+        ...FETCH_JOB_OPTIONS,
         jobId:
           job.data.steamid64 + ':' + job.data.time + ':' + skip + ':' + limit,
         parent: {
@@ -174,6 +161,10 @@ export class NotificationsService {
         },
       },
     );
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.producer.close();
   }
 
   private getKey(steamid: SteamID) {

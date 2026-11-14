@@ -43,7 +43,8 @@ export class BptfParser extends Parser<
       spells: raw.spells ? raw.spells.map((spell) => spell.name) : [],
       sheen: raw.sheen?.id ?? null,
       killstreaker: raw.killstreaker?.id ?? null,
-      inputs: raw.recipe?.inputItems ?? [],
+      // Null without inputs, like the other parsers
+      inputs: raw.recipe?.inputItems?.length ? raw.recipe.inputItems : null,
       quantity: raw.quantity ?? null,
       level: raw.level ?? null,
     };
@@ -60,12 +61,16 @@ export class BptfParser extends Parser<
       }
     }
 
-    const spells = await helpers.getSpellByName(extracted.spells, this.schema);
+    // Skip lookups when there is nothing to look up
+    const spells =
+      extracted.spells.length > 0
+        ? await helpers.getSpellByName(extracted.spells, this.schema)
+        : [];
 
-    const inputs: RecipeInput[] | null = await helpers.parseInputs(
-      extracted.inputs,
-      this.schema,
-    );
+    const inputs: RecipeInput[] | null =
+      extracted.inputs && extracted.inputs.length > 0
+        ? await helpers.parseInputs(extracted.inputs, this.schema)
+        : null;
 
     return {
       assetid: extracted.assetid,

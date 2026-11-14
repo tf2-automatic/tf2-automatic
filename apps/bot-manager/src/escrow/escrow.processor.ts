@@ -6,6 +6,7 @@ import {
   CustomJob,
   CustomUnrecoverableError,
   CustomWorkerHost,
+  DelaysOfflineBotJobs,
   selectBot,
 } from '@tf2-automatic/queue';
 import { ClsService } from 'nestjs-cls';
@@ -15,6 +16,7 @@ import SteamID from 'steamid';
 import { Bot } from '@tf2-automatic/bot-manager-data';
 import { HeartbeatsService } from '../heartbeats/heartbeats.service';
 
+@DelaysOfflineBotJobs()
 @Processor('escrow', {
   settings: bullWorkerSettings,
   limiter: {
@@ -88,9 +90,7 @@ export class EscrowProcessor extends CustomWorkerHost<EscrowJobData> {
     if (job.data.bot) {
       const botSteamID = new SteamID(job.data.bot);
 
-      return this.heartbeatsService.getBot(botSteamID).catch((err) => {
-        throw new Error(err.message);
-      });
+      return this.heartbeatsService.getBot(botSteamID);
     }
 
     // Get list of bots

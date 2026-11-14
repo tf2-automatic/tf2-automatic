@@ -13,6 +13,7 @@ import { ProfileModule } from './profile/profile.module';
 import { EventsModule } from './events/events.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { EscrowModule } from './escrow/escrow.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ShutdownModule } from './shutdown/shutdown.module';
 import { ManagerModule } from './manager/manager.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -65,6 +66,7 @@ import { ClsModule } from 'nestjs-cls';
     EventsModule,
     MetadataModule,
     EscrowModule,
+    NotificationsModule,
     ShutdownModule,
     ManagerModule,
     HttpModule.registerAsync({
