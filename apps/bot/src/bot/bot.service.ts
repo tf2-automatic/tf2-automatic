@@ -276,6 +276,8 @@ export class BotService implements OnModuleDestroy {
     return {
       steamid64: this.getSteamID64(),
       apiKey: this.getApiKey(),
+      accountName: this.username,
+      personaName: this.client.accountInfo?.name,
     };
   }
 
