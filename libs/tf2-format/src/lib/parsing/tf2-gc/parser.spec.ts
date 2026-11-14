@@ -533,6 +533,16 @@ describe('TF2GCParser', () => {
       };
     }
 
+    function floatAttribute(defIndex: number, value: number) {
+      const bytes = Buffer.alloc(4);
+      bytes.writeFloatLE(value);
+      return {
+        def_index: defIndex,
+        value: null,
+        value_bytes: { type: 'Buffer' as const, data: [...bytes] },
+      };
+    }
+
     async function parse(
       overrides: Partial<ReturnType<typeof TestData.getBasicItem>>,
       schemaItem: ItemsGameItem = { name: 'Item' },
@@ -622,6 +632,101 @@ describe('TF2GCParser', () => {
       const parsed = await parse({ attribute: [uint32Attribute(211, 1)] });
 
       expect(parsed.tradable).toEqual(true);
+    });
+
+    it('will take the target and tier of a single-target kit from its definition', async () => {
+      // Frontier Justice Killstreakifier Basic: econ reads killstreak 1, target 141
+      const parsed = await parse(
+        { def_index: 5751 },
+        {
+          name: 'Frontier Justice Killstreakifier Basic',
+          tool: { type: 'killstreakifier' },
+          attributes: {
+            'never craftable': {
+              attribute_class: 'never_craftable',
+              value: '1',
+            },
+            'killstreak tier': {
+              attribute_class: 'killstreak_tier',
+              value: '1',
+            },
+          },
+          static_attrs: { 'tool target item': '141' },
+        },
+      );
+
+      expect(parsed.target).toEqual(141);
+      expect(parsed.killstreak).toEqual(1);
+      expect(parsed.craftable).toEqual(false);
+    });
+
+    it('will take the target of a single-target strangifier from its definition', async () => {
+      // Third Degree Strangifier: econ reads target 593
+      const parsed = await parse(
+        { def_index: 5784 },
+        {
+          name: 'Third Degree Strangifier',
+          tool: { type: 'strangifier' },
+          static_attrs: { 'is commodity': '1', 'tool target item': '593' },
+        },
+      );
+
+      expect(parsed.target).toEqual(593);
+    });
+
+    it('will take the wear of a war paint from its definition when the item has none', async () => {
+      // Autumn Mk.II War Paint (Factory New) arrives without attribute 725
+      const parsed = await parse(
+        { def_index: 16160, quality: 15 },
+        {
+          name: 'Paintkit 160',
+          static_attrs: {
+            texture_wear_default: '0',
+            paintkit_proto_def_index: '160',
+          },
+        },
+      );
+
+      expect(parsed.paintkit).toEqual(160);
+      expect(parsed.wear).toEqual(1);
+    });
+
+    it('will keep the wear an item states over its definition default', async () => {
+      const parsed = await parse(
+        {
+          def_index: 16391,
+          quality: 15,
+          attribute: [floatAttribute(725, 0.8)],
+        },
+        {
+          name: 'Paintkit 391',
+          static_attrs: {
+            texture_wear_default: '0',
+            paintkit_proto_def_index: '391',
+          },
+        },
+      );
+
+      expect(parsed.wear).toEqual(4);
+    });
+
+    it('will take the crate series from the definition attributes', async () => {
+      // Supply Crate Ration 6 states its series as an attribute, not a static attribute
+      const parsed = await parse(
+        { def_index: 5802 },
+        {
+          name: 'Supply Crate Ration 6',
+          tool: { type: '' },
+          attributes: {
+            'set supply crate series': {
+              attribute_class: 'supply_crate_series',
+              value: '91',
+            },
+          },
+        },
+      );
+
+      expect(parsed.crateSeries).toEqual(91);
     });
   });
 });

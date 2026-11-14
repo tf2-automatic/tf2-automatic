@@ -367,6 +367,16 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     return false;
   }
 
+  // A value the definition states in its attributes or static attributes
+  private static definitionValue(
+    schemaItem: ItemsGameItem,
+    name: string,
+  ): string | undefined {
+    return (
+      schemaItem.static_attrs?.[name] ?? schemaItem.attributes?.[name]?.value
+    );
+  }
+
   async parse(
     extracted: ExtractedTF2GCItem,
     context: Context,
@@ -390,25 +400,59 @@ export class TF2GCParser extends TF2Parser<TF2GCItem, Context> {
     }
 
     let crateSeries: number | null = extracted.crateSeries;
-    // TF2 GC may not provide crate series, so we have to manually retrieve it
-    if (
-      crateSeries === null &&
-      schemaItem.static_attrs &&
-      schemaItem.static_attrs['set supply crate series'] !== undefined
-    ) {
-      crateSeries = Number(schemaItem.static_attrs['set supply crate series']);
-    }
-
-    // War paints have their paintkit on the definition, not on the item
+    // War paints and war-painted weapons have their paintkit and default wear on the definition
+    const staticAttrs = schemaItem.static_attrs;
     if (
       extracted.paintkit === null &&
-      schemaItem.static_attrs &&
-      schemaItem.static_attrs['paintkit_proto_def_index'] !== undefined
+      staticAttrs?.['paintkit_proto_def_index'] !== undefined
     ) {
       extracted = {
         ...extracted,
-        paintkit: Number(schemaItem.static_attrs['paintkit_proto_def_index']),
+        paintkit: Number(staticAttrs['paintkit_proto_def_index']),
       };
+    }
+    if (
+      extracted.wear === null &&
+      extracted.paintkit !== null &&
+      staticAttrs?.['texture_wear_default'] !== undefined
+    ) {
+      extracted = {
+        ...extracted,
+        wear: TF2Parser.wearTier(Number(staticAttrs['texture_wear_default'])),
+      };
+    }
+
+    // Only these tools state their crate series, target or killstreak tier on the definition
+    switch (schemaItem.tool?.type) {
+      case '':
+      case 'keyless_case':
+        // TF2 GC may not provide crate series, so we have to manually retrieve it
+        if (crateSeries === null) {
+          const series = TF2GCParser.definitionValue(
+            schemaItem,
+            'set supply crate series',
+          );
+          if (series !== undefined) {
+            crateSeries = Number(series);
+          }
+        }
+        break;
+      case 'killstreakifier':
+      case 'strangifier': {
+        const target = TF2GCParser.definitionValue(
+          schemaItem,
+          'tool target item',
+        );
+        if (extracted.target === null && target !== undefined) {
+          extracted = { ...extracted, target: Number(target) };
+        }
+
+        const tier = TF2GCParser.definitionValue(schemaItem, 'killstreak tier');
+        if (extracted.killstreak === 0 && tier !== undefined) {
+          extracted = { ...extracted, killstreak: Number(tier) };
+        }
+        break;
+      }
     }
 
     // Paint cans have their colour on the definition, not on the item
