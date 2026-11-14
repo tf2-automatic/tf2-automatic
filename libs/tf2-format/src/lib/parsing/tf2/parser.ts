@@ -77,7 +77,6 @@ export abstract class TF2Parser<
     };
   }
 
-  // A wear float (0.2 Factory New to 1.0 Battle Scarred) as its tier 1-5, 0 reads as Factory New
   static wearTier(raw: number): number {
     return raw === 0 ? 1 : Math.round(raw / 0.2);
   }
