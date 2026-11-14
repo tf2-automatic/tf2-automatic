@@ -24,7 +24,7 @@ import {
   CurrentListingsCreatedEvent,
   CurrentListingsDeletedEvent,
 } from './interfaces/events.interface';
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { ListingLimitsService } from './listing-limits.service';
 import { FlowProducer, Job, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -36,6 +36,9 @@ import {
 import { DesiredListing } from './classes/desired-listing.class';
 import { pack, unpack } from 'msgpackr';
 import assert from 'assert';
+
+// A failed page fails its done job, which would otherwise wait for it forever
+const FETCH_JOB_OPTIONS = { failParentOnFailure: true };
 
 // Keeps temp keys non-empty, Redis can't store an empty hash
 const TEMP_PLACEHOLDER = 'placeholder';
@@ -55,7 +58,7 @@ end
 return written
 `;
 
-export class CurrentListingsService {
+export class CurrentListingsService implements OnModuleDestroy {
   private readonly logger = new Logger(CurrentListingsService.name);
 
   private readonly producer: FlowProducer = new FlowProducer(this.queue.opts);
@@ -107,6 +110,7 @@ export class CurrentListingsService {
               steamid64: steamid.getSteamID64(),
               start: time,
             },
+            opts: FETCH_JOB_OPTIONS,
           },
           {
             name: JobType.Archived,
@@ -115,6 +119,7 @@ export class CurrentListingsService {
               steamid64: steamid.getSteamID64(),
               start: time,
             },
+            opts: FETCH_JOB_OPTIONS,
           },
         ],
       },
@@ -146,6 +151,7 @@ export class CurrentListingsService {
         limit,
       },
       {
+        ...FETCH_JOB_OPTIONS,
         jobId:
           job.data.steamid64 +
           '_' +
@@ -163,6 +169,10 @@ export class CurrentListingsService {
         },
       },
     );
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.producer.close();
   }
 
   async getAllCurrent(steamid: SteamID): Promise<Listing[]> {

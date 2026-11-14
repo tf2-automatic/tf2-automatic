@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import { Notification, Token } from '@tf2-automatic/bptf-manager-data';
 import { Redis } from 'ioredis';
@@ -13,8 +13,11 @@ import { JobData } from './interfaces/queue';
 import { pack, unpack } from 'msgpackr';
 import assert from 'assert';
 
+// A failed fetch fails its done job, which would otherwise wait for it forever
+const FETCH_JOB_OPTIONS = { failParentOnFailure: true };
+
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleDestroy {
   private readonly producer = new FlowProducer(this.queue.opts);
 
   private readonly redis: Redis = this.redisService.getOrThrow();
@@ -55,15 +58,14 @@ export class NotificationsService {
               steamid64: steamid.getSteamID64(),
               time,
             },
+            opts: FETCH_JOB_OPTIONS,
           },
         ],
       },
       {
         queuesOptions: {
           [this.queue.name]: {
-            defaultJobOptions: {
-              removeOnComplete: true,
-            },
+            defaultJobOptions: this.queue.defaultJobOptions,
           },
         },
       },
@@ -150,6 +152,7 @@ export class NotificationsService {
         limit,
       },
       {
+        ...FETCH_JOB_OPTIONS,
         jobId:
           job.data.steamid64 + ':' + job.data.time + ':' + skip + ':' + limit,
         parent: {
@@ -158,6 +161,10 @@ export class NotificationsService {
         },
       },
     );
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.producer.close();
   }
 
   private getKey(steamid: SteamID) {
