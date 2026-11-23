@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS base
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS base
 WORKDIR /app
 # pnpm version from "packageManager" in package.json
 COPY package.json ./
@@ -34,7 +34,7 @@ RUN --mount=type=bind,from=deps,source=/root/.local/share/pnpm/store,target=/roo
     --mount=type=bind,from=deps,source=/root/.cache/pnpm,target=/root/.cache/pnpm,rw \
     pnpm install --frozen-lockfile --prod --offline
 
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS runner
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS runner
 ENV NODE_ENV=production
 WORKDIR /app
 ARG APP
